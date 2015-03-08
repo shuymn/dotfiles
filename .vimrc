@@ -6,7 +6,7 @@ set title        " 編集中のファイル名を表示
 set showmatch    " 括弧入力時の対応する括弧を表示
 set matchtime=5  " 対応括弧の表示秒数を5秒にする
 set wrap         " ウィンドウの幅より長い行は折り返して次の行に表示する
-set history=1024 " コマンド、検索パターンを1024個まで履歴に残す"
+set history=1024 " コマンド、検索パターンを1024個まで履歴に残す
 set showcmd      " コマンドを画面最下部に表示する
 set showmode     " モードを最終行に表示する
 set laststatus=2 " 最終行のステータスラインを2行にする
