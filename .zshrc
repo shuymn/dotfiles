@@ -16,11 +16,17 @@ HISTSIZE=1000000
 SAVEHIST=1000000
 
 # プロンプト
-# PROMPT="%~ %# " # 1行表示
+## PROMPT="%~ %# " # 1行表示
 
-# 2行表示
+## 2行表示
 PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
 %# "
+
+## SSHログイン時のプロンプト
+[ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
+  PROMPT="%{${fg[white]}%}${HOST%%.*} ${PROMPT}"
+;
+
 
 # 補完
 autoload -Uz compinit # 補完機能を有効にする
