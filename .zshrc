@@ -26,7 +26,7 @@ PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${rese
 [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
 PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
 %# "
-
+;
 
 
 # 補完
