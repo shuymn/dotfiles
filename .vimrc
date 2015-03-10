@@ -24,6 +24,7 @@ call neobundle#begin(expand('~/.vim/bundle/'))
  NeoBundle 'nanotech/jellybeans.vim'
  NeoBundle 'itchyny/lightline.vim'
  NeoBundle 'scrooloose/nerdtree'
+ NeoBundle 'Townk/vim-autoclose'
 
 " lightlineの設定
 let g:lightline = {
