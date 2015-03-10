@@ -16,17 +16,30 @@ HISTSIZE=1000000
 SAVEHIST=1000000
 
 # プロンプト
+local p_rhst=""
+if [[ -n "${REMOTEHOST}${SSH_CONNECTION}" ]]; then
+    local rhost='who am i|sed 's/.*(\(.*\)).*/\1/''
+    rhost=${rhost#localhost:}
+    rhost=${rhost%%.*}
+    p_rhst="%F{yellow}($rhost)%f"
+fi
+local p_cdir="%F{cyan}[%~]%f"$'\n'
+local p_info="%n@%m"
+local p_mark="%(?,%F{blue},%F{red})%(!,#,>)%f"
+PROMPT=" $p_cdir$p_rhst$p_info $p_mark "
+
+
 ## PROMPT="%~ %# " # 1行表示
 
 ## 2行表示
-PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
-%# "
+# PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
+# %# "
 
 ## SSHログイン時のプロンプト
-[ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
-PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
-%# "
-;
+# [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
+# PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
+# %# "
+# ;
 
 
 # 補完
