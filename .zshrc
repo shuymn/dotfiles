@@ -16,31 +16,27 @@ HISTSIZE=1000000
 SAVEHIST=1000000
 
 # プロンプト
-local p_rhst=""
-if [[ -n "${REMOTEHOST}${SSH_CONNECTION}" ]]; then
-    local rhost='who am i|sed 's/.*(\(.*\)).*/\1/''
-    rhost=${rhost#localhost:}
-    rhost=${rhost%%.*}
-    p_rhst="%F{yellow}($rhost)%f"
-fi
-local p_cdir="%F{cyan}[%~]%f"$'\n'
+# autoload -Uz vcs_info
+# setopt prompt_subst
+# zstyle ':vcs_info:*' enable git
+# zstyle ':vcs_info:git:*' check-for-changes true
+# zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
+# zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
+# zstyle ':vcs_info:git:*' formats "%F{green}%c%u[%b:%r]%f"
+# zstyle ':vcs_info:git:*' actionformats '[%b|%a]'
+# precmd () { vcs_info }
+# local p_rhst=""
+# if [[ -n "${REMOTEHOST}${SSH_CONNECTION}" ]]; then
+#     local rhost='who am i|sed 's/.*(\(.*\)).*/\1/''
+#     rhost=${rhost#localhost:}
+#     rhost=${rhost%%.*}
+#     p_rhst="%F{yellow}($rhost)%f"
+# fi
+local p_cdir="%F{cyan}[%~]%f"
+local p_time="%F{green}[%D %T]%f"$'\n'
 local p_info="%n@%m"
-local p_mark="%(?,%F{blue},%F{red})%(!,#,>)%f"
-PROMPT=" $p_cdir$p_rhst$p_info $p_mark "
-
-
-## PROMPT="%~ %# " # 1行表示
-
-## 2行表示
-# PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
-# %# "
-
-## SSHログイン時のプロンプト
-# [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
-# PROMPT="%{${fg[cyan]}%}[%n@%m]%{${reset_color}%} %{${fg[green]}%}[%D %T]%{${reset_color}%} %~
-# %# "
-# ;
-
+local p_mark="%(!,%F{red}#%f,%F{blue}>%f)"
+PROMPT=" $p_cdir $p_time$p_info $p_mark "
 
 # 補完
 autoload -Uz compinit # 補完機能を有効にする
