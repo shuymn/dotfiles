@@ -36,7 +36,7 @@ local p_cdir="%F{cyan}[%~]%f"
 local p_time="%F{green}[%D %T]%f"$'\n'
 local p_info="%n@%m"
 local p_mark="%(!,%F{red}#%f,%F{blue}>%f)"
-PROMPT=" $p_cdir $p_time$p_info $p_mark "
+PROMPT=" $p_info $p_cdir $p_time $p_mark "
 
 # 補完
 autoload -Uz compinit # 補完機能を有効にする
