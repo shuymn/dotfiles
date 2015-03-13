@@ -53,6 +53,7 @@ NeoBundle 'osyo-manga/shabadou.vim'
 NeoBundle 'scrooloose/nerdtree'
 NeoBundle 'cohama/vim-hier'
 NeoBundle 'dannyob/quickfixstatus'
+NeoBundle 'tyru/caw.vim'
 
 " lightlineの設定
 let g:lightline = {
@@ -131,9 +132,13 @@ let g:quickrun_config = {
             \       "outputter/buffer/split" : ":botright 8sp",
             \   },
             \}
+" caw.vimの設定
+nmap <C-K> <Plug>(caw:i:toggle)
+vmap <C-K> <Plug>(caw:i:toggle)
 
 call neobundle#end()
 
+filetype on
 filetype plugin indent on
 NeoBundleCheck
 
@@ -159,8 +164,8 @@ set t_Co=256
 " 入力関連
 " 左右のカーソル移動で行間移動が可能になる
 set whichwrap=b,s,<,>,[,]
-" INSERT中に素早くasdfと入力した場合はESCとみなす
-inoremap asdf <ESC>
+" INSERT中にCtrl+[を入力した場合はESCとみなす
+inoremap <C-[> <ESC>
 " ESC2回押すことでハイライトを消す
 nmap <silent> <ESC><ESC> :nohlsearch<CR>
 " :と;を入れ替える
@@ -184,10 +189,10 @@ inoremap <C-d> <Enter>
 inoremap <C-b> <Backspace>
 inoremap <C-e> <END>
 inoremap <C-a> <HOME>
-inoremap <C-j> <Down>
-inoremap <C-k> <Up>
-inoremap <C-h> <Left>
-inoremap <C-l> <Right>
+inoremap <C-J> <Down>
+inoremap <C-K> <Up>
+inoremap <C-H> <Left>
+inoremap <C-L> <Right>
 " 矢印キーを使えないようにする
 noremap <Up> <Nop>
 noremap <Down> <Nop>
@@ -197,12 +202,14 @@ inoremap <Up> <Nop>
 inoremap <Down> <Nop>
 inoremap <Right> <Nop>
 " 補完
-inoremap {} {}<LEFT>
-inoremap [] []<LEFT>
-inoremap () ()<LEFT>
-inoremap "" ""<LEFT>
-inoremap '' ''<LEFT>
-inoremap <> <><LEFT>
+inoremap {} {}<Left>
+inoremap [] []<Left>
+inoremap () ()<Left>
+inoremap "" ""<Left>
+inoremap '' ''<Left>
+inoremap <> <><Left>
+
+set clipboard=unnamed,autoselect
 
 " 無限undo
 if has('persistent_undo')
