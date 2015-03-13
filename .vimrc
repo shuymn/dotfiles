@@ -19,19 +19,18 @@ set runtimepath+=~/.vim/bundle/neobundle.vim
 call neobundle#begin(expand('~/.vim/bundle/'))
 
 NeoBundle 'Shougo/neobundle.vim'
+NeoBundle 'Shougo/unite.vim'
 NeoBundle 'ujihisa/unite-colorscheme'
 NeoBundle 'nanotech/jellybeans.vim'
 NeoBundle 'itchyny/lightline.vim'
-NeoBundle 'scrooloose/nerdtree'
 NeoBundle 'Shougo/neocomplete.vim'
 NeoBundle 'ujihisa/neco-look'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'mattn/emmet-vim'
-NeoBundle 'vim-scripts/Changed'
 NeoBundle 'othree/html5.vim'
 NeoBundle 'hail2u/vim-css3-syntax'
 NeoBundle 'gorodinskiy/vim-coloresque'
-NeoBundle 'hokaccha/vim-html5validator'
+" NeoBundle 'hokaccha/vim-html5validator'
 NeoBundle 'scrooloose/syntastic'
 NeoBundle 'thinca/vim-ref'
 NeoBundle 'mfumi/ref-dicts-en'
@@ -48,6 +47,13 @@ NeoBundle 'Shougo/vimproc.vim', {
             \ }
 NeoBundle 'Shougo/vimshell'
 NeoBundle 'h1mesuke/vim-alignta'
+NeoBundle 'thinca/vim-quickrun'
+NeoBundle 'osyo-manga/unite-quickfix'
+NeoBundle 'osyo-manga/shabadou.vim'
+"NeoBundle 'osyo-manga/vim-watchdogs'
+NeoBundle 'scrooloose/nerdtree'
+NeoBundle 'cohama/vim-hier'
+NeoBundle 'dannyob/quickfixstatus'
 
 " lightlineの設定
 let g:lightline = {
@@ -81,7 +87,7 @@ let g:syntastic_html_tidy_exec = 'tidy5'
 
 " vim-refの設定
 "" vim-refのバッファをqで閉じれるようにする
-autocmd FileType ref-* nnoremap <buffer> <silent> q:<C-u>close<CR>
+autocmd FileType ref-* nnoremap <buffer> <silent> q :<C-u>close<CR>
 "" 辞書定義
 let g:ref_source_webdict_sites = {
             \   'je': {
@@ -112,7 +118,23 @@ endfunction
 "" 開いたバッファを q で閉じれるようにする
 autocmd BufEnter ==Translate==\ Excite nnoremap <buffer> <silent> q :<C-u>close<CR>
 
+" quickrun.vimの設定
+let g:quickrun_config = {
+            \   "_" : {
+            \       "hook/close_unite_quickfix/enable_hook_loaded" : 1,
+            \       "hook/unite_quickfix/enable_failure" : 1,
+            \       "hook/close_quickfix/enable_exit" : 1,
+            \       "hook/close_buffer/enable_failure" : 1,
+            \       "hook/close_buffer/enable_empty_data" : 1,
+            \       "runner" : "vimproc",
+            \       "runner/vimproc/updatetime" : 60,
+            \       "outputter" : "multi:buffer:quickfix",
+            \       "outputter/buffer/split" : ":botright 8sp",
+            \   },
+            \}
+
 call neobundle#end()
+
 filetype plugin indent on
 NeoBundleCheck
 
