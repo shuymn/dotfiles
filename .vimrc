@@ -18,7 +18,7 @@ set runtimepath+=~/.vim/bundle/neobundle.vim
 " required
 call neobundle#begin(expand('~/.vim/bundle/'))
 
-NeoBundle 'Shougo/neobundle.vim'
+NeoBundleFetch 'Shougo/neobundle.vim'
 NeoBundle 'Shougo/unite.vim'
 NeoBundle 'ujihisa/unite-colorscheme'
 NeoBundle 'nanotech/jellybeans.vim'
@@ -60,6 +60,14 @@ NeoBundle 'Lokaltog/vim-easymotion'
 NeoBundle 't9md/vim-textmanip'
 NeoBundle 'vim-scripts/DrawIt'
 NeoBundle 'sjl/gundo.vim'
+NeoBundle 'tyru/open-browser.vim'
+NeoBundle 'ujihisa/unite-locate'
+NeoBundle 'osyo-manga/vim-over'
+NeoBundle 'Shougo/neosnippet.vim'
+NeoBundle 'Shougo/neosnippet-snippets'
+NeoBundle 'vim-jp/vimdoc-ja'
+NeoBundle 'majutsushi/tagbar'
+NeoBundle 'Yggdroot/indentLine'
 
 " lightlineの設定
 let g:lightline = {
@@ -226,6 +234,31 @@ xmap <F10> <Plug>(textmanip-toggle-mode)
 nnoremap <F5> :GundoToggle<CR>
 call neobundle#end()
 
+" tagbar
+nnoremap <F8> :TagbarToggle<CR> 
+
+" indentLine
+let g:indentLine_color_term = 239 
+let g:indentLine_char = '▸'
+
+" Plugin key-mappings.
+imap <C-k>     <Plug>(neosnippet_expand_or_jump)
+smap <C-k>     <Plug>(neosnippet_expand_or_jump)
+xmap <C-k>     <Plug>(neosnippet_expand_target)
+
+" SuperTab like snippets behavior.
+imap <expr><TAB> neosnippet#expandable_or_jumpable() ?
+            \ "\<Plug>(neosnippet_expand_or_jump)"
+            \: pumvisible( ? "\<C-n>" : "\<TAB>"
+smap <expr><TAB> neosnippet#expandable_or_jumpable() ?
+            \ "\<Plug>(neosnippet_expand_or_jump)"
+            \: "\<TAB>"
+
+" For snippet_complete marker.
+if has('conceal')
+    set conceallevel=2 concealcursor=i
+endif
+
 filetype on
 filetype plugin indent on
 NeoBundleCheck
@@ -273,10 +306,10 @@ autocmd Filetype * setlocal formatoptions-=ro
 
 " キーマッピング
 " INSERTモードでの移動
-inoremap <C-J> <Down>
-inoremap <C-K> <Up>
-inoremap <C-H> <Left>
-inoremap <C-L> <Right>
+inoremap <M-J> <Down>
+inoremap <M-K> <Up>
+inoremap <M-H> <Left>
+inoremap <M-L> <Right>
 " 矢印キーを使えないようにする
 noremap <Up> <Nop>
 noremap <Down> <Nop>
@@ -294,9 +327,9 @@ inoremap '' ''<Left>
 inoremap <> <><Left>
 
 set clipboard=unnamed,autoselect
-set mouse=a
-set ttymouse=xterm2
 set ambiwidth=double
+set list
+set listchars=eol:¬
 
 " 無限undo
 if has('persistent_undo')
