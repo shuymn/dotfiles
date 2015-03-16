@@ -289,7 +289,7 @@ set whichwrap=b,s,<,>,[,]
 " INSERT中にCtrl+[を入力した場合はESCとみなす
 inoremap <C-[> <ESC>
 " ESC2回押すことでハイライトを消す
-nmap <silent> <ESC><ESC> :nohlsearch<CR>
+nnoremap <Esc><Esc> :<C-u>set nohlsearch<Return>
 " :と;を入れ替える
 noremap ; :
 noremap : ;
