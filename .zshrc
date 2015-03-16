@@ -51,7 +51,7 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 補完で大文字小文�
 zstyle ':completion:*' ignore-parents parent pwd .. # ../ の後はcurrentdirectoryを補完しない
 # sudo の後ろでコマンドを補完する
 zstyle ':completion:*:sudo:*' command-path /usr/local/sbin /usr/local/bin \
-                   /usr/sbin /usr/bin /sbin /bin /usr/X11R6/bin
+    /usr/sbin /usr/bin /sbin /bin /usr/X11R6/bin
 
 export LSCOLORS=Exfxcxdxbxegedabagacad # 色の設定
 # 補完候補に色を付ける設定
@@ -73,18 +73,34 @@ setopt extended_history   # ヒストリに実行時間も保存する
 setopt correct           # コマンドのスペルを訂正する
 setopt no_beep           # ビープ音を鳴らさないようにする
 
-# タイトル
-case "${TERM}" in
-kterm*|xterm*|)
-  precmd() {
-    echo -ne "\033]0;${USER}@${HOST%%.*}\007"
-  }
-  ;;
-esac
+# powerline-shell
+function powerline_precmd() {
+export PS1="$(~/.zsh/powerline-shell/powerline-shell.py $? --shell zsh 2> /dev/null)"
+        }
 
-# cdの後にls
-function cd() {
-  builtin cd $@ && ls -F --color=auto;
+function install_powerline_precmd() {
+    for s in "${precmd_functions[@]}"; do
+        if [ "$s" = "powerline_precmd" ]; then
+        return
+        fi
+    done
+precmd_functions+=(powerline_precmd)
+}
+
+install_powerline_precmd
+
+# タイトル
+    case "${TERM}" in
+        kterm*|xterm*|)
+            precmd() {
+                echo -ne "\033]0;${USER}@${HOST%%.*}\007"
+            }
+            ;;
+    esac
+
+    # cdの後にls
+    function cd() {
+    builtin cd $@ && ls -F --color=auto;
 }
 
 alias ls='ls -F --color=auto' # lsに色を付ける
