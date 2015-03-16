@@ -50,7 +50,7 @@ NeoBundle 'thinca/vim-quickrun'
 NeoBundle 'osyo-manga/unite-quickfix'
 NeoBundle 'osyo-manga/shabadou.vim'
 "NeoBundle 'osyo-manga/vim-watchdogs'
-NeoBundle 'scrooloose/nerdtree'
+" NeoBundle 'scrooloose/nerdtree'
 NeoBundle 'cohama/vim-hier'
 NeoBundle 'dannyob/quickfixstatus'
 NeoBundle 'tyru/caw.vim'
@@ -69,13 +69,110 @@ NeoBundle 'vim-jp/vimdoc-ja'
 NeoBundle 'majutsushi/tagbar'
 NeoBundle 'Yggdroot/indentLine'
 NeoBundle 'cohama/agit.vim'
+NeoBundle 'Shougo/vimfiler.vim'
+NeoBundle 'tpope/vim-fugitive'
+NeoBundle 'airblade/vim-gitgutter'
 
 " lightlineの設定
-let g:lightline = {
-            \ 'colorscheme': 'wombat',
+let g:lightline = {                                     
+            \ 'colorscheme' : 'wombat',
+            \ 'active' : {                              
+            \ 'left' : [ [ 'mode', 'paste' ],
+            \            [ 'fugitive', 'readonly', 'filename', 'modified' ] ],
+            \ 'right' : [ [ 'syntastic', 'lineinfo' ],
+            \             [ 'percent' ],
+            \             [ 'fileformat', 'fileencoding', 'filetype' ] ]
+            \ },
+            \ 'component_function' : {
+            \   'mode': 'MyMode',
+            \   'fugitive': 'MyFugitive',
+            \   'readonly': 'MyReadonly',
+            \   'filename': 'MyFilename',
+            \   'modified': 'MyModified',
+            \   'fileformat': 'MyFileformat',
+            \   'filetype': 'MyFiletype',
+            \   'fileencoding': 'MyFileencoding',
+            \ },
+            \ 'component_expand' : {
+            \   'syntastic': 'SyntasticStatuslineFlag',
+            \ },
+            \ 'component_type' : {
+            \   'syntastic' : 'error',
+            \ },
             \ 'separator': { 'left': '⮀', 'right': '⮂' },
             \ 'subseparator': { 'left': '⮁', 'right': '⮃' }
             \ }
+function! MyMode()
+    let fname = expand('%:t')
+    return fname == '__Tagbar__' ? 'Tagbar' :
+                \ fname == '__Gundo__' ? 'Gundo' :
+                \ fname == '__Gundo_Preview__' ? 'Gundo Preview' :
+                \ &ft == 'unite' ? 'Unite' :
+                \ &ft == 'vimfiler' ? 'VimFiler' :
+                \ &ft == 'vimshell' ? 'VimShell' :
+                \ winwidth(0) > 60 ? lightline#mode() : ''
+endfunction
+
+function! MyModified()
+    return &ft =~ 'help\|vimfiler\|gundo' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+endfunction
+
+function! MyReadonly()
+    return &ft !~? 'help\|vimfiler\|gundo' && &readonly ? '⭤' : ''
+endfunction
+
+function! MyFugitive()
+    if expand('%:t') !~? 'Tagbar\|Gundo' && &ft !~? 'vimfiler' && exists("*fugitive#head")
+        let _ = fugitive#head()
+        return strlen(_) ? '⭠ '._ : ''
+    endif
+    return ''
+endfunction
+
+function! MyFilename()
+    let fname = expand('%:t')
+    return fname == '__Tagbar__' ? g:lightline.fname :
+                \ fname =~ '__Gundo__' ? '' :
+                \ fname =~ '__Gundo_Preview__' ? '' :
+                \ &ft == 'vimfiler' ? vimfiler#get_status_string() : 
+                \  &ft == 'unite' ? unite#get_status_string() : 
+                \  &ft == 'vimshell' ? vimshell#get_status_string() :
+                \ ('' != fname ? fname : '[No Name]')
+endfunction
+
+function! MyFileformat()
+    return winwidth(0) > 70 ? &fileformat : ''
+endfunction
+
+function! MyFiletype()
+    return winwidth(0) > 70 ? (strlen(&filetype) ? &filetype : 'no ft') : ''
+endfunction
+
+function! MyFileencoding()
+    return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc : &enc) : ''
+endfunction
+
+let g:tagbar_status_func = 'TagbarStatusFunc'
+
+function! TagbarStatusFunc(current, sort, fname, ...) abort
+    let g:lightline.fname = a:fname
+    return lightline#statusline(0)
+endfunction
+
+let g:syntastic_mode_map = { 'mode': 'passive' }
+augroup AutoSyntastic
+    autocmd!
+    autocmd BufWritePost *.c,*.cpp call s:syntastic()
+augroup END
+
+function! s:syntastic()
+    SyntasticCheck
+    call lightline#update()
+endfunction
+
+let g:unite_force_overwrite_statusline = 0
+let g:vimfiler_force_overwrite_statusline = 0
+let g:vimshell_force_overwrite_statusline = 0
 
 " neocompleteの設定
 " Disable AutoComplPop.
@@ -211,7 +308,7 @@ let g:quickrun_config = {
             \}
 " caw.vimの設定
 nmap <C-K> <Plug>(caw:i:toggle)
-vmap <C-K> <Plug>(caw:i:toggle)
+vmap <Leader>k <Plug>(caw:i:toggle)
 
 " easymotionの設定
 nmap s <Plug>(easymotion-s2)
@@ -233,13 +330,15 @@ xmap <F10> <Plug>(textmanip-toggle-mode)
 
 " GUN道
 nnoremap <F5> :GundoToggle<CR>
-call neobundle#end()
+let g:gundo_width = 55
+let g:gundo_preview_height = 30
 
 " tagbar
 nnoremap <F8> :TagbarToggle<CR> 
 
 " indentLine
-let g:indentLine_color_term = 239 
+let g:indentLine_faster = 1
+let g:indentLine_color_term = 235 
 let g:indentLine_char = '▸'
 
 " Plugin key-mappings.
@@ -260,6 +359,12 @@ if has('conceal')
     set conceallevel=2 concealcursor=i
 endif
 
+" vimfiler
+let g:vimfiler_as_default_explorer = 1
+
+" gitgutter
+nnoremap <F6> :GitGutterToggle<CR>
+call neobundle#end()
 filetype on
 filetype plugin indent on
 NeoBundleCheck
@@ -320,12 +425,12 @@ inoremap <Up> <Nop>
 inoremap <Down> <Nop>
 inoremap <Right> <Nop>
 " 補完
-inoremap {} {}<Left>
-inoremap [] []<Left>
-inoremap () ()<Left>
-inoremap "" ""<Left>
-inoremap '' ''<Left>
-inoremap <> <><Left>
+" inoremap {} {}<Left>
+" inoremap [] []<Left>
+" inoremap () ()<Left>
+" inoremap "" ""<Left>
+" inoremap '' ''<Left>
+" inoremap <> <><Left>
 
 set clipboard=unnamed,autoselect
 set ambiwidth=double
