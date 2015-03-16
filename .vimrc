@@ -10,6 +10,7 @@ set showcmd      " コマンドを画面最下部に表示する
 set showmode     " モードを最終行に表示する
 set laststatus=2 " 最終行のステータスラインを2行にする
 set cursorline   " カーソル行をハイライトする
+set noshowmode
 
 " NeoBundle
 " Bundleで管理するディレクトリを指定
@@ -73,12 +74,16 @@ NeoBundle 'Shougo/vimfiler.vim'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'airblade/vim-gitgutter'
 
+let g:gitgutter_sign_added = '✚'
+let g:gitgutter_sign_modified = '➜'
+let g:gitgutter_sign_removed = '✘'
+
 " lightlineの設定
 let g:lightline = {                                     
             \ 'colorscheme' : 'wombat',
             \ 'active' : {                              
             \ 'left' : [ [ 'mode', 'paste' ],
-            \            [ 'fugitive', 'readonly', 'filename', 'modified' ] ],
+            \            [ 'fugitive', 'gitgutter', 'filename' ] ],
             \ 'right' : [ [ 'syntastic', 'lineinfo' ],
             \             [ 'percent' ],
             \             [ 'fileformat', 'fileencoding', 'filetype' ] ]
@@ -92,6 +97,7 @@ let g:lightline = {
             \   'fileformat': 'MyFileformat',
             \   'filetype': 'MyFiletype',
             \   'fileencoding': 'MyFileencoding',
+            \   'gitgutter': 'MyGitgutter',
             \ },
             \ 'component_expand' : {
             \   'syntastic': 'SyntasticStatuslineFlag',
@@ -137,7 +143,30 @@ function! MyFilename()
                 \ &ft == 'vimfiler' ? vimfiler#get_status_string() : 
                 \  &ft == 'unite' ? unite#get_status_string() : 
                 \  &ft == 'vimshell' ? vimshell#get_status_string() :
-                \ ('' != fname ? fname : '[No Name]')
+                \ ('' != MyReadonly() ? MyReadonly() . ' ' : '') .
+                \ ('' != fname ? fname : '[No Name]') .
+                \ ('' != MyModified() ? ' ' . MyModified() : '')
+endfunction
+
+function! MyGitgutter()
+    if ! exists('*GitGutterGetHunkSummary')
+                \ || ! get(g:, 'gitgutter_enabled', 0)
+                \ || winwidth('.') <= 70
+        return ''
+    endif
+    let symbols = [
+                \ g:gitgutter_sign_added . ' ',
+                \ g:gitgutter_sign_modified . ' ',
+                \ g:gitgutter_sign_removed . ' '
+                \ ]
+    let hunks = GitGutterGetHunkSummary()
+    let ret = []
+    for i in [0, 1, 2]
+        if hunks[i] > 0
+            call add(ret, symbols[i] . hunks[i])
+        endif
+    endfor
+    return join(ret, ' ')
 endfunction
 
 function! MyFileformat()
@@ -364,6 +393,8 @@ let g:vimfiler_as_default_explorer = 1
 
 " gitgutter
 nnoremap <F6> :GitGutterToggle<CR>
+let g:gitgutter_enabled = 0 
+
 call neobundle#end()
 filetype on
 filetype plugin indent on
