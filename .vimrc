@@ -74,6 +74,18 @@ NeoBundle 'Shougo/vimfiler.vim'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'airblade/vim-gitgutter'
 
+" Syntasticの設定
+let g:syntastic_error_symbol = '✗'
+let g:syntastic_warning_symbol = '⚠'
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_enable_signs = 1
+let g:syntastic_auto_loc_list = 2
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+"" HTML5
+let g:syntastic_html_tidy_exec = 'tidy5'
+let g:syntastic_ruby_checkers = ['rubocop']
+
 let g:gitgutter_sign_added = '✚'
 let g:gitgutter_sign_modified = '➜'
 let g:gitgutter_sign_removed = '✘'
@@ -191,7 +203,7 @@ endfunction
 let g:syntastic_mode_map = { 'mode': 'passive' }
 augroup AutoSyntastic
     autocmd!
-    autocmd BufWritePost *.c,*.cpp call s:syntastic()
+    autocmd BufWritePost *.c,*.cpp,*.html,*.rb,*.css call s:syntastic()
 augroup END
 
 function! s:syntastic()
@@ -275,18 +287,6 @@ let g:user_emmet_settings = {
             \   'lang' : 'ja'
             \ }
             \ }
-
-" Syntasticの設定
-"" 公式のおすすめ設定丸パクリ
-set statusline+=%#warningmsg#
-set statusline+={SyntasticStatuslineFlag()}
-set statusline+=%*
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
-"" HTML5
-let g:syntastic_html_tidy_exec = 'tidy5'
 
 " vim-refの設定
 "" vim-refのバッファをqで閉じれるようにする
