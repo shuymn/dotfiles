@@ -116,6 +116,7 @@ function! MyMode()
     return fname == '__Tagbar__' ? 'Tagbar' :
                 \ fname == '__Gundo__' ? 'Gundo' :
                 \ fname == '__Gundo_Preview__' ? 'Gundo Preview' : 
+                \ fname == '==Translate== Excite' ? 'ExciteTranslate' :
                 \ &ft == 'agit' ? 'Agit' :
                 \ &ft == 'agit_stat' ? 'Agit Stat' :
                 \ &ft == 'agit_diff' ? 'Agit Diff' :
@@ -134,7 +135,7 @@ function! MyReadonly()
 endfunction
 
 function! MyFugitive()
-    if expand('%:t') !~? 'Tagbar\|Gundo' && &ft !~? 'vimfiler' && exists("*fugitive#head")
+    if expand('%:t') !~? 'Tagbar\|Gundo\|Excite' && &ft !~? 'vimfiler' && exists("*fugitive#head")
         let _ = fugitive#head()
         return strlen(_) ? '⭠ '._ : ''
     endif
@@ -146,6 +147,7 @@ function! MyFilename()
     return fname == '__Tagbar__' ? g:lightline.fname :
                 \ fname =~ '__Gundo__' ? '' :
                 \ fname =~ '__Gundo_Preview__' ? '' :
+                \ fname =~ '==Translate== Excite' ? '' :
                 \ &ft == 'agit' ? '' :
                 \ &ft == 'agit_stat' ? '' :
                 \ &ft == 'agit_diff' ? '' :
