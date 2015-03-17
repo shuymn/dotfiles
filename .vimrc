@@ -112,7 +112,10 @@ function! MyMode()
     let fname = expand('%:t')
     return fname == '__Tagbar__' ? 'Tagbar' :
                 \ fname == '__Gundo__' ? 'Gundo' :
-                \ fname == '__Gundo_Preview__' ? 'Gundo Preview' :
+                \ fname == '__Gundo_Preview__' ? 'Gundo Preview' : 
+                \ &ft == 'agit' ? 'Agit' :
+                \ &ft == 'agit_stat' ? 'Agit Stat' :
+                \ &ft == 'agit_diff' ? 'Agit Diff' :
                 \ &ft == 'unite' ? 'Unite' :
                 \ &ft == 'vimfiler' ? 'VimFiler' :
                 \ &ft == 'vimshell' ? 'VimShell' :
@@ -120,11 +123,11 @@ function! MyMode()
 endfunction
 
 function! MyModified()
-    return &ft =~ 'help\|vimfiler\|gundo' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+    return &ft =~ 'help\|vimfiler\|gundo\|agit' ? '' : &modified ? '+' : &modifiable ? '' : '-'
 endfunction
 
 function! MyReadonly()
-    return &ft !~? 'help\|vimfiler\|gundo' && &readonly ? '⭤' : ''
+    return &ft !~? 'help\|vimfiler\|gundo\|agit' && &readonly ? '⭤' : ''
 endfunction
 
 function! MyFugitive()
@@ -140,6 +143,9 @@ function! MyFilename()
     return fname == '__Tagbar__' ? g:lightline.fname :
                 \ fname =~ '__Gundo__' ? '' :
                 \ fname =~ '__Gundo_Preview__' ? '' :
+                \ &ft == 'agit' ? '' :
+                \ &ft == 'agit_stat' ? '' :
+                \ &ft == 'agit_diff' ? '' :
                 \ &ft == 'vimfiler' ? vimfiler#get_status_string() : 
                 \  &ft == 'unite' ? unite#get_status_string() : 
                 \  &ft == 'vimshell' ? vimshell#get_status_string() :
@@ -418,6 +424,10 @@ set smartcase    " ただし大文字も含めた検索の場合はそのとお�
 syntax enable    " コードの色付け
 colorscheme jellybeans
 set t_Co=256
+
+" Undo履歴を保存
+set undodir=~/.vim/undohistory
+set undofile
 
 " 入力関連
 " 左右のカーソル移動で行間移動が可能になる
