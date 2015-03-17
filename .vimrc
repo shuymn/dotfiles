@@ -1,4 +1,6 @@
+" ============================================================
 " 基本設定
+" ============================================================
 set number       " 行番号を表示する
 set ruler        " 右下に表示される行、列の番号を表示する
 set title        " 編集中のファイル名を表示
@@ -12,7 +14,9 @@ set laststatus=2 " 最終行のステータスラインを2行にする
 set cursorline   " カーソル行をハイライトする
 set noshowmode
 
+" ============================================================
 " NeoBundle
+" ============================================================
 " Bundleで管理するディレクトリを指定
 set runtimepath+=~/.vim/bundle/neobundle.vim
 
@@ -73,12 +77,11 @@ NeoBundle 'cohama/agit.vim'
 NeoBundle 'Shougo/vimfiler.vim'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'airblade/vim-gitgutter'
+NeoBundle 'Shougo/neomru.vim'
 
-let g:gitgutter_sign_added = '✚'
-let g:gitgutter_sign_modified = '➜'
-let g:gitgutter_sign_removed = '✘'
-
+" ============================================================
 " lightlineの設定
+" ============================================================
 let g:lightline = {                                     
             \ 'colorscheme' : 'wombat',
             \ 'active' : {                              
@@ -209,7 +212,9 @@ let g:unite_force_overwrite_statusline = 0
 let g:vimfiler_force_overwrite_statusline = 0
 let g:vimshell_force_overwrite_statusline = 0
 
+" ============================================================
 " neocompleteの設定
+" ============================================================
 " Disable AutoComplPop.
 let g:acp_enableAtStartup = 0
 " Use neocomplete.
@@ -274,7 +279,34 @@ endif
 "let g:neocomplete#sources#omni#input_patterns.cpp = '[^.[:digit:] *\t]\%(\.\|->\)\|\h\w*::'
 let g:neocomplete#sources#omni#input_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
 
+" ============================================================
+" Unite.vim
+" ============================================================
+" 大文字小文字を区別しない
+let g:unite_enable_ignore_case = 1
+let g:unite_enable_smart_case = 1
+" grep検索
+" unite grep に ag(The Silver Searcher) を使う
+if executable('ag')
+    let g:unite_source_grep_command = 'ag'
+    let g:unite_source_grep_default_opts = '--nogroup --nocolor --column --hidden'
+    let g:unite_source_grep_recursive_opt = ''
+endif
+
+let g:unite_source_history_yank_enable = 1
+try
+    let g:unite_source_rec_async_command='ag --nocolor --hidden  --nogroup -g ""'
+    call unite#filters#matcher_default#use(['matcher_fuzzy'])
+catch
+endtry
+" search a file in the filetree
+nnoremap <space><space> :split<cr> :<C-u>Unite -start-insert file_rec/async<cr>
+" reset not it is <C-l> normally
+:nnoremap <space>r <Plug>(unite_restart)
+
+" ============================================================
 " Syntasticの設定
+" ============================================================
 let g:syntastic_error_symbol = '✗'
 let g:syntastic_warning_symbol = '⚠'
 let g:syntastic_always_populate_loc_list = 1
@@ -286,7 +318,9 @@ let g:syntastic_check_on_wq = 0
 let g:syntastic_html_tidy_exec = 'tidy5'
 let g:syntastic_ruby_checkers = ['rubocop']
 
+" ============================================================
 " emmet-vimの設定
+" ============================================================
 "" html lang=ja
 let g:user_emmet_settings = {
             \ 'variables' : {
@@ -294,7 +328,9 @@ let g:user_emmet_settings = {
             \ }
             \ }
 
+" ============================================================
 " vim-refの設定
+" ============================================================
 "" vim-refのバッファをqで閉じれるようにする
 autocmd FileType ref-* nnoremap <buffer> <silent> q :<C-u>close<CR>
 "" 辞書定義
@@ -323,11 +359,15 @@ function! g:ref_source_webdict_sites.wiki.filter(output)
     return join(split(a:output, "\n")[17 :], "\n")
 endfunction
 
+" ============================================================
 " ecitetranslate-vimの設定
+" ============================================================
 "" 開いたバッファを q で閉じれるようにする
 autocmd BufEnter ==Translate==\ Excite nnoremap <buffer> <silent> q :<C-u>close<CR>
 
+" ============================================================
 " quickrun.vimの設定
+" ============================================================
 let g:quickrun_config = {
             \   "_" : {
             \       "hook/close_unite_quickfix/enable_hook_loaded" : 1,
@@ -341,14 +381,21 @@ let g:quickrun_config = {
             \       "outputter/buffer/split" : ":botright 8sp",
             \   },
             \}
+
+" ============================================================
 " caw.vimの設定
+" ============================================================
 nmap <C-K> <Plug>(caw:i:toggle)
 vmap <Leader>k <Plug>(caw:i:toggle)
 
+" ============================================================
 " easymotionの設定
+" ============================================================
 nmap s <Plug>(easymotion-s2)
 
+" ============================================================
 " vim-textmanipの設定
+" ============================================================
 xmap <Space>d <Plug>(textmanip-duplicate-down)
 nmap <Space>d <Plug>(textmanip-duplicate-down)
 xmap <Space>D <Plug>(textmanip-duplicate-up)
@@ -363,19 +410,28 @@ xmap <C-l> <Plug>(textmanip-move-right)
 nmap <F10> <Plug>(textmanip-toggle-mode)
 xmap <F10> <Plug>(textmanip-toggle-mode)
 
-" GUN道
+" ============================================================
+" gundo 
+" ============================================================
 nnoremap <F5> :GundoToggle<CR>
 let g:gundo_width = 55
 let g:gundo_preview_height = 30
 
+" ============================================================
 " tagbar
+" ============================================================
 nnoremap <F8> :TagbarToggle<CR> 
 
+" ============================================================
 " indentLine
+" ============================================================
 let g:indentLine_faster = 1
 let g:indentLine_color_term = 235 
 let g:indentLine_char = '▸'
 
+" ============================================================
+" neosnippet
+" ============================================================
 " Plugin key-mappings.
 imap <C-k>     <Plug>(neosnippet_expand_or_jump)
 smap <C-k>     <Plug>(neosnippet_expand_or_jump)
@@ -394,10 +450,17 @@ if has('conceal')
     set conceallevel=2 concealcursor=i
 endif
 
+" ============================================================
 " vimfiler
+" ============================================================
 let g:vimfiler_as_default_explorer = 1
 
+" ============================================================
 " gitgutter
+" ============================================================
+let g:gitgutter_sign_added = '✚'
+let g:gitgutter_sign_modified = '➜'
+let g:gitgutter_sign_removed = '✘'
 nnoremap <F6> :GitGutterToggle<CR>
 let g:gitgutter_enabled = 0 
 
@@ -406,7 +469,9 @@ filetype on
 filetype plugin indent on
 NeoBundleCheck
 
+" ============================================================
 " タブ、インデント関連
+" ============================================================
 set smarttab     " 行頭の余白内でTabを打ち込むと、'shiftwidth'の数だけインデントする
 set expandtab    " タブの代わりに空白文字を挿入する
 set tabstop=4    " ファイル内の<Tab>が対応する空白の数
@@ -414,18 +479,24 @@ set shiftwidth=4
 set autoindent   " 1つ前の行に基づくインデント
 set smartindent  " 改行時に入力された行の末尾に合わせて次の行のインデントを増減させる
 
+" ============================================================
 " 検索関連
+" ============================================================
 set incsearch    " インクリメタルサーチを行う
 set hlsearch     " 結果をハイライト表示
 set ignorecase   " 大文字と小文字の区別なく検索する
 set smartcase    " ただし大文字も含めた検索の場合はそのとおりに検索する
 
+" ============================================================
 " カラー関連
+" ============================================================
 syntax enable    " コードの色付け
 colorscheme jellybeans
 set t_Co=256
 
+" ============================================================
 " 入力関連
+" ============================================================
 " 左右のカーソル移動で行間移動が可能になる
 set whichwrap=b,s,<,>,[,]
 " INSERT中にCtrl+[を入力した場合はESCとみなす
@@ -447,7 +518,9 @@ nnoremap <silent> k gk
 "set formatoptions-=ro
 autocmd Filetype * setlocal formatoptions-=ro
 
+" ============================================================
 " キーマッピング
+" ============================================================
 " INSERTモードでの移動
 inoremap <M-J> <Down>
 inoremap <M-K> <Up>
@@ -469,6 +542,9 @@ inoremap <Right> <Nop>
 " inoremap '' ''<Left>
 " inoremap <> <><Left>
 
+" ============================================================
+" その他
+" ============================================================
 set clipboard=unnamed,autoselect
 set ambiwidth=double
 set list
