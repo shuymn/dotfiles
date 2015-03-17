@@ -425,10 +425,6 @@ syntax enable    " コードの色付け
 colorscheme jellybeans
 set t_Co=256
 
-" Undo履歴を保存
-set undodir=~/.vim/undohistory
-set undofile
-
 " 入力関連
 " 左右のカーソル移動で行間移動が可能になる
 set whichwrap=b,s,<,>,[,]
@@ -480,7 +476,7 @@ set listchars=eol:¬
 
 " 無限undo
 if has('persistent_undo')
-    set undodir=~/.vim/undo
+    set undodir=$HOME/.vim/undo
     set undofile
 endif
 
