@@ -284,6 +284,15 @@ let g:neocomplete#sources#omni#input_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
 " ============================================================
 " Unite.vim
 " ============================================================
+" prefix key
+nnoremap [unite] <Nop>
+nmap <Space>f [unite]
+
+" keymapping
+nnoremap [unite]u :<C-u>Unite<Space>
+nnoremap <silent> [unite]o :<C-u>Unite outline<CR>
+nnoremap <silent> [unite]l :<C-u>Unite locate<CR>
+
 " 大文字小文字を区別しない
 let g:unite_enable_ignore_case = 1
 let g:unite_enable_smart_case = 1
@@ -456,6 +465,8 @@ endif
 " vimfiler
 " ============================================================
 let g:vimfiler_as_default_explorer = 1
+nnoremap ,vf :<C-u>VimFilerExplorer<CR>
+nnoremap ,vff :<C-u>VimFiler<CR>
 
 " ============================================================
 " gitgutter
@@ -465,6 +476,11 @@ let g:gitgutter_sign_modified = '➜'
 let g:gitgutter_sign_removed = '✘'
 nnoremap <F6> :GitGutterToggle<CR>
 let g:gitgutter_enabled = 0 
+
+" ============================================================
+" vinshellの設定
+" ============================================================
+nnoremap ,vs :<C-u>VimShell<CR>
 
 call neobundle#end()
 filetype on
@@ -543,6 +559,10 @@ inoremap <Right> <Nop>
 " inoremap "" ""<Left>
 " inoremap '' ''<Left>
 " inoremap <> <><Left>
+" 操作ミス防止
+nnoremap ZZ <Nop>
+nnoremap ZQ <Nop>
+nnoremap Q <Nop>
 
 " ============================================================
 " その他
