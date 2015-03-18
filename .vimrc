@@ -434,6 +434,14 @@ let g:gundo_preview_height = 30
 " tagbar
 " ============================================================
 nnoremap <F8> :TagbarToggle<CR> 
+let g:tagbar_type_css = {
+            \ 'ctagstype' : 'Css',
+            \ 'kinds'     : [
+            \ 'c:classes',
+            \ 's:selectors',
+            \ 'i:identities'
+            \ ]
+            \ }
 
 " ============================================================
 " indentLine
