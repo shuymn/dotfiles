@@ -292,6 +292,7 @@ nmap <Space>f [unite]
 nnoremap [unite]u :<C-u>Unite<Space>
 nnoremap <silent> [unite]o :<C-u>Unite outline<CR>
 nnoremap <silent> [unite]l :<C-u>Unite locate<CR>
+nnoremap <silent> [unite]m :<C-u>Unite<Space>file_mru<CR>
 
 " 大文字小文字を区別しない
 let g:unite_enable_ignore_case = 1
@@ -375,6 +376,7 @@ endfunction
 " ============================================================
 "" 開いたバッファを q で閉じれるようにする
 autocmd BufEnter ==Translate==\ Excite nnoremap <buffer> <silent> q :<C-u>close<CR>
+nnoremap ,et :<C-u>ExciteTranslate<CR>
 
 " ============================================================
 " quickrun.vimの設定
@@ -563,6 +565,11 @@ inoremap <Right> <Nop>
 nnoremap ZZ <Nop>
 nnoremap ZQ <Nop>
 nnoremap Q <Nop>
+nnoremap <C-O> <Nop>
+nnoremap <Space>h ^
+nnoremap <Space>l $
+nnoremap <Space>/ *
+nnoremap <Space>m %
 
 " ============================================================
 " その他
