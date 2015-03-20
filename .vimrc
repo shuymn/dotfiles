@@ -67,7 +67,7 @@ NeoBundle 'kana/vim-submode'
 NeoBundle 'tmhedberg/matchit'
 
 call neobundle#end()
-
+filetype plugin indent on
 NeoBundleCheck
 
 " ============================================================
@@ -607,4 +607,3 @@ endif
 " 編集位置の自動修復
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\""
 
-filetype plugin indent on
