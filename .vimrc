@@ -1,20 +1,4 @@
 " ============================================================
-" 基本設定
-" ============================================================
-set number       " 行番号を表示する
-set ruler        " 右下に表示される行、列の番号を表示する
-set title        " 編集中のファイル名を表示
-set showmatch    " 括弧入力時の対応する括弧を表示
-set matchtime=5  " 対応括弧の表示秒数を5秒にする
-set wrap         " ウィンドウの幅より長い行は折り返して次の行に表示する
-set history=1024 " コマンド、検索パターンを1024個まで履歴に残す
-set showcmd      " コマンドを画面最下部に表示する
-set showmode     " モードを最終行に表示する
-set laststatus=2 " 最終行のステータスラインを2行にする
-set cursorline   " カーソル行をハイライトする
-set noshowmode
-
-" ============================================================
 " NeoBundle
 " ============================================================
 if has('vim_starting')
@@ -57,7 +41,6 @@ NeoBundle 'thinca/vim-quickrun'
 NeoBundle 'osyo-manga/unite-quickfix'
 NeoBundle 'osyo-manga/shabadou.vim'
 "NeoBundle 'osyo-manga/vim-watchdogs'
-" NeoBundle 'scrooloose/nerdtree'
 NeoBundle 'cohama/vim-hier'
 NeoBundle 'dannyob/quickfixstatus'
 NeoBundle 'tyru/caw.vim'
@@ -81,10 +64,27 @@ NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'Shougo/neomru.vim'
 NeoBundle 'kana/vim-submode'
+NeoBundle 'tmhedberg/matchit'
 
 call neobundle#end()
-filetype plugin indent on
+
 NeoBundleCheck
+
+" ============================================================
+" 基本設定
+" ============================================================
+set number       " 行番号を表示する
+set ruler        " 右下に表示される行、列の番号を表示する
+set title        " 編集中のファイル名を表示
+set showmatch    " 括弧入力時の対応する括弧を表示
+set matchtime=5  " 対応括弧の表示秒数を5秒にする
+set wrap         " ウィンドウの幅より長い行は折り返して次の行に表示する
+set history=1024 " コマンド、検索パターンを1024個まで履歴に残す
+set showcmd      " コマンドを画面最下部に表示する
+set showmode     " モードを最終行に表示する
+set laststatus=2 " 最終行のステータスラインを2行にする
+set cursorline   " カーソル行をハイライトする
+set noshowmode
 
 " ============================================================
 " lightlineの設定
@@ -607,3 +607,4 @@ endif
 " 編集位置の自動修復
 au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\""
 
+filetype plugin indent on
