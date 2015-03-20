@@ -16,7 +16,7 @@ HISTSIZE=1000000
 SAVEHIST=1000000
 
 # プロンプト
-# autoload -Uz vcs_info
+autoload -Uz
 # setopt prompt_subst
 # zstyle ':vcs_info:*' enable git
 # zstyle ':vcs_info:git:*' check-for-changes true
@@ -32,11 +32,11 @@ SAVEHIST=1000000
 #     rhost=${rhost%%.*}
 #     p_rhst="%F{yellow}($rhost)%f"
 # fi
-local p_info="%F{cyan}[%n@%m]%f"
-local p_time="%F{green}[%D %T]%f"
-local p_cdir="%~"$'\n'
-local p_mark="%(!,%F{red}#%f,%F{blue}>%f)"
-PROMPT=" $p_info $p_time $p_cdir $p_mark "
+# local p_info="%F{cyan}[%n@%m]%f"
+# local p_time="%F{green}[%D %T]%f"
+# local p_cdir="%~"$'\n'
+# local p_mark="%(!,%F{red}#%f,%F{blue}>%f)"
+# PROMPT=" $p_info $p_time $p_cdir $p_mark "
 
 # 補完
 autoload -Uz compinit # 補完機能を有効にする
@@ -103,7 +103,7 @@ install_powerline_precmd
     builtin cd $@ && ls -F --color=auto;
 }
 
-alias sudo='sudo'
+alias sudo='sudo '
 alias ls='ls -F --color=auto' # lsに色を付ける
 alias unzip='unzip -O CP932' # うぃん
 alias sl="ruby ~/Downloads/git/sl/sl.rb"
