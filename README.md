@@ -1,5 +1,5 @@
 ### About
-shuymn's dotfiles
+My dotfiles
 
 ### License
 This dotfiles are licensed under MIT License.
