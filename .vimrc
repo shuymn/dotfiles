@@ -17,8 +17,10 @@ set noshowmode
 " ============================================================
 " NeoBundle
 " ============================================================
-" Bundleで管理するディレクトリを指定
-set runtimepath+=~/.vim/bundle/neobundle.vim
+if has('vim_starting')
+    set nocompatible
+    set runtimepath+=~/.vim/bundle/neobundle.vim
+endif
 
 " required
 call neobundle#begin(expand('~/.vim/bundle/'))
@@ -78,6 +80,11 @@ NeoBundle 'Shougo/vimfiler.vim'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'Shougo/neomru.vim'
+NeoBundle 'kana/vim-submode'
+
+call neobundle#end()
+filetype plugin indent on
+NeoBundleCheck
 
 " ============================================================
 " lightlineの設定
@@ -291,9 +298,9 @@ nmap <Space>f [unite]
 
 " keymapping
 nnoremap [unite]u :<C-u>Unite<Space>
-nnoremap <silent> [unite]o :<C-u>Unite outline -winheight=20<CR>
-nnoremap <silent> [unite]l :<C-u>Unite locate -winheight=20<CR>i
-nnoremap <silent> [unite]m :<C-u>Unite<Space>file_mru<CR>
+nnoremap <silent> [unite]o :<C-u>Unite outline -winheight=15<CR>
+nnoremap <silent> [unite]l :<C-u>Unite locate -winheight=15<CR>i
+nnoremap <silent> [unite]m :<C-u>Unite file_mru -winheight=15<CR>
 
 " neomruの履歴保存数
 let g:unite_source_file_mru_limit = 30
@@ -499,10 +506,16 @@ let g:gitgutter_enabled = 0
 " ============================================================
 nnoremap ,vs :<C-u>VimShell<CR>
 
-call neobundle#end()
-filetype on
-filetype plugin indent on
-NeoBundleCheck
+" ============================================================
+" vim-submodeの設定
+" ============================================================
+function! s:my_x()
+    undojoin
+    normal! "_x
+endfunction
+nnoremap <silent> <Plug>(my-x) :<C-u>call <SID>my_x()<CR>
+call submode#enter_with('my_x', 'n', '', 'x', '"_x')
+call submode#map('my_x', 'n', 'r', 'x', '<Plug>(my-x)')
 
 " ============================================================
 " タブ、インデント関連
@@ -544,14 +557,10 @@ noremap : ;
 " 表示行単位で行移動する
 nnoremap <silent> j gj
 nnoremap <silent> k gk
-" 行頭/行末移動のキーを変更
-"nnoremap ^ " 行頭
-"nnoremap $ " 行末
 " 改行時にコメントしない¬
-"autocmd Filetype * set formatoptions-=o¬
-"autocmd Filetype * set formatoptions-=r¬
-"set formatoptions-=ro
 autocmd Filetype * setlocal formatoptions-=ro
+" 空行を挿入する
+nnoremap <CR> o<Esc>
 
 " ============================================================
 " キーマッピング
@@ -569,13 +578,6 @@ noremap <Right> <Nop>
 inoremap <Up> <Nop>
 inoremap <Down> <Nop>
 inoremap <Right> <Nop>
-" 補完
-" inoremap {} {}<Left>
-" inoremap [] []<Left>
-" inoremap () ()<Left>
-" inoremap "" ""<Left>
-" inoremap '' ''<Left>
-" inoremap <> <><Left>
 " 操作ミス防止
 nnoremap ZZ <Nop>
 nnoremap ZQ <Nop>
