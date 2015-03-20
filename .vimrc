@@ -123,6 +123,7 @@ function! MyMode()
                 \ &ft == 'unite' ? 'Unite' :
                 \ &ft == 'vimfiler' ? 'VimFiler' :
                 \ &ft == 'vimshell' ? 'VimShell' :
+                \ &ft == 'help' ? 'Help' :
                 \ winwidth(0) > 60 ? lightline#mode() : ''
 endfunction
 
@@ -157,7 +158,7 @@ function! MyFilename()
                 \ ('' != MyReadonly() ? MyReadonly() . ' ' : '') .
                 \ ('' != fname ? fname : '[No Name]') .
                 \ ('' != MyModified() ? ' ' . MyModified() : '')
-endfunction
+endfunctio
 
 function! MyGitgutter()
     if ! exists('*GitGutterGetHunkSummary')
@@ -290,9 +291,15 @@ nmap <Space>f [unite]
 
 " keymapping
 nnoremap [unite]u :<C-u>Unite<Space>
-nnoremap <silent> [unite]o :<C-u>Unite outline<CR>
-nnoremap <silent> [unite]l :<C-u>Unite locate<CR>
+nnoremap <silent> [unite]o :<C-u>Unite outline -winheight=20<CR>
+nnoremap <silent> [unite]l :<C-u>Unite locate -winheight=20<CR>i
 nnoremap <silent> [unite]m :<C-u>Unite<Space>file_mru<CR>
+
+" neomruの履歴保存数
+let g:unite_source_file_mru_limit = 30
+
+" neomruの表示フォーマット設定
+let g:unite_source_file_mru_filename_format = ''
 
 " 大文字小文字を区別しない
 let g:unite_enable_ignore_case = 1
@@ -475,7 +482,7 @@ endif
 " vimfiler
 " ============================================================
 let g:vimfiler_as_default_explorer = 1
-nnoremap ,vf :<C-u>VimFilerExplorer<CR>
+nnoremap ,vf :<C-u>VimFilerExplorer -toggle<CR>
 nnoremap ,vff :<C-u>VimFiler<CR>
 
 " ============================================================
@@ -578,6 +585,8 @@ nnoremap <Space>h ^
 nnoremap <Space>l $
 nnoremap <Space>/ *
 nnoremap <Space>m %
+" helpはqで閉じる
+autocmd FileType help nnoremap <buffer> <silent> q :<C-u>close<CR>
 
 " ============================================================
 " その他

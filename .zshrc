@@ -103,6 +103,7 @@ install_powerline_precmd
     builtin cd $@ && ls -F --color=auto;
 }
 
+alias sudo='sudo'
 alias ls='ls -F --color=auto' # lsに色を付ける
 alias unzip='unzip -O CP932' # うぃん
 alias sl="ruby ~/Downloads/git/sl/sl.rb"
