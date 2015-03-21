@@ -65,6 +65,7 @@ NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'Shougo/neomru.vim'
 NeoBundle 'kana/vim-submode'
 NeoBundle 'tmhedberg/matchit'
+NeoBundle 'tpope/vim-repeat'
 
 call neobundle#end()
 filetype plugin indent on
@@ -301,6 +302,9 @@ nnoremap [unite]u :<C-u>Unite<Space>
 nnoremap <silent> [unite]o :<C-u>Unite outline -winheight=15<CR>
 nnoremap <silent> [unite]l :<C-u>Unite locate -winheight=15<CR>i
 nnoremap <silent> [unite]m :<C-u>Unite file_mru -winheight=15<CR>
+nnoremap <silent> [unite]b :<C-u>Unite buffer -winheight=15<CR>
+nnoremap <silent> [unite]B :<C-u>Unite bookmark<CR>
+nnoremap <silent> [unite]A :<C-u>UniteBookmarkAdd<CR>
 
 " neomruの履歴保存数
 let g:unite_source_file_mru_limit = 30
@@ -333,7 +337,7 @@ nnoremap <space><space> :split<cr> :<C-u>Unite -start-insert file_rec/async<cr>
 " ============================================================
 " Syntasticの設定
 " ============================================================
-let g:syntastic_error_symbol = '✗'
+let g:syntastic_error_symbol = '✘'
 let g:syntastic_warning_symbol = '⚠'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_enable_signs = 1
@@ -490,7 +494,7 @@ endif
 " ============================================================
 let g:vimfiler_as_default_explorer = 1
 nnoremap ,vf :<C-u>VimFilerExplorer -toggle<CR>
-nnoremap ,vff :<C-u>VimFiler<CR>
+nnoremap ,vvf :<C-u>VimFiler<CR>
 
 " ============================================================
 " gitgutter
