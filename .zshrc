@@ -16,7 +16,7 @@ HISTSIZE=1000000
 SAVEHIST=1000000
 
 # プロンプト
-autoload -Uz
+# autoload -Uz
 # setopt prompt_subst
 # zstyle ':vcs_info:*' enable git
 # zstyle ':vcs_info:git:*' check-for-changes true
