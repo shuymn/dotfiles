@@ -143,7 +143,7 @@ function! MyMode()
 endfunction
 
 function! MyModified()
-    return &ft =~ 'help\|vimfiler\|gundo\|agit\|gist' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+    return &ft =~ 'help\|vimfiler\|gundo\|agit\|gista' ? '' : &modified ? '+' : &modifiable ? '' : '-'
 endfunction
 
 function! MyReadonly()
