@@ -67,6 +67,11 @@ NeoBundle 'Shougo/neomru.vim'
 NeoBundle 'kana/vim-submode'
 NeoBundle 'tmhedberg/matchit'
 NeoBundle 'tpope/vim-repeat'
+NeoBundle 'lambdalisue/vim-gista', {
+            \ 'depends': [
+            \   'Shougo/unite.vim',
+            \   'tyru/open-browser.vim',
+            \]}
 
 call neobundle#end()
 filetype plugin indent on
@@ -117,8 +122,8 @@ let g:lightline = {
             \ 'component_type' : {
             \   'syntastic' : 'error',
             \ },
-            \ 'separator': { 'left': '⮀', 'right': '⮂' },
-            \ 'subseparator': { 'left': '⮁', 'right': '⮃' }
+            \ 'separator': { 'left': '', 'right': '' },
+            \ 'subseparator': { 'left': '|', 'right': '|' }
             \ }
 function! MyMode()
     let fname = expand('%:t')
@@ -126,6 +131,7 @@ function! MyMode()
                 \ fname == '__Gundo__' ? 'Gundo' :
                 \ fname == '__Gundo_Preview__' ? 'Gundo Preview' : 
                 \ fname == '==Translate== Excite' ? 'ExciteTranslate' :
+                \ fname =~ 'gista' ? 'Gista' :
                 \ &ft == 'agit' ? 'Agit' :
                 \ &ft == 'agit_stat' ? 'Agit Stat' :
                 \ &ft == 'agit_diff' ? 'Agit Diff' :
@@ -137,11 +143,11 @@ function! MyMode()
 endfunction
 
 function! MyModified()
-    return &ft =~ 'help\|vimfiler\|gundo\|agit' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+    return &ft =~ 'help\|vimfiler\|gundo\|agit\|gist' ? '' : &modified ? '+' : &modifiable ? '' : '-'
 endfunction
 
 function! MyReadonly()
-    return &ft !~? 'help\|vimfiler\|gundo\|agit' && &readonly ? '⭤' : ''
+    return &ft !~? 'help\|vimfiler\|gundo\|agit\|gista' && &readonly ? '⭤' : ''
 endfunction
 
 function! MyFugitive()
@@ -158,6 +164,7 @@ function! MyFilename()
                 \ fname =~ '__Gundo__' ? '' :
                 \ fname =~ '__Gundo_Preview__' ? '' :
                 \ fname =~ '==Translate== Excite' ? '' :
+                \ fname =~ 'gista' ? '' :
                 \ &ft == 'agit' ? '' :
                 \ &ft == 'agit_stat' ? '' :
                 \ &ft == 'agit_diff' ? '' :
@@ -306,6 +313,7 @@ nnoremap <silent> [unite]m :<C-u>Unite file_mru -winheight=15<CR>
 nnoremap <silent> [unite]b :<C-u>Unite buffer -winheight=15<CR>
 nnoremap <silent> [unite]B :<C-u>Unite bookmark<CR>
 nnoremap <silent> [unite]A :<C-u>UniteBookmarkAdd<CR>
+nnoremap <silent> [unite]g :<C-u>Unite gista -winheight=15<CR>
 
 " neomruの履歴保存数
 let g:unite_source_file_mru_limit = 30
@@ -521,6 +529,20 @@ endfunction
 nnoremap <silent> <Plug>(my-x) :<C-u>call <SID>my_x()<CR>
 call submode#enter_with('my_x', 'n', '', 'x', '"_x')
 call submode#map('my_x', 'n', 'r', 'x', '<Plug>(my-x)')
+
+" ============================================================
+" Gistaの設定
+" ============================================================
+autocmd FileType gista-list nnoremap <buffer> <silent> q :<C-u>close<CR>
+let g:gista#github_user = 'shuymn'
+let g:gista#update_on_write = 1 " :w で開いている記事を更新
+let g:gista#post_private = 1 " Postを標準でPrivateにする
+let g:gista#close_list_after_open = 1 " listからgistを編集しようとした時にlistを自動で閉じる
+let g:gista#list_opener = 'topleft 15 split +set\ winfixheight'
+nnoremap ,gl :<C-u>Gista -l<CR>
+nnoremap ,gd :<C-u>Gista -d
+nnoremap ,gpd :<C-u>Gista -P -d
+nnoremap .gg :<C-u>Gista<Space>
 
 " ============================================================
 " タブ、インデント関連
