@@ -3,7 +3,9 @@
 " NeoBundle
 " ============================================================
 if has('vim_starting')
-    set nocompatible
+    if &compatible
+        set nocompatible
+    endif
     set runtimepath+=~/.vim/bundle/neobundle.vim
 endif
 
@@ -18,10 +20,26 @@ NeoBundle 'itchyny/lightline.vim'
 NeoBundle 'Shougo/neocomplete.vim'
 NeoBundle 'ujihisa/neco-look'
 NeoBundle 'tpope/vim-surround'
-NeoBundle 'mattn/emmet-vim'
-NeoBundle 'othree/html5.vim'
-NeoBundle 'hail2u/vim-css3-syntax'
-NeoBundle 'gorodinskiy/vim-coloresque'
+NeoBundleLazy 'mattn/emmet-vim', {
+            \ 'autoload': {
+            \ 'filetypes': ['html', 'css'],
+            \   }
+            \ }
+NeoBundleLazy 'othree/html5.vim', {
+            \ 'autoload': {
+            \ 'filetypes': ['html', 'css'],
+            \   }
+            \ }
+NeoBundleLazy 'hail2u/vim-css3-syntax', {
+            \ 'autoload': {
+            \ 'filetypes': ['html', 'css'],
+            \   }
+            \ }
+NeoBundleLazy 'gorodinskiy/vim-coloresque', {
+            \ 'autoload': {
+            \ 'filetypes': ['html', 'css'],
+            \   }
+            \ }
 NeoBundle 'scrooloose/syntastic'
 NeoBundle 'thinca/vim-ref'
 NeoBundle 'mfumi/ref-dicts-en'
@@ -46,7 +64,6 @@ NeoBundle 'cohama/vim-hier'
 NeoBundle 'dannyob/quickfixstatus'
 NeoBundle 'tyru/caw.vim'
 NeoBundle 'Shougo/unite-outline'
-NeoBundle 'motemen/hatena-vim'
 NeoBundle 'Lokaltog/vim-easymotion'
 NeoBundle 't9md/vim-textmanip'
 NeoBundle 'vim-scripts/DrawIt'
@@ -72,6 +89,7 @@ NeoBundle 'lambdalisue/vim-gista', {
             \   'Shougo/unite.vim',
             \   'tyru/open-browser.vim',
             \]}
+NeoBundle 'moznion/hateblo.vim'
 
 call neobundle#end()
 filetype plugin indent on
@@ -360,7 +378,7 @@ let g:syntastic_ruby_checkers = ['rubocop']
 " ============================================================
 " emmet-vimの設定
 " ============================================================
-"" html lang=ja
+" html lang=ja
 let g:user_emmet_settings = {
             \ 'variables' : {
             \   'lang' : 'ja'
@@ -543,6 +561,20 @@ nnoremap ,gl :<C-u>Gista -l<CR>
 nnoremap ,gd :<C-u>Gista -d
 nnoremap ,gpd :<C-u>Gista -P -d
 nnoremap .gg :<C-u>Gista<Space>
+
+" ============================================================
+" emmet-vim の設定
+" ============================================================
+let g:user_emmet_leader_key = "<C-e>"
+let g:user_emmet_install_global = 0
+autocmd FileType html,css EmmetInstall
+
+" ============================================================
+" hateblo.vimの設定
+" ============================================================
+nnoremap ,hbc :<C-u>HatebloCreate<CR>
+nnoremap ,hbd :<C-u>HatebloCreateDraft<CR>
+nnoremap ,hbl :<C-u>HatebloList<CR>
 
 " ============================================================
 " タブ、インデント関連
