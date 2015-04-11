@@ -90,6 +90,12 @@ NeoBundle 'lambdalisue/vim-gista', {
             \   'tyru/open-browser.vim',
             \]}
 NeoBundle 'moznion/hateblo.vim'
+NeoBundle 'marcus/rsense'
+NeoBundle 'supermomonga/neocomplete-rsense.vim'
+NeoBundle 'yuku-t/vim-ref-ri'
+NeoBundle 'szw/vim-tags'
+NeoBundle 'tpope/vim-endwise'
+
 
 call neobundle#end()
 filetype plugin indent on
@@ -252,69 +258,46 @@ let g:vimshell_force_overwrite_statusline = 0
 " ============================================================
 " neocompleteの設定
 " ============================================================
-" Disable AutoComplPop.
 let g:acp_enableAtStartup = 0
-" Use neocomplete.
 let g:neocomplete#enable_at_startup = 1
-" Use smartcase.
 let g:neocomplete#enable_smart_case = 1
-" Set minimum syntax keyword length.
 let g:neocomplete#sources#syntax#min_keyword_length = 3
 let g:neocomplete#lock_buffer_name_pattern = '\*ku\*'
 
-" Define dictionary.
 let g:neocomplete#sources#dictionary#dictionaries = {
             \ 'default' : '',
             \ 'vimshell' : $HOME.'/.vimshell_hist',
             \ 'scheme' : $HOME.'/.gosh_completions'
             \ }
 
-" Define keyword.
 if !exists('g:neocomplete#keyword_patterns')
     let g:neocomplete#keyword_patterns = {}
 endif
 let g:neocomplete#keyword_patterns['default'] = '\h\w*'
 
-" Plugin key-mappings.
 inoremap <expr><C-g>     neocomplete#undo_completion()
 inoremap <expr><C-l>     neocomplete#complete_common_string()
-
-" Recommended key-mappings.
-" <CR>: close popup and save indent.
 inoremap <silent> <CR> <C-r>=<SID>my_cr_function()<CR>
 function! s:my_cr_function()
     return neocomplete#close_popup() . "\<CR>"
-    " For no inserting <CR> key.
-    "return pumvisible() ? neocomplete#close_popup() : "\<CR>"
 endfunction
-" <TAB>: completion.
+
 inoremap <expr><TAB>  pumvisible() ? "\<C-n>" : "\<TAB>"
-" <C-h>, <BS>: close popup and delete backword char.
+
 inoremap <expr><C-h> neocomplete#smart_close_popup()."\<C-h>"
 inoremap <expr><BS> neocomplete#smart_close_popup()."\<C-h>"
 inoremap <expr><C-y>  neocomplete#close_popup()
 inoremap <expr><C-e>  neocomplete#cancel_popup()
-" Close popup by <Space>.
-"inoremap <expr><Space> pumvisible() ? neocomplete#close_popup() : "\<Space>"
 
-" AutoComplPop like behavior.
-"let g:neocomplete#enable_auto_select = 1
-
-" Enable omni completion.
 autocmd FileType css setlocal omnifunc=csscomplete#CompleteCSS
 autocmd FileType html,markdown setlocal omnifunc=htmlcomplete#CompleteTags
 autocmd FileType javascript setlocal omnifunc=javascriptcomplete#CompleteJS
-autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
-autocmd FileType xml setlocal omnifunc=xmlcomplete#CompleteTags
 
-" Enable heavy omni completion.
-if !exists('g:neocomplete#sources#omni#input_patterns')
-    let g:neocomplete#sources#omni#input_patterns = {}
+if !exists('g:neocomplete#force_omni_input_patterns')
+    let g:neocomplete#force_omni_input_patterns = {}
 endif
-"let g:neocomplete#sources#omni#input_patterns.php = '[^. \t]->\h\w*\|\h\w*::'
-"let g:neocomplete#sources#omni#input_patterns.c = '[^.[:digit:] *\t]\%(\.\|->\)'
-"let g:neocomplete#sources#omni#input_patterns.cpp = '[^.[:digit:] *\t]\%(\.\|->\)\|\h\w*::'
-let g:neocomplete#sources#omni#input_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
+
+let g:neocomplete#force_omni_input_patterns.ruby = '[^.*\t]\.\w*\|\h\w*::'
 
 " ============================================================
 " Unite.vim
@@ -371,8 +354,10 @@ let g:syntastic_enable_signs = 1
 let g:syntastic_auto_loc_list = 2
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
-"" HTML5
+" HTML5
 let g:syntastic_html_tidy_exec = 'tidy5'
+let g:syntastic_html_tidy_ignore_errors = [ 'trimming empty <i>' ]
+" ruby
 let g:syntastic_ruby_checkers = ['rubocop']
 
 " ============================================================
@@ -436,15 +421,16 @@ let g:quickrun_config = {
             \       "runner" : "vimproc",
             \       "runner/vimproc/updatetime" : 60,
             \       "outputter" : "multi:buffer:quickfix",
-            \       "outputter/buffer/split" : ":botright 8sp",
+            \       "outputter/buffer/into" : 1,
+            \       "outputter/buffer/split" : ":botright 10sp"
             \   },
             \}
 
 " ============================================================
 " caw.vimの設定
 " ============================================================
-nmap <C-K> <Plug>(caw:i:toggle)
-vmap <Leader>k <Plug>(caw:i:toggle)
+nmap <C-c> <Plug>(caw:i:toggle)
+vmap <C-c> <Plug>(caw:i:toggle)
 
 " ============================================================
 " easymotionの設定
@@ -575,6 +561,12 @@ autocmd FileType html,css EmmetInstall
 nnoremap ,hbc :<C-u>HatebloCreate<CR>
 nnoremap ,hbd :<C-u>HatebloCreateDraft<CR>
 nnoremap ,hbl :<C-u>HatebloList<CR>
+
+" ============================================================
+" Rsense
+" ============================================================
+let g:rsenseHome = '/opt/rsense-0.3'
+let g:rsenseUseOmniFunc = 1
 
 " ============================================================
 " タブ、インデント関連
