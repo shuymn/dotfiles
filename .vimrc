@@ -401,6 +401,8 @@ function! g:ref_source_webdict_sites.wiki.filter(output)
     return join(split(a:output, "\n")[17 :], "\n")
 endfunction
 
+let g:ref_refe_cmd = $HOME.'/.gem/ruby/2.2.0/bin/refe'
+
 " ============================================================
 " ecitetranslate-vimの設定
 " ============================================================
