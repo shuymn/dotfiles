@@ -95,7 +95,7 @@ NeoBundle 'supermomonga/neocomplete-rsense.vim'
 NeoBundle 'yuku-t/vim-ref-ri'
 NeoBundle 'szw/vim-tags'
 NeoBundle 'tpope/vim-endwise'
-
+NeoBundle 'superbrothers/vim-vimperator'
 
 call neobundle#end()
 filetype plugin indent on
