@@ -16,6 +16,8 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 NeoBundle 'Shougo/unite.vim'
 NeoBundle 'ujihisa/unite-colorscheme'
 NeoBundle 'nanotech/jellybeans.vim'
+NeoBundle 'jpo/vim-railscasts-theme'
+NeoBundle 'w0ng/vim-hybrid'
 NeoBundle 'itchyny/lightline.vim'
 NeoBundle 'Shougo/neocomplete.vim'
 NeoBundle 'ujihisa/neco-look'
@@ -592,8 +594,10 @@ set smartcase    " ただし大文字も含めた検索の場合はそのとお�
 " カラー関連
 " ============================================================
 syntax enable    " コードの色付け
-colorscheme jellybeans
-set t_Co=256
+set t_Co=256 
+set background=dark
+let g:hybrid_use_Xresources = 1
+colorscheme hybrid
 
 " ============================================================
 " 入力関連
