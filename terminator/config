@@ -1,0 +1,30 @@
+[global_config]
+  enabled_plugins = TerminalShot, LaunchpadCodeURLHandler, APTURLHandler, LaunchpadBugURLHandler
+  suppress_multiple_term_dialog = True
+[keybindings]
+  hide_window = F12
+[profiles]
+  [[default]]
+    scrollbar_position = hidden
+    palette = "#282a2e:#a54242:#8c9440:#de935f:#5f819d:#85678f:#5e8d87:#707880:#373b41:#cc6666:#b5bd68:#f0c674:#81a2be:#b294bb:#8abeb7:#c5c8c6"
+    background_image = None
+    background_darkness = 0.85
+    background_type = transparent
+    use_system_font = False
+    cursor_color = "#c5c8c6"
+    foreground_color = "#ffffff"
+    show_titlebar = False
+    font = Ricty for Powerline 11
+    scrollback_infinite = True
+[layouts]
+  [[default]]
+    [[[child1]]]
+      type = Terminal
+      parent = window0
+      profile = default
+    [[[window0]]]
+      type = Window
+      parent = ""
+      profile = None
+      size = 964, 575
+[plugins]
