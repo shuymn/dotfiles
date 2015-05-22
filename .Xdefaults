@@ -26,38 +26,40 @@ URxvt.scrollBar: false
 ! Color settings
 ! ------------------------------------------------------------
 
-! URxvt.depth: 32
-! background color
-URxvt.background: [80]#111
-! text color
-URxvt.foreground: #fff
-! urlcolor
-URxvt*colorUL: #86a2b0
-! black
-URxvt*color0  : #2E3436
-URxvt*color8  : #555753
-! red
-URxvt*color1  : #CC0000
-URxvt*color9  : #EF2929
-! green
-URxvt*color2  : #4E9A06
-URxvt*color10 : #8AE234
-! yellow
-URxvt*color3  : #C4A000
-URxvt*color11 : #FCE94F
-! blue
-URxvt*color4  : #3465A4
-URxvt*color12 : #729FCF
-! magenta
-URxvt*color5  : #75507B
-URxvt*color13 : #AD7FA8
-! cyan
-URxvt*color6  : #06989A
-URxvt*color14 : #34E2E2
-! white
-URxvt*color7  : #D3D7CF
-URxvt*color15 : #EEEEEC
+URxvt.depth: 32
 
+! background color
+URxvt.background: [85]#111
+
+! Hybrid Terminal Colours. Uses the palette from Tomorrow-Night:
+! https://github.com/chriskempson/tomorrow-theme/blob/master/vim/colors/Tomorrow-Night.vim
+! vim: ft=xdefaults
+ 
+ *foreground: #C5C8C6
+ ! black
+ *color0: #282A2E
+ *color8: #373B41
+ ! red
+ *color1: #A54242
+ *color9: #CC6666
+ ! green
+ *color2: #8C9440
+ *color10: #B5BD68
+ ! yellow
+ *color3: #DE935F
+ *color11: #F0C674
+ ! blue
+ *color4: #5F819D
+ *color12: #81A2BE
+ ! magenta
+ *color5: #85678F
+ *color13: #B294BB
+ ! cyan
+ *color6: #5E8D87
+ *color14: #8ABEB7
+ ! white
+ *color7: #707880
+ *color15: #C5C8C6
 ! ------------------------------------------------------------
 ! urxvt extensions
 ! ------------------------------------------------------------
