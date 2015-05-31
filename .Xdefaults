@@ -88,3 +88,5 @@ URxvt*saveLines: 10000
 ! ------------------------------------------------------------
 urxvt*allow_bold: true
 
+URxvt.inputMethod: ibus
+URxvt.preeditType: OverTheSpot

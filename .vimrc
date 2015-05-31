@@ -506,6 +506,9 @@ if has('conceal')
     set conceallevel=2 concealcursor=i
 endif
 
+let s:my_snippet = '~/.vim/snippet/'
+let g:neosnippet#snippets_directory = s:my_snippet
+
 " ============================================================
 " vimfiler
 " ============================================================
