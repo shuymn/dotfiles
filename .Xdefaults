@@ -26,7 +26,7 @@ URxvt.scrollBar: false
 ! Color settings
 ! ------------------------------------------------------------
 
-URxvt.depth: 32
+! URxvt.depth: 32
 
 ! background color
 URxvt.background: [85]#111
