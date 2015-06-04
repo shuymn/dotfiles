@@ -108,4 +108,9 @@ alias ls='ls -F --color=auto' # lsに色を付ける
 alias unzip='unzip -O CP932' # うぃん
 alias sl="ruby ~/Downloads/git/sl/sl.rb"
 export PATH="$HOME/.gem/ruby/2.2.0/bin:$PATH"
-alias tanoshiiruby='cd ~/git/ruby/tanosii-ruby/'
+alias tnsrb='cd ~/git/ruby/tanoshii-ruby/'
+alias kkns='java -jar ~/Downloads/linux-x64/logbook.jar'
+alias gaa='git add -A'
+alias gcam='git commit -am'
+alias gst='git status'
+alias gpom='git push origin master'
