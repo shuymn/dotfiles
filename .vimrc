@@ -1,6 +1,6 @@
 " ===========================================
-" VIMRC
-" Author - shuymn ( shuym.me )
+" - VIMRC
+" - Author: shuymn ( shuym.me )
 " ===========================================
 
 " load plugins
