@@ -1,0 +1,20 @@
+# RVMのPATHを通す
+export PATH="$PATH:$HOME/.rvm/bin"
+
+case "${TERM}" in
+kterm*|xterm*|)
+precmd() {
+echo -ne "\033]0;${USER}@${HOST%%.*}\007"
+}
+;;
+esac
+
+# cdのあとにls
+function cd() {
+builtin cd $@ && ls -F --color=auto;
+}
+
+# alias
+alias ls='ls -F --color=auto'
+alias unzip='unzip -O CP932'
+alias sl='ruby ~/Downloads/git/sl/sl.rb'

@@ -74,55 +74,5 @@ alias gst='git status'
 alias gpom='git push origin master'
 alias v='vim'
 
-# OSごとに設定を分ける
-case ${OSTYPE} in
-    darwin*)
-        # brewでインストールしたアプリのPATHを通す
-        export PATH=/usr/local/bin:$PATH
-
-        # enyenv
-        if [ -d $HOME/.anyenv ] ; then
-            export PATH="$HOME/.anyenv/bin:$PATH"
-            eval "$(anyenv init -)"
-        fi
-
-        eval "$(pyenv init -)"
-
-        # cdのあとにls
-        function cd() {
-        builtin cd $@ && gls -Fh --color;
-    }
-    # zsh + peco (on mac)で快適History生活
-    function peco-history-selection() {
-        BUFFER=`history -n 1 | tail -r | awk '!a[$0]++' | peco`
-        CURSOR=$#BUFFER
-        zle reset-prompt
-        }
-
-zle -N peco-history-selection
-bindkey '^R' peco-history-selection
-
-# alias
-alias ls='gls -Fh --color'
-alias rm='trash'
-alias updatedb='sudo /usr/libexec/locate.updatedb'
-
-# zsh-syntax-highlighting
-source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-
-;;
-linux*)
-    # RVMのPATHを通す
-    export PATH="$PATH:$HOME/.rvm/bin"
-
-    # cdのあとにls
-    function cd() {
-    builtin cd $@ && ls -F --color=auto;
-}
-
-# alias
-alias ls='ls -F --color=auto'
-alias unzip='unzip -O CP932'
-alias sl='ruby ~/Downloads/git/sl/sl.rb'
-;;
-esac
+# load .zshrc_*
+[ -f $ZDOTDIR/.zshrc_`uname` ] && . $ZDOTDIR/.zshrc_`uname`
