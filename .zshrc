@@ -4,7 +4,17 @@ export LANG=en_US.UTF-8  # 文字コードをUTF-8に設定
 export KCODE=u           # KCODEにUTF-8を設定
 
 # RVM
-export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
+# export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
+# PATH
+export PATH=/usr/local/bin:$PATH
+
+# anyenv
+if [ -d $HOME/.anyenv ] ; then
+    export PATH="$HOME/.anyenv/bin:$PATH"
+    eval "$(anyenv init -)"
+fi
+
+eval "$(pyenv init -)"
 
 # 色を使う
 autoload -Uz colors # 色を使えるようにする
@@ -14,29 +24,6 @@ colors
 HISTFILE=~/.zsh_history
 HISTSIZE=1000000
 SAVEHIST=1000000
-
-# プロンプト
-# autoload -Uz
-# setopt prompt_subst
-# zstyle ':vcs_info:*' enable git
-# zstyle ':vcs_info:git:*' check-for-changes true
-# zstyle ':vcs_info:git:*' stagedstr "%F{yellow}!"
-# zstyle ':vcs_info:git:*' unstagedstr "%F{red}+"
-# zstyle ':vcs_info:git:*' formats "%F{green}%c%u[%b:%r]%f"
-# zstyle ':vcs_info:git:*' actionformats '[%b|%a]'
-# precmd () { vcs_info }
-# local p_rhst=""
-# if [[ -n "${REMOTEHOST}${SSH_CONNECTION}" ]]; then
-#     local rhost='who am i|sed 's/.*(\(.*\)).*/\1/''
-#     rhost=${rhost#localhost:}
-#     rhost=${rhost%%.*}
-#     p_rhst="%F{yellow}($rhost)%f"
-# fi
-# local p_info="%F{cyan}[%n@%m]%f"
-# local p_time="%F{green}[%D %T]%f"
-# local p_cdir="%~"$'\n'
-# local p_mark="%(!,%F{red}#%f,%F{blue}>%f)"
-# PROMPT=" $p_info $p_time $p_cdir $p_mark "
 
 # 補完
 autoload -Uz compinit # 補完機能を有効にする
@@ -75,43 +62,56 @@ setopt no_beep           # ビープ音を鳴らさないようにする
 
 # powerline-shell
 function powerline_precmd() {
-export PS1="$(~/.zsh/powerline-shell/powerline-shell.py $? --shell zsh 2> /dev/null)"
-        }
+PS1="$(~/.zsh/powerline-shell/powerline-shell.py $? --shell zsh 2> /dev/null)"
+}
 
 function install_powerline_precmd() {
-    for s in "${precmd_functions[@]}"; do
-        if [ "$s" = "powerline_precmd" ]; then
+for s in "${precmd_functions[@]}"; do
+    if [ "$s" = "powerline_precmd" ]; then
         return
-        fi
-    done
+    fi
+done
 precmd_functions+=(powerline_precmd)
 }
 
-install_powerline_precmd
+if [ "$TERM" != "linux" ]; then
+    install_powerline_precmd
+fi
 
 # タイトル
-    case "${TERM}" in
-        kterm*|xterm*|)
-            precmd() {
-                echo -ne "\033]0;${USER}@${HOST%%.*}\007"
-            }
-            ;;
-    esac
+    # case "${TERM}" in
+        # kterm*|xterm*|)
+            # precmd() {
+                # echo -ne "\033]0;${USER}@${HOST%%.*}\007"
+            # }
+            # ;;
+    # esac
 
     # cdの後にls
     function cd() {
-    builtin cd $@ && ls -F --color=auto;
+    builtin cd $@ && gls -Fh --color;
 }
 
+# zsh + peco (on mac)で快適History生活
+function peco-history-selection() {
+BUFFER=`history -n 1 | tail -r | awk '!a[$0]++' | peco`
+CURSOR=$#BUFFER
+zle reset-prompt
+}
+
+zle -N peco-history-selection
+bindkey '^R' peco-history-selection
+
 setopt complete_aliases
-alias ls='ls -F --color=auto' # lsに色を付ける
-alias unzip='unzip -O CP932' # うぃん
-alias sl="ruby ~/Downloads/git/sl/sl.rb"
+alias ls='gls -Fh --color' # lsに色を付ける
 export PATH="$HOME/.gem/ruby/2.2.0/bin:$PATH"
 alias tnsrb='cd ~/git/ruby/tanoshii-ruby/'
-alias kkns='java -jar ~/Downloads/linux-x64/logbook.jar'
 alias gaa='git add -A'
 alias gcam='git commit -am'
 alias gst='git status'
 alias gpom='git push origin master'
 alias v='vim'
+alias rm="trash"
+alias updatedb='sudo /usr/libexec/locate.updatedb'
+
+source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
