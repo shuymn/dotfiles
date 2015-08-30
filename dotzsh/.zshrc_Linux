@@ -6,9 +6,6 @@ function cd() {
 builtin cd $@ && ls -F --color=auto;
 }
 
-# prompt
-PROMPT='%n
-%m $ '
 # alias
 alias ls='ls -F --color=auto'
 alias unzip='unzip -O CP932'
