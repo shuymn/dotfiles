@@ -28,5 +28,8 @@ alias ls='gls -Fh --color'
 alias rm='trash'
 alias updatedb='sudo /usr/libexec/locate.updatedb'
 
+# zsh-completions
+fpath=(/usr/local/share/zsh-completions $fpath)
+
 # zsh-syntax-highlighting
 source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

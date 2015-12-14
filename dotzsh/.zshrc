@@ -30,9 +30,21 @@ zstyle ':completion:*:sudo:*' command-path /usr/local/sbin /usr/local/bin \
 export LSCOLORS=Exfxcxdxbxegedabagacad # 色の設定
 # 補完候補に色を付ける設定
 export LS_COLORS='di=01;34:ln=01;35:so=01;32:ex=01;31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
+
+if [ -f ~/.dircolors ]; then
+    if type dircolors > /dev/null 2>&1; then
+        eval $(dircolors ~/.dircolors)
+    elif type gdircolors > /dev/null 2>&1; then
+        eval $(gdircolors ~/.dircolors)
+    fi
+fi
+
 export ZLS_COLORS=$LS_COLORS # ZLS_COLORSとは
 export CLICOLOR=true # lsに色を付ける
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS} # 補完候補に色を付ける
+
+if [ -n "$LS_COLORS" ]; then
+    zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+fi
 
 # オプション
 setopt print_eight_bit # 日本語ファイル名を表示可能にする
@@ -47,23 +59,6 @@ setopt extended_history   # ヒストリに実行時間も保存する
 setopt correct           # コマンドのスペルを訂正する
 setopt no_beep           # ビープ音を鳴らさないようにする
 
-# powerline-shell
-function powerline_precmd() {
-PS1="$(~/.zsh/powerline-shell/powerline-shell.py $? --shell zsh 2> /dev/null)"
-}
-
-function install_powerline_precmd() {
-for s in "${precmd_functions[@]}"; do
-    if [ "$s" = "powerline_precmd" ]; then
-        return
-    fi
-done
-precmd_functions+=(powerline_precmd)
-}
-
-if [ "$TERM" != "linux" ]; then
-    install_powerline_precmd
-fi
 
 setopt complete_aliases
 export PATH="$HOME/.gem/ruby/2.2.0/bin:$PATH"
@@ -76,4 +71,5 @@ alias v='vim'
 
 # load .zshrc_*
 [ -f $ZDOTDIR/.zshrc_`uname` ] && . $ZDOTDIR/.zshrc_`uname`
+[ -f $ZDOTDIR/.zshrc_external ] && . $ZDOTDIR/.zshrc_external
 [ -f $ZDOTDIR/.zshrc_local ] && . $ZDOTDIR/.zshrc_local
