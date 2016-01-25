@@ -15,12 +15,16 @@ let s:is_linux = has('unix') && !s:is_mac && !s:is_cygwin
 
 "" Charset, Line ending
 set encoding=utf-8
-set fileencodings=ucs-bom,iso-2022-jp,utf-8,euc-jp,cp932
+scriptencoding utf-8
+set fileencodings=ucs-bom,iso-2022-jp,utf-8,euc-jp,cp932,sjis
 set fileformats=unix,dos,mac
+set fileencoding=utf-8
 
 "" Windowsのコマンドプロンプトの文字化け対策
 if s:is_windows
     set termencoding=cp932
+  else
+    set termencoding=utf-8
 endif
 
 set ambiwidth=double " 全角記号をきちんと表示
@@ -52,12 +56,15 @@ catch /^Vim\%((\a\+)\)\=:E117/ " catch error E117: Unkown function
 endtry
 
 if s:is_neobundle_installed
+  if neobundle#load_cache()
     NeoBundleFetch 'Shougo/neobundle.vim'
 
-    if has("lua")
-        NeoBundle 'Shougo/neocomplete'
+    if has('nvim')
+      NeoBundle 'Shougo/deoplete.nvim'
+    elseif has("lua")
+      NeoBundle 'Shougo/neocomplete'
     else
-        NeoBundle 'Shougo/neocomplcache'
+      NeoBundle 'Shougo/neocomplcache'
     endif
 
     "" neo系
@@ -157,8 +164,11 @@ if s:is_neobundle_installed
     NeoBundleLazy 'gorodinskiy/vim-coloresque', { 'autoload': {'filetypes' : ['html', 'css']}}
     NeoBundle 'superbrothers/vim-vimperator'
 
-    call neobundle#end()
-    filetype plugin indent on
+    NeoBundleSaveCache
+  endif
+
+  call neobundle#end()
+  filetype plugin indent on
 
 endif
 
@@ -349,6 +359,14 @@ if s:Neobundled('neocomplete')
     let g:neocomplete#data_directory = $HOME . '/.vim/cache/neocomplete'
 
     call neocomplete#custom#source('look', 'min_pattern_length', 1)
+endif
+
+" ---------------------------------------------------------------------------
+" deoplete.nvim
+if s:Neobundled('deoplete.nvim')
+  if has('nvim')
+    let g:deoplete#enable_at_startup = 1
+  endif
 endif
 
 " ---------------------------------------------------------------------------
@@ -674,24 +692,55 @@ endif
 set number       " 行番号を表示する
 set ruler        " 右下に表示される行、列の番号を表示する
 set title        " 編集中のファイル名を表示
+set showcmd      " コマンドを画面最下部に表示する
 set showmatch    " 括弧入力時の対応する括弧を表示
+set showmode     " モードを最終行に表示する
+set history=100 " コマンド、検索パターンを100個まで履歴に残す
 set matchtime=5  " 対応括弧の表示秒数を5秒にする
 set wrap         " ウィンドウの幅より長い行は折り返して次の行に表示する
-set history=1024 " コマンド、検索パターンを1024個まで履歴に残す
-set showcmd      " コマンドを画面最下部に表示する
-set showmode     " モードを最終行に表示する
 set laststatus=2 " 最終行のステータスラインを2行にする
 set cursorline   " カーソル行をハイライトする
-set noshowmode
+
+" backspaceキーの挙動を設定する
+" indent    : 行頭の空白の削除を許す
+" eol       : 改行の削除を許す
+" start     : 挿入モードの開始位置での削除を許す
+set backspace=indent,eol,start
 
 " ---------------------------------------------------------------------------
 " タブ、インデント関連
 set smarttab     " 行頭の余白内でTabを打ち込むと、'shiftwidth'の数だけインデントする
 set expandtab    " タブの代わりに空白文字を挿入する
-set tabstop=4    " ファイル内の<Tab>が対応する空白の数
-set shiftwidth=4
+set tabstop=2    " ファイル内の<Tab>が対応する空白の数
+set shiftwidth=2 " cindentやautoindentの時に挿入されるタブの幅
+set softtabstop=0 " Tabキー使用時にTabではなくスペースを入れる
+set wrapscan      " 最後尾まで検索を終えたら先頭に戻って検索を続ける
+
+set cindent
+set textwidth=0
 set autoindent   " 1つ前の行に基づくインデント
 set smartindent  " 改行時に入力された行の末尾に合わせて次の行のインデントを増減させる
+
+set swapfile
+set directory=~/.vim/tmp
+set backup
+set backupdir=~/.vim/tmp
+set undofile
+set undodir=~/.vim/tmp
+
+set autoread
+set hidden
+
+set mouse=a
+
+" :e でファイルを開くときのファイル名補完のやり方を設定
+set wildignorecase
+set wildmenu
+set wildmode=list:longest,full
+
+set scrolloff=6       " スクロール時上下に確保する行数
+set sidescrolloff=15  " 左右スクロール時に確保する行数
+set sidescroll=1      " 左右スクロールは1文字ずつ行う
 
 " ---------------------------------------------------------------------------
 " 検索関連
@@ -701,10 +750,22 @@ set ignorecase   " 大文字と小文字の区別なく検索する
 set smartcase    " ただし大文字も含めた検索の場合はそのとおりに検索する
 
 " ---------------------------------------------------------------------------
+" カラー関連
+syntax enable
+
+if $TERM == 'screen'
+  set t_Co=256 
+endif
+
+set background=dark
+let g:hybrid_use_Xresources = 1
+colorscheme hybrid
+
+" ---------------------------------------------------------------------------
 " 入力関連
 
 " 左右のカーソル移動で行間移動が可能になる
-set whichwrap=b,s,<,>,[,]
+set whichwrap=b,s,h,l,<,>,[,],~
 " INSERT中にCtrl+[を入力した場合はESCとみなす
 inoremap <C-[> <ESC>
 " ESC2回押すことでハイライトを消す
@@ -750,23 +811,23 @@ autocmd FileType help nnoremap <buffer> <silent> q :<C-u>close<CR>
 
 " ---------------------------------------------------------------------------
 " その他
-set clipboard=unnamed,autoselect
-set list
-set listchars=eol:¬
+
+" neovimでのエラーを回避
+if !has('nvim')
+  set clipboard=unnamed,autoselect
+endif
+
+set lcs=tab:›\ ,trail:␣,eol:↲,extends:»,precedes:«,nbsp:%
+set list " 不可視文字を表示
 
 " 無限undo
 if has('persistent_undo')
-    set undodir=$HOME/.vim/undo
+    set undodir=$HOME/.vim/tmp
     set undofile
 endif
 
 " 編集位置の自動修復
-au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\""
-
-" ---------------------------------------------------------------------------
-" カラー関連
-syntax enable    " コードの色付け
-set t_Co=256 
-set background=dark
-let g:hybrid_use_Xresources = 1
-colorscheme hybrid
+augroup vimrcEx/d
+  au BufRead * if line("'\"") > 0 && line("'\"") <= line("$") |
+  \ exe "normal g`\"" | endif
+augroup END
