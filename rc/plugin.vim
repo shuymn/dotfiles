@@ -98,6 +98,10 @@ NeoBundle 'yuku-t/vim-ref-ri'
 NeoBundle 'szw/vim-tags'
 NeoBundle 'tpope/vim-endwise'
 NeoBundle 'superbrothers/vim-vimperator'
+NeoBundle 'kchmck/vim-coffee-script'
+NeoBundle 'Shougo/context_filetype.vim'
+NeoBundle 'Shougo/neco-syntax'
+NeoBundle 'ternjs/tern_for_vim'
 
 call neobundle#end()
 filetype plugin indent on

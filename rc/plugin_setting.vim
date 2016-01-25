@@ -140,7 +140,7 @@ let g:vimshell_force_overwrite_statusline = 0
 " ============================================================
 " neocompleteの設定
 " ============================================================
-" source $HOME/.vim/rc/plugin_neocomplete.vim
+source $HOME/.vim/rc/plugin_neocomplete.vim
 
 " ============================================================
 " Unite.vim
@@ -337,26 +337,32 @@ let g:indentLine_char = '▸'
 " ============================================================
 " neosnippet
 " ============================================================
-" Plugin key-mappings.
-imap <C-k>     <Plug>(neosnippet_expand_or_jump)
-smap <C-k>     <Plug>(neosnippet_expand_or_jump)
-" xmap <C-k>     <Plug>(neosnippet_expand_target)
+if neobundle#tap('neosnippet')
+    " <TAB>: conpletion.
+    inoremap <expr><S-TAB>  pumvisible() ? "\<C-p>" : "<S-TAB>"
 
-" SuperTab like snippets behavior.
-imap <expr><TAB> neosnippet#expandable_or_jumpable() ?
-            \ "\<Plug>(neosnippet_expand_or_jump)"
-            \: pumvisible() ? "\<C-n>" : "\<TAB>"
-smap <expr><TAB> neosnippet#expandable_or_jumpable() ?
-            \ "\<Plug>(neosnippet_expand_or_jump)"
-            \: "\<TAB>"
+    " Plugin key-mappings.
+    imap <silent><C-k> <Esc>:let g:neosnippet_expanding_or_jumpping = 1<CR>a<Plug>(neosnippet_expand_or_jump)
+    smap <C-k>     <Plug>(neosnippet_expand_or_jump)
 
-" For snippet_complete marker.
-if has('conceal')
-    set conceallevel=2 concealcursor=i
+    " SuperTab like snippets behavior.
+    imap <expr><TAB> pumvisible() ? "\<C-n>" : neosnippet#jumpable() ? "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>"
+    smap <expr><TAB> neosnippet#jumpable() ? "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>"
+
+
+    " For snippet_complete marker.
+    if has('conceal')
+        set conceallevel=2 concealcursor=i
+    endif
+
+    " Enable snipMate compatibility feature.
+    let g:neosnippet#enable_snipmate_compatibility = 1
+    let g:neosnippet#snippets_directory = '~/.vim/snippet/'
+
+    AutoCmd InsertLeave * syntax clear neosnippetConcealExpandSnippets
+
+    call neobundle#untop()
 endif
-
-let s:my_snippet = '~/.vim/snippet/'
-let g:neosnippet#snippets_directory = s:my_snippet
 
 " ============================================================
 " vimfiler
@@ -423,3 +429,13 @@ nnoremap ,hbl :<C-u>HatebloList<CR>
 " ============================================================
 let g:rsenseHome = '/opt/rsense-0.3'
 let g:rsenseUseOmniFunc = 1
+
+" ===========================================================
+" Coffee Script
+" ===========================================================
+au BufRead,BufNewFile,BufReadPre *.coffee   set filetype=coffee
+autocmd FileType coffee setlocal sw=2 sts=2 ts=2 et
+
+" ============================================================ 
+" tern for vim
+" ============================================================ 
