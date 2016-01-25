@@ -35,8 +35,9 @@ autocmd BufWritePre *
                 \ |   setlocal bomb
                 \ | endif
 
-" ---------------------------------------------------------------------------
+" ===========================================================================
 " Plugin Install (Using NeoBundle)
+" ===========================================================================
 
 if has('vim_starting')
     set runtimepath+=~/.vim/bundle/neobundle.vim
@@ -161,8 +162,9 @@ if s:is_neobundle_installed
 
 endif
 
-" ---------------------------------------------------------------------------
+" ===========================================================================
 " Plugin Settings
+" ===========================================================================
 
 " Neobundled関数を用意
 function! s:Neobundled(bundle)
@@ -171,7 +173,6 @@ endfunction
 
 " ---------------------------------------------------------------------------
 " lightlineの設定
-
 if s:Neobundled('lightline.vim')
     let g:lightline = {                                     
                 \ 'colorscheme' : 'wombat',
@@ -352,7 +353,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " neosnippet
-
 if s:Neobundled('neosnippet')
     " <TAB>: conpletion.
     inoremap <expr><S-TAB>  pumvisible() ? "\<C-p>" : "<S-TAB>"
@@ -380,7 +380,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " Unite.vim
-
 if s:Neobundled('unite.vim')
     " prefix key
     nnoremap [unite] <Nop>
@@ -435,7 +434,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " Syntasticの設定
-
 if s:Neobundled('syntastic')
     let g:syntastic_error_symbol = '✘'
     let g:syntastic_warning_symbol = '⚠'
@@ -453,7 +451,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " emmet-vimの設定
-
 if s:Neobundled('emmet-vim')
     " html lang=ja
     let g:user_emmet_settings = {
@@ -465,7 +462,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " vim-refの設定
-
 if s:Neobundled('vim-ref')
     " vim-refのバッファをqで閉じれるようにする
     autocmd FileType ref-* nnoremap <buffer> <silent> q :<C-u>close<CR>
@@ -500,7 +496,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " ecitetranslate-vimの設定
-
 if s:Neobundled('excitetranslate-vim')
     "" 開いたバッファを q で閉じれるようにする
     autocmd BufEnter ==Translate==\ Excite nnoremap <buffer> <silent> q :<C-u>close<CR>
@@ -509,7 +504,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " quickrun.vimの設定
-
 if s:Neobundled('vim-quickrun')
     let g:quickrun_config = {
                 \   "_" : {
@@ -529,7 +523,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " caw.vimの設定
-
 if s:Neobundled('caw.vim')
     nmap <C-c> <Plug>(caw:i:toggle)
     vmap <C-c> <Plug>(caw:i:toggle)
@@ -537,14 +530,12 @@ endif
 
 " ---------------------------------------------------------------------------
 " easymotionの設定
-
 if s:Neobundled('vim-easymotion')
     nmap s <Plug>(easymotion-s2)
 endif
 
 " ---------------------------------------------------------------------------
 " vim-textmanipの設定
-
 if s:Neobundled('vim-textmanip')
     xmap <Space>d <Plug>(textmanip-duplicate-down)
     nmap <Space>d <Plug>(textmanip-duplicate-down)
@@ -563,7 +554,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " gundo 
-
 if s:Neobundled('gundo.vim')
     nnoremap <F5> :GundoToggle<CR>
     let g:gundo_width = 55
@@ -572,7 +562,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " tagbar
-
 if s:Neobundled('tagbar')
     nnoremap <F8> :TagbarToggle<CR> 
     let g:tagbar_type_css = {
@@ -587,7 +576,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " indentLine
-
 if s:Neobundled('indentLine')
     let g:indentLine_faster = 1
     let g:indentLine_color_term = 235 
@@ -596,7 +584,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " vimfiler
-
 if s:Neobundled('vimfiler')
     let g:vimfiler_as_default_explorer = 1
     nnoremap ,vf :<C-u>VimFilerExplorer -toggle<CR>
@@ -605,7 +592,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " gitgutter
-
 if s:Neobundled('vim-gitgutter')
     let g:gitgutter_sign_added = '✚'
     let g:gitgutter_sign_modified = '➜'
@@ -616,14 +602,12 @@ endif
 
 " ---------------------------------------------------------------------------
 " vinshellの設定
-
 if s:Neobundled('vimshell')
     nnoremap ,vs :<C-u>VimShell<CR>
 endif
 
 " ---------------------------------------------------------------------------
 " vim-submodeの設定
-
 if s:Neobundled('vim-submode')
     function! s:my_x()
         undojoin
@@ -636,7 +620,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " Gistaの設定
-
 if s:Neobundled('vim-gista')
     autocmd FileType gista-list nnoremap <buffer> <silent> q :<C-u>close<CR>
     let g:gista#github_user = 'shuymn'
@@ -652,7 +635,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " emmet-vim の設定
-
 if s:Neobundled('emmet-vim')
     let g:user_emmet_leader_key = "<C-e>"
     let g:user_emmet_install_global = 0
@@ -661,7 +643,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " hateblo.vimの設定
-
 if s:Neobundled('heteblo.vim')
     nnoremap ,hbc :<C-u>HatebloCreate<CR>
     nnoremap ,hbd :<C-u>HatebloCreateDraft<CR>
@@ -670,7 +651,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " Rsense
-
 if s:Neobundled('rsense')
 let g:rsenseHome = '/opt/rsense-0.3'
 let g:rsenseUseOmniFunc = 1
@@ -678,7 +658,6 @@ endif
 
 " ---------------------------------------------------------------------------
 " Coffee Script
-
 if s:Neobundled('vim-coffee-script')
 au BufRead,BufNewFile,BufReadPre *.coffee   set filetype=coffee
 autocmd FileType coffee setlocal sw=2 sts=2 ts=2 et
@@ -686,14 +665,12 @@ endif
 
 " ---------------------------------------------------------------------------
 " tern for vim
-
 if s:Neobundled('tern_for_vim')
     let g:tern_map_keys = 0
 endif
 
 " ---------------------------------------------------------------------------
 " 基本設定
-
 set number       " 行番号を表示する
 set ruler        " 右下に表示される行、列の番号を表示する
 set title        " 編集中のファイル名を表示
@@ -709,7 +686,6 @@ set noshowmode
 
 " ---------------------------------------------------------------------------
 " タブ、インデント関連
-
 set smarttab     " 行頭の余白内でTabを打ち込むと、'shiftwidth'の数だけインデントする
 set expandtab    " タブの代わりに空白文字を挿入する
 set tabstop=4    " ファイル内の<Tab>が対応する空白の数
@@ -719,7 +695,6 @@ set smartindent  " 改行時に入力された行の末尾に合わせて次の�
 
 " ---------------------------------------------------------------------------
 " 検索関連
-
 set incsearch    " インクリメタルサーチを行う
 set hlsearch     " 結果をハイライト表示
 set ignorecase   " 大文字と小文字の区別なく検索する
@@ -775,7 +750,6 @@ autocmd FileType help nnoremap <buffer> <silent> q :<C-u>close<CR>
 
 " ---------------------------------------------------------------------------
 " その他
-
 set clipboard=unnamed,autoselect
 set list
 set listchars=eol:¬
@@ -791,11 +765,8 @@ au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g
 
 " ---------------------------------------------------------------------------
 " カラー関連
-
 syntax enable    " コードの色付け
 set t_Co=256 
 set background=dark
 let g:hybrid_use_Xresources = 1
 colorscheme hybrid
-
-
