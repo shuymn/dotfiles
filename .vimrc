@@ -173,6 +173,11 @@ if s:is_neobundle_installed
   call neobundle#end()
   filetype plugin indent on
 
+  let g:hybrid_custom_term_colors = 1
+  let g:hybrid_redurced_contrast = 1
+  let g:hybrid_use_Xresources = 1
+  colorscheme hybrid
+
 endif
 
 " ===========================================================================
@@ -759,15 +764,22 @@ set textwidth=0
 set autoindent   " 1つ前の行に基づくインデント
 set smartindent  " 改行時に入力された行の末尾に合わせて次の行のインデントを増減させる
 
-set swapfile  " swapファイルを生成する。↓ 保存ディレクトリ
+if !isdirectory(expand('~/.vim/tmp'))
+  call mkdir(expand('~/.vim/tmp'),'p')
+endif
+
 set directory=~/.vim/tmp
-set backup    " バックアップファイルを生成する。 ↓ 保存ディレクトリ
 set backupdir=~/.vim/tmp
-set undofile  " undo記録ファイルを生成する。 ↓ 保存ディレクトリ
 set undodir=~/.vim/tmp
+
+set swapfile  " swapファイルを生成する。↓ 保存ディレクトリ
+set backup    " バックアップファイルを生成する。 ↓ 保存ディレクトリ
+set undofile  " undo記録ファイルを生成する。 ↓ 保存ディレクトリ
 
 set autoread  " 編集中のファイルが更新された時に自動でロードする
 set hidden
+
+set mouse=a
 
 " :e でファイルを開くときのファイル名補完のやり方を設定
 set wildignorecase
@@ -794,8 +806,12 @@ if $TERM == 'screen'
 endif
 
 set background=dark
-let g:hybrid_use_Xresources = 1
-colorscheme hybrid
+if filereadable(expand('~/.vim/colors/hybrid.vim'))
+  let g:hybrid_custom_term_colors = 1
+  let g:hybrid_redurced_contrast = 1
+  let g:hybrid_use_Xresources = 1
+  colorscheme hybrid
+endif
 
 " ---------------------------------------------------------------------------
 " 入力関連
@@ -859,6 +875,7 @@ if !has('nvim')
 endif
 
 set lcs=tab:›\ ,trail:␣,eol:↲,extends:»,precedes:«,nbsp:%
+" set lcs=tab:>. ,trail:_,eol:｣
 set list " 不可視文字を表示
 
 " 無限undo
