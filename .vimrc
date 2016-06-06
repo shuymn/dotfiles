@@ -175,7 +175,6 @@ if s:is_neobundle_installed
 
   let g:hybrid_custom_term_colors = 1
   let g:hybrid_redurced_contrast = 1
-  let g:hybrid_use_Xresources = 1
   colorscheme hybrid
 
 endif
@@ -809,7 +808,6 @@ set background=dark
 if filereadable(expand('~/.vim/colors/hybrid.vim'))
   let g:hybrid_custom_term_colors = 1
   let g:hybrid_redurced_contrast = 1
-  let g:hybrid_use_Xresources = 1
   colorscheme hybrid
 endif
 

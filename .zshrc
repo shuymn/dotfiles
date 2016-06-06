@@ -8,6 +8,7 @@ if [ -e "${HOME}/.zplug" ]; then
   zplug "robbyrussell/oh-my-zsh", use:lib/git.zsh
   zplug "oskarkrawczyk/honukai-iterm-zsh", use:"*.zsh-theme", on:robbyrussell/oh-my-zsh
   zplug "seebi/dircolors-solarized"
+  zplug "shuymn/38139f7eb201c869a4d55fdbdb771c32", from:gist, on:oskarkrawczyk/honukai-iterm-zsh
 
   if ! zplug check --verbose; then
     printf "Install? [y/N]: "
