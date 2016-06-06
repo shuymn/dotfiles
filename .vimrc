@@ -174,7 +174,6 @@ if s:is_neobundle_installed
   filetype plugin indent on
 
   let g:hybrid_custom_term_colors = 1
-  let g:hybrid_redurced_contrast = 1
   colorscheme hybrid
 
 endif
@@ -806,8 +805,6 @@ endif
 
 set background=dark
 if filereadable(expand('~/.vim/colors/hybrid.vim'))
-  let g:hybrid_custom_term_colors = 1
-  let g:hybrid_redurced_contrast = 1
   colorscheme hybrid
 endif
 
