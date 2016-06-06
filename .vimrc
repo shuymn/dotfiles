@@ -870,7 +870,7 @@ if !has('nvim')
 endif
 
 set lcs=tab:›\ ,trail:␣,eol:↲,extends:»,precedes:«,nbsp:%
-" set lcs=tab:>. ,trail:_,eol:｣
+" set lcs=tab:>.,trail:_,eol:｣
 set list " 不可視文字を表示
 
 " 無限undo
