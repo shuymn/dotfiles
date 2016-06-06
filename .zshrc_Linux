@@ -9,4 +9,5 @@ builtin cd $@ && ls -F --color=auto;
 # alias
 alias ls='ls -F --color=auto'
 alias unzip='unzip -O CP932'
-alias sl='ruby ~/Downloads/git/sl/sl.rb'
+alias crontab='crontab -i'
+alias rm='rm -i'

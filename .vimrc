@@ -61,7 +61,7 @@ if s:is_neobundle_installed
 
     if has('nvim')
       NeoBundle 'Shougo/deoplete.nvim'
-    elseif has("lua")
+    elseif has('lua')
       NeoBundle 'Shougo/neocomplete'
     else
       NeoBundle 'Shougo/neocomplcache'
@@ -83,6 +83,7 @@ if s:is_neobundle_installed
 
 
     NeoBundle 'itchyny/lightline.vim'
+    NeoBundle 'KazuakiM/vim-qfstatusline'
 
     "" unite系
     NeoBundle 'Shougo/vimfiler', {'depends': 'Shougo/unite.vim'}
@@ -108,7 +109,8 @@ if s:is_neobundle_installed
     NeoBundle 'osyo-manga/shabadou.vim'
     NeoBundle 'dannyob/quickfixstatus'
     NeoBundle 'kana/vim-submode'
-    "NeoBundle 'osyo-manga/vim-watchdogs'
+    NeoBundle 'cohama/vim-hier'
+    NeoBundle 'osyo-manga/vim-watchdogs'
 
     NeoBundle 'tpope/vim-surround'
     NeoBundle 'h1mesuke/vim-alignta'
@@ -120,8 +122,9 @@ if s:is_neobundle_installed
     NeoBundle 'tpope/vim-endwise'
     NeoBundle 'tmhedberg/matchit'
 
-    NeoBundle 'scrooloose/syntastic'
-    NeoBundle 'marcus/rsense'
+    " NeoBundle 'scrooloose/syntastic'
+    " NeoBundle 'marcus/rsense'
+    NeoBundle 'osyo-manga/vim-monster'
 
     NeoBundle 'sjl/gundo.vim'
     NeoBundle 'majutsushi/tagbar'
@@ -134,7 +137,6 @@ if s:is_neobundle_installed
     NeoBundle 'mfumi/ref-dicts-en'
     NeoBundle 'mattn/webapi-vim'
     NeoBundle 'mattn/excitetranslate-vim'
-    NeoBundle 'cohama/vim-hier'
     NeoBundle 'tyru/open-browser.vim'
     NeoBundle 'osyo-manga/vim-over'
     NeoBundle 'vim-jp/vimdoc-ja'
@@ -161,6 +163,7 @@ if s:is_neobundle_installed
     NeoBundleLazy 'mattn/emmet-vim', { 'autoload': {'filetypes' : ['html', 'css']}}
     NeoBundleLazy 'othree/html5.vim', { 'autoload': {'filetypes' : ['html', 'css']}}
     NeoBundleLazy 'hail2u/vim-css3-syntax', { 'autoload': {'filetypes' : ['html', 'css']}}
+    NeoBundleLazy 'hail2u/vim-javascript-syntax', { 'autoload': {'filetypes' : ['javascript', 'html', 'css']}}
     NeoBundleLazy 'gorodinskiy/vim-coloresque', { 'autoload': {'filetypes' : ['html', 'css']}}
     NeoBundle 'superbrothers/vim-vimperator'
 
@@ -184,14 +187,14 @@ endfunction
 " ---------------------------------------------------------------------------
 " lightlineの設定
 if s:Neobundled('lightline.vim')
-    let g:lightline = {                                     
+    let g:lightline = {
                 \ 'colorscheme' : 'wombat',
-                \ 'active' : {                              
-                \ 'left' : [ [ 'mode', 'paste' ],
-                \            [ 'fugitive', 'gitgutter', 'filename' ] ],
-                \ 'right' : [ [ 'syntastic', 'lineinfo' ],
-                \             [ 'percent' ],
-                \             [ 'fileformat', 'fileencoding', 'filetype' ] ]
+                \ 'active' : {
+                \ 'left' : [['mode', 'paste'],
+                \            ['fugitive', 'gitgutter', 'filename', 'qfstatusline']],
+                \ 'right' : [['lineinfo'],
+                \             ['percent'],
+                \             ['fileformat', 'fileencoding', 'filetype']]
                 \ },
                 \ 'component_function' : {
                 \   'mode': 'MyMode',
@@ -204,15 +207,14 @@ if s:Neobundled('lightline.vim')
                 \   'fileencoding': 'MyFileencoding',
                 \   'gitgutter': 'MyGitgutter',
                 \ },
-                \ 'component_expand' : {
-                \   'syntastic': 'SyntasticStatuslineFlag',
-                \ },
-                \ 'component_type' : {
-                \   'syntastic' : 'error',
-                \ },
-                \ 'separator': { 'left': '', 'right': '' },
-                \ 'subseparator': { 'left': '|', 'right': '|' }
+                \ 'component_expand' : {'qfstatusline': 'qfstatusline#Update'},
+                \ 'component_type'   : {'qfstatusline': 'error'},
+                \ 'separator': {'left': '', 'right': ''},
+                \ 'subseparator': {'left': '|', 'right': '|'}
                 \ }
+
+    let g:Qfstatusline#UpdateCmd = function('lightline#update')
+
     function! MyMode()
         let fname = expand('%:t')
         return fname == '__Tagbar__' ? 'Tagbar' :
@@ -232,7 +234,7 @@ if s:Neobundled('lightline.vim')
 
     function! MyModified()
         return &ft =~ 'help\|vimfiler\|gundo\|agit\|gista' ? '' : &modified ? '+' : &modifiable ? '' : '-'
-    endfunction
+  endfunction
 
     function! MyReadonly()
         return &ft !~? 'help\|vimfiler\|gundo\|agit\|gista' && &readonly ? '⭤' : ''
@@ -287,14 +289,14 @@ if s:Neobundled('lightline.vim')
 
     function! MyFileformat()
         return winwidth(0) > 70 ? &fileformat : ''
-    endfunction
+  endfunction
 
     function! MyFiletype()
         return winwidth(0) > 70 ? (strlen(&filetype) ? &filetype : 'no ft') : ''
     endfunction
 
     function! MyFileencoding()
-        return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc : &enc) : ''
+      return winwidth(0) > 70 ? (strlen(&fenc) ? &fenc : &enc) : ''
     endfunction
 
     let g:tagbar_status_func = 'TagbarStatusFunc'
@@ -304,20 +306,10 @@ if s:Neobundled('lightline.vim')
         return lightline#statusline(0)
     endfunction
 
-    let g:syntastic_mode_map = { 'mode': 'passive' }
-    augroup AutoSyntastic
-        autocmd!
-        autocmd BufWritePost *.c,*.cpp,*.html,*.rb,*.css call s:syntastic()
-    augroup END
-
-    function! s:syntastic()
-        SyntasticCheck
-        call lightline#update()
-    endfunction
-
     let g:unite_force_overwrite_statusline = 0
     let g:vimfiler_force_overwrite_statusline = 0
     let g:vimshell_force_overwrite_statusline = 0
+  
 endif
 
 " ---------------------------------------------------------------------------
@@ -366,6 +358,8 @@ endif
 if s:Neobundled('deoplete.nvim')
   if has('nvim')
     let g:deoplete#enable_at_startup = 1
+    let g:deoplete#omni_patterns = {}
+    let g:deoplete#omni_patterns.ruby = '[^. *\t]\.\w*\|\h\w*::'
   endif
 endif
 
@@ -465,6 +459,19 @@ if s:Neobundled('syntastic')
     let g:syntastic_html_tidy_ignore_errors = [ 'trimming empty <i>' ]
     " ruby
     let g:syntastic_ruby_checkers = ['rubocop']
+
+    " lightline.vim と Syntasticの設定
+    let g:syntastic_mode_map = { 'mode': 'passive' }
+    augroup AutoSyntastic
+        autocmd!
+        autocmd BufWritePost *.c,*.cpp,*.html,*.rb,*.css call s:syntastic()
+    augroup END
+
+    function! s:syntastic()
+        SyntasticCheck
+        call lightline#update()
+    endfunction
+
 endif
 
 " ---------------------------------------------------------------------------
@@ -524,20 +531,44 @@ endif
 " quickrun.vimの設定
 if s:Neobundled('vim-quickrun')
     let g:quickrun_config = {
-                \   "_" : {
-                \       "hook/close_unite_quickfix/enable_hook_loaded" : 1,
-                \       "hook/unite_quickfix/enable_failure" : 1,
-                \       "hook/close_quickfix/enable_exit" : 1,
-                \       "hook/close_buffer/enable_failure" : 1,
-                \       "hook/close_buffer/enable_empty_data" : 1,
-                \       "runner" : "vimproc",
-                \       "runner/vimproc/updatetime" : 60,
-                \       "outputter" : "multi:buffer:quickfix",
-                \       "outputter/buffer/into" : 1,
-                \       "outputter/buffer/split" : ":botright 10sp"
+                \   '_' : {
+                \     'hook/close_buffer/enable_empty_data': 1,
+                \     'hook/close_buffer/enable_failure': 1,
+                \     'outputter' : 'multi:buffer:quickfix',
+                \     'outputter/buffer/close_on_empty' : 1,
+                \     'outputter/buffer/split' : ':rightbelow 8sp',
+                \     'runner' : 'vimproc',
+                \     'runner/vimproc/updatetime' : 600,
                 \   },
-                \}
+                \ }
 endif
+
+" ---------------------------------------------------------------------------
+" watchdogsの設定
+if s:Neobundled('vim-watchdogs')
+  let g:quickrun_config['watchdogs_checker/_'] = {
+        \   'hook/back_window/enable_exit' : 1,
+        \   'hook/qfstatusline_update/enable_exit' : 1,
+        \   'hook/qfstatusline_update/priority_exit' : 1,
+        \ }
+
+  let g:quickrun_config['vim/watchdogs_checker'] = {
+        \   'type' : executable('vint') ? 'watchdogs_checker/vint' : '',
+        \ }
+
+  let g:quickrun_config['watchdogs_checker/vint'] = {
+        \   'command' : 'vint',
+        \   'exec'    : '%c %o %s:p ',
+        \ }
+
+  let g:watchdogs_check_BufWritePost_enable = 1
+  let g:watchdogs_check_CursorHold_enable = 1
+
+  autocmd BufWritePost .vimrc,*.vim WatchdogsRunSilent
+endif
+
+" ---------------------------------------------------------------------------
+" vim-qfstatuslineの設定
 
 " ---------------------------------------------------------------------------
 " caw.vimの設定
@@ -614,7 +645,7 @@ if s:Neobundled('vim-gitgutter')
     let g:gitgutter_sign_added = '✚'
     let g:gitgutter_sign_modified = '➜'
     let g:gitgutter_sign_removed = '✘'
-    nnoremap <F6> :GitGutterToggle<CR>
+  nnoremap <F6> :GitGutterToggle<CR>
     let g:gitgutter_enabled = 1 
 endif
 
@@ -675,6 +706,9 @@ let g:rsenseUseOmniFunc = 1
 endif
 
 " ---------------------------------------------------------------------------
+" vim-monster
+
+" ---------------------------------------------------------------------------
 " Coffee Script
 if s:Neobundled('vim-coffee-script')
 au BufRead,BufNewFile,BufReadPre *.coffee   set filetype=coffee
@@ -699,7 +733,11 @@ set history=100 " コマンド、検索パターンを100個まで履歴に残�
 set matchtime=5  " 対応括弧の表示秒数を5秒にする
 set wrap         " ウィンドウの幅より長い行は折り返して次の行に表示する
 set laststatus=2 " 最終行のステータスラインを2行にする
-set cursorline   " カーソル行をハイライトする
+
+" カーソル行をハイライトする。neovimでない普通のvim(?)だとスクロールがもたつくのでneovimのみ↲
+if has('nvim')
+  set cursorline
+endif
 
 " backspaceキーの挙動を設定する
 " indent    : 行頭の空白の削除を許す
@@ -721,17 +759,15 @@ set textwidth=0
 set autoindent   " 1つ前の行に基づくインデント
 set smartindent  " 改行時に入力された行の末尾に合わせて次の行のインデントを増減させる
 
-set swapfile
+set swapfile  " swapファイルを生成する。↓ 保存ディレクトリ
 set directory=~/.vim/tmp
-set backup
+set backup    " バックアップファイルを生成する。 ↓ 保存ディレクトリ
 set backupdir=~/.vim/tmp
-set undofile
+set undofile  " undo記録ファイルを生成する。 ↓ 保存ディレクトリ
 set undodir=~/.vim/tmp
 
-set autoread
+set autoread  " 編集中のファイルが更新された時に自動でロードする
 set hidden
-
-set mouse=a
 
 " :e でファイルを開くときのファイル名補完のやり方を設定
 set wildignorecase
@@ -780,6 +816,11 @@ nnoremap <silent> k gk
 autocmd Filetype * setlocal formatoptions-=ro
 " 空行を挿入する
 nnoremap <CR> o<Esc>
+
+" 一部フォーマットでの折り返し無効化
+" http://qiita.com/noboru/items/5d7358000329a6adcbe5
+autocmd BufRead,BufNewFile *.html set nowrap
+autocmd BufRead,BufNewFile *.js set nowrap
 
 " ---------------------------------------------------------------------------
 " キーマッピング
