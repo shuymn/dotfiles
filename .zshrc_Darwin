@@ -121,3 +121,5 @@ zle -N peco-select-history
 
 # 3. キーへ割り当てる（任意）
 bindkey '^r' peco-select-history
+
+[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh ]
