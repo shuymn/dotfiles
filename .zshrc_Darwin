@@ -70,6 +70,7 @@ alias e='emacs'
 alias ce='emacs -nw'
 alias jman='LANG=ja_JP.UTF-8 man'
 alias eman='LANG=C man'
+alias gomi='gmv -f --backup=numbered --target-directory ~/.Trash'
 
 # cdのあとにlsする
 function chpwd() { ls }
@@ -81,6 +82,9 @@ eval "$(anyenv init -)"
 
 ## latex
 export PATH="$PATH:$HOME/Storage/Dropbox/bin"
+
+## imagemagick
+export PATH="/usr/local/opt/imagemagick@6/bin:$PATH"
 
 ## neovim
 export XDG_CONFIG_HOME="$HOME/.config"
