@@ -67,6 +67,7 @@ call dein#add('plasticboy/vim-markdown')
 call dein#add('thinca/vim-quickrun')
 call dein#add('cohama/lexima.vim')
 call dein#add('KeitaNakamura/tex-conceal.vim')
+call dein#add('othree/yajs.vim')
 
 call dein#end()
 
@@ -173,7 +174,19 @@ let g:quickrun_config._ = {
       \ 'outputter/buffer/running_mark' : '',
       \ }
 
-let g:quickrun_config.tex = { "command" : "autolatex" }
+if executable("autolatex")
+  let g:quickrun_config.tex = {
+        \ "command" : "autolatex",
+        \ "exec"    : "%c %s",
+        \ }
+endif
+
+if executable("autojs")
+  let g:quickrun_config.javascript = {
+        \ "command" : "autojs",
+        \ "exec"    : "%c %s",
+        \ }
+endif
 
 "" q で quickfixを閉じれるようにする
 au FileType qf nnoremap <silent><buffer>q :quit<CR>
@@ -200,7 +213,7 @@ smap <C-k>     <Plug>(neosnippet_expand_or_jump)
 xmap <C-k>     <Plug>(neosnippet_expand_target)
 
 smap <expr><TAB> neosnippet#expandable_or_jumpable() ?
-\ "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>"
+      \ "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>"
 
 " tex-conceal
 if has('conceal')
@@ -253,11 +266,13 @@ endif
 
 set directory=~/.vim/tmp
 set backupdir=~/.vim/tmp
-set undodir=~/.vim/tmp
+set swapfile  " swapファイルを生成する。
+set backup    " バックアップファイルを生成する。
 
-set swapfile  " swapファイルを生成する。↓ 保存ディレクトリ
-set backup    " バックアップファイルを生成する。 ↓ 保存ディレクトリ
-set undofile  " undo記録ファイルを生成する。 ↓ 保存ディレクトリ
+if has('persistent_undo') " 無限undo
+  set undodir=~/.vim/tmp
+  set undofile
+endif
 
 set autoread  " 編集中のファイルが更新された時に自動でロードする
 set hidden
@@ -347,6 +362,7 @@ inoremap <Up> <Nop>
 inoremap <Down> <Nop>
 inoremap <Right> <Nop>
 " 操作ミス防止
+nnoremap <Space> <Nop>
 nnoremap ZZ <Nop>
 nnoremap ZQ <Nop>
 nnoremap Q <Nop>
@@ -370,12 +386,6 @@ endif
 set lcs=tab:›\ ,trail:␣,eol:↲,extends:»,precedes:«,nbsp:%
 "set lcs=tab:>.,trail:_,eol:｣
 set list " 不可視文字を表示
-
-" 無限undo
-if has('persistent_undo')
-  set undodir=$HOME/.vim/tmp
-  set undofile
-endif
 
 " 編集位置の自動修復
 augroup vimrcEx/d
