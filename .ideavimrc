@@ -1,31 +1,21 @@
-set history=100 " コマンド、検索パターンを100個まで履歴に残す
+set history=100
 
-set hlsearch   " 検索結果をハイライトする
-set incsearch  " インクリメンタルサーチをする
-set ignorecase " 大文字と小文字の区別なく検索する
-set smartcase  " ただし，大文字を含めた検索はそのとおりに検索する
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
 
-set scrolloff=6       " スクロール時上下に確保する行数
-set sidescrolloff=15  " 左右スクロール時に確保する行数
-set sidescroll=1      " 左右スクロールは1文字ずつ行う
+set scrolloff=6
+set sidescrolloff=15
+set sidescroll=1
 
-set clipboard=unnamed,autoselect " クリップボードを共有
+set clipboard=unnamed,autoselect
 
-" insert mode 
-inoremap <C-[> <ESC> " ctrl + [ で ESC
-
-" normal + visual mode
-"" セミコロンとコロンの入れ替え
+inoremap <C-[> <ESC>
 noremap ; :
 noremap : ;
-noremap <CR> o<Esc> " Enter 押すと改行する
-
-" normal mode
-" esc 2連打でハイライトを消す
+noremap <CR> o<Esc>
+noremap <Space> <Nop>
+noremap <Space>h ^
+noremap <Space>l $
 nnoremap <Esc><Esc> :<C-u>set nohlsearch<Return>
-"" space だけ押しても移動しないようにする
-nnoremap <Space> <Nop>
-"" ショートカットたち
-nnoremap <Space>h ^
-nnoremap <Space>l $
-nnoremap <Space>/ *
