@@ -1,9 +1,6 @@
 typeset -U path cdpath fpath manpath
 
-if [ ! -d $HOME/.zfunctions ]; then
-  echo "creating $HOME/.zfunctions ..."
-  mkdir -p $HOME/.zfunctions
-fi
+[ ! -d $HOME/.zfunctions ] && mkdir -p $HOME/.zfunctions
 fpath=("$HOME/.zfunctions" $fpath)
 
 # zplug の設定
@@ -32,7 +29,7 @@ export KCODE=u           # KCODEにUTF-8を設定
 bindkey -v
 
 # 履歴の設定
-HISTFILE=~/.zsh_history  # 履歴ファイルの保存先
+HISTFILE="${HOME}/.zsh_history"  # 履歴ファイルの保存先
 HISTSIZE=10000           # メモリに保存される履歴の件数
 SAVEHIST=1000000         # 履歴ファイルに保存される履歴の件数
 
@@ -71,25 +68,23 @@ if [ -f "$DIRCOLORS_FILE" ]; then
     fi
 fi
 
-if [ -n "$LS_COLORS" ]; then
-    zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-fi
+[ -n "$LS_COLORS" ] && zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 
-export ZLS_COLORS=$LS_COLORS # ZLS_COLORSとは
+export ZLS_COLORS=$LS_COLORS
 export CLICOLOR=true # lsに色を付ける
 
 # オプション
-setopt print_eight_bit # 日本語ファイル名を表示可能にする
+setopt print_eight_bit
 
-setopt auto_pushd # cd したら自動的にpushdする
-setopt pushd_ignore_dups # 重複したディレクトリを作成しない
-setopt share_history # 同時に起動したzshの間でヒストリを共有する
-setopt hist_ignore_all_dups # 同じコマンドをヒストリに残さない
-setopt hist_reduce_blanks # ヒストリに保存するときに余分なスペースは削除する
-setopt hist_ignore_space # スペースから始まるコマンド行はヒストリに残さない
-setopt extended_history   # ヒストリに実行時間も保存する
-setopt correct           # コマンドのスペルを訂正する
-setopt no_beep           # ビープ音を鳴らさないようにする
+setopt auto_pushd
+setopt pushd_ignore_dups
+setopt share_history
+setopt hist_ignore_all_dups
+setopt hist_reduce_blanks
+setopt hist_ignore_space
+setopt extended_history
+setopt correct
+setopt no_beep
 setopt complete_aliases
 
 # ターミナルのタイトルを USER@HOSTNAME: CURRENT_DIR にする

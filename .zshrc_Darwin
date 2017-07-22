@@ -9,115 +9,117 @@ function is_ssh_running() { [ ! -z "$SSH_CONECTION" ]; }
 
 function tmux_automatically_attach_session()
 {
-    if is_screen_or_tmux_running; then
-        ! is_exists 'tmux' && return 1
+  if is_screen_or_tmux_running; then
+    ! is_exists 'tmux' && return 1
 
-        if is_tmux_runnning; then
-          echo "${fg_bold[yellow]}Hello, $(whoami).${reset_color}"
-        elif is_screen_running; then
-            echo "This is on screen."
-        fi
-    else
-        if shell_has_started_interactively && ! is_ssh_running; then
-            if ! is_exists 'tmux'; then
-                echo 'Error: tmux command not found' 2>&1
-                return 1
-            fi
-
-            if tmux has-session >/dev/null 2>&1 && tmux list-sessions | grep -qE '.*]$'; then
-                # detached session exists
-                tmux list-sessions
-                echo -n "Tmux: attach? (y/N/num) "
-                read
-                if [[ "$REPLY" =~ ^[Yy]$ ]] || [[ "$REPLY" == '' ]]; then
-                    tmux attach-session
-                    if [ $? -eq 0 ]; then
-                        echo "$(tmux -V) attached session"
-                        return 0
-                    fi
-                elif [[ "$REPLY" =~ ^[0-9]+$ ]]; then
-                    tmux attach -t "$REPLY"
-                    if [ $? -eq 0 ]; then
-                        echo "$(tmux -V) attached session"
-                        return 0
-                    fi
-                fi
-            fi
-
-            if is_osx && is_exists 'reattach-to-user-namespace'; then
-                # on OS X force tmux's default command
-                # to spawn a shell in the user's namespace
-                tmux_config=$(cat $HOME/.tmux.conf <(echo 'set-option -g default-command "reattach-to-user-namespace -l $SHELL"'))
-                tmux -f <(echo "$tmux_config") new-session && echo "$(tmux -V) created new session supported OS X"
-            else
-                tmux new-session && echo "tmux created new session"
-            fi
-        fi
+    if is_tmux_runnning; then
+      echo "${fg_bold[yellow]}Hello, $(whoami).${reset_color}"
+    elif is_screen_running; then
+      echo "This is on screen."
     fi
+  else
+    if shell_has_started_interactively && ! is_ssh_running; then
+      if ! is_exists 'tmux'; then
+        echo 'Error: tmux command not found' 2>&1
+        return 1
+      fi
+
+      if tmux has-session >/dev/null 2>&1 && tmux list-sessions | grep -qE '.*]$'; then
+        # detached session exists
+        tmux list-sessions
+        echo -n "Tmux: attach? (y/N/num) "
+        read
+        if [[ "$REPLY" =~ ^[Yy]$ ]] || [[ "$REPLY" == '' ]]; then
+          tmux attach-session
+          if [ $? -eq 0 ]; then
+            echo "$(tmux -V) attached session"
+            return 0
+          fi
+        elif [[ "$REPLY" =~ ^[0-9]+$ ]]; then
+          tmux attach -t "$REPLY"
+          if [ $? -eq 0 ]; then
+            echo "$(tmux -V) attached session"
+            return 0
+          fi
+        fi
+      fi
+
+      if is_osx && is_exists 'reattach-to-user-namespace'; then
+        # on OS X force tmux's default command
+        # to spawn a shell in the user's namespace
+        tmux_config=$(cat $HOME/.tmux.conf <(echo 'set-option -g default-command "reattach-to-user-namespace -l $SHELL"'))
+        tmux -f <(echo "$tmux_config") new-session && echo "$(tmux -V) created new session supported OS X"
+      else
+        tmux new-session && echo "tmux created new session"
+      fi
+    fi
+  fi
 }
 
 tmux_automatically_attach_session
 
-# macvimのvimをvimコマンドで使う
-if [ -f /Applications/MacVim.app/Contents/MacOS/Vim ]; then
-  alias vi='env LANG=ja_JP.UTF-8 /Applications/MacVim.app/Contents/MacOS/Vim "$@"'
-  alias vim='env LANG=ja_JP.UTF-8 /Applications/MacVim.app/Contents/MacOS/Vim "$@"'
-fi
-
-# aliases
+# alias
 alias ls='ls -GF'
-alias e='emacs'
-alias ce='emacs -nw'
+alias gomi='gmv -f --backup=numbered --target-directory ~/.Trash'
 alias jman='LANG=ja_JP.UTF-8 man'
 alias eman='LANG=C man'
-alias gomi='gmv -f --backup=numbered --target-directory ~/.Trash'
+
+# macvimのvimをvimコマンドで使う
+MVIM_PATH='/Applications/MacVim.app/Contents/MacOS/Vim'
+if [ -f ${MVIM_PATH} ]; then
+  alias vi='env LANG=ja_JP.UTF-8 '"${MVIM_PATH}"' '"$@"
+  alias vim='env LANG=ja_JP.UTF-8 '"${MVIM_PATH}"' '"$@"
+fi
+
+# emacsが使えたらGUIとCUIを個別に呼び出せるようにする
+if type "emacs" > /dev/null 2>&1; then
+  alias e='emacs'
+  alias ce='emacs -nw'
+fi
 
 # cdのあとにlsする
 function chpwd() { ls }
 
 # export
-## anyenv
-export PATH="$HOME/.anyenv/bin:$PATH"
-eval "$(anyenv init -)"
+## path
+IMGMAG_PATH='/usr/local/opt/imagemagick@6/bin'
+ANYENV_PATH="${HOME}"'/.anyenv'
+DBOX_PATH="${HOME}"'/Storage/Dropbox/bin'
+OPENSSL_PATH='/usr/local/opt/openssl/bin'
+LIBXML2_PATH='/usr/local/opt/libxml2/bin'
 
-## latex
-export PATH="$PATH:$HOME/Storage/Dropbox/bin"
+if [ -e ${ANYENV_PATH} ]; then
+  export PATH="${ANYENV_PATH}/bin:$PATH"
+  eval "$(anyenv init -)"
+fi
 
-## imagemagick
-export PATH="/usr/local/opt/imagemagick@6/bin:$PATH"
+[ -e ${DBOX_PATH} ] && export PATH="${DBOX_PATH}:$PATH" # original commands
+[ -e ${IMGMAG_PATH} ] && export PATH="${IMGMAG_PATH}:$PATH"
+[ -e ${OPENSSL_PATH} ] && export PATH="${OPENSSL_PATH}:$PATH"
+[ -e ${LIBXML2_PATH} ] && export PATH="${LIBXML2_PATH}:$PATH"
 
 ## neovim
-export XDG_CONFIG_HOME="$HOME/.config"
+if type "nvim" > /dev/null 2>&1; then
+  export XDG_CONFIG_HOME="$HOME/.config"
+fi
 
 # peco
 # http://qiita.com/b4b4r07/items/8db0257d2e6f6b19ecb9
-# 1. ウィジェットに登録するためのシェル関数を定義する
 peco-select-history()
 {
-    # peco があるかないかで分岐する
-    # なければ違うアプローチをする
-    if type "peco" >/dev/null 2>&1; then
-        BUFFER=$(history 1 | sort -k1,1nr | perl -ne 'BEGIN { my @lines = (); } s/^\s*\d+\s*//; $in=$_; if (!(grep {$in eq $_} @lines)) { push(@lines, $in); print $in; }' | peco --query "$LBUFFER")
-        CURSOR=${#BUFFER}
-
-        # peco で選んでる最中に Enter を押した瞬間実行する
-        zle accept-line
-        # 画面をクリアする
-        zle clear-screen
+  if type "peco" >/dev/null 2>&1; then
+    BUFFER=$(history 1 | sort -k1,1nr | perl -ne 'BEGIN { my @lines = (); } s/^\s*\d+\s*//; $in=$_; if (!(grep {$in eq $_} @lines)) { push(@lines, $in); print $in; }' | peco --query "$LBUFFER")
+    CURSOR=${#BUFFER}
+    zle accept-line
+    zle clear-screen
+  else
+    autoload -Uz is-at-least
+    if is-at-least 4.3.9; then
+      zle -la history-incremental-pattern-search-backward && bindkey "^r" history-incremental-pattern-search-backward
     else
-        # バージョンによって条件分岐するために使用するモジュールを開放する
-        autoload -Uz is-at-least
-
-        # 4.3.9 以降ではインクリメンタルパターンサーチが出来るので、それを利用する
-        # なければデフォルトでマッピングされているものを利用する
-        if is-at-least 4.3.9; then
-            # zsh -la <widget> とすることで、widget に完全一致するウィジェットが
-            # 存在する場合、返却値 0 で終了する
-            zle -la history-incremental-pattern-search-backward && bindkey "^r" history-incremental-pattern-search-backward
-        else
-            history-incremental-search-backward
-        fi
+      history-incremental-search-backward
     fi
+  fi
 }
 
 # 2. 作ったシェル関数をウィジェットに登録する
