@@ -1,0 +1,13 @@
+// 既定値を上書きするには、このファイル内にキー バインドを挿入します
+[
+    {
+        "key": "cmd+k shift+v",
+        "command": "mdmath.showPreview",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+shift+.",
+        "command": "-mdmath.showPreview",
+        "when": "editorTextFocus"
+    }
+]

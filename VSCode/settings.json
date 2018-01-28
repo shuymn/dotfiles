@@ -1,0 +1,103 @@
+{
+    "workbench.colorTheme": "Ayu Dark",
+    "workbench.iconTheme": "ayu",
+    "editor.fontFamily": "'Fira Code', '源ノ角ゴシック Code JP', 'Ricty Discord'",
+    "editor.fontSize": 13,
+    "window.zoomLevel": 0,
+    "files.autoSave": "onFocusChange",
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120,
+    "php.suggest.basic": false,
+    "php.executablePath": "/Users/shuymn/.anyenv/envs/phpenv/shims/php",
+    "php.validate.enable": false,
+    "php.validate.executablePath": "/Users/shuymn/.anyenv/envs/phpenv/shims/php",
+    "emmet.showExpandedAbbreviation": "inMarkupAndStylesheetFilesOnly",
+    "php.validate.run": "onSave",
+    "terminal.integrated.shell.osx": "/usr/local/bin/zsh",
+    "vim.statusBarColorControl": true,
+    "vim.otherModesKeyBindingsNonRecursive": [
+        {
+            "before": [
+                "j"
+            ],
+            "after": [
+                "g",
+                "j"
+            ]
+        },
+        {
+            "before": [
+                "k"
+            ],
+            "after": [
+                "g",
+                "k"
+            ]
+        },
+        {
+            "before": [
+                ";"
+            ],
+            "after": [
+                ":"
+            ]
+        },
+        {
+            "before": [
+                "<leader>",
+                "l"
+            ],
+            "after": [
+                "$"
+            ]
+        },
+        {
+            "before": [
+                "<leader>",
+                "h"
+            ],
+            "after": [
+                "^"
+            ]
+        }
+    ],
+    "vim.useSystemClipboard": true,
+    "vim.leader": "<space>",
+    "namespaceResolver.sortAlphabetically": true,
+    "editor.formatOnPaste": true,
+    "editor.formatOnType": true,
+    "gitlens.advanced.messages": {
+        "suppressCommitHasNoPreviousCommitWarning": false,
+        "suppressCommitNotFoundWarning": false,
+        "suppressFileNotUnderSourceControlWarning": false,
+        "suppressGitVersionWarning": false,
+        "suppressLineUncommittedWarning": false,
+        "suppressNoRepositoryWarning": false,
+        "suppressUpdateNotice": false,
+        "suppressWelcomeNotice": true
+    },
+    "files.associations": {
+        "env-sample": "dotenv",
+        ".env.development": "dotenv",
+        "env-laradock": "dotenv",
+        "env-example": "dotenv"
+    },
+    "editor.fontLigatures": true,
+    "editor.rulers": [
+        120
+    ],
+    "files.insertFinalNewline": true,
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/aspectCache/**": true,
+        "**/vendor/**": true,
+        "**/bower_components/**": true
+    },
+    "eslint.nodePath": "/Users/shuymn/.anyenv/envs/nodenv/shims/node",
+    "eslint.run": "onType",
+    "workbench.startupEditor": "welcomePage",
+    "workbench.editor.enablePreview": false,
+    "extensions.ignoreRecommendations": false,
+}
