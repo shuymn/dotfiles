@@ -1,0 +1,21 @@
+set history=100
+
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
+
+set scrolloff=6
+set sidescrolloff=15
+set sidescroll=1
+
+set clipboard=unnamed,autoselect
+
+inoremap <C-[> <ESC>
+noremap ; :
+noremap : ;
+noremap <CR> o<Esc>
+noremap <Space> <Nop>
+noremap <Space>h ^
+noremap <Space>l $
+nnoremap <Esc><Esc> :<C-u>set nohlsearch<Return>
