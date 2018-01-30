@@ -48,11 +48,18 @@ SPROMPT="%r is correct? [n,y,a,e]: "
 # aliases
 # -------------------------------------------------- 
 
-alias ls='ls -wG'
 alias sudo='sudo '
 alias cdu='cd-gitroot'
 alias reload="exec $SHELL -l"
 alias fzf='fzf --ansi --reverse --height 50%'
+alias flew='fillin brew {{command}}'
+
+# ls related
+alias ls='ls -wG'
+alias la='ls -wG -a'
+alias lal='ls -wG -al'
+alias ll='ls -wG -l'
+alias lla='ls -wG -la'
 
 # vim related
 alias vi='nvim'
@@ -70,17 +77,19 @@ alias zplugrc="nvim ${XDG_CONFIG_HOME}/zsh/zplug.zsh"
 alias d='docker'
 alias dc='docker-compose'
 alias dp='docker ps'
+alias dcb='docker-compose build'
+alias dcd='docker-compose down'
+alias dce='docker-compose exec'
 alias dcp='docker-compose ps'
 alias dcu='docker-compose up'
-alias dcd='docker-compose down'
-alias dcb='docker-compose build'
 alias dcud='docker-compose up -d'
 
 # git related
 alias g='git'
+alias ga='git add'
 alias gb='git branch'
-alias gs='git status'
 alias gc='git commit'
+alias gs='git status'
 
 # -------------------------------------------------- 
 # others
