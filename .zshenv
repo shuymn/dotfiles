@@ -43,4 +43,6 @@ export PATH=~/.local/bin:$PATH
 export PATH=~/.anyenv/bin:$PATH
 ## macvim-kaoriya
 export PATH=$(brew --prefix macvim-kaoriya)/bin:$PATH
+## zplug
+export PATH=~/.zplug/bin:$PATH
 
