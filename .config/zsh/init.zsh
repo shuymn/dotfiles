@@ -110,3 +110,14 @@ case "${TERM}" in
     };;
 esac
 
+## composer running with HHVM
+hh-composer () {
+  tty=
+  tty -s && tty=--tty
+  docker run \
+    $tty \
+    --interactive \
+    --rm \
+    --volume $(pwd):/app \
+    hh-composer "$@"
+}
