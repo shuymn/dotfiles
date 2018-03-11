@@ -4,7 +4,7 @@
     "editor.fontFamily": "'Fira Code', '源ノ角ゴシック Code JP', 'Ricty Discord'",
     "editor.fontSize": 13,
     "window.zoomLevel": 0,
-    "files.autoSave": "onFocusChange",
+    "files.autoSave": "onWindowChange",
     "editor.wordWrap": "bounded",
     "editor.wordWrapColumn": 120,
     "php.suggest.basic": false,
@@ -100,4 +100,8 @@
     "workbench.startupEditor": "welcomePage",
     "workbench.editor.enablePreview": false,
     "extensions.ignoreRecommendations": false,
+    "prettier.eslintIntegration": true,
+    "prettier.stylelintIntegration": true,
+    "editor.formatOnSave": true,
+    "gitlens.keymap": "alternate"
 }

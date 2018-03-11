@@ -9,5 +9,13 @@
         "key": "ctrl+shift+.",
         "command": "-mdmath.showPreview",
         "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+v",
+        "command": "-workbench.view.git"
+    },
+    {
+        "key": "cmd+b",
+        "command": "-workbench.action.toggleSidebarVisibility"
     }
 ]
