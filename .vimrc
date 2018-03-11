@@ -35,6 +35,11 @@ endif
 syntax enable
 filetype plugin indent on
 
+" python
+let s:brew_opt_dir = '/usr/local/opt'
+let g:python_host_prog = s:brew_opt_dir . '/python2/bin/python2'
+let g:python3_host_prog = s:brew_opt_dir . '/python3/bin/python3'
+
 " Encoding
 set encoding=utf-8 fileencoding=utf-8 fileformats=unix,dos,mac
 set fileencodings=utf-8,iso-2022-jp,euc-jp,sjis
