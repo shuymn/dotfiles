@@ -659,8 +659,8 @@ xxga	ゃ
 xxgu	ゅ
 xxgo	ょ
 xxtu	っ
-xxka	ヵ
-xxke	ヶ
+xxca	ヵ
+xxce	ヶ
 xxwa	ゎ
 xxh	←
 xxj	↓
@@ -679,7 +679,7 @@ z,	‥
 z.	…
 z[	『
 z]	』
-z-	〜
+z'	〜
 kf	き
 jf	じゅ
 hf	ふ
@@ -743,3 +743,4 @@ gt	ごと
 nt	にち
 dt	だち
 wr	われ
+z-	〜

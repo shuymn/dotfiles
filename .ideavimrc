@@ -1,21 +1,46 @@
-set history=100
+set surround
+set commentary
+set multiple-cursors
 
-set hlsearch
-set incsearch
-set ignorecase
-set smartcase
+set showcmd
+set history=100
+set hlsearch incsearch ignorecase smartcase
+set wrapscan
 
 set scrolloff=6
 set sidescrolloff=15
 set sidescroll=1
 
-set clipboard=unnamed,autoselect
+set clipboard=unnamed
 
 inoremap <C-[> <ESC>
+
 noremap ; :
 noremap : ;
-noremap <CR> o<Esc>
-noremap <Space> <Nop>
-noremap <Space>h ^
-noremap <Space>l $
+
+nnoremap j gj
+nnoremap k gk
+nnoremap <CR> o<Esc>
+nnoremap <Space> <Nop>
+nnoremap <Space>h ^
+nnoremap <Space>l $
+
 nnoremap <Esc><Esc> :<C-u>set nohlsearch<Return>
+
+" disable code folding
+nnoremap zM <Nop>
+nnoremap zc <Nop>
+nnoremap zC <Nop>
+nnoremap zR <Nop>
+nnoremap zo <Nop>
+nnoremap zO <Nop>
+
+" use idea features
+nnoremap / :<C-u>action Find<CR>
+nnoremap <C-o> :<C-u>action Back<CR>
+nnoremap <C-i> :<C-u>action Forward<CR>
+nnoremap <C-S-o> <C-o>
+nnoremap <C-S-i> <C-i>
+
+nnoremap x "_x
+vnoremap x "_x

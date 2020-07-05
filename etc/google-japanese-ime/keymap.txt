@@ -1,0 +1,68 @@
+status	key	command
+Composition	Backspace	Backspace
+Composition	Delete	Delete
+Composition	Eisu	ToggleAlphanumericMode
+Composition	Enter	Commit
+Composition	ESC	Cancel
+Composition	Henkan	Convert
+Composition	Left	MoveCursorLeft
+Composition	Right	MoveCursorRight
+Composition	Space	Convert
+Composition	Tab	PredictAndConvert
+Composition	Ctrl [	ConvertToFullKatakana
+Composition	Ctrl ]	ConvertToHalfKatakana
+Composition	Ctrl h	MoveCursorLeft
+Composition	Ctrl l	MoveCursorRight
+Conversion	Backspace	Cancel
+Conversion	Ctrl h	SegmentWidthShrink
+Conversion	Ctrl l	SegmentWidthExpand
+Conversion	Ctrl n	ConvertNext
+Conversion	Ctrl p	ConvertPrev
+Conversion	Ctrl j	ConvertNext
+Conversion	Ctrl k	ConvertPrev
+Conversion	Delete	Cancel
+Conversion	Down	ConvertNext
+Conversion	Eisu	ToggleAlphanumericMode
+Conversion	Enter	Commit
+Conversion	ESC	Cancel
+Conversion	Henkan	ConvertNext
+Conversion	Hiragana	InputModeHiragana
+Conversion	Katakana	InputModeFullKatakana
+Conversion	Left	SegmentFocusLeft
+Conversion	Muhenkan	SwitchKanaType
+Conversion	Right	SegmentFocusRight
+Conversion	Space	ConvertNext
+Conversion	Tab	PredictAndConvert
+Conversion	Up	ConvertPrev
+DirectInput	Henkan	Reconvert
+Precomposition	Backspace	Revert
+Precomposition	Eisu	ToggleAlphanumericMode
+Precomposition	Henkan	Reconvert
+Precomposition	Hiragana	InputModeHiragana
+Precomposition	Katakana	InputModeFullKatakana
+Precomposition	Muhenkan	InputModeSwitchKanaType
+Precomposition	Space	InsertSpace
+Suggestion	Down	PredictAndConvert
+Conversion	Ctrl [	ConvertToFullKatakana
+Conversion	Ctrl ]	ConvertToHalfKatakana
+Composition	ASCII	InsertCharacter
+Composition	Hankaku/Zenkaku	IMEOff
+Composition	Kanji	IMEOff
+Composition	OFF	IMEOff
+Composition	ON	IMEOn
+Conversion	Hankaku/Zenkaku	IMEOff
+Conversion	Kanji	IMEOff
+Conversion	OFF	IMEOff
+Conversion	ON	IMEOn
+DirectInput	Eisu	IMEOn
+DirectInput	F13	IMEOn
+DirectInput	Hankaku/Zenkaku	IMEOn
+DirectInput	Hiragana	IMEOn
+DirectInput	Kanji	IMEOn
+DirectInput	Katakana	IMEOn
+DirectInput	ON	IMEOn
+Precomposition	ASCII	InsertCharacter
+Precomposition	Hankaku/Zenkaku	IMEOff
+Precomposition	Kanji	IMEOff
+Precomposition	OFF	IMEOff
+Precomposition	ON	IMEOn
