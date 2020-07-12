@@ -56,4 +56,4 @@ install() {
 }
 
 trap "echo 'terminated' 1>&2; exit 1" INT ERR
-dotfiles_install
+install
