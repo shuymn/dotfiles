@@ -2,3 +2,6 @@ anyenv
 configstore
 nix
 nixpkgs
+
+karabiner/automatic_backups
+zsh/.zsh_history
