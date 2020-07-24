@@ -5,12 +5,9 @@ DOTFILES := $(filter-out $(EXCLUTIONS), $(CANDIDATES))
 
 .DEFAULT_GOAL := help
 
-.PHONY: all
-all:
-
 .PHONY: list
 list: ## Show dotfiles in this repository
-	@echo 'Start to link dotfiles'
+	@echo 'List dotfiles'
 	@echo ''
 	@$(foreach val, $(DOTFILES), /bin/ls -dF $(val);)
 
@@ -24,7 +21,7 @@ link: ## Create symlinks to the directory
 clean: ## Remove the dotfiles and this repository
 	@echo 'Remove the dotfiles'
 	@-$(foreach val, $(DOTFILES), rm -vrf $(HOME)/$(val);)
-	-fm -rf $(DOTPATH)
+	-rm -rf $(DOTPATH)
 	
 .PHONY: help
 help: ## Self-documented Makefile
