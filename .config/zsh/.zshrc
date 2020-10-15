@@ -149,7 +149,7 @@ fi
 
 # nix
 if type nix >/dev/null 2>&1; then
-  . /Users/shu.yamani/.nix-profile/etc/profile.d/nix.sh
+  . ~/.nix-profile/etc/profile.d/nix.sh
 fi
 
 # functions
