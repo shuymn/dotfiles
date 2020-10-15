@@ -134,12 +134,21 @@ if type fzf >/dev/null 2>&1; then
     fi
   fi
 
-  gibara() {
+  git-switch-fzf() {
     local branches branch
     branches=$(git branch) &&
       branch=$(echo "$branches" | fzf +m) &&
       git switch $(echo "$branch" | awk '{print $1}' | sed "s/.* //")
   }
+  alias switch='git-switch-fzf'
+
+  # gh
+  if type gh >/dev/null 2>&1; then
+    gh-pr-checkout-fzf() {
+      gh pr checkout "$(gh pr list | fzf | cut -f1)"
+    }
+    alias review='gh-pr-checkout-fzf'
+  fi
 fi
 
 # direnv
