@@ -27,14 +27,13 @@ if [[ ! -d "${XDG_CACHE_HOME}/zsh" ]]; then
 	mkdir -p "${XDG_CACHE_HOME}/zsh"
 fi
 
-# ZDOTDIR
 export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 
 # autoload
 autoload -Uz run-help
 autoload -Uz add-zsh-hook
 autoload -Uz colors && colors
-autoload -Uz compinit && compinit -u -d "${XDG_CACHE_HOME}/zsh/.zcompdump"
+autoload -Uz compinit && compinit -d "${XDG_CACHE_HOME}/zsh/.zcompdump"
 
 # Language
 export LANGUAGE="en_US.UTF-8"
@@ -78,12 +77,14 @@ export TERM=xterm-256color
 # Key binding
 bindkey -v
 
-# setopt
 setopt no_global_rcs
 
 # golang
 export GOPATH="$HOME/go"
 export GOBIN="$GOPATH/bin"
 export PATH="$GOBIN:$PATH"
+
+# mysql5.6
+export PATH="/usr/local/opt/mysql@5.6/bin:$PATH"
 
 export DOTPATH=${0:A:h}
