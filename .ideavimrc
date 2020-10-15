@@ -44,3 +44,5 @@ nnoremap <C-S-i> <C-i>
 
 nnoremap x "_x
 vnoremap x "_x
+
+set clipboard+=ideaput

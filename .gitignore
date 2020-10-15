@@ -1,0 +1,8 @@
+.DS_Store
+
+.config
+!.config/zsh/.zshrc
+!.config/starship
+!.config/nvim
+!.config/karabiner/karabiner.json
+!.config/alacritty

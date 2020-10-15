@@ -20,11 +20,20 @@ zstyle ':completion:*' cache-path "${XDG_CACHE_HOME}/.zsh"
 # sudo
 zstyle ':completion:*:sudo:*' command-path /usr/local/sbin /usr/local/bin /usr/sbin /usr/bin /sbin /bin
 
+# disable
+disable r
+
 # alias
 alias reload="exec $SHELL -l"
 
+if type bundle >/dev/null 2>&1; then
+  alias rails='rbenv exec bundle exec rails'
+  alias rspec='rbenv exec bundle exec rspec'
+fi
+
 if type exa >/dev/null 2>&1; then
-  alias ls='exa'
+  alias ls='exa --classify --group-directories-first --icons'
+  alias lls='exa --classify --group-directories-first --icons --long --header --git'
 else
   alias ls='ls -G'
 fi
@@ -40,6 +49,7 @@ fi
 if type nvim >/dev/null 2>&1; then
   alias vi='nvim'
   alias vim='nvim'
+  alias zshrc="nvim ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
 # anyenv
@@ -100,6 +110,36 @@ if type fzf >/dev/null 2>&1; then
     }
     alias repos='ghq-fzf'
   fi
+
+  # tmux
+  if type tmux >/dev/null 2>&1; then
+    if [[ ! -n $TMUX && $- == *l* ]]; then
+      local sess_id
+      sess_id="$(tmux list-sessions)"
+      if [[ -z "$sess_id" ]]; then
+        tmux new-session
+      fi
+
+      readonly local msg="Create new session"
+      readonly local sess_msg="${sess_id}\n${msg}"
+      sess_id="$(echo $sess_msg | fzf | cut -d: -f1)"
+      if [[ "$sess_id" = "$msg" ]]; then
+        tmux new-session
+      elif [[ -n "$sess_id" ]]; then
+        tmux attach-session -t "$sess_id"
+      else
+        # start terminal normally
+        :
+      fi
+    fi
+  fi
+
+  gibara() {
+    local branches branch
+    branches=$(git branch) &&
+      branch=$(echo "$branches" | fzf +m) &&
+      git switch $(echo "$branch" | awk '{print $1}' | sed "s/.* //")
+  }
 fi
 
 # direnv
@@ -152,3 +192,7 @@ fi
 if [[ -n $VIRTUAL_ENV && -e "${VIRTUAL_ENV}/bin/activate" ]]; then
   source "${VIRTUAL_ENV}/bin/activate"
 fi
+
+# openssl
+export LDFLAGS="-L/usr/local/opt/openssl@1.1/lib"
+export CPPFLAGS="-I/usr/local/opt/openssl@1.1/include"
