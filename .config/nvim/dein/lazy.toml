@@ -4,8 +4,10 @@ depends = 'context_filetype.vim'
 on_i = 1
 hook_source = '''
 	let g:deoplete#enable_at_startup = 1
-	let g:deoplete#enable_ignore_case = 1
-	let g:deoplete#enable_smart_case = 1
+	call deoplete#custom#buffer_option({
+		\ 'ignore_case': v:true,
+		\ 'smart_case': v:true,
+		\ })	
 '''
 
 [[plugins]]
