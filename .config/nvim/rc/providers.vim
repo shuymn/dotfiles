@@ -1,6 +1,6 @@
 " python
-let $PYTHON2_VENV_DIR = expand('$HOME/.asdf/installs/python/2.7.18')
-let $PYTHON3_VENV_DIR = expand('$HOME/.asdf/installs/python/3.9.0')
+let $PYTHON2_VENV_DIR = expand('$HOME/.pyenv/versions/neovim-python2')
+let $PYTHON3_VENV_DIR = expand('$HOME/.pyenv/versions/neovim-python3')
 
 if has('nvim') && isdirectory($PYTHON2_VENV_DIR)
 	let g:python_host_prog = expand('$PYTHON2_VENV_DIR/bin/python')
