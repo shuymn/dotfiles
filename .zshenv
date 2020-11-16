@@ -1,6 +1,7 @@
 typeset -gx -U path
 path=( \
   /usr/local/bin(N-/) \
+  /usr/local/sbin(N-/) \
   /usr/local/opt/zplug(N-/) \
   ~/.local/bin(N-/) \
   ~/.serverless/bin(N-/) \
