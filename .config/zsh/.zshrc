@@ -59,10 +59,13 @@ if type asdf >/dev/null 2>&1; then
 
   if type direnv >/dev/null 2>&1; then
     eval "$(asdf exec direnv hook zsh)"
-    direnv() { asdf exec direnv "$@"; }
   fi
 fi
 
+if type pyenv >/dev/null 2>&1; then
+  eval "$(pyenv init -)"
+  eval "$(pyenv virtualenv-init -)"
+fi
 
 # starship
 if type starship >/dev/null 2>&1; then
@@ -200,11 +203,7 @@ if [[ -e "/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" 
   source "/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
 
-# pyenv-virtualenv
-if [[ -n $VIRTUAL_ENV && -e "${VIRTUAL_ENV}/bin/activate" ]]; then
-  source "${VIRTUAL_ENV}/bin/activate"
-fi
-
 # openssl
 export LDFLAGS="-L/usr/local/opt/openssl@1.1/lib"
 export CPPFLAGS="-I/usr/local/opt/openssl@1.1/include"
+
