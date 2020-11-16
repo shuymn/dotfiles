@@ -25,10 +25,11 @@ disable r
 
 # alias
 alias reload="exec $SHELL -l"
+alias status="git status --short --branch"
 
 if type bundle >/dev/null 2>&1; then
-  alias rails='rbenv exec bundle exec rails'
-  alias rspec='rbenv exec bundle exec rspec'
+  alias rails='asdf exec bundle exec rails'
+  alias rspec='asdf exec bundle exec rspec'
 fi
 
 if type exa >/dev/null 2>&1; then
@@ -47,20 +48,23 @@ if type ripgrep >/dev/null 2>&1; then
 fi
 
 if type nvim >/dev/null 2>&1; then
+  export EDITOR=nvim
   alias vi='nvim'
   alias vim='nvim'
   alias zshrc="nvim ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
-# anyenv
-if type anyenv >/dev/null 2>&1; then
-  eval "$(anyenv init -)"
+if type asdf >/dev/null 2>&1; then
+  . $(brew --prefix asdf)/asdf.sh
 
-  if type pyenv >/dev/null 2>&1 && [[ -d $(pyenv root)/plugins/pyenv-virtualenv ]]; then
-    eval "$(pyenv virtualenv-init - zsh)"
+  if type direnv >/dev/null 2>&1; then
+    eval "$(asdf exec direnv hook zsh)"
+    direnv() { asdf exec direnv "$@"; }
   fi
 fi
 
+
+# starship
 if type starship >/dev/null 2>&1; then
   export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"
   eval "$(starship init zsh)"
@@ -85,6 +89,8 @@ if type fzf >/dev/null 2>&1; then
 
   export FZF_ALT_C_COMMAND='fd --type d --hidden'
   export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'exa -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
+
+
 
   history-fzf() {
     local tac
@@ -151,11 +157,6 @@ if type fzf >/dev/null 2>&1; then
   fi
 fi
 
-# direnv
-if type direnv >/dev/null 2>&1; then
-  eval "$(direnv hook zsh)"
-fi
-
 # nix
 if type nix >/dev/null 2>&1; then
   . ~/.nix-profile/etc/profile.d/nix.sh
@@ -168,11 +169,6 @@ update() {
     brew cask upgrade
   fi
 
-  if type anyenv >/dev/null 2>&1; then
-    anyenv git pull
-    anyenv update
-  fi
-
   # Haskell
   if type stack >/dev/null 2>&1; then
     stack upgrade
@@ -182,7 +178,14 @@ update() {
   if type rustup >/dev/null 2>&1; then
     rustup self update
   fi
+
+  # asdf
+  if type asdf >/dev/null 2>&1; then
+    asdf plugin update -all
+  fi
 }
+
+config() { vim "$XDG_CONFIG_HOME/$@" }
 
 # tabtab source for packages
 # uninstall by removing these lines
