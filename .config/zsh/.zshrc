@@ -54,17 +54,63 @@ if type nvim >/dev/null 2>&1; then
   alias zshrc="nvim ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
+# version manager
+if type anyenv >/dev/null 2>&1; then
+  eval "$(anyenv init -)"
+
+  # direnv
+  eval "$(direnv hook zsh)"
+fi
+
 if type asdf >/dev/null 2>&1; then
   . $(brew --prefix asdf)/asdf.sh
 
   if type direnv >/dev/null 2>&1; then
     eval "$(asdf exec direnv hook zsh)"
   fi
+
+  if type pyenv >/dev/null 2>&1; then
+    eval "$(pyenv init -)"
+  fi
+
+  if type nodenv >/dev/null 2>&1; then
+    eval "$(nodenv init -)"
+  fi
+
+  if type rbenv >/dev/null 2>&1; then
+    eval "$(rbenv init -)"
+  fi
 fi
 
+# pyenv
 if type pyenv >/dev/null 2>&1; then
-  eval "$(pyenv init -)"
-  eval "$(pyenv virtualenv-init -)"
+  export PYENV_ROOT="$(pyenv root)"
+
+  # xxenv-latest(for nvim)
+  if [[ ! -d $(pyenv root)/plugins/xxenv-latest ]]; then
+    git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)"/plugins/xxenv-latest
+  fi
+
+  # pyenv-virtualenv
+  if [[ -d $(pyenv root)/plugins/pyenv-virtualenv ]]; then
+    eval "$(pyenv virtualenv-init - zsh)"
+  fi
+fi
+
+# nodenv
+if type nodenv >/dev/null 2>&1; then
+  if [[ ! -d $(nodenv root)/plugins/xxenv-latest ]]; then
+    git clone https://github.com/momo-lab/xxenv-latest.git "$(nodenv root)"/plugins/xxenv-latest
+  fi
+fi
+
+# rbenv
+if type rbenv >/dev/null 2>&1; then
+  eval "$(rbenv init -)"
+
+  if [[ ! -d $(rbenv root)/plugins/xxenv-latest ]]; then
+    git clone https://github.com/momo-lab/xxenv-latest.git "$(rbenv root)"/plugins/xxenv-latest
+  fi
 fi
 
 # starship
@@ -196,9 +242,20 @@ update() {
     echo "[update] asdf"
     asdf plugin update --all
   fi
+
+  # anyenv
+  if type anyenv >/dev/null 2>&1; then
+    echo "[update] anyenv"
+    anyenv update
+  fi
 }
 
 config() { vim "$XDG_CONFIG_HOME/$@" }
+
+# tmux package manager
+if type tmux >/dev/null 2>&1 && [[ ! -d "${HOME}/.tmux/plugins/tpm" ]]; then
+  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+fi
 
 # tabtab source for packages
 # uninstall by removing these lines
