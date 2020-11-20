@@ -168,23 +168,33 @@ fi
 # functions
 update() {
   if type brew >/dev/null 2>&1; then
+    echo "[update] brew"
     brew upgrade
-    brew cask upgrade
+    echo ""
+
+    echo "[update] brew cask"
+    brew upgrade --cask
+    echo ""
   fi
 
   # Haskell
   if type stack >/dev/null 2>&1; then
+    echo "[update] stack"
     stack upgrade
+    echo ""
   fi
 
   # Rust
   if type rustup >/dev/null 2>&1; then
+    echo "[update] rustup"
     rustup self update
+    echo ""
   fi
 
   # asdf
   if type asdf >/dev/null 2>&1; then
-    asdf plugin update -all
+    echo "[update] asdf"
+    asdf plugin update --all
   fi
 }
 
