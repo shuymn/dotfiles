@@ -43,8 +43,8 @@ if type bat >/dev/null 2>&1; then
   alias cat='bat --paging=never'
 fi
 
-if type ripgrep >/dev/null 2>&1; then
-  alias grep='ripgrep'
+if type rg >/dev/null 2>&1; then
+  alias grep='rg'
 fi
 
 if type nvim >/dev/null 2>&1; then
