@@ -21,15 +21,17 @@ endif
 set packpath=
 
 function! s:load(file) abort
-  let s:path = expand('$CONFIG/nvim/rc/' . a:file . '.vim')
+  let s:path = expand('$CONFIG/nvim/rc/' . a:file . '.rc.vim')
 
   if filereadable(s:path)
     source `=s:path`
   endif
 endfunction
 
-call s:load('plugins')
+call s:load('dein')
 call s:load('providers')
+
+set shell=/bin/zsh
 
 " encoding
 set encoding=utf-8 fileencoding=utf-8 fileformats=unix,dos,mac
@@ -40,6 +42,7 @@ set number ruler title wrap cursorline
 set showcmd showmatch noshowmode laststatus=2
 set history=100
 set matchtime=5
+set t_Co=256
 
 set autoindent smartindent
 set backspace=indent,eol,start textwidth=0 ambiwidth=double
@@ -52,31 +55,55 @@ set mouse=a autoread hidden
 
 set clipboard=unnamed,unnamedplus
 
-let s:backup_dir = expand('$CACHE/.vim')
-if !isdirectory(s:backup_dir)
-  call mkdir(expand(s:backup_dir), 'p')
+let s:cache_dir = expand('$CACHE/.vim')
+if !isdirectory(s:cache_dir)
+  call mkdir(expand(s:cache_dir), 'p')
 endif
 
-let &directory = s:backup_dir
-let &backupdir = s:backup_dir
-set swapfile backup
+let &directory = s:cache_dir
+set swapfile
 
 if has('persistent_undo')
-  let &undodir = s:backup_dir
+  let &undodir = s:cache_dir
   set undofile
 endif
+
+let g:mapleader = "\<Space>"
 
 noremap ; :
 noremap : ;
 
 nnoremap j gj
 nnoremap k gk
+nnoremap H B
+nnoremap J <C-d>
+nnoremap K <C-u>
+nnoremap L W
+nnoremap <C-j> :<C-u>tabprevious<CR>
+nnoremap <C-k> :<C-u>tabnext<CR>
+
 nnoremap <CR> o<Esc>
 nnoremap <silent> <Esc><Esc> :<C-u>set nohlsearch<Return>
+
 nnoremap <Space> <Nop>
 nnoremap <Space>h ^
 nnoremap <Space>l $
+nnoremap d<Space>h d^
+nnoremap d<Space>l d$
 
-autocmd vimrc BufRead * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal g`\"" | endif
+vnoremap x "_x
+nnoremap x "_x
 
-autocmd vimrc Filetype * setlocal formatoptions-=ro
+nnoremap <C-w>w <Nop>
+nnoremap <C-w><C-w> <Nop>
+nnoremap <C-w>+ <Nop>
+nnoremap <C-w>- <Nop>
+nnoremap <C-w>> <Nop>
+nnoremap <C-w>< <Nop>
+nnoremap <C-w>h <C-w><
+nnoremap <C-w>j <C-w>-
+nnoremap <C-w>k <C-w>+
+nnoremap <C-w>l <C-w>>
+
+autocmd BufRead * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal g`\"" | endif
+autocmd Filetype * setlocal formatoptions-=ro

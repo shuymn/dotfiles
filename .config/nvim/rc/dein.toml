@@ -1,0 +1,84 @@
+[[plugins]]
+repo = 'Shougo/dein.vim'
+
+[[plugins]]
+repo = 'sheerun/vim-polyglot'
+
+[[plugins]]
+repo = 'vim-jp/vimdoc-ja'
+hook_add = '''
+  set helplang=ja,en
+'''
+
+[[plugins]]
+repo = 'airblade/vim-gitgutter'
+hook_add = '''
+  let g:gitgutter_map_keys = 0
+'''
+
+[[plugins]]
+repo = 'luochen1990/rainbow'
+hook_add = '''
+  let g:rainbow_active = 1
+'''
+
+[[plugins]]
+repo = 'roxma/nvim-yarp'
+if = '!has("nvim")'
+
+[[plugins]]
+repo = 'roxma/vim-hug-neovim-rpc'
+if = '!has("nvim")'
+
+[[plugins]]
+repo = 'ghifarit53/tokyonight-vim'
+hook_add = '''
+  if (empty($TMUX) && has("termguicolors"))
+    set termguicolors
+  endif
+
+	let g:tokyonight_style = 'night'
+  let g:tokyonight_enable_italic = 1
+
+  colorscheme tokyonight
+'''
+
+[[plugins]]
+repo = 'itchyny/lightline.vim'
+hook_add = '''
+  let g:lightline = { 'colorscheme': 'tokyonight' }
+'''
+
+[[plugins]]
+repo = 'nathanaelkane/vim-indent-guides'
+hook_add = '''
+  let g:indent_guides_enable_on_vim_startup = 1
+  let g:indent_guides_auto_colors = 0
+
+  autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=0
+  autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=8
+'''
+
+[[plugins]]
+repo = 'neoclide/coc.nvim'
+merged = 0
+hook_add = 'source $XDG_CONFIG_HOME/nvim/rc/plugins/coc.rc.vim'
+
+[[plugins]]
+repo = 'tpope/vim-surround'
+
+[[plugins]]
+repo = 'tpope/vim-commentary'
+
+[[plugins]]
+repo = 'editorconfig/editorconfig-vim'
+
+[[plugins]]
+repo = 'osyo-manga/vim-precious'
+depends = ['context_filetype.vim']
+
+[[plugins]]
+repo = 'Shougo/context_filetype.vim'
+
+[[plugins]]
+repo = 'tmux-plugins/vim-tmux-focus-events'

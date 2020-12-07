@@ -10,19 +10,21 @@ if &runtimepath !~# '/dein.vim'
   let &runtimepath = s:dein_repo_dir . ',' . &runtimepath
 endif
 
-let g:dein#install_max_processes = 16
-let g:dein#install_message_type = 'none'
-
 if !dein#load_state(s:dein_dir)
   finish
 endif
 
-call dein#begin(s:dein_dir, expand('<sfile>'))
+let g:dein#auto_recache = v:true
+let g:dein#install_message_type = 'title'
+let g:dein#enable_notification = v:true
 
-let s:toml_dir = expand('$CONFIG/nvim/dein')
+let s:dein_toml = expand('$CONFIG/nvim/rc/dein.toml')
+let s:dein_lazy_toml = expand('$CONFIG/nvim/rc/dein-lazy.toml')
 
-call dein#load_toml(s:toml_dir . '/plugins.toml', {'lazy': 0})
-call dein#load_toml(s:toml_dir . '/lazy.toml', {'lazy': 1})
+call dein#begin(s:dein_dir, [expand('<sfile>'), s:dein_toml, s:dein_lazy_toml])
+
+call dein#load_toml(s:dein_toml, { 'lazy': 0 })
+call dein#load_toml(s:dein_lazy_toml, { 'lazy': 1 })
 
 call dein#end()
 call dein#save_state()
