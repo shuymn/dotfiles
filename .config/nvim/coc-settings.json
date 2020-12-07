@@ -5,12 +5,21 @@
   "python.linting.flake8Enabled": true,
   "python.linting.mypyEnabled": true,
   "python.linting.lintOnSave": true,
-  "coc.preferences.formatOnType": true,
+  "coc.preferences.formatOnSave": true,
+  "coc.preferences.formatOnSaveFiletypes": [
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact",
+    "json",
+    "ruby"
+  ],
   "eslint.filetypes": [
     "javascript",
     "typescript",
     "javascriptreact",
     "typescriptreact"
   ],
-  "eslint.autoFixOnSave": true
+  "eslint.autoFixOnSave": true,
+  "solargraph.diagnostics": true
 }
