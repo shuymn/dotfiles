@@ -139,8 +139,6 @@ if type fzf >/dev/null 2>&1; then
   export FZF_ALT_C_COMMAND='fd --type d --hidden'
   export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'exa -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
 
-
-
   history-fzf() {
     local tac
 
