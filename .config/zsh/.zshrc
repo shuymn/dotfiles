@@ -47,6 +47,18 @@ if type rg >/dev/null 2>&1; then
   alias grep='rg'
 fi
 
+if type sd >/dev/null 2>&1; then
+  alias sed='sd'
+fi
+
+if type btm >/dev/null 2>&1; then
+  alias top='btm'
+fi
+
+if type procs >/dev/null 2>&1; then
+  alias ps='procs'
+fi
+
 if type nvim >/dev/null 2>&1; then
   export EDITOR=nvim
   alias vi='nvim'
@@ -185,6 +197,10 @@ if type fzf >/dev/null 2>&1; then
         :
       fi
     fi
+
+    if type tig >/dev/null 2>&1; then
+      alias tig='TERM=xterm-256color tig'
+    fi
   fi
 
   git-switch-fzf() {
@@ -240,6 +256,20 @@ update() {
     echo "[update] cargo"
     cargo install-update --all
     echo ""
+
+    echo "[update] rust nightly"
+    rustup update nightly
+    echo ""
+
+    echo "[update] rust stable"
+    rustup update stable
+    echo ""
+  fi
+
+  if type cargo >/dev/null 2>&1; then
+    echo "[update] cargo"
+    cargo install-update --all
+    echo ""
   fi
 
   # asdf
@@ -259,10 +289,10 @@ config() { vim "$XDG_CONFIG_HOME/$@" }
 
 ssh() {
   if [[ -n $TMUX ]]; then
-    local pane_id=$(tmux display -p '${pane_id}')
+    local pane_id="$(tmux display -p '#{pane_id}')"
     tmux select-pane -P 'bg=colour52,fg=white'
     command ssh $@
-    tmux select-pane -t $pane_id -P 'default'
+    tmux select-pane -t "$pane_id" -P 'default'
   else
     command ssh $@
   fi
