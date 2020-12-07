@@ -234,6 +234,13 @@ update() {
   if type rustup >/dev/null 2>&1; then
     echo "[update] rustup"
     rustup self update
+    rustup update
+    echo ""
+  fi
+
+  if type cargo >/dev/null 2>&1; then
+    echo "[update] cargo"
+    cargo install-update --all
     echo ""
   fi
 
@@ -251,6 +258,17 @@ update() {
 }
 
 config() { vim "$XDG_CONFIG_HOME/$@" }
+
+ssh() {
+  if [[ -n $TMUX ]]; then
+    local pane_id=$(tmux display -p '${pane_id}')
+    tmux select-pane -P 'bg=colour52,fg=white'
+    command ssh $@
+    tmux select-pane -t $pane_id -P 'default'
+  else
+    command ssh $@
+  fi
+}
 
 # tmux package manager
 if type tmux >/dev/null 2>&1 && [[ ! -d "${HOME}/.tmux/plugins/tpm" ]]; then
