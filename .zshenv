@@ -64,16 +64,13 @@ export LESS_TERMCAP_ue=$'\E[0m'
 export LESS_TERMCAP_us=$'\E[01;32m'
 
 # ls command colors
-export LSCOLORS=exfxcxdxbxegedabagacad
-export LS_COLORS='di=34:ln=35:so=32:pi=33:ex=31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
+export CLICOLOR=1
+export LSCOLORS=ExFxBxDxCxegedabagacad
 
 # History
 export HISTFILE="${XDG_CACHE_HOME}/zsh/.zsh_history"
 export HISTSIZE=10000
 export SAVEHIST=1000000
-
-# Terminal
-export TERM=xterm-256color
 
 # Key binding
 bindkey -v
