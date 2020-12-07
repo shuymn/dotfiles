@@ -1,6 +1,6 @@
 .DS_Store
 
-.config
+.config/*
 !.config/zsh/.zshrc
 !.config/starship
 !.config/nvim
