@@ -1,6 +1,11 @@
-if &compatible
-  set nocompatible
+if exists('g:loaded_vimrc') || &compatible
+  finish
+else
+  let g:loaded_vimrc = v:true
 endif
+
+" disable vi defaults
+set nocompatible
 
 " reset augroup
 augroup vimrc
@@ -20,17 +25,6 @@ endif
 " disable packpath
 set packpath=
 
-function! s:load(file) abort
-  let s:path = expand('$CONFIG/nvim/rc/' . a:file . '.rc.vim')
-
-  if filereadable(s:path)
-    source `=s:path`
-  endif
-endfunction
-
-call s:load('dein')
-call s:load('providers')
-
 set shell=/bin/zsh
 
 " encoding
@@ -42,7 +36,6 @@ set number ruler title wrap cursorline
 set showcmd showmatch noshowmode laststatus=2
 set history=100
 set matchtime=5
-set t_Co=256
 
 set autoindent smartindent
 set backspace=indent,eol,start textwidth=0 ambiwidth=double
@@ -54,6 +47,10 @@ set wildignorecase wildmenu wildmode=list:longest,full
 set mouse=a autoread hidden
 
 set clipboard=unnamed,unnamedplus
+
+if &t_Co >= 256
+  set termguicolors
+end
 
 let s:cache_dir = expand('$CACHE/.vim')
 if !isdirectory(s:cache_dir)
@@ -105,5 +102,17 @@ nnoremap <C-w>j <C-w>-
 nnoremap <C-w>k <C-w>+
 nnoremap <C-w>l <C-w>>
 
-autocmd BufRead * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal g`\"" | endif
-autocmd Filetype * setlocal formatoptions-=ro
+autocmd vimrc BufRead * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal g`\"" | endif
+autocmd vimrc Filetype * setlocal formatoptions-=ro
+
+function! s:load(file) abort
+  let s:path = expand('$CONFIG/nvim/rc/' . a:file . '.rc.vim')
+
+  if filereadable(s:path)
+    source `=s:path`
+  endif
+endfunction
+
+call s:load('dein')
+call s:load('providers')
+

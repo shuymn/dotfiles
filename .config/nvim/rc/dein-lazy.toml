@@ -71,3 +71,59 @@ hook_source = '''
   map  <Leader>w <Plug>(easymotion-bd-w)
   nmap <Leader>w <Plug>(easymotion-overwin-w)
 '''
+
+[[plugins]]
+repo = 'reireias/vim-cheatsheet'
+on_cmd = ['Cheat']
+hook_add = '''
+  let g:cheatsheet#float_window = v:true
+  let g:cheatsheet#float_window_width_ratio = 0.8
+  let g:cheatsheet#float_window_height_ratio = 0.7
+  let g:cheatsheet#cheat_file = "$XDG_CONFIG_HOME/nvim/cheatsheet.md"
+
+  nnoremap ? :<C-u>Cheat<CR>
+'''
+
+[[plugins]]
+repo = 'wsdjeg/dein-ui.vim'
+on_cmd = ['DeinUpdate']
+
+[[plugins]]
+repo = 'leafgarland/typescript-vim'
+on_ft = ['typescript', 'typescriptreact']
+hook_add = '''
+  let g:typescript_indent_disable = v:true
+'''
+
+[[plugins]]
+repo = 'jelera/vim-javascript-syntax'
+on_ft = ['javascript']
+
+[[plugins]]
+repo = 'https://raw.githubusercontent.com/fatih/vim-go/master/autoload/go/config.vim'
+type = "raw"
+script_type = 'autoload'
+on_ft = ['go']
+hook_add = '''
+  let g:go_highlight_array_whitespace_error = v:true
+  let g:go_highlight_chan_whitespace_error = v:true
+  let g:go_highlight_extra_types = v:true
+  let g:go_highlight_space_tab_error = v:true
+  let g:go_highlight_trailing_whitespace_error = v:true
+  let g:go_highlight_operators = v:true
+  let g:go_highlight_functions = v:true
+  let g:go_highlight_function_parameters = v:true
+  let g:go_highlight_function_arguments = v:true
+  let g:go_highlight_function_calls = v:true
+  let g:go_highlight_fields = v:true
+  let g:go_highlight_types = v:true
+  let g:go_highlight_generate_tags = v:true
+  let g:go_highlight_variable_assignments = v:true
+  let g:go_highlight_variable_declarations = v:true
+'''
+
+[[plugins]]
+repo = 'https://raw.githubusercontent.com/fatih/vim-go/master/syntax/go.vim'
+type = "raw"
+script_type = 'syntax'
+on_ft = ['go']

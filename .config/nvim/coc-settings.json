@@ -1,19 +1,25 @@
 {
-  "python.jediEnabled": false,
-  "python.autoUpdateLanguageServer": true,
-  "python.formatting.provider": "black",
-  "python.linting.flake8Enabled": true,
-  "python.linting.mypyEnabled": true,
-  "python.linting.lintOnSave": true,
-  "coc.preferences.formatOnSave": true,
+  "coc.preferences.useQuickfixForLocations": true,
+  "diagnostic.checkCurrentLine": true,
   "coc.preferences.formatOnSaveFiletypes": [
     "javascript",
     "typescript",
     "javascriptreact",
     "typescriptreact",
     "json",
-    "ruby"
+    "ruby",
+    "go",
+    "sh"
   ],
+  "languageserver": {
+    "golangci-lint-languageserver": {
+      "command": "golangci-lint-langserver",
+      "filetypes": ["go"],
+      "initializationOptions": {
+        "command": ["golangci-lint", "run", "--out-format", "json"]
+      }
+    }
+  },
   "eslint.filetypes": [
     "javascript",
     "typescript",
@@ -21,5 +27,22 @@
     "typescriptreact"
   ],
   "eslint.autoFixOnSave": true,
-  "solargraph.diagnostics": true
+  "solargraph.diagnostics": true,
+  "python.jediEnabled": false,
+  "python.autoUpdateLanguageServer": true,
+  "python.formatting.provider": "black",
+  "python.linting.flake8Enabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.linting.lintOnSave": true,
+  "go.goplsOptions": {
+    "gofumpt": true
+  },
+  "go.checkForUpdates": "install",
+  "diagnostic-languageserver.filetypes": {
+    "sh": "shellcheck",
+    "vim": "vint"
+  },
+  "diagnostic-languageserver.formatFiletypes": {
+    "sh": "shfmt"
+  }
 }

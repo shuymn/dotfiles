@@ -13,13 +13,13 @@ hook_add = '''
 [[plugins]]
 repo = 'airblade/vim-gitgutter'
 hook_add = '''
-  let g:gitgutter_map_keys = 0
+  let g:gitgutter_map_keys = v:false
 '''
 
 [[plugins]]
 repo = 'luochen1990/rainbow'
 hook_add = '''
-  let g:rainbow_active = 1
+  let g:rainbow_active = v:true
 '''
 
 [[plugins]]
@@ -31,32 +31,28 @@ repo = 'roxma/vim-hug-neovim-rpc'
 if = '!has("nvim")'
 
 [[plugins]]
-repo = 'ghifarit53/tokyonight-vim'
+repo = 'joshdick/onedark.vim'
 hook_add = '''
-  if (empty($TMUX) && has("termguicolors"))
-    set termguicolors
-  endif
+  source $XDG_CONFIG_HOME/nvim/rc/plugins/onedark.rc.vim
 
-	let g:tokyonight_style = 'night'
-  let g:tokyonight_enable_italic = 1
-
-  colorscheme tokyonight
+  let g:onedark_terminal_italics = v:true
+  colorscheme onedark
 '''
 
 [[plugins]]
 repo = 'itchyny/lightline.vim'
 hook_add = '''
-  let g:lightline = { 'colorscheme': 'tokyonight' }
+  let g:lightline = { 'colorscheme': 'onedark' }
 '''
 
 [[plugins]]
 repo = 'nathanaelkane/vim-indent-guides'
 hook_add = '''
-  let g:indent_guides_enable_on_vim_startup = 1
-  let g:indent_guides_auto_colors = 0
+  let g:indent_guides_enable_on_vim_startup = v:true
+  let g:indent_guides_auto_colors = v:false
 
-  autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=0
-  autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=8
+  autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=237
+  autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=239
 '''
 
 [[plugins]]
