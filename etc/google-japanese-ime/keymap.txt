@@ -1,50 +1,52 @@
 status	key	command
 Composition	Backspace	Backspace
-Composition	Delete	Delete
-Composition	Eisu	ToggleAlphanumericMode
-Composition	Enter	Commit
-Composition	ESC	Cancel
-Composition	Henkan	Convert
-Composition	Left	MoveCursorLeft
-Composition	Right	MoveCursorRight
-Composition	Space	Convert
-Composition	Tab	PredictAndConvert
-Composition	Ctrl [	ConvertToFullKatakana
-Composition	Ctrl ]	ConvertToHalfKatakana
-Composition	Ctrl h	MoveCursorLeft
-Composition	Ctrl l	MoveCursorRight
 Conversion	Backspace	Cancel
+Precomposition	Backspace	Revert
+Composition	Ctrl [	ConvertToFullKatakana
+Conversion	Ctrl [	ConvertToFullKatakana
+Composition	Ctrl ]	ConvertToHalfKatakana
+Conversion	Ctrl ]	ConvertToHalfKatakana
+Composition	Ctrl h	MoveCursorLeft
 Conversion	Ctrl h	SegmentWidthShrink
+Conversion	Ctrl j	ConvertNext
+Conversion	Ctrl k	ConvertPrev
+Composition	Ctrl l	MoveCursorRight
 Conversion	Ctrl l	SegmentWidthExpand
 Conversion	Ctrl n	ConvertNext
 Conversion	Ctrl p	ConvertPrev
-Conversion	Ctrl j	ConvertNext
-Conversion	Ctrl k	ConvertPrev
+Composition	Delete	Delete
 Conversion	Delete	Cancel
 Conversion	Down	ConvertNext
+Suggestion	Down	PredictAndConvert
+Composition	Eisu	ToggleAlphanumericMode
 Conversion	Eisu	ToggleAlphanumericMode
+Precomposition	Eisu	ToggleAlphanumericMode
+Composition	Enter	Commit
 Conversion	Enter	Commit
+Composition	ESC	Cancel
 Conversion	ESC	Cancel
+Composition	Henkan	Convert
 Conversion	Henkan	ConvertNext
+DirectInput	Henkan	Reconvert
+Precomposition	Henkan	Reconvert
 Conversion	Hiragana	InputModeHiragana
+Precomposition	Hiragana	InputModeHiragana
 Conversion	Katakana	InputModeFullKatakana
+Precomposition	Katakana	InputModeFullKatakana
+Composition	Left	MoveCursorLeft
 Conversion	Left	SegmentFocusLeft
 Conversion	Muhenkan	SwitchKanaType
+Precomposition	Muhenkan	InputModeSwitchKanaType
+Composition	Right	MoveCursorRight
 Conversion	Right	SegmentFocusRight
+Composition	Shift Enter	Commit
+Conversion	Shift Enter	Commit
+Composition	Space	Convert
 Conversion	Space	ConvertNext
+Precomposition	Space	InsertSpace
+Composition	Tab	PredictAndConvert
 Conversion	Tab	PredictAndConvert
 Conversion	Up	ConvertPrev
-DirectInput	Henkan	Reconvert
-Precomposition	Backspace	Revert
-Precomposition	Eisu	ToggleAlphanumericMode
-Precomposition	Henkan	Reconvert
-Precomposition	Hiragana	InputModeHiragana
-Precomposition	Katakana	InputModeFullKatakana
-Precomposition	Muhenkan	InputModeSwitchKanaType
-Precomposition	Space	InsertSpace
-Suggestion	Down	PredictAndConvert
-Conversion	Ctrl [	ConvertToFullKatakana
-Conversion	Ctrl ]	ConvertToHalfKatakana
 Composition	ASCII	InsertCharacter
 Composition	Hankaku/Zenkaku	IMEOff
 Composition	Kanji	IMEOff
