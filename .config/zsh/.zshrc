@@ -218,6 +218,14 @@ if type fzf >/dev/null 2>&1; then
     }
     alias review='gh-pr-checkout-fzf'
   fi
+
+  # enhancd
+  if [[ -f "$HOME/.enhancd/init.sh" ]]; then
+    export ENHANCD_FILTER="fzf:non-existing-filter"
+    export ENHANCD_HOOK_AFTER_CD="ls"
+
+    source "$HOME/.enhancd/init.sh"
+  fi
 fi
 
 # nix
