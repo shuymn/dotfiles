@@ -45,7 +45,7 @@ call defx#custom#column('mark', {
       \ })
 
 let s:floating_window_width_ratio = 0.9
-let s:floating_window_height_ratio = 0.5
+let s:floating_window_height_ratio = 0.8
 
 call defx#custom#option('_', {
       \ 'split': 'floating',

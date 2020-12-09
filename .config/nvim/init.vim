@@ -65,7 +65,18 @@ if has('persistent_undo')
   set undofile
 endif
 
-let g:mapleader = "\<Space>"
+function! s:load(file) abort
+  let s:path = expand('$CONFIG/nvim/rc/' . a:file . '.rc.vim')
+
+  if filereadable(s:path)
+    source `=s:path`
+  endif
+endfunction
+
+call s:load('dein')
+call s:load('providers')
+
+let mapleader = "\<Space>"
 
 noremap ; :
 noremap : ;
@@ -103,16 +114,3 @@ nnoremap <C-w>k <C-w>+
 nnoremap <C-w>l <C-w>>
 
 autocmd vimrc BufRead * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal g`\"" | endif
-autocmd vimrc Filetype * setlocal formatoptions-=ro
-
-function! s:load(file) abort
-  let s:path = expand('$CONFIG/nvim/rc/' . a:file . '.rc.vim')
-
-  if filereadable(s:path)
-    source `=s:path`
-  endif
-endfunction
-
-call s:load('dein')
-call s:load('providers')
-

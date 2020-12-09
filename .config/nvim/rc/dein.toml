@@ -3,6 +3,33 @@ repo = 'Shougo/dein.vim'
 
 [[plugins]]
 repo = 'sheerun/vim-polyglot'
+hook_add = '''
+  " go
+  let g:go_highlight_array_whitespace_error = v:true
+  let g:go_highlight_chan_whitespace_error = v:true
+  let g:go_highlight_extra_types = v:true
+  let g:go_highlight_space_tab_error = v:true
+  let g:go_highlight_trailing_whitespace_error = v:true
+  let g:go_highlight_operators = v:true
+  let g:go_highlight_functions = v:true
+  let g:go_highlight_function_parameters = v:true
+  let g:go_highlight_function_arguments = v:true
+  let g:go_highlight_function_calls = v:true
+  let g:go_highlight_fields = v:true
+  let g:go_highlight_types = v:true
+  let g:go_highlight_build_constraints = v:true
+  let g:go_highlight_generate_tags = v:true
+  let g:go_highlight_variable_assignments = v:true
+  let g:go_highlight_variable_declarations = v:true
+
+  " ruby
+  let g:ruby_space_errors = v:true
+  let g:ruby_operators = v:true
+  let g:ruby_pseudo_operators = v:true
+  let g:ruby_global_variable_error = v:true
+  let g:ruby_line_continuation_error = v:true
+
+'''
 
 [[plugins]]
 repo = 'vim-jp/vimdoc-ja'
@@ -20,6 +47,7 @@ hook_add = '''
 repo = 'luochen1990/rainbow'
 hook_add = '''
   let g:rainbow_active = v:true
+  let g:rainbow_conf = { 'guifgs': ['gold', 'orchid', 'lightskyblue'] }
 '''
 
 [[plugins]]
@@ -31,7 +59,17 @@ repo = 'roxma/vim-hug-neovim-rpc'
 if = '!has("nvim")'
 
 [[plugins]]
+repo = 'ghifarit53/tokyonight-vim'
+hook_add = '''
+  let g:tokyonight_style = 'night'
+  let g:tokyonight_enable_italic = 1
+
+  colorscheme tokyonight
+'''
+
+[[plugins]]
 repo = 'joshdick/onedark.vim'
+if = 'v:false'
 hook_add = '''
   source $XDG_CONFIG_HOME/nvim/rc/plugins/onedark.rc.vim
 
@@ -42,7 +80,7 @@ hook_add = '''
 [[plugins]]
 repo = 'itchyny/lightline.vim'
 hook_add = '''
-  let g:lightline = { 'colorscheme': 'onedark' }
+  let g:lightline = { 'colorscheme': g:colors_name }
 '''
 
 [[plugins]]
@@ -51,8 +89,8 @@ hook_add = '''
   let g:indent_guides_enable_on_vim_startup = v:true
   let g:indent_guides_auto_colors = v:false
 
-  autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=237
-  autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=239
+  autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=0
+  autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=8
 '''
 
 [[plugins]]
