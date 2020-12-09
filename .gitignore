@@ -1,8 +1,20 @@
 .DS_Store
 
-.config/*
-!.config/zsh/.zshrc
-!.config/starship
-!.config/nvim
-!.config/karabiner/karabiner.json
-!.config/alacritty
+.config/anyenv
+.config/brittany
+.config/coc
+.config/configstore
+.config/dlv
+.config/gatsby
+.config/gh
+.config/htop
+.config/karabiner/assets
+.config/karabiner/automatic_backups
+.config/kotap
+.config/nix
+.config/nixpkgs
+.config/regend
+.config/tabtab
+.config/zsh/.zcompcache
+.config/zsh/.zprofile
+.config/zsh/.zsh_history
