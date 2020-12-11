@@ -5,6 +5,7 @@
 .config/coc
 .config/configstore
 .config/dlv
+.config/fontforge
 .config/gatsby
 .config/gh
 .config/htop
@@ -15,6 +16,7 @@
 .config/nixpkgs
 .config/regend
 .config/tabtab
+.config/yarn
 .config/zsh/.zcompcache
 .config/zsh/.zprofile
 .config/zsh/.zsh_history
