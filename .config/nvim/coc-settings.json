@@ -44,5 +44,10 @@
   },
   "diagnostic-languageserver.formatFiletypes": {
     "sh": "shfmt"
-  }
+  },
+  "suggest.lowPrioritySourceLimit": 3,
+  "suggest.highPrioritySourceLimit": 5,
+  "suggest.languageSourcePriority": 110,
+  "tabnine.priority": 80,
+  "coc.source.word.priority": 70
 }
