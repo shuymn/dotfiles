@@ -1,2 +1,4 @@
-source "$(asdf direnv hook asdf)"
+if type asdf > /dev/null 2>&1; then
+  source "$(asdf direnv hook asdf)"
+fi
 
