@@ -29,6 +29,9 @@ function! s:defx_my_settings() abort
         \ defx#do_action('quit')
   nnoremap <silent><buffer><expr> .
         \ defx#do_action('toggle_ignored_files')
+
+  nnoremap <silent><buffer><expr> N
+        \ defx#do_action('new_file')
 endfunction
 
 function! Root(path) abort
