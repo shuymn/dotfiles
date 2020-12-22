@@ -34,10 +34,10 @@
   "python.linting.flake8Enabled": true,
   "python.linting.mypyEnabled": true,
   "python.linting.lintOnSave": true,
+  "go.checkForUpdates": "install",
   "go.goplsOptions": {
     "gofumpt": true
   },
-  "go.checkForUpdates": "install",
   "diagnostic-languageserver.filetypes": {
     "sh": "shellcheck",
     "vim": "vint"
