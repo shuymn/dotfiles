@@ -47,10 +47,6 @@ if type rg >/dev/null 2>&1; then
   alias grep='rg'
 fi
 
-if type sd >/dev/null 2>&1; then
-  alias sed='sd'
-fi
-
 if type btm >/dev/null 2>&1; then
   alias top='btm'
 fi
@@ -207,7 +203,7 @@ if type fzf >/dev/null 2>&1; then
     local branches branch
     branches=$(git branch) &&
       branch=$(echo "$branches" | fzf +m) &&
-      git switch $(echo "$branch" | awk '{print $1}' | sed "s/.* //")
+      git switch $(echo "$branch" | sd '\*' '' | awk '{print $1}')
   }
   alias switch='git-switch-fzf'
 
