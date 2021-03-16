@@ -287,12 +287,6 @@ update() {
     echo ""
   fi
 
-  if type cargo >/dev/null 2>&1; then
-    echo "[update] cargo"
-    cargo install-update --all
-    echo ""
-  fi
-
   # asdf
   if type asdf >/dev/null 2>&1; then
     echo "[update] asdf"
