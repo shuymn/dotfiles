@@ -240,6 +240,12 @@ if type nix >/dev/null 2>&1; then
   . ~/.nix-profile/etc/profile.d/nix.sh
 fi
 
+# aws-vault
+if type aws-vault >/dev/null 2>&1; then
+  eval "$(aws-vault --completion-script-zsh)"
+  export AWS_SESSION_TOKEN_TTL=12h
+fi
+
 # functions
 update() {
   if type brew >/dev/null 2>&1; then
