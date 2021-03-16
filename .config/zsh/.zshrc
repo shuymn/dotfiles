@@ -168,10 +168,19 @@ if type fzf >/dev/null 2>&1; then
   bindkey '^r' history-fzf
 
   if type ghq >/dev/null 2>&1; then
-    ghq-fzf() {
+    ghq-cd() {
+      if if [ -n "$1" ]; then
+        dir="$(ghq list --full-path --exact "$1")"
+        if [ -z "$dir" ]; then
+          echo "no directories found for '$1'"
+          return 1
+        fi
+        cd "$dir"
+        return
+      fi
       cd "$(ghq list --full-path | fzf --preview 'exa -aT --level=2 --ignore-glob='.git' {} | head -200')"
     }
-    alias repos='ghq-fzf'
+    alias repos='ghq-cd'
   fi
 
   # tmux
