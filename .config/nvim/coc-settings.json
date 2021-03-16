@@ -20,12 +20,6 @@
       }
     }
   },
-  "eslint.filetypes": [
-    "javascript",
-    "typescript",
-    "javascriptreact",
-    "typescriptreact"
-  ],
   "eslint.autoFixOnSave": true,
   "solargraph.diagnostics": true,
   "python.jediEnabled": false,
