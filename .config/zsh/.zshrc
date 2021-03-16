@@ -94,6 +94,8 @@ fi
 if type pyenv >/dev/null 2>&1; then
   export PYENV_ROOT="$(pyenv root)"
 
+  alias python='pyenv exec python'
+
   # xxenv-latest(for nvim)
   if [[ ! -d $(pyenv root)/plugins/xxenv-latest ]]; then
     git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)"/plugins/xxenv-latest
