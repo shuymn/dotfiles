@@ -87,3 +87,7 @@ hook_add = '''
 [[plugins]]
 repo = 'wsdjeg/dein-ui.vim'
 on_cmd = ['DeinUpdate']
+
+[[plugins]]
+repo = 'gotchane/vim-git-commit-prefix'
+on_ft = 'gitcommit'
