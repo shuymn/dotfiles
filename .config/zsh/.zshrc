@@ -71,6 +71,7 @@ if type anyenv >/dev/null 2>&1; then
 fi
 
 if type asdf >/dev/null 2>&1; then
+  export ASDF_NPM_DEFAULT_PACKAGES_FILE="$HOME/.config/asdf/.default-npm-packages"
   . $(brew --prefix asdf)/asdf.sh
 
   if type direnv >/dev/null 2>&1; then
@@ -81,19 +82,12 @@ if type asdf >/dev/null 2>&1; then
     eval "$(pyenv init -)"
   fi
 
-  if type nodenv >/dev/null 2>&1; then
-    eval "$(nodenv init -)"
-  fi
-
-  if type rbenv >/dev/null 2>&1; then
-    eval "$(rbenv init -)"
-  fi
 fi
 
 # pyenv
 if type pyenv >/dev/null 2>&1; then
+  eval "$(pyenv init -)"
   export PYENV_ROOT="$(pyenv root)"
-
   alias python='pyenv exec python'
 
   # xxenv-latest(for nvim)
@@ -109,6 +103,8 @@ fi
 
 # nodenv
 if type nodenv >/dev/null 2>&1; then
+  eval "$(nodenv init -)"
+
   if [[ ! -d $(nodenv root)/plugins/xxenv-latest ]]; then
     git clone https://github.com/momo-lab/xxenv-latest.git "$(nodenv root)"/plugins/xxenv-latest
   fi
@@ -169,15 +165,18 @@ if type fzf >/dev/null 2>&1; then
 
   if type ghq >/dev/null 2>&1; then
     ghq-cd() {
-      if if [ -n "$1" ]; then
+      if [ -n "$1" ]; then
         dir="$(ghq list --full-path --exact "$1")"
+
         if [ -z "$dir" ]; then
           echo "no directories found for '$1'"
           return 1
         fi
+
         cd "$dir"
         return
       fi
+
       cd "$(ghq list --full-path | fzf --preview 'exa -aT --level=2 --ignore-glob='.git' {} | head -200')"
     }
     alias repos='ghq-cd'
@@ -291,6 +290,24 @@ update() {
   if type asdf >/dev/null 2>&1; then
     echo "[update] asdf"
     asdf plugin update --all
+    echo ""
+
+    echo "[update] asdf direnv"
+    asdf install direnv latest
+    asdf global direnv $(asdf latest direnv)
+    echo ""
+
+    echo "[update] asdf nodejs(LTS)"
+    asdf install nodejs latest:14
+    asdf global nodejs $(asdf latest nodejs 14)
+    echo ""
+
+    echo "[update] asdf ruby"
+    asdf install ruby latest
+    asdf global ruby $(asdf latest ruby)
+    echo ""
+
+    asdf reshim
   fi
 
   # anyenv
