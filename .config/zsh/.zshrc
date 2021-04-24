@@ -255,6 +255,11 @@ update() {
     echo "[update] brew cask"
     brew upgrade --cask
     echo ""
+
+    if type ncu >/dev/null 2>&1; then
+      echo "[update] node"
+      ncu -g -u
+    fi
   fi
 
   # Haskell
