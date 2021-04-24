@@ -97,7 +97,6 @@ nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
 inoremap <silent><expr> <CR>
       \ pumvisible() ? coc#_select_confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
-autocmd CursorHold * silent call CocActionAsync('highlight')
 autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
 autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 
