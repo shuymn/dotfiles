@@ -21,6 +21,7 @@ autoload -Uz run-help
 autoload -Uz add-zsh-hook
 autoload -Uz colors && colors
 autoload -Uz compinit && compinit -d "${XDG_CACHE_HOME}/zsh/.zcompdump"
+autoload -U +X bashcompinit && bashcompinit
 
 # Language
 export LANGUAGE="en_US.UTF-8"
@@ -66,9 +67,10 @@ setopt no_global_rcs
 # golang
 export GOPATH="$HOME/go"
 export GOBIN="$GOPATH/bin"
-export PATH="$GOBIN:$PATH"
+[ ! -d $GOBIN ] || export PATH="$GOBIN:$PATH"
 
 # mysql5.6
-export PATH="/usr/local/opt/mysql@5.6/bin:$PATH"
+[ ! -d "/usr/local/opt/mysql@5.6/bin" ] || export PATH="/usr/local/opt/mysql@5.6/bin:$PATH"
 
+# dotpath
 export DOTPATH=${0:A:h}
