@@ -26,6 +26,7 @@ disable r
 # alias
 alias reload="exec $SHELL -l"
 alias status="git status --short --branch"
+alias tf="terraform"
 
 if type bundle >/dev/null 2>&1; then
   alias rails='asdf exec bundle exec rails'
@@ -34,7 +35,7 @@ fi
 
 if type exa >/dev/null 2>&1; then
   alias ls='exa --classify --group-directories-first --icons'
-  alias lls='exa --classify --group-directories-first --icons --long --header --git'
+  alias ll='exa --classify --group-directories-first --icons --long --header --git'
 else
   alias ls='ls -G'
 fi
@@ -62,12 +63,18 @@ if type nvim >/dev/null 2>&1; then
   alias zshrc="nvim ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
+if type gomi >/dev/null 2>&1; then
+  alias rm=gomi
+fi
+
 # version manager
 if type anyenv >/dev/null 2>&1; then
   eval "$(anyenv init -)"
 
   # direnv
-  eval "$(direnv hook zsh)"
+  if type direnv >/dev/null 2>&1; then
+    eval "$(direnv hook zsh)"
+  fi
 fi
 
 if type asdf >/dev/null 2>&1; then
@@ -76,12 +83,8 @@ if type asdf >/dev/null 2>&1; then
 
   if type direnv >/dev/null 2>&1; then
     eval "$(asdf exec direnv hook zsh)"
+    export DIRENV_WARN_TIMEOUT=30s
   fi
-
-  if type pyenv >/dev/null 2>&1; then
-    eval "$(pyenv init -)"
-  fi
-
 fi
 
 # pyenv
@@ -245,6 +248,32 @@ if type aws-vault >/dev/null 2>&1; then
   export AWS_SESSION_TOKEN_TTL=12h
 fi
 
+# terraform
+if type terraform >/dev/null 2>&1; then
+  complete -o nospace -C /usr/local/bin/terraform terraform
+fi
+
+# vscode-launcher-go
+if type vscode-launcher-go >/dev/null 2>&1; then
+  alias code="vscode-launcher-go"
+fi
+
+# JetBrains IDE
+## PhpStorm
+if [[ -d "${HOME}/Applications/JetBrains Toolbox/PhpStorm.app" ]]; then
+  alias phpstorm="open -a ${HOME}/Applications/JetBrains\ Toolbox/PhpStorm.app"
+fi
+
+## RubyMine
+if [[ -d "${HOME}/Applications/JetBrains Toolbox/RubyMine.app" ]]; then
+  alias rubymine="open -a ${HOME}/Applications/JetBrains\ Toolbox/RubyMine.app"
+fi
+
+## DataGrip
+if [[ -d "${HOME}/Applications/JetBrains Toolbox/DataGrip.app" ]]; then
+  alias datagrip="open -a ${HOME}/Applications/JetBrains\ Toolbox/DataGrip.app"
+fi
+
 # functions
 update() {
   if type brew >/dev/null 2>&1; then
@@ -310,6 +339,11 @@ update() {
     echo "[update] asdf ruby"
     asdf install ruby latest
     asdf global ruby $(asdf latest ruby)
+    echo ""
+
+    echo "[update] asdf php(7.4)"
+    asdf install php latest:7.4
+    asdf global php $(asdf latest php)
     echo ""
 
     asdf reshim
