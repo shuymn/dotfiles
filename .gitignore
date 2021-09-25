@@ -3,6 +3,7 @@
 .config/anyenv/
 .config/brittany/
 .config/coc/
+.config/composer/
 .config/configstore/
 .config/dlv/
 .config/fontforge/
@@ -16,6 +17,7 @@
 .config/kotap/
 .config/nix/
 .config/nixpkgs/
+.config/psysh/
 .config/regend/
 .config/tabtab/
 .config/yarn/
