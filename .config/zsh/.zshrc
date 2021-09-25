@@ -189,7 +189,7 @@ if type fzf >/dev/null 2>&1; then
   if type tmux >/dev/null 2>&1; then
     if [[ ! -n $TMUX && $- == *l* && ! $TERM_PROGRAM == "vscode" ]]; then
       local sess_id
-      sess_id="$(tmux list-sessions)"
+      sess_id="$(tmux ls 2>/dev/null)"
       if [[ -z "$sess_id" ]]; then
         tmux new-session
       fi
