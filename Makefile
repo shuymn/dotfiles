@@ -22,6 +22,10 @@ clean: ## Remove the dotfiles and this repository
 	@echo 'Remove the dotfiles'
 	@-$(foreach val, $(DOTFILES), rm -vrf $(HOME)/$(val);)
 	-rm -rf $(DOTPATH)
+
+.PHONY: start-bash-lsp
+start-bash-lsp: ## for VSCode
+	@docker container run --name explainshell --rm -p 5000:5000 spaceinvaderone/explainshell
 	
 .PHONY: help
 help: ## Self-documented Makefile
