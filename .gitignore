@@ -24,3 +24,4 @@
 .config/zsh/.zcompcache
 .config/zsh/.zprofile
 .config/zsh/.zsh_history
+.config/zsh/config/local.zsh
