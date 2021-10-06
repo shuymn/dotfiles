@@ -3,9 +3,12 @@ path=( \
   /usr/local/bin(N-/) \
   /usr/local/sbin(N-/) \
   /usr/local/opt/zplug(N-/) \
+  /usr/local/opt/mysql@5.6/bin(N-/) \
+  /usr/local/opt/curl/bin(N-/) \
   ~/.local/bin(N-/) \
   ~/.serverless/bin(N-/) \
   ~/.cargo/bin(N-/) \
+  ~/.poetry/bin(N-/) \
   "$path[@]" \
 )
 
@@ -13,6 +16,7 @@ typeset -gx -U fpath
 fpath=( \
   /usr/local/share/zsh/site-functions(N-/) \
   /usr/local/share/zsh-completions(N-/) \
+  /usr/local/opt/curl/share/zsh/site-functions(N-/) \
   $fpath \
 )
 
@@ -67,10 +71,9 @@ setopt no_global_rcs
 # golang
 export GOPATH="$HOME/go"
 export GOBIN="$GOPATH/bin"
-[ ! -d $GOBIN ] || export PATH="$GOBIN:$PATH"
-
-# mysql5.6
-[ ! -d "/usr/local/opt/mysql@5.6/bin" ] || export PATH="/usr/local/opt/mysql@5.6/bin:$PATH"
+if [[ ! -d "${GOBIN}" ]]; then
+  export PATH="$GOBIN:$PATH"
+fi
 
 # dotpath
 export DOTPATH=${0:A:h}
