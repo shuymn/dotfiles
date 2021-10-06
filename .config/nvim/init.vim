@@ -38,13 +38,17 @@ set history=100
 set matchtime=5
 
 set autoindent smartindent
-set backspace=indent,eol,start textwidth=0 ambiwidth=double
+set backspace=indent,eol,start textwidth=0
 set smarttab expandtab tabstop=2 shiftwidth=2 softtabstop=0
 set wrapscan
 set whichwrap=b,s,h,l,<,>,[,],~
 set incsearch hlsearch ignorecase smartcase
 set wildignorecase wildmenu wildmode=list:longest,full
 set mouse=a autoread hidden
+
+if !exists('g:vscode')
+set ambiwidth=double
+endif
 
 set clipboard=unnamed,unnamedplus
 
@@ -73,7 +77,12 @@ function! s:load(file) abort
   endif
 endfunction
 
-call s:load('dein')
+" load dein
+if !exists('g:vscode')
+  call s:load('dein')
+endif
+
+" load providers
 call s:load('providers')
 
 let mapleader = "\<Space>"
