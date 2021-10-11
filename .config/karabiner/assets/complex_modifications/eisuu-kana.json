@@ -9,7 +9,7 @@
           "conditions": [
             {
               "type": "frontmost_application_unless",
-              "bundle_identifiers": ["^com\\.microsoft\\.rds\\.macos$"]
+              "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
             }
           ],
           "from": {
@@ -43,7 +43,7 @@
           "conditions": [
             {
               "type": "frontmost_application_unless",
-              "bundle_identifiers": ["^com\\.microsoft\\.rds\\.macos$"]
+              "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
             }
           ],
           "from": {

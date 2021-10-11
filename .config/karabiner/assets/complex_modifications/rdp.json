@@ -1,0 +1,44 @@
+{
+  "title": "Custom key-bindings in Microsoft Remote Desktop",
+  "rules": [
+    {
+      "description": "Custom key-bindings in Microsoft Remote Desktop",
+      "manipulators": [
+        {
+          "type": "basic",
+          "conditions": [
+            {
+              "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"],
+              "type": "frontmost_application_if"
+            }
+          ],
+          "from": {
+            "key_code": "left_command"
+          },
+          "to": [
+            {
+              "key_code": "left_option"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "conditions": [
+            {
+              "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"],
+              "type": "frontmost_application_if"
+            }
+          ],
+          "from": {
+            "key_code": "right_command"
+          },
+          "to": [
+            {
+              "key_code": "right_option"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
