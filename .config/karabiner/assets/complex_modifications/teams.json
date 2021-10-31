@@ -32,7 +32,7 @@
           ],
           "from": {
             "key_code": "return_or_enter",
-            "modifiers": ["command"]
+            "modifiers": { "mandatory": ["command"] }
           },
           "to": [
             {
