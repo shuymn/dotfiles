@@ -6,11 +6,6 @@ if has "terraform"; then
   alias tf="terraform"
 fi
 
-if has "bundle"; then
-  alias rails='asdf exec bundle exec rails'
-  alias rspec='asdf exec bundle exec rspec'
-fi
-
 if has "exa"; then
   alias ls='exa --classify --group-directories-first --icons'
   alias ll='exa --classify --group-directories-first --icons --long --header --git'
