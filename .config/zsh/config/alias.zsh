@@ -39,10 +39,6 @@ if has "gomi"; then
   alias rm=gomi
 fi
 
-if has "pyenv"; then
-  alias python='pyenv exec python'
-fi
-
 if has "fzf"; then
   git-switch-fzf() {
     local branches branch

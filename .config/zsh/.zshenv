@@ -18,6 +18,7 @@ fpath=( \
   /usr/local/share/zsh/site-functions(N-/) \
   /usr/local/share/zsh-completions(N-/) \
   /usr/local/opt/curl/share/zsh/site-functions(N-/) \
+  /home/linuxbrew/.linuxbrew/share/zsh/site-functions(N-/) \
   $fpath \
 )
 
