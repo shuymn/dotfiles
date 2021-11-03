@@ -96,6 +96,7 @@ hook_add = '''
 [[plugins]]
 repo = 'neoclide/coc.nvim'
 merged = 0
+rev = 'release'
 hook_add = 'source $XDG_CONFIG_HOME/nvim/rc/plugins/coc.rc.vim'
 
 [[plugins]]
