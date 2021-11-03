@@ -139,5 +139,10 @@ if has "terraform"; then
   complete -o nospace -C /usr/local/bin/terraform terraform
 fi
 
+# volta
+if [[ -d "$HOME/.volta" ]]; then
+  export VOLTA_HOME="$HOME/.volta"
+fi
+
 # Haskell
 load "${HOME}/.ghcup/env"
