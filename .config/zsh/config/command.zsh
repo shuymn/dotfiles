@@ -14,7 +14,7 @@ ssh() {
 }
 
 update() {
-  if type brew >/dev/null 2>&1; then
+  if has brew; then
     echo "[update] brew"
     brew upgrade
     echo ""
@@ -23,14 +23,20 @@ update() {
     brew upgrade --cask
     echo ""
 
-    if type ncu >/dev/null 2>&1; then
+    if has ncu; then
       echo "[update] node"
       ncu -g -u
     fi
   fi
 
+  if has apt; then
+    echo "[update] apt"
+    sudo apt update && sudo apt upgrade -y
+    echo ""
+  fi
+
   # Haskell
-  if type ghcup >/dev/null 2>&1; then
+  if has ghcup; then
     echo "[update] ghcup"
     ghcup upgrade
     ghcup install ghc recommended
@@ -40,21 +46,21 @@ update() {
     echo ""
   fi
 
-  if type cabal >/dev/null 2>&1; then
+  if has cabal; then
     echo "[update] cabal"
     cabal update
     echo ""
   fi
 
   # Rust
-  if type rustup >/dev/null 2>&1; then
+  if has rustup; then
     echo "[update] rustup"
     rustup self update
     rustup update
     echo ""
   fi
 
-  if type cargo >/dev/null 2>&1; then
+  if has cargo; then
     echo "[update] cargo"
     cargo install-update --all
     echo ""
@@ -69,7 +75,7 @@ update() {
   fi
 
   # asdf
-  if type asdf >/dev/null 2>&1; then
+  if has asdf; then
     echo "[update] asdf"
     asdf plugin update --all
     echo ""
@@ -98,7 +104,7 @@ update() {
   fi
 
   # anyenv
-  if type anyenv >/dev/null 2>&1; then
+  if has anyenv; then
     echo "[update] anyenv"
     anyenv update
   fi

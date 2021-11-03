@@ -9,6 +9,7 @@ path=( \
   ~/.serverless/bin(N-/) \
   ~/.cargo/bin(N-/) \
   ~/.poetry/bin(N-/) \
+  ~/.volta/bin(N-/) \
   "$path[@]" \
 )
 

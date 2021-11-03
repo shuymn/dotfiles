@@ -15,7 +15,11 @@ fi
 
 if has "asdf"; then
   export ASDF_NPM_DEFAULT_PACKAGES_FILE="$HOME/.config/asdf/.default-npm-packages"
-  source "$(brew --prefix asdf)/asdf.sh"
+  if has "brew"; then
+    source "$(brew --prefix asdf)/asdf.sh"
+  elif [[ -d "$HOME/.asdf" ]]; then
+    source "$HOME/.asdf/asdf.sh"
+  fi
 
   if has "direnv"; then
     eval "$(asdf exec direnv hook zsh)"
