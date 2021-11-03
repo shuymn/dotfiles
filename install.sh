@@ -3,7 +3,7 @@
 set -eu -o pipefail
 
 errorf() {
-  printf "$*"
+  printf "%s" "$*"
   exit 1
 }
 

@@ -86,18 +86,3 @@ fi
 if type vscode-launcher-go >/dev/null 2>&1; then
   alias code="vscode-launcher-go"
 fi
-
-# PhpStorm
-if [[ -d "${HOME}/Applications/JetBrains Toolbox/PhpStorm.app" ]]; then
-  alias phpstorm="open -a ${HOME}/Applications/JetBrains\ Toolbox/PhpStorm.app"
-fi
-
-# RubyMine
-if [[ -d "${HOME}/Applications/JetBrains Toolbox/RubyMine.app" ]]; then
-  alias rubymine="open -a ${HOME}/Applications/JetBrains\ Toolbox/RubyMine.app"
-fi
-
-# DataGrip
-if [[ -d "${HOME}/Applications/JetBrains Toolbox/DataGrip.app" ]]; then
-  alias datagrip="open -a ${HOME}/Applications/JetBrains\ Toolbox/DataGrip.app"
-fi

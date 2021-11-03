@@ -22,11 +22,6 @@ update() {
     echo "[update] brew cask"
     brew upgrade --cask
     echo ""
-
-    if has ncu; then
-      echo "[update] node"
-      ncu -g -u
-    fi
   fi
 
   if has apt; then
@@ -107,5 +102,16 @@ update() {
   if has anyenv; then
     echo "[update] anyenv"
     anyenv update
+  fi
+
+  # volta
+  if has volta; then
+    echo "[update] volta"
+    curl https://get.volta.sh | bash
+    echo ""
+
+    echo "[update] node"
+    volta install node
+    echo ""
   fi
 }

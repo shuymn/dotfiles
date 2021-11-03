@@ -7,23 +7,30 @@ fi
 if has "anyenv"; then
   eval "$(anyenv init -)"
 
-  # direnv
-  if has "direnv"; then
-    eval "$(direnv hook zsh)"
+  # anyenv-update
+  if [[ ! -d "$(anyenv root)/plugins/anyenv-update" ]]; then
+    git clone https://github.com/znz/anyenv-update.git "$(anyenv root)/plugins/anyenv-update"
   fi
 fi
 
 if has "asdf"; then
   export ASDF_NPM_DEFAULT_PACKAGES_FILE="$HOME/.config/asdf/.default-npm-packages"
+
   if has "brew"; then
     source "$(brew --prefix asdf)/asdf.sh"
   elif [[ -d "$HOME/.asdf" ]]; then
     source "$HOME/.asdf/asdf.sh"
   fi
+fi
 
-  if has "direnv"; then
+# direnv
+if has "direnv"; then
+  export DIRENV_WARN_TIMEOUT=30s
+
+  if has "asdf"; then
     eval "$(asdf exec direnv hook zsh)"
-    export DIRENV_WARN_TIMEOUT=30s
+  else
+    eval "$(direnv hook zsh)"
   fi
 fi
 
@@ -112,7 +119,7 @@ if has "fzf"; then
     export ENHANCD_FILTER="fzf:non-existing-filter"
     export ENHANCD_HOOK_AFTER_CD="ls"
 
-    source "$HOME/.enhancd/init.sh"
+    load "$HOME/.enhancd/init.sh"
   fi
 fi
 
