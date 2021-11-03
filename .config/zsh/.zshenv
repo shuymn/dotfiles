@@ -71,7 +71,7 @@ setopt no_global_rcs
 # golang
 export GOPATH="$HOME/go"
 export GOBIN="$GOPATH/bin"
-if [[ ! -d "${GOBIN}" ]]; then
+if [[ -d "${GOBIN}" ]]; then
   export PATH="$GOBIN:$PATH"
 fi
 
