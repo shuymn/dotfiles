@@ -10,6 +10,18 @@ load() {
   fi
 }
 
+add_path() {
+  if [[ -d "$@" ]]; then
+    export PATH="$@:$PATH"
+  fi
+}
+
+add_pkg_config_path() {
+  if [[ -d "$@" ]]; then
+    export PKG_CONFIG_PATH="$@:$PKG_CONFIG_PATH"
+  fi
+}
+
 # load primitive config
 load "${XDG_CONFIG_HOME}/zsh/config/init.zsh"
 

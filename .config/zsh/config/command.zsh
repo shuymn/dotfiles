@@ -30,23 +30,6 @@ update() {
     echo ""
   fi
 
-  # Haskell
-  if has ghcup; then
-    echo "[update] ghcup"
-    ghcup upgrade
-    ghcup install ghc recommended
-    ghcup install cabal recommended
-    ghcup install stack recommended
-    ghcup install hls recommended
-    echo ""
-  fi
-
-  if has cabal; then
-    echo "[update] cabal"
-    cabal update
-    echo ""
-  fi
-
   # Rust
   if has rustup; then
     echo "[update] rustup"
@@ -69,39 +52,26 @@ update() {
     echo ""
   fi
 
-  # asdf
-  if has asdf; then
-    echo "[update] asdf"
-    asdf plugin update --all
-    echo ""
-
-    echo "[update] asdf direnv"
-    asdf install direnv latest
-    asdf global direnv $(asdf latest direnv)
-    echo ""
-
-    echo "[update] asdf nodejs(LTS)"
-    asdf install nodejs latest:14
-    asdf global nodejs $(asdf latest nodejs 14)
-    echo ""
-
-    echo "[update] asdf ruby"
-    asdf install ruby latest
-    asdf global ruby $(asdf latest ruby)
-    echo ""
-
-    # echo "[update] asdf php(7.4)"
-    # asdf install php latest:7.4
-    # asdf global php $(asdf latest php)
-    # echo ""
-
-    asdf reshim
-  fi
-
   # anyenv
   if has anyenv; then
     echo "[update] anyenv"
     anyenv update
+    echo ""
+  fi
+
+  if has rbenv; then
+    echo "[update] ruby"
+    rbenv latest install
+    rbenv latest latest
+    echo ""
+  fi
+
+  if has pyenv; then
+    echo "[update] pyenv"
+    pyenv latest install 2
+    pyenv latest global 2
+    pyenv latest install 3
+    pyenv latest global 3
     echo ""
   fi
 
@@ -113,6 +83,5 @@ update() {
 
     echo "[update] node"
     volta install node
-    echo ""
   fi
 }
