@@ -24,7 +24,7 @@ update() {
     echo ""
   fi
 
-  if has apt; then
+  if has apt && uname -a | grep -v Darwin 1>/dev/null 2>&1; then
     echo "[update] apt"
     sudo apt update && sudo apt upgrade -y
     echo ""
@@ -102,6 +102,7 @@ update() {
   if has anyenv; then
     echo "[update] anyenv"
     anyenv update
+    echo ""
   fi
 
   # volta
