@@ -1,5 +1,5 @@
 if has "fzf" && has "tmux"; then
-  if [[ ! -n $TMUX && $- == *l* && ! $TERM_PROGRAM == "vscode" ]]; then
+  if [ -z $TMUX ] && [[ $- == *l* ]] && [[ $TERM_PROGRAM != "vscode" ]] && [[ -z $SSH_CLIENT || -z $SSH_TTY ]]; then
     local sess_id
     sess_id="$(tmux ls 2>/dev/null)"
     if [[ -z "$sess_id" ]]; then
