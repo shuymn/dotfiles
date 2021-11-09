@@ -45,9 +45,10 @@ if has "pyenv"; then
   fi
 
   # pyenv-virtualenv
-  if [[ -d "$(pyenv root)/plugins/pyenv-virtualenv" ]]; then
-    eval "$(pyenv virtualenv-init - zsh)"
+  if [[ ! -d "$(pyenv root)/plugins/pyenv-virtualenv" ]]; then
+    git clone https://github.com/pyenv/pyenv-virtualenv.git "$(pyenv root)/plugins/pyenv-virtualenv"
   fi
+  eval "$(pyenv virtualenv-init - zsh)"
 fi
 
 # nodenv

@@ -1,5 +1,6 @@
 # aliases
 alias reload="exec $SHELL -l"
+
 alias status="git status --short --branch"
 
 if has "terraform"; then
@@ -79,6 +80,7 @@ if has "fzf"; then
   fi
 fi
 
-if type vscode-launcher-go >/dev/null 2>&1; then
-  alias code="vscode-launcher-go"
+if has "vscode-launcher-go"; then
+  alias code="vscode-launcher-go -insiders"
+  alias code-stable="vscode-launcher-go"
 fi
