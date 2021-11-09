@@ -69,7 +69,6 @@ hook_add = '''
 
 [[plugins]]
 repo = 'joshdick/onedark.vim'
-if = 'v:false'
 hook_add = '''
   source $XDG_CONFIG_HOME/nvim/rc/plugins/onedark.rc.vim
 
