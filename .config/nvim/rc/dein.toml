@@ -58,14 +58,14 @@ if = '!has("nvim")'
 repo = 'roxma/vim-hug-neovim-rpc'
 if = '!has("nvim")'
 
-[[plugins]]
-repo = 'ghifarit53/tokyonight-vim'
-hook_add = '''
-  let g:tokyonight_style = 'night'
-  let g:tokyonight_enable_italic = 1
+# [[plugins]]
+# repo = 'ghifarit53/tokyonight-vim'
+# hook_add = '''
+#   let g:tokyonight_style = 'night'
+#   let g:tokyonight_enable_italic = 1
 
-  colorscheme tokyonight
-'''
+#   colorscheme tokyonight
+# '''
 
 [[plugins]]
 repo = 'joshdick/onedark.vim'
@@ -98,9 +98,9 @@ merged = 0
 rev = 'release'
 hook_add = 'source $XDG_CONFIG_HOME/nvim/rc/plugins/coc.rc.vim'
 
-[[plugins]]
-repo = 'github/copilot.vim'
-rev = 'release'
+# [[plugins]]
+# repo = 'github/copilot.vim'
+# rev = 'release'
 
 [[plugins]]
 repo = 'tpope/vim-surround'
@@ -110,13 +110,6 @@ repo = 'tpope/vim-commentary'
 
 [[plugins]]
 repo = 'editorconfig/editorconfig-vim'
-
-[[plugins]]
-repo = 'osyo-manga/vim-precious'
-depends = ['context_filetype.vim']
-
-[[plugins]]
-repo = 'Shougo/context_filetype.vim'
 
 [[plugins]]
 repo = 'tmux-plugins/vim-tmux-focus-events'

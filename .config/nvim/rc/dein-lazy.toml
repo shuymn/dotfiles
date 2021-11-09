@@ -54,35 +54,35 @@ hook_add = '''
 repo = 'tmux-plugins/vim-tmux'
 on_ft = 'tmux'
 
-[[plugins]]
-repo = 'easymotion/vim-easymotion'
-on_event = 'VimEnter'
-hook_add = '''
-  let g:EasyMotion_do_mappings = 0
-  let g:EasyMotion_smartcase = 1
-'''
-hook_source = '''
-  map <Leader>m <Plug>(easymotion-bd-f)
-  nmap <Leader>m <Plug>(easymotion-overwin-f)
+# [[plugins]]
+# repo = 'easymotion/vim-easymotion'
+# on_event = 'VimEnter'
+# hook_add = '''
+#   let g:EasyMotion_do_mappings = 0
+#   let g:EasyMotion_smartcase = 1
+# '''
+# hook_source = '''
+#   map <Leader>m <Plug>(easymotion-bd-f)
+#   nmap <Leader>m <Plug>(easymotion-overwin-f)
 
-  map <Leader>j <Plug>(easymotion-bd-jk)
-  nmap <Leader>j <Plug>(easymotion-overwin-line)
+#   map <Leader>j <Plug>(easymotion-bd-jk)
+#   nmap <Leader>j <Plug>(easymotion-overwin-line)
 
-  map  <Leader>w <Plug>(easymotion-bd-w)
-  nmap <Leader>w <Plug>(easymotion-overwin-w)
-'''
+#   map  <Leader>w <Plug>(easymotion-bd-w)
+#   nmap <Leader>w <Plug>(easymotion-overwin-w)
+# '''
 
-[[plugins]]
-repo = 'reireias/vim-cheatsheet'
-on_cmd = ['Cheat']
-hook_add = '''
-  let g:cheatsheet#float_window = v:true
-  let g:cheatsheet#float_window_width_ratio = 0.8
-  let g:cheatsheet#float_window_height_ratio = 0.7
-  let g:cheatsheet#cheat_file = "$XDG_CONFIG_HOME/nvim/cheatsheet.md"
+# [[plugins]]
+# repo = 'reireias/vim-cheatsheet'
+# on_cmd = ['Cheat']
+# hook_add = '''
+#   let g:cheatsheet#float_window = v:true
+#   let g:cheatsheet#float_window_width_ratio = 0.8
+#   let g:cheatsheet#float_window_height_ratio = 0.7
+#   let g:cheatsheet#cheat_file = "$XDG_CONFIG_HOME/nvim/cheatsheet.md"
 
-  nnoremap ? :<C-u>Cheat<CR>
-'''
+#   nnoremap ? :<C-u>Cheat<CR>
+# '''
 
 [[plugins]]
 repo = 'wsdjeg/dein-ui.vim'
