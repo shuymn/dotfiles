@@ -5,7 +5,15 @@ config() {
 ssh() {
   if [[ -n $TMUX ]]; then
     local pane_id="$(tmux display -p '#{pane_id}')"
-    tmux select-pane -P 'bg=colour52,fg=white'
+    local style="default"
+    case "$1" in
+      *.local)
+        ;;
+      *)
+        style="bg=colour52,fg=white"
+        ;;
+    esac
+    tmux select-pane -P "$style"
     command ssh $@
     tmux select-pane -t "$pane_id" -P 'default'
   else
