@@ -1,7 +1,5 @@
-command_timeout = 1000
-
 [aws]
-symbol = " "
+symbol = "  "
 disabled = true
 
 [time]
@@ -31,9 +29,6 @@ symbol = " "
 [golang]
 symbol = " "
 
-#[haskell]
-#symbol = " "
-
 [hg_branch]
 symbol = " "
 
@@ -51,9 +46,6 @@ symbol = " "
 
 [nix_shell]
 symbol = " "
-
-[nodejs]
-symbol = " "
 
 [package]
 symbol = " "
@@ -73,5 +65,12 @@ symbol = " "
 [rust]
 symbol = " "
 
+[scala]
+symbol = " "
+
+[shlvl]
+symbol = " "
+
 [swift]
 symbol = "ﯣ "
+
