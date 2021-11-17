@@ -178,6 +178,9 @@ if has "brew"; then
 
   # tidy-html5
   add_pkg_config_path "/usr/local/opt/tidy-html5/lib/pkgconfig"
+
+  # zlib
+  add_pkg_config_path "/usr/local/opt/zlib/lib/pkgconfig"
 fi
 
 # nix
