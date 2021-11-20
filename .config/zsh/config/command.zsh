@@ -46,9 +46,6 @@ update() {
     echo "[update] cargo"
     cargo install-update --all
 
-    echo "[update] rust nightly"
-    rustup update nightly
-
     echo "[update] rust stable"
     rustup update stable
   fi

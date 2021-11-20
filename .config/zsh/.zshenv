@@ -5,6 +5,8 @@ path=( \
   /usr/local/opt/zplug(N-/) \
   /usr/local/opt/mysql@5.6/bin(N-/) \
   /usr/local/opt/curl/bin(N-/) \
+  /opt/homebrew/bin(N-/) \
+  /opt/homebrew/sbin(N-/) \
   ~/.local/bin(N-/) \
   ~/.serverless/bin(N-/) \
   ~/.cargo/bin(N-/) \
@@ -17,8 +19,10 @@ typeset -gx -U fpath
 fpath=( \
   /usr/local/share/zsh/site-functions(N-/) \
   /usr/local/share/zsh-completions(N-/) \
-  /usr/local/opt/curl/share/zsh/site-functions(N-/) \
+  /opt/homebrew/share/zsh/site-functions(N-/) \
+  /opt/homebrew/share/zsh-completions(N-/) \
   /home/linuxbrew/.linuxbrew/share/zsh/site-functions(N-/) \
+  /usr/local/opt/curl/share/zsh/site-functions(N-/) \
   $fpath \
 )
 
