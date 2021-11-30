@@ -81,6 +81,6 @@ if has "fzf"; then
 fi
 
 if has "vscode-launcher-go"; then
-  alias code="vscode-launcher-go -insiders"
-  alias code-stable="vscode-launcher-go"
+  alias code="vscode-launcher-go"
+  alias code-insiders="vscode-launcher-go -insiders"
 fi

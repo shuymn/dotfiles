@@ -131,6 +131,11 @@ if has "fzf"; then
 
     load "$HOME/.enhancd/init.sh"
   fi
+
+  # zoxide
+  if type "zoxide"; then
+    eval "$(zoxide init --cmd cd zsh)"
+  fi
 fi
 
 if has "brew"; then
