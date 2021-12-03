@@ -139,6 +139,8 @@ if has "fzf"; then
 fi
 
 if has "brew"; then
+  export HOMEBREW_NO_ENV_HINTS="true"
+
   # bison
   add_path "/usr/local/opt/bison/bin"
 
