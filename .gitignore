@@ -8,9 +8,11 @@
 .config/configstore/
 .config/dconf/
 .config/dlv/
+.config/enchant/
 .config/evolution/
 .config/fontforge/
 .config/gatsby/
+.config/gedit/
 .config/gh/
 .config/gtk-3.0/
 .config/gtk-4.0/
