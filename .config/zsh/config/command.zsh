@@ -22,32 +22,37 @@ ssh() {
 }
 
 update() {
-  if has brew; then
-    echo "[update] brew"
-    brew upgrade
+  if has topgrade; then
+    topgrade
+    echo ""
+  else
+    if has brew; then
+      echo "[update] brew"
+      brew upgrade
 
-    echo "[update] brew cask"
-    brew upgrade --cask
-  fi
+      echo "[update] brew cask"
+      brew upgrade --cask
+    fi
 
-  if has apt && uname -a | grep -v Darwin 1>/dev/null 2>&1; then
-    echo "[update] apt"
-    sudo apt update && sudo apt upgrade -y
-  fi
+    if has apt && uname -a | grep -v Darwin 1>/dev/null 2>&1; then
+      echo "[update] apt"
+      sudo apt update && sudo apt upgrade -y
+    fi
 
-  # Rust
-  if has rustup; then
-    echo "[update] rustup"
-    rustup self update
-    rustup update
-  fi
+    # Rust
+    if has rustup; then
+      echo "[update] rustup"
+      rustup self update
+      rustup update
+    fi
 
-  if has cargo; then
-    echo "[update] cargo"
-    cargo install-update --all
+    if has cargo; then
+      echo "[update] cargo"
+      cargo install-update --all
 
-    echo "[update] rust stable"
-    rustup update stable
+      echo "[update] rust stable"
+      rustup update stable
+    fi
   fi
 
   # anyenv
