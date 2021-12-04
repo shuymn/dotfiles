@@ -1,3 +1,7 @@
+if has "tmux" && [[ $TERM_PROGRAM == "iTerm.app" ]]; then
+  export ITERM_ENABLE_SHELL_INTEGRATION_WITH_TMUX=YES
+fi
+
 if has "fzf" && has "tmux"; then
   if [ -z $TMUX ] && [[ $- == *l* ]] && [[ $TERM_PROGRAM != "vscode" ]] && [[ -z $SSH_CLIENT || -z $SSH_TTY ]]; then
     local sess_id
