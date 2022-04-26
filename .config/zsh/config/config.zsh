@@ -133,7 +133,7 @@ if has "fzf"; then
   fi
 
   # zoxide
-  if type "zoxide"; then
+  if has "zoxide"; then
     eval "$(zoxide init --cmd cd zsh)"
   fi
 fi
