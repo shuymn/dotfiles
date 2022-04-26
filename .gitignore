@@ -6,7 +6,9 @@
 .config/Code/
 .config/composer/
 .config/configstore/
+.config/Cypress/
 .config/dconf/
+.config/discord/
 .config/dlv/
 .config/enchant/
 .config/evolution/
@@ -14,6 +16,7 @@
 .config/gatsby/
 .config/gedit/
 .config/gh/
+.config/google-chrome/
 .config/gtk-3.0/
 .config/gtk-4.0/
 .config/ibus/
@@ -23,14 +26,18 @@
 .config/karabiner/automatic_backups/
 .config/kotap/
 .config/mocword/
+.config/nautilus/
+.config/nextjs-nodejs/
 .config/nix/
 .config/nixpkgs/
+.config/obs-studio/
 .config/op/
 .config/psysh/
 .config/pulse/
 .config/regend/
 .config/tabtab/
 .config/update-notifier/
+.config/vlc/
 .config/wireshark/
 .config/yarn/
 .config/zsh/.zcompcache
