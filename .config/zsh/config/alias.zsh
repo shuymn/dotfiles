@@ -18,10 +18,6 @@ if has "bat"; then
   alias cat='bat --paging=never'
 fi
 
-if has "rg"; then
-  alias grep='rg'
-fi
-
 if has "btm"; then
   alias top='btm'
 fi
