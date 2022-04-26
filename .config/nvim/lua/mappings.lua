@@ -14,7 +14,7 @@
 -- lmap / lnoremap  |    -   |   @    |    @    |   -    |   -    |    -     |    -     |    @     |
 ---------------------------------------------------------------------------------------------------+
 
-local legendary = require("legendary")
+local is_legendary_available, legendary = pcall(require, "legendary")
 local keymaps = {}
 
 -- Whether or not to check individually
@@ -25,16 +25,18 @@ local devopts = {
 }
 
 local function set_keymaps(...)
-	vim.tbl_map(function(keymap)
-		if devopts.check then
-			if devopts.count < devopts.limit then
-				legendary.bind_keymap(keymap)
+	if is_legendary_available then
+		vim.tbl_map(function(keymap)
+			if devopts.check then
+				if devopts.count < devopts.limit then
+					legendary.bind_keymap(keymap)
+				end
+				devopts.count = devopts.count + 1
+			else
+				table.insert(keymaps, keymap)
 			end
-			devopts.count = devopts.count + 1
-		else
-			table.insert(keymaps, keymap)
-		end
-	end, { ... })
+		end, { ... })
+	end
 end
 
 -- <Leader>
