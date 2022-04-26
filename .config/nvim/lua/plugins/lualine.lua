@@ -34,7 +34,9 @@ local theme = {
 		a = { fg = colors.bg, bg = colors.red1 },
 	},
 	inactive = {
-		a = { fg = colors.gray1, bg = colors.bg },
+		a = { fg = colors.bg, bg = colors.gray1 },
+		b = { fg = colors.fg, bg = colors.gray2 },
+		c = { fg = colors.fg, bg = colors.gray2 },
 	},
 }
 
@@ -192,6 +194,19 @@ local sections_2 = {
 	lualine_z = { { "location" } },
 }
 
+local inactive_sections = {
+	lualine_a = {
+		{ "[[]]", color = { fg = colors.gray1, bg = colors.gray2 }, padding = { left = 1 } },
+		{ "filename", path = 1 },
+		{ "[[]]", color = { fg = colors.gray1, bg = colors.gray2 }, padding = { right = 1 } },
+	},
+	lualine_b = {},
+	lualine_c = {},
+	lualine_x = {},
+	lualine_y = {},
+	lualine_z = {},
+}
+
 vim.keymap.set("n", "!", function()
 	local modules = lualine_require.lazy_require({ config_module = "lualine.config" })
 
@@ -286,5 +301,6 @@ lualine.setup({
 		component_separators = "",
 	},
 	sections = sections_1,
+	inactive_sections = inactive_sections,
 	extensions = { "quickfix", my_toggleterm },
 })

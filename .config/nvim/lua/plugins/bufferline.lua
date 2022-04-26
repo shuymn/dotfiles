@@ -2,9 +2,7 @@ vim.cmd([[hi TabLineSel guibg=#ddc7a1]])
 
 require("bufferline").setup({
 	options = {
-		numbers = function(opts)
-			return string.format("%s", opts.ordinal)
-		end,
+		numbers = "none",
 		custom_filter = function(buf_number)
 			if vim.bo[buf_number].filetype == "qf" then
 				return false
@@ -18,11 +16,9 @@ require("bufferline").setup({
 			end
 			return true
 		end,
-		max_name_length = 30,
 		diagnostics = "nvim_lsp",
 		diagnostics_indicator = function(_, level, _, _)
-			local icon = level:match("error") and " " or " "
-			return " " .. icon
+			return level:match("error") and " " or " "
 		end,
 		offsets = {
 			{
