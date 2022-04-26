@@ -25,6 +25,7 @@
 .config/mocword/
 .config/nix/
 .config/nixpkgs/
+.config/op/
 .config/psysh/
 .config/pulse/
 .config/regend/
