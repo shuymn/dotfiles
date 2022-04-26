@@ -7,11 +7,11 @@ ssh() {
     local pane_id="$(tmux display -p '#{pane_id}')"
     local style="default"
     case "$1" in
-      *.local)
-        ;;
-      *)
-        style="bg=colour52,fg=white"
-        ;;
+    *.local) ;;
+
+    *)
+      style="bg=colour52,fg=white"
+      ;;
     esac
     tmux select-pane -P "$style"
     command ssh $@
@@ -22,18 +22,18 @@ ssh() {
 }
 
 update() {
+  if has brew; then
+    echo "[update] brew"
+    brew upgrade --fetch-HEAD
+
+    echo "[update] brew cask"
+    brew upgrade --cask
+  fi
+
   if has topgrade; then
     topgrade
     echo ""
   else
-    if has brew; then
-      echo "[update] brew"
-      brew upgrade
-
-      echo "[update] brew cask"
-      brew upgrade --cask
-    fi
-
     if has apt && uname -a | grep -v Darwin 1>/dev/null 2>&1; then
       echo "[update] apt"
       sudo apt update && sudo apt upgrade -y
