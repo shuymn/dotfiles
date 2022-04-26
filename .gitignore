@@ -22,6 +22,7 @@
 .config/iterm2/
 .config/karabiner/automatic_backups/
 .config/kotap/
+.config/mocword/
 .config/nix/
 .config/nixpkgs/
 .config/psysh/
@@ -29,6 +30,7 @@
 .config/regend/
 .config/tabtab/
 .config/update-notifier/
+.config/wireshark/
 .config/yarn/
 .config/zsh/.zcompcache
 .config/zsh/.zprofile
