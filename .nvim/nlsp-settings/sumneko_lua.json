@@ -1,0 +1,10 @@
+{
+  "Lua.runtime.version": "LuaJIT",
+  "Lua.diagnostics.disable": [
+    "different-requires"
+  ],
+  "Lua.diagnostics.globals": [
+    "vim"
+  ],
+  "Lua.format.enable": false
+}
