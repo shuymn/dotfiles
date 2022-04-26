@@ -78,7 +78,7 @@ vim.o.switchbuf = "useopen,uselast"
 
 vim.o.pumblend = 0
 vim.o.wildoptions = vim.o.wildoptions .. ",pum"
- vim.opt.spelllang = { "en", "cjk" }
+vim.opt.spelllang = { "en", "cjk" }
 vim.o.inccommand = "split"
 vim.g.vimsyn_embed = "l"
 
