@@ -2,7 +2,8 @@ local null_ls = require("null-ls")
 
 null_ls.setup({
 	sources = {
-		null_ls.builtins.formatting.stylua.with({ filetype = { "lua" } }),
+		null_ls.builtins.formatting.stylua,
+		null_ls.builtins.formatting.goimports,
 		null_ls.builtins.code_actions.gitsigns,
 	},
 	on_attach = function(client)

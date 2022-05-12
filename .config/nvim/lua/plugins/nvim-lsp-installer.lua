@@ -34,6 +34,8 @@ local on_attach = function(client, bufnr)
 	require("illuminate").on_attach(client)
 end
 
+local util = require("lspconfig/util")
+
 local server_configs = {
 	["sumneko_lua"] = {
 		settings = {
@@ -45,6 +47,26 @@ local server_configs = {
 					preloadFileSize = 500,
 				},
 				telemetry = { enable = false },
+			},
+		},
+	},
+	["gopls"] = {
+		cmd = { "gopls", "serve" },
+		filetypes = { "go", "gomod" },
+		root_dir = util.root_pattern("go.work", "go.mod", ".git"),
+		settings = {
+			gopls = {
+				staticcheck = false,
+			},
+		},
+	},
+	["golangcilsp"] = {
+		filetypes = { "go" },
+		default_config = {
+			cmd = { "golangci-lint-langserver" },
+			root_dir = util.root_pattern(".git", "go.mod"),
+			init_options = {
+				command = { "golangci-lint", "run", "--out-format", "json" },
 			},
 		},
 	},
