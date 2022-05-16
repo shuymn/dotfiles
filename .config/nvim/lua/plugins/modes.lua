@@ -1,3 +1,1 @@
-require("modes").setup({
-	focus_only = true,
-})
+require("modes").setup()
