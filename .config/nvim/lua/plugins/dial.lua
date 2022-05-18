@@ -8,10 +8,3 @@ require("dial.config").augends:register_group({
 		augend.constant.alias.bool, -- boolean value (true <-> false)
 	},
 })
-
-vim.api.nvim_set_keymap("n", "+", require("dial.map").inc_normal(), { silent = true })
-vim.api.nvim_set_keymap("n", "_", require("dial.map").dec_normal(), { silent = true })
-vim.api.nvim_set_keymap("v", "+", require("dial.map").inc_visual(), { silent = true })
-vim.api.nvim_set_keymap("v", "_", require("dial.map").dec_visual(), { silent = true })
-vim.api.nvim_set_keymap("v", "g+", require("dial.map").inc_gvisual(), { silent = true })
-vim.api.nvim_set_keymap("v", "g_", require("dial.map").dec_gvisual(), { silent = true })

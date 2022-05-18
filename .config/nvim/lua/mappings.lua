@@ -15,6 +15,7 @@
 ---------------------------------------------------------------------------------------------------+
 
 local is_legendary_available, legendary = pcall(require, "legendary")
+local helpers = require("legendary.helpers")
 local keymaps = {}
 
 -- Whether or not to check individually
@@ -215,6 +216,17 @@ set_keymaps({
 	description = "Set current window height to highest possible",
 })
 
+-- dial
+vim.keymap.set("n", "<C-a>", "<Nop>", { noremap = true, silent = true })
+vim.keymap.set("n", "<C-x>", "<Nop>", { noremap = true, silent = true })
+
+vim.api.nvim_set_keymap("n", "<C-a>", require("dial.map").inc_normal(), { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<C-x>", require("dial.map").dec_normal(), { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<C-a>", require("dial.map").inc_visual(), { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<C-x>", require("dial.map").dec_visual(), { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "g<C-a>", require("dial.map").inc_gvisual(), { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "g<C-x>", require("dial.map").dec_gvisual(), { noremap = true, silent = true })
+
 -- tree-sitter
 vim.keymap.set("n", "M", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "?", "<Nop>", { noremap = true, silent = true })
@@ -256,15 +268,10 @@ vim.keymap.set("n", "#", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "^", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "&", "<Nop>", { noremap = true, silent = true })
 
--- <C-x>
-vim.keymap.set("n", "_", "<Nop>", { noremap = true, silent = true })
-
 -- milfeulle
-vim.keymap.set("n", "<C-a>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-g>", "<Nop>", { noremap = true, silent = true })
 
 -- buffer close
-vim.keymap.set("n", "<C-x>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "[SubLeader]bd", "<Cmd>bdelete<CR>", { noremap = true, silent = true })
 set_keymaps({
 	"<C-x>",
@@ -596,21 +603,6 @@ vim.keymap.set({ "n", "x" }, "<LocalLeader>P", '"+P', { noremap = true, silent =
 vim.keymap.set({ "n", "x" }, "x", '"_x', { noremap = true, silent = true })
 vim.keymap.set("n", "[SubLeader]d", '"_d', { noremap = true, silent = true })
 vim.keymap.set("n", "[SubLeader]D", '"_D', { noremap = true, silent = true })
-
--- インクリメント設定
-set_keymaps({
-	"+",
-	"<C-a>",
-	mode = { "n", "x" },
-	opts = { noremap = true, silent = true },
-	description = "Increment",
-}, {
-	"_",
-	"<C-x>",
-	mode = { "n", "x" },
-	opts = { noremap = true, silent = true },
-	description = "Decrement",
-})
 
 -- move changes
 set_keymaps({
