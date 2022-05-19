@@ -439,7 +439,6 @@ return require("packer").startup({
 		})
 		use({
 			"monaqa/dial.nvim",
-			event = "VimEnter",
 			config = function()
 				require("plugins/dial")
 			end,
