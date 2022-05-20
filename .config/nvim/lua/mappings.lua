@@ -135,21 +135,10 @@ set_keymaps({
 	description = "WhichKey [git]",
 })
 
--- Comment.nvim
-set_keymaps({
-	"<C-_>",
-	{
-		n = "<Cmd>lua require('Comment.api').toggle_current_linewise()<CR>",
-		i = "<Esc>:<C-u>lua require('Comment.api').toggle_current_linewise()<CR>\"_cc",
-		v = "gc",
-	},
-	description = "Toggle comment",
-})
-
 -- aerial
 set_keymaps({
 	"gt",
-	"<Cmd>:AerialToggle<CR>",
+	"<Cmd>AerialToggle<CR>",
 	mode = { "n" },
 	opts = { noremap = true, silent = true },
 	description = "Toggle code outline",
@@ -220,12 +209,31 @@ set_keymaps({
 vim.keymap.set("n", "<C-a>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-x>", "<Nop>", { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap("n", "<C-a>", require("dial.map").inc_normal(), { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<C-x>", require("dial.map").dec_normal(), { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<C-a>", require("dial.map").inc_visual(), { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<C-x>", require("dial.map").dec_visual(), { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "g<C-a>", require("dial.map").inc_gvisual(), { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "g<C-x>", require("dial.map").dec_gvisual(), { noremap = true, silent = true })
+set_keymaps({
+	"+",
+	helpers.lazy_required_fn("dial.map", "inc_normal"),
+	mode = { "n" },
+	opt = { noremap = true, silent = true },
+	description = "Increment",
+}, {
+	"+",
+	helpers.lazy_required_fn("dial.map", "inc_visual"),
+	mode = { "v" },
+	opt = { noremap = true, silent = true },
+	description = "Increment",
+}, {
+	"_",
+	helpers.lazy_required_fn("dial.map", "dec_normal"),
+	mode = { "n" },
+	opt = { noremap = true, silent = true },
+	description = "Decrement",
+}, {
+	"_",
+	helpers.lazy_required_fn("dial.map", "dec_visual"),
+	mode = { "v" },
+	opt = { noremap = true, silent = true },
+	description = "Decrement",
+})
 
 -- tree-sitter
 vim.keymap.set("n", "M", "<Nop>", { noremap = true, silent = true })
@@ -273,9 +281,10 @@ vim.keymap.set("n", "<C-g>", "<Nop>", { noremap = true, silent = true })
 
 -- buffer close
 vim.keymap.set("n", "[SubLeader]bd", "<Cmd>bdelete<CR>", { noremap = true, silent = true })
+
 set_keymaps({
 	"<C-x>",
-	"<Cmd>lua require('bufdelete').bufdelete(0, true)<CR>",
+	helpers.lazy_required_fn("bufdelete", "bufdelete", 0, true),
 	mode = { "n" },
 	opts = { noremap = true, silent = true },
 	description = "Delete current buffer",
@@ -490,8 +499,10 @@ vim.keymap.set("n", "A", function()
 end, { noremap = true, expr = true, silent = true })
 
 -- toggle 0, ^ made by ycino
+vim.keymap.set("n", "<C-e>", "<Nop>", { noremap = true, silent = true })
+
 set_keymaps({
-	"<Leader>h",
+	"<C-a>",
 	function()
 		return string.match(vim.fn.getline("."):sub(0, vim.fn.col(".") - 1), "^%s+$") and "0" or "^"
 	end,
@@ -499,7 +510,7 @@ set_keymaps({
 	opts = { noremap = true, expr = true, silent = true },
 	description = "To the first of the line",
 }, {
-	"<Leader>l",
+	"<C-e>",
 	function()
 		return string.match(vim.fn.getline("."):sub(0, vim.fn.col(".")), "^%s+$") and "$" or "g_"
 	end,
@@ -516,9 +527,7 @@ vim.keymap.set("i", "<C-w>", "<C-g>u<C-w>", { noremap = true, silent = false })
 
 -- Emacs style
 vim.keymap.set("c", "<C-a>", "<Home>", { noremap = true, silent = false })
-if not vim.g.vscode then
-	vim.keymap.set("c", "<C-e>", "<End>", { noremap = true, silent = false })
-end
+vim.keymap.set("c", "<C-e>", "<End>", { noremap = true, silent = false })
 vim.keymap.set("c", "<C-f>", "<right>", { noremap = true, silent = false })
 vim.keymap.set("c", "<C-b>", "<left>", { noremap = true, silent = false })
 vim.keymap.set("c", "<C-d>", "<DEL>", { noremap = true, silent = false })

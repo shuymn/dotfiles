@@ -1,5 +1,3 @@
-nmap <C-a> <Plug>(milfeulle-prev)
-nmap <C-g> <Plug>(milfeulle-next)
 nmap [j <Plug>(milfeulle-prev)
 nmap ]j <Plug>(milfeulle-next)
 
