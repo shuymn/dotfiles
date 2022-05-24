@@ -72,6 +72,12 @@ local server_configs = {
 			},
 		},
 	},
+	["volar"] = {
+		autostart = false,
+	},
+	["vuels"] = {
+		autostart = false,
+	},
 }
 
 local lsp_installer = require("nvim-lsp-installer")
