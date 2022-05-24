@@ -61,11 +61,6 @@ local server_configs = {
 		cmd = { "gopls", "serve" },
 		filetypes = { "go", "gomod" },
 		root_dir = util.root_pattern("go.work", "go.mod", ".git"),
-		settings = {
-			gopls = {
-				staticcheck = false,
-			},
-		},
 	},
 	["golangcilsp"] = {
 		filetypes = { "go" },
