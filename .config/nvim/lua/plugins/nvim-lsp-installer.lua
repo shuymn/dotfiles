@@ -46,6 +46,13 @@ local server_configs = {
 				workspace = {
 					preloadFileSize = 500,
 				},
+				runtime = {
+					version = "LuaJIT",
+				},
+				diagnostics = {
+					globals = { "vim" },
+					disable = { "different-requires" },
+				},
 				telemetry = { enable = false },
 			},
 		},
