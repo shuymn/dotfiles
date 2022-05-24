@@ -211,25 +211,25 @@ vim.keymap.set("n", "<C-x>", "<Nop>", { noremap = true, silent = true })
 
 set_keymaps({
 	"+",
-	helpers.lazy_required_fn("dial.map", "inc_normal"),
+	require("dial.map").inc_normal(),
 	mode = { "n" },
 	opt = { noremap = true, silent = true },
 	description = "Increment",
 }, {
 	"+",
-	helpers.lazy_required_fn("dial.map", "inc_visual"),
+	require("dial.map").inc_visual(),
 	mode = { "v" },
 	opt = { noremap = true, silent = true },
 	description = "Increment",
 }, {
 	"_",
-	helpers.lazy_required_fn("dial.map", "dec_normal"),
+	require("dial.map").dec_normal(),
 	mode = { "n" },
 	opt = { noremap = true, silent = true },
 	description = "Decrement",
 }, {
 	"_",
-	helpers.lazy_required_fn("dial.map", "dec_visual"),
+	require("dial.map").dec_visual(),
 	mode = { "v" },
 	opt = { noremap = true, silent = true },
 	description = "Decrement",
