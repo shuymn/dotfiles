@@ -3,6 +3,7 @@ vim.cmd([[hi TabLineSel guibg=#ddc7a1]])
 require("bufferline").setup({
 	options = {
 		numbers = "none",
+		max_name_length = 36,
 		custom_filter = function(buf_number)
 			if vim.bo[buf_number].filetype == "qf" then
 				return false
