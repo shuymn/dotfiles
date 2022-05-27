@@ -7,15 +7,13 @@ local lsp_disable = {
 
 local lsp_formatting = function(bufnr)
 	vim.lsp.buf.format({
-		filter = function(clients)
-			-- filter out clients that you don't want to use
-			return vim.tbl_filter(function(client)
-				if lsp_disable[client.name] then
-					return false
-				else
-					return true
-				end
-			end, clients)
+		filter = function(client)
+			-- filter out client that you don't want to use
+			if lsp_disable[client.name] then
+				return false
+			else
+				return true
+			end
 		end,
 		bufnr = bufnr,
 	})
