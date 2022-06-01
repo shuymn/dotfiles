@@ -1,5 +1,9 @@
-local iron = require("iron")
+local iron = require("iron.core")
 
-iron.core.set_config({
-	repl_open_cmd = "rightbelow 10 split",
+iron.setup({
+	config = {
+		should_map_plug = false,
+		scratch_repl = true,
+		repl_open_cmd = require("iron.view").curry.bottom(40),
+	},
 })
