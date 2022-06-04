@@ -12,12 +12,10 @@ require("neoclip").setup({
 	},
 	keys = {
 		telescope = {
-			i = { select = "<cr>", paste = "<c-p>", paste_behind = "<c-k>", replay = "<c-q>", custom = {} },
+			i = { select = "<cr>", paste = "<c-p>", custom = {} },
 			n = { select = "<cr>", paste = "mp", paste_behind = "mP", replay = "<c-q>", custom = {} },
 		},
 	},
 })
 
 require("telescope").load_extension("neoclip")
-
-vim.api.nvim_set_keymap("n", "[fuzzy-finder]p", "<Cmd>Telescope neoclip<CR>", { noremap = true, silent = true })

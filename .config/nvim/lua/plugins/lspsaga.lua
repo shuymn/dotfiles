@@ -32,23 +32,3 @@ lspsaga.setup({
 	server_filetype_map = {},
 	diagnostic_prefix_format = "%d. ",
 })
-
-vim.keymap.set("n", "[lsp]r", "<cmd>Lspsaga rename<cr>", { silent = true, noremap = true })
-vim.keymap.set("n", "M", "<cmd>Lspsaga code_action<cr>", { silent = true, noremap = true })
-vim.keymap.set("x", "M", ":<c-u>Lspsaga range_code_action<cr>", { silent = true, noremap = true })
-vim.keymap.set("n", "?", "<cmd>Lspsaga hover_doc<cr>", { silent = true, noremap = true })
-vim.keymap.set("n", "[lsp]o", "<cmd>Lspsaga show_line_diagnostics<cr>", { silent = true, noremap = true })
-vim.keymap.set("n", "[lsp]j", "<cmd>Lspsaga diagnostic_jump_next<cr>", { silent = true, noremap = true })
-vim.keymap.set("n", "[lsp]k", "<cmd>Lspsaga diagnostic_jump_prev<cr>", { silent = true, noremap = true })
-vim.keymap.set(
-	"n",
-	"<C-b>",
-	"<cmd>lua require('lspsaga.action').smart_scroll_with_saga(-1)<cr>",
-	{ silent = true, noremap = true }
-)
-vim.keymap.set(
-	"n",
-	"<C-f>",
-	"<cmd>lua require('lspsaga.action').smart_scroll_with_saga(1)<cr>",
-	{ silent = true, noremap = true }
-)

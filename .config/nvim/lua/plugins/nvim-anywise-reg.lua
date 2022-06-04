@@ -1,5 +1,5 @@
 require("anywise_reg").setup({
-	operators = { "y" },
-	textobjects = { "af" },
-	paste_keys = { ["]p"] = "]p" },
+	operators = { "y", "d", "c" },
+	textobjects = { { "i", "a" }, { "w", "f" } },
+	paste_keys = { ["p"] = "p" },
 })

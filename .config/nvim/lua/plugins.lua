@@ -582,7 +582,7 @@ return require("packer").startup({
 		})
 		use({
 			"kevinhwang91/nvim-bqf",
-			event = "VimEnter",
+			ft = "qf",
 			config = function()
 				require("plugins/nvim-bqf")
 			end,
@@ -749,14 +749,6 @@ return require("packer").startup({
 			use({ "michaelb/sniprun", run = "bash install.sh", cmd = { "SnipRun" } })
 		end
 
-		-- task runner
-		use({
-			"yutkat/taskrun.nvim",
-			after = { "toggleterm.nvim", "nvim-notify" },
-			config = function()
-				require("plugins/taskrun")
-			end,
-		})
 		-- lint
 		use({
 			"jose-elias-alvarez/null-ls.nvim",
@@ -806,6 +798,7 @@ return require("packer").startup({
 		-- project
 		use({
 			"ahmedkhalf/project.nvim",
+			after = { "telescope.nvim" },
 			config = function()
 				require("plugins/project")
 			end,

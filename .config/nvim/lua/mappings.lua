@@ -85,6 +85,13 @@ set_keymaps({
 	description = "WhichKey [lsp]",
 })
 
+vim.keymap.set("n", "[lsp]xx", "<cmd>Trouble<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "[lsp]xw", "<cmd>Trouble workspace_diagnostics<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "[lsp]xd", "<cmd>Trouble document_diagnostics<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "[lsp]xl", "<cmd>Trouble loclist<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "[lsp]xq", "<cmd>Trouble quickfix<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "[lsp]xr", "<cmd>Trouble lsp_references<cr>", { silent = true, noremap = true })
+
 -- [ts]
 vim.keymap.set("n", "[ts]", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "'", "<Nop>", { noremap = true, silent = true })
@@ -111,8 +118,69 @@ set_keymaps({
 })
 
 -- [fuzzy-finder]
+vim.keymap.set({ "n", "v" }, "[fuzzy-finder]", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "z", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "Z", "<Nop>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "z", "[fuzzy-finder]", {})
+vim.api.nvim_set_keymap("v", "z", "[fuzzy-finder]", {})
+
+vim.keymap.set("n", "[fuzzy-finder]z", "<Cmd>Telescope my_mru<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]b", "<Cmd>Telescope buffers<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]c", "<Cmd>Telescope commands<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]:", "<Cmd>Telescope command_history<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]f", "<Cmd>Telescope find_files<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]gf", "<Cmd>Telescope git_files<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]p", "<Cmd>Telescope grep_prompt<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]d", "<Cmd>Telescope my_grep_in_dir<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]s", "<Cmd>Telescope grep_string<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]lg", "<Cmd>Telescope live_grep<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]ll", "<Cmd>Telescope loclist<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]h", "<Cmd>Telescope help_tags<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]t", "<Cmd>Telescope treesitter<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]q", "<Cmd>Telescope quickfix<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]m", "<Cmd>Telescope marks<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]r", "<Cmd>Telescope neoclip<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]R", "<Cmd>Telescope registers<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "[fuzzy-finder]S", "<Cmd>Telescope symbols<CR>", { noremap = true, silent = true })
+vim.keymap.set(
+	"v",
+	"[fuzzy-finder]g",
+	"y:Telescope my_grep search=<C-r>=escape(@\", '\\.*$^[] ')<CR>",
+	{ noremap = true, silent = true }
+)
+vim.keymap.set(
+	"n",
+	"[fuzzy-finder]/",
+	":<C-u>Telescope my_grep search=<C-r>=expand('<cword>')<CR>",
+	{ noremap = true, silent = true }
+)
+vim.keymap.set("c", "<C-t>", "<BS><Cmd>Telescope command_history<CR>", { noremap = true, silent = true })
+
+-- git
+vim.keymap.set(
+	"n",
+	"[fuzzy-finder]gs",
+	"<Cmd>lua require('telescope.builtin').git_status()<CR>",
+	{ noremap = true, silent = true }
+)
+vim.keymap.set(
+	"n",
+	"[fuzzy-finder]gc",
+	"<Cmd>lua require('telescope.builtin').git_commits()<CR>",
+	{ noremap = true, silent = true }
+)
+vim.keymap.set(
+	"n",
+	"[fuzzy-finder]gC",
+	"<Cmd>lua require('telescope.builtin').git_bcommits()<CR>",
+	{ noremap = true, silent = true }
+)
+vim.keymap.set(
+	"n",
+	"[fuzzy-finder]gb",
+	"<Cmd>lua require('telescope.builtin').git_branches()<CR>",
+	{ noremap = true, silent = true }
+)
 
 set_keymaps({
 	"[fuzzy-finder]<CR>",
@@ -127,6 +195,30 @@ vim.keymap.set("n", "[git]", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "G", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "G", "[git]", {})
 
+-- diffview
+set_keymaps({
+	"[git]do",
+	"<Cmd>DiffviewOpen<CR>",
+	mode = { "n" },
+	opts = { noremap = true, silent = true },
+	description = "Open Diffview",
+}, {
+	"[git]dc",
+	"<Cmd>DiffviewClose<CR>",
+	mode = { "n" },
+	opts = { noremap = true, silent = true },
+	description = "Close Diffview",
+})
+
+-- neogit
+set_keymaps({
+	"[git]<Space>",
+	"<Cmd>Neogit<CR>",
+	mode = { "n" },
+	opts = { noremap = true, silent = true },
+	description = "Open Neogit",
+})
+
 set_keymaps({
 	"[git]<CR>",
 	"<Cmd>WhichKey [git]<CR>",
@@ -134,6 +226,13 @@ set_keymaps({
 	opts = { noremap = true },
 	description = "WhichKey [git]",
 })
+
+-- neotree
+vim.keymap.set("n", "[git],", "<Cmd>NeoTreeFloatToggle git_status<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "gx", "<Cmd>NeoTreeRevealToggle<CR>", { noremap = true, silent = true })
+
+-- sidebar
+vim.keymap.set("n", "gs", "<Cmd>SidebarNvimToggle<CR>", { noremap = true, silent = true })
 
 -- aerial
 set_keymaps({
@@ -630,6 +729,9 @@ set_keymaps({
 vim.keymap.set("n", "[;", "g;zz", { noremap = true, silent = true })
 vim.keymap.set("n", "];", "g,zz", { noremap = true, silent = true })
 
+-- hop
+vim.keymap.set({ "n", "x" }, "SS", "<Cmd>lua require('hop').hint_words()<CR>", { noremap = true, silent = true })
+
 -- clear highlighting
 set_keymaps({
 	"<F5>",
@@ -1028,6 +1130,12 @@ vim.keymap.set(
 	":<C-u>execute \":'<,'>normal! @\" . nr2char(getchar())<CR>",
 	{ noremap = true, silent = true }
 )
+
+-- substitute
+vim.keymap.set("n", "U", "<cmd>lua require('substitute').operator()<cr>", { noremap = true })
+vim.keymap.set("n", "Uu", "<cmd>lua require('substitute').line()<cr>", { noremap = true })
+vim.keymap.set("n", "UU", "<cmd>lua require('substitute').eol()<cr>", { noremap = true })
+vim.keymap.set("x", "U", "<cmd>lua require('substitute').visual()<cr>", { noremap = true })
 
 -- which-key
 set_keymaps({

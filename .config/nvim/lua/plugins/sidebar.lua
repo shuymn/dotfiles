@@ -11,5 +11,3 @@ require("sidebar-nvim").setup({
 	update_interval = 1000,
 	section_separator = "-----",
 })
-
-vim.api.nvim_set_keymap("n", "gs", "<Cmd>SidebarNvimToggle<CR>", { noremap = true, silent = true })
