@@ -45,6 +45,7 @@
 .config/zsh/.zsh_history
 .config/zsh/config/local.zsh
 .config/gnome-initial-setup-done
+.config/lemonade.toml
 .config/mimeapps.list
 .config/user-dirs.dirs
 .config/user-dirs.locale
