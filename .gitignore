@@ -12,6 +12,7 @@
 .config/dlv/
 .config/enchant/
 .config/evolution/
+.config/firebase/
 .config/fontforge/
 .config/gatsby/
 .config/gedit/
