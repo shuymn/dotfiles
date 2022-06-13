@@ -52,12 +52,3 @@ vim.api.nvim_create_autocmd({ "FileType" }, {
 	end,
 	once = false,
 })
-
-vim.api.nvim_create_autocmd({ "VimResized" }, {
-	group = groupname,
-	pattern = "*",
-	callback = function()
-		require("bufresize").resize()
-	end,
-	once = false,
-})

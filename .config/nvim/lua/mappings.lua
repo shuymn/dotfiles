@@ -265,45 +265,6 @@ vim.keymap.set("n", "<Leader>7", "<Cmd>BufferLineGoToBuffer 7<CR>", { noremap = 
 vim.keymap.set("n", "<Leader>8", "<Cmd>BufferLineGoToBuffer 8<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<Leader>9", "<Cmd>BufferLineGoToBuffer 9<CR>", { noremap = true, silent = true })
 
--- bufresize
-set_keymaps({
-	"<C-w>>",
-	"<C-w>><Cmd>lua require('bufresize').register()<CR>",
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Increase current window width",
-}, {
-	"<C-w><",
-	"<C-w><<Cmd>lua require('bufresize').register()<CR>",
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Decrease current window width",
-}, {
-	"<C-w>+",
-	"<C-w>+<Cmd>lua require('bufresize').register()<CR>",
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Increase current window height",
-}, {
-	"<C-w>_",
-	"<C-w>-<Cmd>lua require('bufresize').register()<CR>",
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Decrease current window height",
-}, {
-	"<C-w>=",
-	"<C-w>=<Cmd>lua require('bufresize').register()<CR>",
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Make all windows equally high and wide",
-}, {
-	"<C-w>-",
-	"<C-w>_<Cmd>lua require('bufresize').register()<CR>",
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Set current window height to highest possible",
-})
-
 -- dial
 vim.keymap.set("n", "<C-a>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-x>", "<Nop>", { noremap = true, silent = true })

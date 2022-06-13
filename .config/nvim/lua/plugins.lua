@@ -534,6 +534,9 @@ return require("packer").startup({
 		use({
 			"kwkarlwang/bufresize.nvim",
 			event = "VimEnter",
+			config = function()
+				require("plugins/bufresize")
+			end,
 		})
 
 		-- undo
