@@ -289,6 +289,7 @@ return require("packer").startup({
 		-- sidebar
 		use({
 			"GustavoKatel/sidebar.nvim",
+			disable = true,
 			config = function()
 				require("plugins/sidebar")
 			end,
