@@ -38,9 +38,24 @@ fi
 
 if has "fzf"; then
   git-switch-fzf() {
-    local branches branch
-    branches=$(git branch) &&
-      branch=$(echo "$branches" | fzf +m) &&
+    local branches
+    branches=$(git branch)
+
+    if [ -n "$1" ]; then
+      local count
+      count=$(echo "$branches" | sed -e 's/[ +*]//g' | grep -x "$1" | wc -l | tr -d ' ')
+
+      if [ $count != "1" ]; then
+        echo "no branches found for '$1'"
+        return
+      fi
+
+      git switch "$1"
+      return
+    fi
+
+    local branch
+    branch=$(echo "$branches" | fzf +m) &&
       git switch $(echo "$branch" | sd '\*' '' | awk '{print $1}')
   }
   alias switch='git-switch-fzf'
@@ -48,6 +63,7 @@ if has "fzf"; then
   if has "ghq"; then
     ghq-cd() {
       if [ -n "$1" ]; then
+        local dir
         dir="$(ghq list --full-path --exact "$1")"
 
         if [ -z "$dir" ]; then
@@ -73,6 +89,19 @@ if has "fzf"; then
       gh pr checkout "$(gh pr list | fzf | cut -f1)"
     }
     alias review='gh-pr-checkout-fzf'
+  fi
+
+  if has "aws-vault"; then
+    eva() {
+      local profile
+      profile=$(aws-vault list --profiles | fzf) &&
+        unset AWS_VAULT &&
+        export $(aws-vault exec "$profile" --prompt=osascript -- env | grep AWS_)
+    }
+
+    uva() {
+      unset $(env | grep AWS_ | sed 's/=.*//g')
+    }
   fi
 fi
 
