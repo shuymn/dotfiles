@@ -36,6 +36,7 @@
 .config/psysh/
 .config/pulse/
 .config/regend/
+.config/TabNine/
 .config/tabtab/
 .config/update-notifier/
 .config/vlc/
