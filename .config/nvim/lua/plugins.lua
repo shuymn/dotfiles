@@ -750,7 +750,12 @@ return require("packer").startup({
 			end,
 		})
 		if vim.fn.executable("cargo") == 1 then
-			use({ "michaelb/sniprun", run = "bash install.sh", cmd = { "SnipRun" } })
+			use({
+				"michaelb/sniprun",
+				disable = true,
+				run = "bash install.sh",
+				cmd = { "SnipRun" },
+			})
 		end
 
 		-- lint
