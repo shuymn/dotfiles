@@ -33,6 +33,7 @@
 .config/nixpkgs/
 .config/obs-studio/
 .config/op/
+.config/raycast/
 .config/psysh/
 .config/pulse/
 .config/regend/
