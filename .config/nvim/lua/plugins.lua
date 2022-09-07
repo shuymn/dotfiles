@@ -215,6 +215,7 @@ return require("packer").startup({
 		use({
 			"mizlan/iswap.nvim",
 			after = { "nvim-treesitter" },
+			disable = true,
 			config = function()
 				require("plugins/iswap")
 			end,
@@ -865,6 +866,7 @@ return require("packer").startup({
 		use({
 			"hkupty/iron.nvim",
 			event = "VimEnter",
+			disable = true,
 			config = function()
 				require("plugins/iron")
 			end,
