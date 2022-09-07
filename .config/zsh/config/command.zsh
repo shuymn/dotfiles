@@ -86,3 +86,8 @@ update() {
     volta install npm
   fi
 }
+
+gomi() {
+  local root && root=$(ghq root)
+  go mod init $(pwd | sed -e "s#$root/##g")
+}
