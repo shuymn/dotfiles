@@ -3,7 +3,7 @@ local wezterm = require("wezterm")
 return {
 	use_ime = true,
 	font = wezterm.font("UDEV Gothic 35NF"),
-	font_size = 11.0,
+	font_size = 12.0,
 	line_height = 1.2,
 	color_scheme = "OneHalfDark",
 	enable_tab_bar = false,
