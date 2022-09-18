@@ -1,6 +1,6 @@
 DOTPATH    := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 CANDIDATES := $(wildcard .??*)
-EXCLUTIONS := .DS_Store .git .gitmodules .gitignore .Brewfile
+EXCLUTIONS := .DS_Store .git .gitmodules .gitignore .Brewfile .prettierrc.json
 DOTFILES := $(filter-out $(EXCLUTIONS), $(CANDIDATES))
 
 .DEFAULT_GOAL := help
