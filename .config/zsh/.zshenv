@@ -7,6 +7,8 @@ path=( \
   /usr/local/opt/curl/bin(N-/) \
   /opt/homebrew/bin(N-/) \
   /opt/homebrew/sbin(N-/) \
+  /home/linuxbrew/.linuxbrew/bin(N-/) \
+  /home/linuxbrew/.linuxbrew/sbin(N-/) \
   ~/.local/bin(N-/) \
   ~/.serverless/bin(N-/) \
   ~/.cargo/bin(N-/) \
@@ -83,3 +85,4 @@ fi
 
 # dotpath
 export DOTPATH=${0:A:h}
+. "$HOME/.cargo/env"
