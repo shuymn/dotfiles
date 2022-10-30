@@ -26,8 +26,10 @@ update() {
     echo "[update] brew"
     brew upgrade --fetch-HEAD
 
-    echo "[update] brew cask"
-    brew upgrade --cask
+    if uname | grep Darwin 1>/dev/null 2>&1; then
+      echo "[update] brew cask"
+      brew upgrade --cask
+    fi
   fi
 
   if has topgrade; then
