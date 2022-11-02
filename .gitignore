@@ -39,6 +39,7 @@
 .config/psysh/
 .config/pulse/
 .config/regend/
+.config/stripe/
 .config/systemd/
 .config/TabNine/
 .config/tabtab/
