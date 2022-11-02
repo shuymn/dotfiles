@@ -113,3 +113,7 @@ fi
 if has "code-insiders"; then
   alias c="code-insiders"
 fi
+
+if has "docker"; then
+  alias doco="docker compose"
+fi

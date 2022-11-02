@@ -39,11 +39,6 @@ if has "pyenv"; then
   eval "$(pyenv init -)"
   export PYENV_ROOT="$(pyenv root)"
 
-  # xxenv-latest
-  if [[ ! -d "$(pyenv root)/plugins/xxenv-latest" ]]; then
-    git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)/plugins/xxenv-latest"
-  fi
-
   # pyenv-virtualenv
   if [[ ! -d "$(pyenv root)/plugins/pyenv-virtualenv" ]]; then
     git clone https://github.com/pyenv/pyenv-virtualenv.git "$(pyenv root)/plugins/pyenv-virtualenv"

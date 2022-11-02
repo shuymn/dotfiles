@@ -71,9 +71,9 @@ update() {
 
   if has pyenv; then
     echo "[update] pyenv"
-    pyenv latest install 2
-    pyenv latest install 3
-    pyenv global $(pyenv latest --print 3) $(pyenv latest --print 2)
+    pyenv install 2
+    pyenv install 3
+    pyenv global $(pyenv latest 3) $(pyenv latest 2)
   fi
 
   # volta
