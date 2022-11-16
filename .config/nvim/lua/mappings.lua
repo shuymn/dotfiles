@@ -15,7 +15,6 @@
 ---------------------------------------------------------------------------------------------------+
 
 local is_legendary_available, legendary = pcall(require, "legendary")
-local helpers = require("legendary.helpers")
 local keymaps = {}
 
 -- Whether or not to check individually
@@ -269,31 +268,31 @@ vim.keymap.set("n", "<Leader>9", "<Cmd>BufferLineGoToBuffer 9<CR>", { noremap = 
 vim.keymap.set("n", "<C-a>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-x>", "<Nop>", { noremap = true, silent = true })
 
-set_keymaps({
-	"+",
-	require("dial.map").inc_normal(),
-	mode = { "n" },
-	opt = { noremap = true, silent = true },
-	description = "Increment",
-}, {
-	"+",
-	require("dial.map").inc_visual(),
-	mode = { "v" },
-	opt = { noremap = true, silent = true },
-	description = "Increment",
-}, {
-	"_",
-	require("dial.map").dec_normal(),
-	mode = { "n" },
-	opt = { noremap = true, silent = true },
-	description = "Decrement",
-}, {
-	"_",
-	require("dial.map").dec_visual(),
-	mode = { "v" },
-	opt = { noremap = true, silent = true },
-	description = "Decrement",
-})
+-- set_keymaps({
+-- 	"+",
+-- 	require("dial.map").inc_normal(),
+-- 	mode = { "n" },
+-- 	opt = { noremap = true, silent = true },
+-- 	description = "Increment",
+-- }, {
+-- 	"+",
+-- 	require("dial.map").inc_visual(),
+-- 	mode = { "v" },
+-- 	opt = { noremap = true, silent = true },
+-- 	description = "Increment",
+-- }, {
+-- 	"_",
+-- 	require("dial.map").dec_normal(),
+-- 	mode = { "n" },
+-- 	opt = { noremap = true, silent = true },
+-- 	description = "Decrement",
+-- }, {
+-- 	"_",
+-- 	require("dial.map").dec_visual(),
+-- 	mode = { "v" },
+-- 	opt = { noremap = true, silent = true },
+-- 	description = "Decrement",
+-- })
 
 -- tree-sitter
 vim.keymap.set("n", "M", "<Nop>", { noremap = true, silent = true })
@@ -342,13 +341,13 @@ vim.keymap.set("n", "<C-g>", "<Nop>", { noremap = true, silent = true })
 -- buffer close
 vim.keymap.set("n", "[SubLeader]bd", "<Cmd>bdelete<CR>", { noremap = true, silent = true })
 
-set_keymaps({
-	"<C-x>",
-	helpers.lazy_required_fn("bufdelete", "bufdelete", 0, true),
-	mode = { "n" },
-	opts = { noremap = true, silent = true },
-	description = "Delete current buffer",
-})
+-- set_keymaps({
+-- 	"<C-x>",
+-- 	helpers.lazy_required_fn("bufdelete", "bufdelete", 0, true),
+-- 	mode = { "n" },
+-- 	opts = { noremap = true, silent = true },
+-- 	description = "Delete current buffer",
+-- })
 
 -- switch window
 vim.keymap.set("n", "<C-h>", "<Nop>", { noremap = true, silent = true })
