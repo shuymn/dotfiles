@@ -2,6 +2,7 @@
 
 .config/anyenv/
 .config/brittany/
+.config/byobu/
 .config/coc/
 .config/Code/
 .config/composer/

@@ -589,14 +589,6 @@ return require("packer").startup({
 			end,
 		})
 
-		-- session
-		use({
-			"Shatur/neovim-session-manager",
-			config = function()
-				require("plugins/neovim-session-manager")
-			end,
-		})
-
 		-- spell
 		-- use({
 		-- 	"Pocco81/AbbrevMan.nvim",

@@ -44,6 +44,11 @@ if has "pyenv"; then
     git clone https://github.com/pyenv/pyenv-virtualenv.git "$(pyenv root)/plugins/pyenv-virtualenv"
   fi
   eval "$(pyenv virtualenv-init - zsh)"
+
+  # xxenv-latest
+  if [[ ! -d "$(pyenv root)/plugins/xxenv-latest" ]]; then
+    git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)/plugins/xxenv-latest"
+  fi
 fi
 
 # nodenv

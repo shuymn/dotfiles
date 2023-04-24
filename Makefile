@@ -26,7 +26,7 @@ clean: ## Remove the dotfiles and this repository
 .PHONY: start-bash-lsp
 start-bash-lsp: ## for VSCode
 	@docker container run --name explainshell --rm -p 5000:5000 spaceinvaderone/explainshell
-	
+
 .PHONY: help
 help: ## Self-documented Makefile
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \

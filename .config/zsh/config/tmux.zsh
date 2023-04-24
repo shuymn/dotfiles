@@ -3,7 +3,7 @@ if has "tmux" && [[ $TERM_PROGRAM == "iTerm.app" ]]; then
 fi
 
 if has "fzf" && has "tmux"; then
-  if [ -z $TMUX ] && [[ $- == *l* ]] && [[ $TERM_PROGRAM != "vscode" ]] && [[ -z $SSH_CLIENT || -z $SSH_TTY ]]; then
+  if [ -z $TMUX ] && [[ $- == *l* ]] && [[ $TERM_PROGRAM != "vscode" ]]; then
     local sess_id
     sess_id="$(tmux ls 2>/dev/null)"
     if [[ -z "$sess_id" ]]; then
