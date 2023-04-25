@@ -6,6 +6,7 @@ set showcmd
 set history=100
 set hlsearch incsearch ignorecase smartcase
 set wrapscan
+set visualbell
 
 set scrolloff=6
 set sidescrolloff=15
