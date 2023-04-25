@@ -133,7 +133,7 @@ if has "fzf"; then
   fi
 fi
 
-if has "brew"; then
+if has "brew" && uname | grep Darwin 1>/dev/null 2>&1; then
   export HOMEBREW_NO_ENV_HINTS="true"
 
   # bison
