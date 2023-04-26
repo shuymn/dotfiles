@@ -65,15 +65,21 @@ update() {
 
   if has rbenv; then
     echo "[update] ruby"
-    rbenv latest install
+    rbenv latest install --skip-existing
     rbenv latest global
   fi
 
   if has pyenv; then
     echo "[update] pyenv"
-    pyenv install 2
-    pyenv install 3
+    pyenv install --skip-existing 2
+    pyenv install --skip-existing 3
     pyenv global $(pyenv latest 3) $(pyenv latest 2)
+  fi
+
+  if has nodenv; then
+    echo "[update] nodenv"
+    nodenv latest install --skip-existing
+    nodenv latest global
   fi
 
   # volta
