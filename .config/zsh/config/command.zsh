@@ -93,6 +93,12 @@ update() {
     echo "[update] npm"
     volta install npm
   fi
+
+  # go
+  if has "gup"; then
+    echo "[update] Go"
+    gup -e golangci-lint update
+  fi
 }
 
 gomi() {
