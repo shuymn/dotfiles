@@ -8,7 +8,8 @@ disable = [
     "brew_formula",
     "containers",
     "vim",
-    "pnpm"
+    "pnpm",
+    "go"
 ]
 # Ignore failures for these steps
 #ignore_failures = ["powershell"]
