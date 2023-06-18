@@ -1,3 +1,6 @@
+# Fig pre block. Keep at the top of this file.
+[[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.pre.zsh"
+
 # utilility functions
 has() {
   type "$1" >/dev/null 2>&1
@@ -42,3 +45,6 @@ load "${XDG_CONFIG_HOME}/zsh/config/plugin.zsh"
 
 # load local config
 load "${XDG_CONFIG_HOME}/zsh/config/local.zsh"
+
+# Fig post block. Keep at the bottom of this file.
+[[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"

@@ -114,6 +114,6 @@ if has "code-insiders"; then
   alias c="code-insiders"
 fi
 
-if has "docker"; then
-  alias doco="docker compose"
+if has "pbcopy"; then
+  alias teee='tee >(pbcopy)'
 fi

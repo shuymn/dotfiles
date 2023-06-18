@@ -116,8 +116,8 @@ if has "fzf"; then
     zle reset-prompt
   }
 
-  zle -N history-fzf
-  bindkey '^r' history-fzf
+  # zle -N history-fzf
+  # bindkey '^r' history-fzf
 
   # enhancd
   if [[ -f "$HOME/.enhancd/init.sh" ]]; then
@@ -204,6 +204,10 @@ fi
 # volta
 if [[ -d "$HOME/.volta" ]]; then
   export VOLTA_HOME="$HOME/.volta"
+fi
+
+if [[ -d "$HOME/.ghg/bin" ]]; then
+  add_path "$HOME/.ghg/bin"
 fi
 
 # Haskell

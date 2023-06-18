@@ -97,7 +97,7 @@ update() {
   # go
   if has "gup"; then
     echo "[update] Go"
-    gup -e golangci-lint update
+    gup -e golangci-lint,gostaticanalyzer update
   fi
 }
 
