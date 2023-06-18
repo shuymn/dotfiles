@@ -53,7 +53,6 @@
 .config/yarn/
 .config/zsh/.zcompcache
 .config/zsh/.zcompdump
-.config/zsh/.zprofile
 .config/zsh/.zsh_history
 .config/zsh/config/local.zsh
 .config/gnome-initial-setup-done
