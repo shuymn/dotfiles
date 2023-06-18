@@ -9,7 +9,7 @@ has() {
 
 load() {
   if [[ -f "$@" ]]; then
-    source "$@"
+    builtin source "$@"
   fi
 }
 
@@ -26,25 +26,25 @@ add_pkg_config_path() {
 }
 
 # load primitive config
-load "${XDG_CONFIG_HOME}/zsh/config/init.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/init.zsh"
 
 # load aliases
-load "${XDG_CONFIG_HOME}/zsh/config/alias.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/alias.zsh"
 
 # load commands
-load "${XDG_CONFIG_HOME}/zsh/config/command.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/command.zsh"
 
 # load tmux config
-load "${XDG_CONFIG_HOME}/zsh/config/tmux.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/tmux.zsh"
 
 # load general config
-load "${XDG_CONFIG_HOME}/zsh/config/config.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/config.zsh"
 
 # load plugins
-load "${XDG_CONFIG_HOME}/zsh/config/plugin.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/plugin.zsh"
 
 # load local config
-load "${XDG_CONFIG_HOME}/zsh/config/local.zsh"
+load "${XDG_CONFIG_HOME:?}/zsh/config/local.zsh"
 
 # Fig post block. Keep at the bottom of this file.
 [[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"

@@ -207,9 +207,7 @@ if [[ -d "$HOME/.volta" ]]; then
 fi
 
 # ghg
-if [[ -d "$HOME/.ghg/bin" ]]; then
-  add_path "$HOME/.ghg/bin"
-fi
+add_path "$HOME/.ghg/bin"
 
 # Haskell
 load "${HOME}/.ghcup/env"
@@ -221,3 +219,6 @@ fi
 
 # 1password-cli
 load "${HOME}/.config/op/plugins.sh"
+
+# JetBrains
+add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"

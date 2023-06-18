@@ -13,4 +13,4 @@ fi
 export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
 
 # load .zshenv
-source ${ZDOTDIR}/.zshenv
+builtin source ${ZDOTDIR}/.zshenv
