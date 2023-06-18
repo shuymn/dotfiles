@@ -206,9 +206,18 @@ if [[ -d "$HOME/.volta" ]]; then
   export VOLTA_HOME="$HOME/.volta"
 fi
 
+# ghg
 if [[ -d "$HOME/.ghg/bin" ]]; then
   add_path "$HOME/.ghg/bin"
 fi
 
 # Haskell
 load "${HOME}/.ghcup/env"
+
+# atuin
+if has "atuin"; then
+  eval "$(atuin init zsh)"
+fi
+
+# 1password-cli
+load "${HOME}/.config/op/plugins.sh"
