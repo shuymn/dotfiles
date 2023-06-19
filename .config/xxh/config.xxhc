@@ -1,0 +1,7 @@
+hosts:
+  ".*":
+    +s: zsh
+    +I:
+      - xxh-shell-zsh
+      - xxh-plugin-prerun-zoxide
+      - xxh-plugin-prerun-starship
