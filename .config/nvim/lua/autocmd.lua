@@ -52,3 +52,11 @@ vim.api.nvim_create_autocmd({ "FileType" }, {
 	end,
 	once = false,
 })
+
+vim.api.nvim_create_autocmd({ "VimEnter" }, {
+	group = groupname,
+	pattern = "*",
+	callback = function()
+		vim.cmd([[doautocmd FileType]])
+	end,
+})
