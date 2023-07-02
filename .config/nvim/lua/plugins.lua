@@ -672,12 +672,15 @@ return require("lazy").setup({
 	{
 		"nvim-telescope/telescope.nvim",
 		dependencies = {
-			"nvim-telescope/telescope-frecency.nvim",
+			{
+				"nvim-telescope/telescope-frecency.nvim",
+				config = function()
+					require("telescope").load_extension("frecency")
+				end,
+			},
 			"nvim-telescope/telescope-symbols.nvim",
 		},
 		config = function()
-			require("telescope").load_extension("frecency")
-
 			local actions = require("telescope.actions")
 			local action_layout = require("telescope.actions.layout")
 			local pickers = require("telescope.pickers")
