@@ -14,17 +14,12 @@ end
 vim.opt.rtp:prepend(install_path)
 
 return require("lazy").setup({
-	-- vim script library
-	"tpope/vim-repeat",
-
 	-- lua library
-	"nvim-lua/popup.nvim",
-	"nvim-lua/plenary.nvim",
-	"tami5/sqlite.lua",
-	"MunifTanjim/nui.nvim",
+	{ "nvim-lua/plenary.nvim", lazy = true },
+	{ "MunifTanjim/nui.nvim", lazy = true },
 
 	-- font
-	"nvim-tree/nvim-web-devicons",
+	{ "nvim-tree/nvim-web-devicons", lazy = true },
 
 	-- colorscheme
 	{
@@ -57,9 +52,7 @@ return require("lazy").setup({
 		dependencies = {
 			{
 				"L3MON4D3/LuaSnip",
-				dependencies = {
-					"rafamadriz/friendly-snippets",
-				},
+				dependencies = "rafamadriz/friendly-snippets",
 				config = function()
 					local ls = require("luasnip")
 					local types = require("luasnip.util.types")
@@ -101,6 +94,8 @@ return require("lazy").setup({
 			"hrsh7th/cmp-calc",
 			"hrsh7th/cmp-emoji",
 			"f3fora/cmp-spell",
+			"ray-x/cmp-treesitter",
+			"hrsh7th/cmp-cmdline",
 			{
 				"uga-rosa/cmp-dictionary",
 				config = function()
@@ -119,8 +114,6 @@ return require("lazy").setup({
 					})
 				end,
 			},
-			"ray-x/cmp-treesitter",
-			"hrsh7th/cmp-cmdline",
 		},
 		config = function()
 			vim.opt.completeopt = { "menu", "menuone", "noselect" }
@@ -291,38 +284,53 @@ return require("lazy").setup({
 			})
 		end,
 	},
+
+	-- text object
 	{
 		"nvim-treesitter/nvim-treesitter",
+		run = ":TSUpdate",
+		event = "VeryLazy",
 		dependencies = {
 			"yioneko/nvim-yati",
 			"p00f/nvim-ts-rainbow",
 			"JoosepAlviste/nvim-ts-context-commentstring",
 			"nvim-treesitter/nvim-treesitter-textobjects",
 			{
-				"mfussenegger/nvim-ts-hint-textobject",
-				config = function()
-					vim.api.nvim_set_keymap(
-						"o",
-						"m",
-						"<Cmd><C-u>lua require('tsht').nodes()<CR>",
-						{ noremap = false, silent = false }
-					)
-					vim.api.nvim_set_keymap(
-						"x",
-						"m",
-						"<Cmd>lua require('tsht').nodes()<CR>",
-						{ noremap = true, silent = false }
-					)
-				end,
-			},
-			{
 				"David-Kunz/treesitter-unit",
-				config = function()
-					vim.keymap.set("x", "iu", ':lua require"treesitter-unit".select()<CR>', { noremap = true })
-					vim.keymap.set("x", "au", ':lua require"treesitter-unit".select(true)<CR>', { noremap = true })
-					vim.keymap.set("o", "iu", ':<c-u>lua require"treesitter-unit".select()<CR>', { noremap = true })
-					vim.keymap.set("o", "au", ':<c-u>lua require"treesitter-unit".select(true)<CR>', { noremap = true })
-				end,
+				keys = {
+					{
+						"iu",
+						function()
+							require("treesitter-unit").select()
+						end,
+						mode = "x",
+						noremap = true,
+					},
+					{
+						"au",
+						function()
+							require("treesitter-unit").select(true)
+						end,
+						mode = "x",
+						noremap = true,
+					},
+					{
+						"iu",
+						function()
+							require("treesitter-unit").select()
+						end,
+						mode = "o",
+						noremap = true,
+					},
+					{
+						"au",
+						function()
+							require("treesitter-unit").select(true)
+						end,
+						mode = "o",
+						noremap = true,
+					},
+				},
 			},
 		},
 		config = function()
@@ -386,192 +394,155 @@ return require("lazy").setup({
 			})
 		end,
 	},
+	{
+		"machakann/vim-sandwich",
+		event = "VeryLazy",
+		config = function()
+			vim.cmd([[runtime macros/sandwich/keymap/surround.vim]])
+		end,
+	},
 
 	-- lsp
 	{
-		{
-			"neovim/nvim-lspconfig",
-			config = function()
-				local signs = { Error = "", Warn = "", Hint = "", Info = "" }
+		"neovim/nvim-lspconfig",
+		event = "VimEnter",
+		config = function()
+			local signs = { Error = "", Warn = "", Hint = "", Info = "" }
 
-				for type, icon in pairs(signs) do
-					local hl = "DiagnosticSign" .. type
-					vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
-				end
-			end,
-		},
-		"weilbith/nvim-lsp-smag",
-		{
-			"williamboman/mason.nvim",
-			config = function()
-				require("mason").setup()
-			end,
-		},
-		{
-			"williamboman/mason-lspconfig.nvim",
-			dependencies = {
-				{
-					"RRethy/vim-illuminate",
-					config = function()
-						vim.g.Illuminate_delay = 300
-					end,
-				},
+			for type, icon in pairs(signs) do
+				local hl = "DiagnosticSign" .. type
+				vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+			end
+		end,
+	},
+	{
+		"williamboman/mason.nvim",
+		event = "VimEnter",
+		config = function()
+			require("mason").setup()
+		end,
+	},
+	{
+		"williamboman/mason-lspconfig.nvim",
+		event = "VimEnter",
+		dependencies = {
+			{
+				"RRethy/vim-illuminate",
+				config = function()
+					vim.g.Illuminate_delay = 300
+				end,
 			},
-			config = function()
-				local on_attach = function(client, bufnr)
-					local function buf_set_keymap(...)
-						vim.api.nvim_buf_set_keymap(bufnr, ...)
-					end
-					local function buf_set_option(...)
-						vim.api.nvim_buf_set_option(bufnr, ...)
-					end
-
-					-- Enable completion triggered by <c-x><c-o>
-					buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
-
-					-- mappings
-					local opts = { noremap = true, silent = true }
-
-					-- See `:help vim.lsp.*` for documentation on any of the below functions
-					buf_set_keymap("n", "[lsp]D", "<cmd>lua vim.lsp.buf.declaration()<CR>", opts)
-					buf_set_keymap("n", "[lsp]d", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)
-					buf_set_keymap("n", "?", "<cmd>Lspsaga hover_doc<CR>", opts)
-					buf_set_keymap("n", "[lsp]i", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
-					buf_set_keymap("n", "[lsp]?", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
-					buf_set_keymap("n", "[lsp]t", "<cmd>lua vim.lsp.buf.type_definition()<CR>", opts)
-					buf_set_keymap("n", "[lsp]R", "<cmd>Lspsaga rename<CR>", opts)
-					buf_set_keymap("n", "[lsp]a", "<cmd>Lspsaga code_action<CR>", opts)
-					buf_set_keymap("n", "[lsp]r", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
-					buf_set_keymap("n", "[lsp]e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
-					buf_set_keymap("n", "[lsp]j", "<cmd>Lspsaga diagnostic_jump_next<CR>", opts)
-					buf_set_keymap("n", "[lsp]k", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts)
-					buf_set_keymap(
-						"n",
-						"[lsp]J",
-						"<cmd>lua require('lspsaga.action').smart_scroll_with_saga(-1)<cr>",
-						opts
-					)
-					buf_set_keymap(
-						"n",
-						"[lsp]K",
-						"<cmd>lua require('lspsaga.action').smart_scroll_with_saga(1)<cr>",
-						opts
-					)
-					buf_set_keymap("n", "[lsp]L", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
-					buf_set_keymap("n", "[lsp]l", "<cmd>Lspsaga show_line_diagnostics<CR>", opts)
-					buf_set_keymap("n", "[lsp]f", "<cmd>lua vim.lsp.buf.formatting()<CR>", opts)
-
-					require("illuminate").on_attach(client)
+		},
+		config = function()
+			local on_attach = function(client, bufnr)
+				local function buf_set_keymap(...)
+					vim.api.nvim_buf_set_keymap(bufnr, ...)
+				end
+				local function buf_set_option(...)
+					vim.api.nvim_buf_set_option(bufnr, ...)
 				end
 
-				local server_configs = {
-					["lua_ls"] = {
-						settings = {
-							Lua = {
-								format = { enable = false },
-								workspace = { preloadFileSize = 500 },
-								runtime = { version = "LuaJIT" },
-								diagnostics = {
-									globals = { "vim" },
-									disable = { "different-requires" },
-								},
-								telemetry = { enable = false },
+				-- Enable completion triggered by <c-x><c-o>
+				buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
+
+				require("illuminate").on_attach(client)
+			end
+
+			local server_configs = {
+				["lua_ls"] = {
+					settings = {
+						Lua = {
+							format = { enable = false },
+							workspace = { preloadFileSize = 500 },
+							runtime = { version = "LuaJIT" },
+							diagnostics = {
+								globals = { "vim" },
+								disable = { "different-requires" },
 							},
+							telemetry = { enable = false },
 						},
 					},
-					["volar"] = { autostart = false },
-					["vuels"] = { autostart = false },
-				}
+				},
+				["volar"] = { autostart = false },
+				["vuels"] = { autostart = false },
+			}
 
-				require("mason-lspconfig").setup({
-					handlers = {
-						function(server_name)
-							local opts = {
-								capabilities = require("cmp_nvim_lsp").default_capabilities(),
-								on_attach = on_attach,
-							}
-							if server_configs[server_name] then
-								opts = vim.tbl_deep_extend("force", opts, server_configs[server_name])
-							end
-							require("lspconfig")[server_name].setup(opts)
-						end,
-					},
-				})
-			end,
-		},
-		{
-			"jay-babu/mason-null-ls.nvim",
-			dependencies = "jose-elias-alvarez/null-ls.nvim",
-			config = function()
-				local null_ls = require("null-ls")
+			require("mason-lspconfig").setup({
+				handlers = {
+					function(server_name)
+						local opts = {
+							capabilities = require("cmp_nvim_lsp").default_capabilities(),
+							on_attach = on_attach,
+						}
+						if server_configs[server_name] then
+							opts = vim.tbl_deep_extend("force", opts, server_configs[server_name])
+						end
+						require("lspconfig")[server_name].setup(opts)
+					end,
+				},
+			})
+		end,
+	},
+	{
+		"jay-babu/mason-null-ls.nvim",
+		event = "VimEnter",
+		dependencies = "jose-elias-alvarez/null-ls.nvim",
+		config = function()
+			local null_ls = require("null-ls")
 
-				-- ref: https://github.com/jose-elias-alvarez/null-ls.nvim/wiki/Avoiding-LSP-formatting-conflicts
-				local lsp_disable = {
-					["lua_ls"] = true,
-				}
+			-- ref: https://github.com/jose-elias-alvarez/null-ls.nvim/wiki/Avoiding-LSP-formatting-conflicts
+			local lsp_disable = {
+				["lua_ls"] = true,
+			}
 
-				local lsp_formatting = function(bufnr)
-					vim.lsp.buf.format({
-						filter = function(client)
-							-- filter out client that you don't want to use
-							if lsp_disable[client.name] then
-								return false
-							else
-								return true
-							end
-						end,
-						bufnr = bufnr,
-					})
-				end
-
-				local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
-
-				null_ls.setup({
-					sources = {
-						null_ls.builtins.formatting.stylua,
-						null_ls.builtins.formatting.goimports,
-						null_ls.builtins.formatting.prettier,
-						null_ls.builtins.code_actions.gitsigns,
-					},
-					on_attach = function(client, bufnr)
-						if client.supports_method("textDocument/formatting") then
-							vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
-							vim.api.nvim_create_autocmd("BufWritePre", {
-								group = augroup,
-								buffer = bufnr,
-								callback = function()
-									lsp_formatting(bufnr)
-								end,
-							})
+			local lsp_formatting = function(bufnr)
+				vim.lsp.buf.format({
+					filter = function(client)
+						-- filter out client that you don't want to use
+						if lsp_disable[client.name] then
+							return false
+						else
+							return true
 						end
 					end,
+					bufnr = bufnr,
 				})
+			end
 
-				require("mason-null-ls").setup({
-					ensure_installed = nil,
-					automatic_installation = true,
-				})
-			end,
-		},
-		{
-			"tamago324/nlsp-settings.nvim",
-			config = function()
-				require("nlspsettings").setup({
-					config_home = vim.fn.stdpath("config") .. "/nlsp-settings",
-					local_settings_dir = ".nvim/nlsp-settings",
-					local_settings_root_markers = { ".git" },
-					append_default_schemas = true,
-					loader = "json",
-					nvim_notify = {
-						enable = true,
-						timeout = 5000,
-					},
-				})
-			end,
-		},
+			local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
+
+			null_ls.setup({
+				sources = {
+					null_ls.builtins.formatting.stylua,
+					null_ls.builtins.formatting.goimports,
+					null_ls.builtins.formatting.prettier,
+					null_ls.builtins.formatting.shfmt,
+					null_ls.builtins.code_actions.gitsigns,
+				},
+				-- disable format on save
+				-- on_attach = function(client, bufnr)
+				-- 	if client.supports_method("textDocument/formatting") then
+				-- 		vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
+				-- 		vim.api.nvim_create_autocmd("BufWritePre", {
+				-- 			group = augroup,
+				-- 			buffer = bufnr,
+				-- 			callback = function()
+				-- 				lsp_formatting(bufnr)
+				-- 			end,
+				-- 		})
+				-- 	end
+				-- end,
+			})
+
+			require("mason-null-ls").setup({
+				ensure_installed = nil,
+				automatic_installation = true,
+			})
+		end,
 	},
 	{
 		"nvimdev/lspsaga.nvim",
+		event = "VeryLazy",
 		config = function()
 			require("lspsaga").setup({
 				-- default
@@ -600,59 +571,8 @@ return require("lazy").setup({
 		end,
 	},
 	{
-		"folke/trouble.nvim",
-		config = function()
-			require("trouble").setup({
-				position = "bottom", -- position of the list can be: bottom, top, left, right
-				height = 10, -- height of the trouble list when position is top or bottom
-				width = 50, -- width of the list when position is left or right
-				icons = false, -- use devicons for filenames
-				mode = "workspace_diagnostics", -- "workspace_diagnostics", "document_diagnostics", "quickfix", "lsp_references", "loclist"
-				fold_open = "", -- icon used for open folds
-				fold_closed = "", -- icon used for closed folds
-				group = true, -- group results by file
-				padding = true, -- add an extra new line on top of the list
-				action_keys = { -- key mappings for actions in the trouble list
-					-- map to {} to remove a mapping, for example:
-					-- close = {},
-					close = "q", -- close the list
-					cancel = "<esc>", -- cancel the preview and get back to your last window / buffer / cursor
-					refresh = "r", -- manually refresh
-					jump = { "<cr>", "<tab>" }, -- jump to the diagnostic or open / close folds
-					open_split = { "<c-x>" }, -- open buffer in new split
-					open_vsplit = { "<c-v>" }, -- open buffer in new vsplit
-					open_tab = { "<c-t>" }, -- open buffer in new tab
-					jump_close = { "o" }, -- jump to the diagnostic and close the list
-					toggle_mode = "m", -- toggle between "workspace" and "document" diagnostics mode
-					toggle_preview = "P", -- toggle auto_preview
-					hover = "K", -- opens a small popup with the full multiline message
-					preview = "p", -- preview the diagnostic location
-					close_folds = { "zM", "zm" }, -- close all folds
-					open_folds = { "zR", "zr" }, -- open all folds
-					toggle_fold = { "zA", "za" }, -- toggle fold of current file
-					previous = "k", -- preview item
-					next = "j", -- next item
-				},
-				indent_lines = true, -- add an indent guide below the fold icons
-				auto_open = false, -- automatically open the list when you have diagnostics
-				auto_close = false, -- automatically close the list when you have no diagnostics
-				auto_preview = true, -- automatically preview the location of the diagnostic. <esc> to close preview and go back to last window
-				auto_fold = false, -- automatically fold a file trouble list at creation
-				auto_jump = { "lsp_definitions" }, -- for the given modes, automatically jump if there is only a single result
-				signs = {
-					-- icons / text used for a diagnostic
-					error = "",
-					warning = "",
-					hint = "",
-					information = "",
-					other = "",
-					use_diagnostic_signs = true, -- enabling this will use the signs defined in your lsp client
-				},
-			})
-		end,
-	},
-	{
 		"j-hui/fidget.nvim",
+		event = "VeryLazy",
 		branch = "legacy",
 		config = function()
 			require("fidget").setup({
@@ -667,295 +587,34 @@ return require("lazy").setup({
 			})
 		end,
 	},
-
-	-- fuzzy finder
 	{
-		"nvim-telescope/telescope.nvim",
-		dependencies = {
-			{
-				"nvim-telescope/telescope-frecency.nvim",
-				config = function()
-					require("telescope").load_extension("frecency")
-				end,
-			},
-			"nvim-telescope/telescope-symbols.nvim",
-		},
+		"ErichDonGubler/lsp_lines.nvim",
+		event = "VeryLazy",
 		config = function()
-			local actions = require("telescope.actions")
-			local action_layout = require("telescope.actions.layout")
-			local pickers = require("telescope.pickers")
-			local finders = require("telescope.finders")
-			local make_entry = require("telescope.make_entry")
-			local utils = require("telescope.utils")
-			local conf = require("telescope.config").values
-			local telescope_builtin = require("telescope.builtin")
-			local Path = require("plenary.path")
-
-			local action_state = require("telescope.actions.state")
-			local custom_actions = {}
-
-			function custom_actions._multiopen(prompt_bufnr, open_cmd)
-				local picker = action_state.get_current_picker(prompt_bufnr)
-				local num_selections = #picker:get_multi_selection()
-				if num_selections > 1 then
-					vim.cmd("bw!")
-					for _, entry in ipairs(picker:get_multi_selection()) do
-						vim.cmd(string.format("%s %s", open_cmd, entry.value))
-					end
-					vim.cmd("stopinsert")
-				else
-					if open_cmd == "vsplit" then
-						actions.file_vsplit(prompt_bufnr)
-					elseif open_cmd == "split" then
-						actions.file_split(prompt_bufnr)
-					elseif open_cmd == "tabe" then
-						actions.file_tab(prompt_bufnr)
-					else
-						actions.file_edit(prompt_bufnr)
-					end
-				end
-			end
-
-			function custom_actions.multi_selection_open_vsplit(prompt_bufnr)
-				custom_actions._multiopen(prompt_bufnr, "vsplit")
-			end
-			function custom_actions.multi_selection_open_split(prompt_bufnr)
-				custom_actions._multiopen(prompt_bufnr, "split")
-			end
-			function custom_actions.multi_selection_open_tab(prompt_bufnr)
-				custom_actions._multiopen(prompt_bufnr, "tabe")
-			end
-			function custom_actions.multi_selection_open(prompt_bufnr)
-				custom_actions._multiopen(prompt_bufnr, "edit")
-			end
-
-			require("telescope").setup({
-				defaults = {
-					vimgrep_arguments = {
-						"rg",
-						"--color=never",
-						"--no-heading",
-						"--with-filename",
-						"--line-number",
-						"--column",
-						"--smart-case",
-						"--hidden",
-					},
-					prompt_prefix = "> ",
-					selection_caret = "> ",
-					entry_prefix = "  ",
-					initial_mode = "insert",
-					selection_strategy = "reset",
-					sorting_strategy = "ascending",
-					layout_strategy = "flex",
-					layout_config = {
-						width = 0.8,
-						horizontal = {
-							mirror = false,
-							prompt_position = "top",
-							preview_cutoff = 120,
-							preview_width = 0.5,
-						},
-						vertical = {
-							mirror = false,
-							prompt_position = "top",
-							preview_cutoff = 120,
-							preview_width = 0.5,
-						},
-					},
-					file_sorter = require("telescope.sorters").get_fuzzy_file,
-					file_ignore_patterns = {
-						"node_modules/*",
-						".git/*",
-					},
-					generic_sorter = require("telescope.sorters").get_generic_fuzzy_sorter,
-					path_display = {},
-					winblend = 0,
-					border = {},
-					borderchars = {
-						{ "─", "│", "─", "│", "┌", "┐", "┘", "└" },
-						prompt = { "─", "│", " ", "│", "┌", "┬", "│", "│" },
-						results = { "─", "│", "─", "│", "├", "┤", "┴", "└" },
-						preview = { "─", "│", "─", " ", "─", "┐", "┘", "─" },
-					},
-					color_devicons = true,
-					use_less = true,
-					scroll_strategy = "cycle",
-					set_env = { ["COLORTERM"] = "truecolor" },
-					buffer_previewer_maker = require("telescope.previewers").buffer_previewer_maker,
-					mappings = {
-						n = { ["<C-t>"] = action_layout.toggle_preview },
-						i = {
-							["<C-t>"] = action_layout.toggle_preview,
-							["<C-x>"] = false,
-							["<C-s>"] = actions.select_horizontal,
-							["<Tab>"] = actions.toggle_selection + actions.move_selection_next,
-							["<C-q>"] = actions.send_selected_to_qflist,
-							["<CR>"] = actions.select_default + actions.center,
-							["<C-g>"] = custom_actions.multi_selection_open,
-						},
-					},
-					history = { path = "~/.local/share/nvim/databases/telescope_history.sqlite3", limit = 100 },
-				},
-				pickers = {
-					find_files = {
-						find_command = { "fd", "--type", "file", "--strip-cwd-prefix", "--hidden" },
-					},
-				},
-				extensions = {
-					frecency = {
-						ignore_patterns = {
-							"*.git/*",
-							"*/tmp/*",
-							"*/node_modules/*",
-						},
-						db_safe_mode = false,
-					},
-				},
-			})
-
-			local function join_uniq(tbl, tbl2)
-				local res = {}
-				local hash = {}
-				for _, v1 in ipairs(tbl) do
-					res[#res + 1] = v1
-					hash[v1] = true
-				end
-
-				for _, v in pairs(tbl2) do
-					if not hash[v] then
-						table.insert(res, v)
-					end
-				end
-				return res
-			end
-
-			local function filter_by_cwd_paths(tbl, cwd)
-				local res = {}
-				local hash = {}
-				for _, v in ipairs(tbl) do
-					if v:find(cwd, 1, true) then
-						local v1 = Path:new(v):normalize(cwd)
-						if not hash[v1] then
-							res[#res + 1] = v1
-							hash[v1] = true
-						end
-					end
-				end
-				return res
-			end
-
-			local function requiref(module)
-				require(module)
-			end
-
-			telescope_builtin.my_mru = function(opts)
-				local get_mru = function(options)
-					local res = pcall(requiref, "telescope._extensions.frecency")
-					if not res then
-						return vim.tbl_filter(function(val)
-							return 0 ~= vim.fn.filereadable(val)
-						end, vim.v.oldfiles)
-					else
-						local db_client = require("telescope._extensions.frecency.db_client")
-						db_client.init()
-						-- too slow
-						-- local tbl = db_client.get_file_scores(opts, vim.fn.getcwd())
-						local tbl = db_client.get_file_scores(options)
-						local get_filename_table = function(table)
-							local result = {}
-							for _, v in pairs(table) do
-								result[#result + 1] = v["filename"]
-							end
-							return result
-						end
-						return get_filename_table(tbl)
-					end
-				end
-				local results_mru = get_mru(opts)
-				local results_mru_cur = filter_by_cwd_paths(results_mru, vim.loop.cwd())
-
-				local show_untracked = utils.get_default(opts.show_untracked, true)
-				local recurse_submodules = utils.get_default(opts.recurse_submodules, false)
-				if show_untracked and recurse_submodules then
-					error("Git does not suppurt both --others and --recurse-submodules")
-				end
-				local cmd = {
-					"git",
-					"ls-files",
-					"--exclude-standard",
-					"--cached",
-					show_untracked and "--others" or nil,
-					recurse_submodules and "--recurse-submodules" or nil,
-				}
-				local results_git = utils.get_os_command_output(cmd)
-
-				local results = join_uniq(results_mru_cur, results_git)
-
-				pickers
-					.new(opts, {
-						prompt_title = "MRU",
-						finder = finders.new_table({
-							results = results,
-							entry_maker = opts.entry_maker or make_entry.gen_from_file(opts),
-						}),
-						-- default_text = vim.fn.getcwd(),
-						sorter = conf.file_sorter(opts),
-						previewkr = conf.file_previewer(opts),
-					})
-					:find()
-			end
-
-			telescope_builtin.grep_prompt = function(opts)
-				opts.search = vim.fn.input("Grep String > ")
-				telescope_builtin.my_grep(opts)
-			end
-
-			telescope_builtin.my_grep = function(opts)
-				require("telescope.builtin").grep_string({
-					opts = opts,
-					prompt_title = "grep_string: " .. opts.search,
-					search = opts.search,
-				})
-			end
-
-			telescope_builtin.my_grep_in_dir = function(opts)
-				opts.search = vim.fn.input("Grep String > ")
-				opts.search_dirs = {}
-				opts.search_dirs[1] = vim.fn.input("Target Directory > ")
-				require("telescope.builtin").grep_string({
-					opts = opts,
-					prompt_title = "grep_string(dir): " .. opts.search,
-					search = opts.search,
-					search_dirs = opts.search_dirs,
-				})
-			end
-
-			telescope_builtin.memo = function(opts)
-				require("telescope.builtin").find_files({
-					opts = opts,
-					prompt_title = "MemoList",
-					find_command = { "find", vim.g.memolist_path, "-type", "f", "-exec", "ls", "-1ta", "{}", "+" },
-				})
-			end
+			vim.diagnostic.config({ virtual_text = false })
+			require("lsp_lines").setup()
 		end,
 	},
 
 	-- status line
 	{
 		"nvim-lualine/lualine.nvim",
+		event = "VimEnter",
+		dependencies = {
+			{
+				"f-person/git-blame.nvim",
+				config = function()
+					vim.g.gitblame_display_virtual_text = 0
+					vim.g.gitblame_date_format = "%r"
+					vim.g.gitblame_message_template = "<author>, <date>"
+					vim.g.gitblame_ignored_filetypes = { "neo-tree", "SidebarNvim", "toggleterm" }
+				end,
+			},
+		},
 		config = function()
 			local lualine = require("lualine")
 			local lualine_require = require("lualine_require")
 			local utils = require("lualine.utils.utils")
-
-			local is_available_gps = function()
-				local ok, gps = pcall(require, "nvim-gps")
-				if not ok then
-					return false
-				end
-				return gps.is_available()
-			end
 
 			local is_blame_text_available = function()
 				local ok, gitblame = pcall(require, "gitblame")
@@ -1087,27 +746,6 @@ return require("lazy").setup({
 				lualine_z = {},
 			}
 
-			local sections_2 = {
-				lualine_a = { { "mode" } },
-				lualine_b = {},
-				lualine_c = {},
-				lualine_x = { "encoding", "fileformat", "filetype" },
-				lualine_y = { "filesize", "progress" },
-				lualine_z = { { "location" } },
-			}
-
-			vim.keymap.set("n", "!", function()
-				local modules = lualine_require.lazy_require({ config_module = "lualine.config" })
-
-				local current_config = modules.config_module.get_config()
-				if vim.inspect(current_config.sections) == vim.inspect(sections_1) then
-					current_config.sections = utils.deepcopy(sections_2)
-				else
-					current_config.sections = utils.deepcopy(sections_1)
-				end
-				lualine.setup(current_config)
-			end, { noremap = true, silent = true })
-
 			lualine.setup({
 				options = {
 					icon_enabled = true,
@@ -1116,7 +754,6 @@ return require("lazy").setup({
 					component_separators = "",
 				},
 				sections = sections_1,
-				extensions = { "quickfix" },
 			})
 		end,
 	},
@@ -1124,26 +761,16 @@ return require("lazy").setup({
 	-- git
 	{
 		"lewis6991/gitsigns.nvim",
-		event = "VimEnter",
+		event = "VeryLazy",
 		config = function()
 			require("gitsigns").setup()
-		end,
-	},
-	{
-		"f-person/git-blame.nvim",
-		event = "VimEnter",
-		config = function()
-			vim.g.gitblame_display_virtual_text = 0
-			vim.g.gitblame_date_format = "%r"
-			vim.g.gitblame_message_template = "<author>, <date>"
-			vim.g.gitblame_ignored_filetypes = { "neo-tree", "SidebarNvim", "toggleterm" }
 		end,
 	},
 
 	-- brackets
 	{
 		"andymass/vim-matchup",
-		event = "VimEnter",
+		event = "VeryLazy",
 		config = function()
 			vim.g.matchup_matchparen_offscreen = { method = "popup" }
 		end,
@@ -1186,12 +813,14 @@ return require("lazy").setup({
 	-- syntax
 	{
 		"norcalli/nvim-colorizer.lua",
+		event = { "BufNewFile", "BufReadPost" },
 		config = function()
 			require("colorizer").setup()
 		end,
 	},
 	{
 		"folke/todo-comments.nvim",
+		event = "VeryLazy",
 		config = function()
 			require("todo-comments").setup({})
 		end,
@@ -1200,6 +829,7 @@ return require("lazy").setup({
 	-- scroll bar
 	{
 		"petertriho/nvim-scrollbar",
+		event = "VeryLazy",
 		dependencies = "kevinhwang91/nvim-hlslens",
 		config = function()
 			require("scrollbar").setup({
@@ -1314,6 +944,7 @@ return require("lazy").setup({
 	-- join
 	{
 		"AckslD/nvim-trevJ.lua",
+		event = "VeryLazy",
 		config = function()
 			require("trevj").setup()
 
@@ -1370,10 +1001,13 @@ return require("lazy").setup({
 	},
 
 	-- coding
-	{ "zsugabubus/crazy8.nvim", event = { "BufNewFile", "BufReadPost" } },
+	{
+		"zsugabubus/crazy8.nvim",
+		event = { "BufNewFile", "BufReadPost" },
+	},
 	{
 		"lukas-reineke/indent-blankline.nvim",
-		event = "VimEnter",
+		event = "VeryLazy",
 		config = function()
 			require("indent_blankline").setup({
 				show_current_context = true,
@@ -1400,7 +1034,7 @@ return require("lazy").setup({
 	-- comment
 	{
 		"numToStr/Comment.nvim",
-		event = "VimEnter",
+		event = "VeryLazy",
 		config = function()
 			require("Comment").setup({
 				mappings = {
@@ -1417,16 +1051,13 @@ return require("lazy").setup({
 		end,
 	},
 
-	-- format
-	{ "gpanders/editorconfig.nvim", event = "VimEnter" },
-
 	-- sql
-	{ "alcesleo/vim-uppercase-sql", event = "VimEnter" },
+	{ "alcesleo/vim-uppercase-sql", ft = "sql" },
 
 	-- csv
 	{
 		"chen244/csv-tools.lua",
-		ft = { "csv" },
+		ft = "csv",
 		config = function()
 			require("csvtools").setup({
 				before = 10,
@@ -1439,5 +1070,8 @@ return require("lazy").setup({
 	},
 
 	-- log
-	{ "MTDL9/vim-log-highlighting", ft = { "log" } },
+	{
+		"MTDL9/vim-log-highlighting",
+		ft = "log",
+	},
 })
