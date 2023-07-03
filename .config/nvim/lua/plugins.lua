@@ -1051,9 +1051,6 @@ return require("lazy").setup({
 		end,
 	},
 
-	-- sql
-	{ "alcesleo/vim-uppercase-sql", ft = "sql" },
-
 	-- csv
 	{
 		"chen244/csv-tools.lua",
