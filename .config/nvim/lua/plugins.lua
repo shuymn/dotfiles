@@ -1087,11 +1087,6 @@ return require("lazy").setup({
 					"lspinfo",
 				},
 			})
-
-			vim.api.nvim_clear_autocmds({
-				event = { "TextChanged", "TextChangedI" },
-				group = "IndentBlanklineAutogroup",
-			})
 		end,
 	},
 

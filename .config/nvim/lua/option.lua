@@ -13,6 +13,8 @@ vim.o.timeoutlen = 500
 vim.o.ttimeoutlen = 10
 vim.o.updatetime = 2000
 
+vim.o.signcolumn = "yes"
+
 -- tab
 vim.o.tabstop = 4
 vim.o.shiftwidth = 4
