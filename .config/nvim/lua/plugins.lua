@@ -41,7 +41,7 @@ return require("lazy").setup({
 				},
 			})
 
-			vim.cmd([[colorscheme catppuccin]])
+			vim.cmd.colorscheme("catppuccin")
 		end,
 	},
 
@@ -84,13 +84,11 @@ return require("lazy").setup({
 				end,
 			},
 			"hrsh7th/cmp-nvim-lsp",
-			"hrsh7th/cmp-nvim-lsp-signature-help",
 			"hrsh7th/cmp-nvim-lsp-document-symbol",
 			"hrsh7th/cmp-buffer",
 			"hrsh7th/cmp-path",
 			"hrsh7th/cmp-nvim-lua",
 			"saadparwaiz1/cmp_luasnip",
-			"hrsh7th/cmp-omni",
 			"hrsh7th/cmp-calc",
 			"hrsh7th/cmp-emoji",
 			"f3fora/cmp-spell",
@@ -138,13 +136,11 @@ return require("lazy").setup({
 							luasnip = "[LuaSnip]",
 							nvim_lua = "[Lua]",
 							path = "[Path]",
-							omni = "[Omni]",
 							spell = "[Spell]",
 							emoji = "[Emoji]",
 							calc = "[Calc]",
 							treesitter = "[TS]",
 							dictionary = "[Dict]",
-							mocword = "[Mocword]",
 						},
 					}),
 				},
@@ -219,10 +215,8 @@ return require("lazy").setup({
 					{ name = "path", priority = 100 },
 					{ name = "emoji", insert = true, priority = 60 },
 					{ name = "nvim_lua", priority = 50 },
-					{ name = "nvim_lsp_signature_help", priority = 80 },
 				}, {
 					{ name = "buffer", priority = 50 },
-					{ name = "omni", priority = 40 },
 					{ name = "spell", priority = 40 },
 					{ name = "calc", priority = 50 },
 					{ name = "treesitter", priority = 30 },
@@ -288,7 +282,7 @@ return require("lazy").setup({
 	-- text object
 	{
 		"nvim-treesitter/nvim-treesitter",
-		run = ":TSUpdate",
+		build = ":TSUpdate",
 		event = "VeryLazy",
 		dependencies = {
 			"yioneko/nvim-yati",
@@ -398,7 +392,7 @@ return require("lazy").setup({
 		"machakann/vim-sandwich",
 		event = "VeryLazy",
 		config = function()
-			vim.cmd([[runtime macros/sandwich/keymap/surround.vim]])
+			vim.cmd.runtime("macros/sandwich/keymap/surround.vim")
 		end,
 	},
 
@@ -418,20 +412,16 @@ return require("lazy").setup({
 	{
 		"williamboman/mason.nvim",
 		event = "VimEnter",
-		config = function()
-			require("mason").setup()
-		end,
+		config = true,
 	},
 	{
 		"williamboman/mason-lspconfig.nvim",
 		event = "VimEnter",
 		dependencies = {
-			{
-				"RRethy/vim-illuminate",
-				config = function()
-					vim.g.Illuminate_delay = 300
-				end,
-			},
+			"RRethy/vim-illuminate",
+			config = function()
+				vim.g.Illuminate_delay = 300
+			end,
 		},
 		config = function()
 			local on_attach = function(client, bufnr)
@@ -452,6 +442,7 @@ return require("lazy").setup({
 				["lua_ls"] = {
 					settings = {
 						Lua = {
+							completion = { callSnippet = "Replace" },
 							format = { enable = false },
 							workspace = { preloadFileSize = 500 },
 							runtime = { version = "LuaJIT" },
@@ -463,15 +454,16 @@ return require("lazy").setup({
 						},
 					},
 				},
-				["volar"] = { autostart = false },
-				["vuels"] = { autostart = false },
 			}
+
+			local capabilities = vim.lsp.protocol.make_client_capabilities()
+			capabilities = require("cmp_nvim_lsp").default_capabilities(capabilities)
 
 			require("mason-lspconfig").setup({
 				handlers = {
 					function(server_name)
 						local opts = {
-							capabilities = require("cmp_nvim_lsp").default_capabilities(),
+							capabilities = capabilities,
 							on_attach = on_attach,
 						}
 						if server_configs[server_name] then
@@ -543,6 +535,20 @@ return require("lazy").setup({
 	{
 		"nvimdev/lspsaga.nvim",
 		event = "VeryLazy",
+		keys = {
+			{
+				"gh",
+				"<cmd>Lspsaga lsp_finder<CR>",
+				mode = "n",
+				desc = "Find the symbol's definition",
+			},
+			{
+				"K",
+				"<cmd>Lspsaga hover_doc<CR>",
+				mode = "n",
+				desc = "Hover document",
+			},
+		},
 		config = function()
 			require("lspsaga").setup({
 				-- default
@@ -574,18 +580,16 @@ return require("lazy").setup({
 		"j-hui/fidget.nvim",
 		event = "VeryLazy",
 		branch = "legacy",
-		config = function()
-			require("fidget").setup({
-				window = {
-					blend = 0,
+		opts = {
+			window = {
+				blend = 0,
+			},
+			sources = {
+				["null-ls"] = {
+					ignore = true,
 				},
-				sources = {
-					["null-ls"] = {
-						ignore = true,
-					},
-				},
-			})
-		end,
+			},
+		},
 	},
 	{
 		"ErichDonGubler/lsp_lines.nvim",
@@ -594,6 +598,77 @@ return require("lazy").setup({
 			vim.diagnostic.config({ virtual_text = false })
 			require("lsp_lines").setup()
 		end,
+	},
+
+	-- fuzzy-finder
+	{
+		"nvim-telescope/telescope.nvim",
+		branch = "0.1.x",
+		dependencies = {
+			"nvim-telescope/telescope-fzf-native.nvim",
+			build = "make",
+			cond = function()
+				return vim.fn.executable("make") == 1
+			end,
+			config = function()
+				require("telescope").load_extension("fzf")
+			end,
+		},
+		keys = {
+			{
+				"<leader>/",
+				function()
+					return require("telescope.builtin").current_buffer_fuzzy_find(
+						require("telescope.themes").get_dropdown({
+							winblend = 10,
+							previewer = false,
+						})
+					)
+				end,
+				mode = "n",
+				desc = "[/] Fuzzily search in current buffer",
+			},
+			{
+				"<leader>gf",
+				function()
+					return require("telescope.builtin").git_files()
+				end,
+				mode = "n",
+				desc = "Search [G]it [F]iles",
+			},
+			{
+				"<leader>sf",
+				function()
+					return require("telescope.builtin").find_files()
+				end,
+				mode = "n",
+				desc = "[S]earch [F]iles",
+			},
+			{
+				"<leader>sw",
+				function()
+					return require("telescope.builtin").grep_string()
+				end,
+				mode = "n",
+				desc = "[S]earch [W]ord",
+			},
+			{
+				"<leader>sg",
+				function()
+					return require("telescope.builtin").live_grep()
+				end,
+				mode = "n",
+				desc = "[S]earch by [G]rep",
+			},
+			{
+				"<leader>sd",
+				function()
+					return require("telescope.builtin").diagnostics()
+				end,
+				mode = "n",
+				desc = "[S]earch [D]iagnostics",
+			},
+		},
 	},
 
 	-- status line
@@ -607,7 +682,7 @@ return require("lazy").setup({
 					vim.g.gitblame_display_virtual_text = 0
 					vim.g.gitblame_date_format = "%r"
 					vim.g.gitblame_message_template = "<author>, <date>"
-					vim.g.gitblame_ignored_filetypes = { "neo-tree", "SidebarNvim", "toggleterm" }
+					vim.g.gitblame_ignored_filetypes = { "lazy" }
 				end,
 			},
 		},
@@ -762,9 +837,7 @@ return require("lazy").setup({
 	{
 		"lewis6991/gitsigns.nvim",
 		event = "VeryLazy",
-		config = function()
-			require("gitsigns").setup()
-		end,
+		config = true,
 	},
 
 	-- brackets
@@ -788,42 +861,33 @@ return require("lazy").setup({
 		"folke/noice.nvim",
 		event = "VeryLazy",
 		dependencies = "rcarriga/nvim-notify",
-		config = function()
-			require("noice").setup({
-				lsp = {
-					-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
-					override = {
-						["vim.lsp.util.convert_input_to_markdown_lines"] = true,
-						["vim.lsp.util.stylize_markdown"] = true,
-						["cmp.entry.get_documentation"] = true,
-					},
+		opts = {
+			lsp = {
+				override = {
+					["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+					["vim.lsp.util.stylize_markdown"] = true,
+					["cmp.entry.get_documentation"] = true,
 				},
-				-- you can enable a preset for easier configuration
-				presets = {
-					bottom_search = true, -- use a classic bottom cmdline for search
-					command_palette = true, -- position the cmdline and popupmenu together
-					long_message_to_split = true, -- long messages will be sent to a split
-					inc_rename = false, -- enables an input dialog for inc-rename.nvim
-					lsp_doc_border = false, -- add a border to hover docs and signature help
-				},
-			})
-		end,
+			},
+			-- you can enable a preset for easier configuration
+			presets = {
+				command_palette = true, -- position the cmdline and popupmenu together
+				long_message_to_split = true, -- long messages will be sent to a split
+				lsp_doc_border = true, -- add a border to hover docs and signature help
+			},
+		},
 	},
 
 	-- syntax
 	{
 		"norcalli/nvim-colorizer.lua",
 		event = { "BufNewFile", "BufReadPost" },
-		config = function()
-			require("colorizer").setup()
-		end,
+		config = true,
 	},
 	{
 		"folke/todo-comments.nvim",
 		event = "VeryLazy",
-		config = function()
-			require("todo-comments").setup({})
-		end,
+		config = true,
 	},
 
 	-- scroll bar
@@ -892,6 +956,7 @@ return require("lazy").setup({
 				excluded_filetypes = {
 					"prompt",
 					"TelescopePrompt",
+					"lazy",
 				},
 				autocmd = {
 					render = {
@@ -900,7 +965,6 @@ return require("lazy").setup({
 						"TermEnter",
 						"WinEnter",
 						"CmdwinLeave",
-						-- "TextChanged",
 						"VimResized",
 						"WinScrolled",
 					},
@@ -945,13 +1009,18 @@ return require("lazy").setup({
 	{
 		"AckslD/nvim-trevJ.lua",
 		event = "VeryLazy",
-		config = function()
-			require("trevj").setup()
-
-			vim.keymap.set("v", "J", function()
-				require("trevj").format_at_cursor()
-			end, { noremap = true, silent = true })
-		end,
+		keys = {
+			{
+				"J",
+				function()
+					require("trevj").format_at_cursor()
+				end,
+				mode = "v",
+				noremap = true,
+				silent = true,
+			},
+		},
+		config = true,
 	},
 
 	-- manual
@@ -962,42 +1031,40 @@ return require("lazy").setup({
 			vim.o.timeout = true
 			vim.o.timeoutlen = 300
 		end,
-		config = function()
-			require("which-key").setup({
-				plugins = {
-					marks = false,
-					registers = false,
-					presets = {
-						operators = false,
-						motions = false,
-						text_objects = false,
-						windows = false,
-						nav = false,
-						z = false,
-						g = false,
-					},
+		opts = {
+			plugins = {
+				marks = false,
+				registers = false,
+				presets = {
+					operators = false,
+					motions = false,
+					text_objects = false,
+					windows = false,
+					nav = false,
+					z = false,
+					g = false,
 				},
-				icons = {
-					breadcrumb = "»",
-					separator = "➜",
-					group = "+",
-				},
-				window = {
-					border = "none",
-					position = "bottom",
-					margin = { 1, 0, 1, 0 },
-					padding = { 2, 2, 2, 2 },
-				},
-				layout = {
-					height = { min = 4, max = 25 },
-					width = { min = 20, max = 50 },
-					spacing = 3,
-				},
-				hidden = { "<silent>", "<cmd>", "<Cmd>", "<CR>", "call", "lua", "^:", "^ " },
-				show_help = true,
-				triggers = { "<Leader>" },
-			})
-		end,
+			},
+			icons = {
+				breadcrumb = "»",
+				separator = "➜",
+				group = "+",
+			},
+			window = {
+				border = "none",
+				position = "bottom",
+				margin = { 1, 0, 1, 0 },
+				padding = { 2, 2, 2, 2 },
+			},
+			layout = {
+				height = { min = 4, max = 25 },
+				width = { min = 20, max = 50 },
+				spacing = 3,
+			},
+			hidden = { "<silent>", "<cmd>", "<Cmd>", "<CR>", "call", "lua", "^:", "^ " },
+			show_help = true,
+			triggers = { "<Leader>" },
+		},
 	},
 
 	-- coding
@@ -1014,13 +1081,10 @@ return require("lazy").setup({
 				buftype_exclude = { "terminal" },
 				filetype_exclude = {
 					"help",
-					"neo-tree",
-					"packer",
+					"lazy",
 					"log",
 					"lspsagafinder",
 					"lspinfo",
-					"toggleterm",
-					"alpha",
 				},
 			})
 
@@ -1067,8 +1131,5 @@ return require("lazy").setup({
 	},
 
 	-- log
-	{
-		"MTDL9/vim-log-highlighting",
-		ft = "log",
-	},
+	{ "MTDL9/vim-log-highlighting", ft = "log" },
 })

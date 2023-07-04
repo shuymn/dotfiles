@@ -1,6 +1,14 @@
 local groupname = "vimrc_vimrc"
 vim.api.nvim_create_augroup(groupname, { clear = true })
 
+vim.api.nvim_create_autocmd({ "VimEnter" }, {
+	group = groupname,
+	pattern = "*",
+	callback = function()
+		vim.cmd.doautocmd("FileType")
+	end,
+})
+
 vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "InsertLeave", "WinEnter" }, {
 	group = groupname,
 	pattern = "*",
@@ -37,10 +45,8 @@ vim.api.nvim_create_autocmd({ "TextYankPost" }, {
 
 vim.api.nvim_create_autocmd({ "FileType" }, {
 	group = groupname,
-	pattern = { "gitcommit" },
-	callback = function()
-		vim.cmd([[startinsert]])
-	end,
+	pattern = "gitcommit",
+	command = "startinsert",
 	once = false,
 })
 
@@ -53,10 +59,22 @@ vim.api.nvim_create_autocmd({ "FileType" }, {
 	once = false,
 })
 
-vim.api.nvim_create_autocmd({ "VimEnter" }, {
+vim.api.nvim_create_autocmd({ "FileType" }, {
+	group = groupname,
+	pattern = "lazy",
+	callback = function()
+		vim.diagnostic.config({ virtual_lines = false })
+	end,
+	once = false,
+})
+
+vim.api.nvim_create_autocmd({ "WinLeave" }, {
 	group = groupname,
 	pattern = "*",
 	callback = function()
-		vim.cmd([[doautocmd FileType]])
+		if vim.o.ft == "lazy" then
+			vim.diagnostic.config({ virtual_lines = true })
+		end
 	end,
+	once = false,
 })

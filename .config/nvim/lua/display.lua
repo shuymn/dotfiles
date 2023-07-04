@@ -4,7 +4,7 @@ vim.env.NVIM_TUI_ENABLE_TRUE_COLOR = 1
 vim.o.synmaxcol = 200
 
 -- colorscheme
-vim.cmd([[ syntax enable ]])
+vim.cmd.syntax("enable")
 vim.o.t_Co = 256
 vim.o.background = "dark"
 
