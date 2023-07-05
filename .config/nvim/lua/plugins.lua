@@ -282,7 +282,7 @@ return require("lazy").setup({
 	-- text object
 	{
 		"nvim-treesitter/nvim-treesitter",
-		build = ":TSUpdate",
+		build = ":TSUpdateSync",
 		event = "VeryLazy",
 		dependencies = {
 			"yioneko/nvim-yati",
