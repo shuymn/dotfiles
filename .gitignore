@@ -1,5 +1,6 @@
 .DS_Store
 
+.config/.wrangler/
 .config/anyenv/
 .config/brittany/
 .config/byobu/
