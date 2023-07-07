@@ -328,6 +328,9 @@ return require("lazy").setup({
 			},
 		},
 		config = function()
+			-- required: brew install gcc && ls $(brew prefix)/bin | grep -E '^gcc-\d+$
+			require("nvim-treesitter.install").compilers = { "gcc-13" }
+
 			require("nvim-treesitter.configs").setup({
 				ensure_installed = "all",
 				ignore_install = { "phpdoc" },
