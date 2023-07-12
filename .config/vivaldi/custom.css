@@ -1,0 +1,39 @@
+/* QC Placement */
+.qc-modal {
+  top: 15vh !important;
+}
+
+/* QC Width */
+.quick-command-container,
+.quick-commands > div {
+  width: 60vw !important;
+}
+.quick-commands > div > div {
+  max-width: 100% !important;
+}
+
+/* QC Transparency */
+.quick-commands,
+input.quick-command-search-hint {
+  background-color: transparent !important;
+}
+
+Selected line
+.quick-command[data-selected] {
+  background-color: var(--colorHighlightBgAlpha) !important;
+}
+
+.qc-modal > div {
+  color: var(--colorFgIntense) !important;
+  background-color: var(--colorBgAlphaBlur) !important;
+  backdrop-filter: var(--backgroundBlur);
+  border: 2px solid var(--colorHighlightBgAlpha);
+  border-radius: var(--radius);
+}
+
+/* Hide scrollbar */
+.qc-modal ::-webkit-scrollbar-track,
+.qc-modal ::-webkit-scrollbar-thumb,
+.qc-modal ::-webkit-scrollbar-button {
+  display: none;
+}
