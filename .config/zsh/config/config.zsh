@@ -214,7 +214,9 @@ load "${HOME}/.ghcup/env"
 
 # atuin
 if has "atuin"; then
-  eval "$(atuin init --disable-up-arrow zsh)"
+  export ATUIN_NOBIND="true"
+  eval "$(atuin init zsh)"
+  bindkey '^r' _atuin_search_widget
 fi
 
 # 1password-cli
