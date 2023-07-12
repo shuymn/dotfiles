@@ -214,7 +214,7 @@ load "${HOME}/.ghcup/env"
 
 # atuin
 if has "atuin"; then
-  eval "$(atuin init zsh)"
+  eval "$(atuin init --disable-up-arrow zsh)"
 fi
 
 # 1password-cli
