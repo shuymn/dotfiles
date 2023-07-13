@@ -3,6 +3,35 @@
 hs.window.animationDuration = 0
 hs.hotkey.setLogLevel(0)
 
+local function toggleApp(name, callback)
+	local app = hs.application.get(name)
+	if app == nil then
+		hs.application.launchOrFocus(name)
+	elseif app:isFrontmost() then
+		app:hide()
+	elseif callback == nil then
+		-- https://github.com/asmagill/hs._asm.spaces
+		local space = hs.spaces.focusedSpace()
+		local win = app:focusedWindow()
+		app:hide()
+		hs.spaces.moveWindowToSpace(win, space)
+		win = win:maximize()
+		win:focus()
+	else
+		callback(app)
+	end
+end
+
+-- Vivaldi
+hs.hotkey.bind({ "control" }, "space", function()
+	toggleApp("Vivaldi", function(vivaldi)
+		local space = hs.spaces.focusedSpace()
+		local win = vivaldi:focusedWindow()
+		hs.spaces.moveWindowToSpace(win, space)
+		win:focus()
+	end)
+end)
+
 local units = {
 	right50 = { x = 0.50, y = 0.00, w = 0.50, h = 1.00 },
 	left50 = { x = 0.00, y = 0.00, w = 0.50, h = 1.00 },
@@ -53,14 +82,20 @@ hs.hotkey.bind({ "command", "shift" }, "p", function()
 	hs.eventtap.keyStroke({ "command", "shift" }, "p", 200, app)
 end)
 
+hs.hotkey.bind({ "control", "shift" }, "space", function()
+	toggleApp("Vivaldi", function(vivaldi)
+		local currentWin = hs.application.frontmostApplication():focusedWindow()
+		local space = hs.spaces.focusedSpace()
+		local vivaldiWin = vivaldi:focusedWindow()
+		hs.spaces.moveWindowToSpace(vivaldiWin, space)
+		vivaldiWin:focus()
+		currentWin:focus()
+	end)
+end)
+
+-- kitty
 hs.hotkey.bind({ "control" }, "t", function()
-	local kitty = hs.application.get("kitty")
-	if kitty == nil then
-		hs.application.launchOrFocus("kitty")
-	elseif kitty:isFrontmost() then
-		kitty:hide()
-	else
-		-- https://github.com/asmagill/hs._asm.spaces
+	toggleApp("kitty", function(kitty)
 		local space = hs.spaces.focusedSpace()
 		local win = kitty:focusedWindow()
 		kitty:hide()
@@ -68,5 +103,15 @@ hs.hotkey.bind({ "control" }, "t", function()
 		win = win:toggleFullScreen()
 		win = win:toggleFullScreen()
 		win:focus()
-	end
+	end)
+end)
+
+-- Slack
+hs.hotkey.bind({ "control" }, "s", function()
+	toggleApp("Slack")
+end)
+
+-- Spotify
+hs.hotkey.bind({ "control" }, "m", function()
+	toggleApp("Spotify")
 end)
