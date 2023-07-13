@@ -24,15 +24,25 @@ local left = hs.hotkey.new({ "option", "control" }, "left", function()
 	app:focusedWindow():move(units.left50, nil, true)
 end)
 
+local max = hs.hotkey.new({ "option", "control" }, "return", function()
+	local app = hs.application.frontmostApplication()
+	if app:name() == "Vivaldi" then
+		hs.eventtap.keyStroke({ "command", "shift" }, "h", 200, app)
+	end
+	app:focusedWindow():maximize()
+end)
+
 hs.window.filter
 	.new("Vivaldi")
 	:subscribe(hs.window.filter.windowFocused, function()
 		right:enable()
 		left:enable()
+		max:enable()
 	end)
 	:subscribe(hs.window.filter.windowUnfocused, function()
 		right:disable()
 		left:disable()
+		max:disable()
 	end)
 
 hs.hotkey.bind({ "command", "shift" }, "p", function()
@@ -41,4 +51,22 @@ hs.hotkey.bind({ "command", "shift" }, "p", function()
 		hs.eventtap.keyStroke({}, 0x66, 200)
 	end
 	hs.eventtap.keyStroke({ "command", "shift" }, "p", 200, app)
+end)
+
+hs.hotkey.bind({ "control" }, "t", function()
+	local kitty = hs.application.get("kitty")
+	if kitty == nil then
+		hs.application.launchOrFocus("kitty")
+	elseif kitty:isFrontmost() then
+		kitty:hide()
+	else
+		-- https://github.com/asmagill/hs._asm.spaces
+		local space = hs.spaces.focusedSpace()
+		local win = kitty:focusedWindow()
+		kitty:hide()
+		hs.spaces.moveWindowToSpace(win, space)
+		win = win:toggleFullScreen()
+		win = win:toggleFullScreen()
+		win:focus()
+	end
 end)
