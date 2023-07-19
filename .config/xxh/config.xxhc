@@ -2,6 +2,7 @@ hosts:
   ".*":
     +s: zsh
     +I:
+      - xxh-plugin-prerun-core
       - xxh-shell-zsh
       - xxh-plugin-prerun-zoxide
-      - xxh-plugin-prerun-starship
+      - xxh-plugin-prerun-starship+git+https://github.com/izissise/xxh-plugin-prerun-starship.git
