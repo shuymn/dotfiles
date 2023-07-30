@@ -229,3 +229,6 @@ load "${HOME}/.config/op/plugins.sh"
 
 # JetBrains
 add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
+
+# bat / delta
+export BAT_THEME="Catppuccin-macchiato"
