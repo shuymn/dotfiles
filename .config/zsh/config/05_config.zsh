@@ -80,6 +80,11 @@ if has "phpenv"; then
   fi
 fi
 
+if has "fnm"; then
+  export PATH="$HOME/Library/Application Support/fnm:$PATH"
+  eval "$(fnm env)"
+fi
+
 # starship
 if has "starship"; then
   export STARSHIP_CONFIG="${HOME}/.config/starship/starship.toml"
