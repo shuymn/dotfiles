@@ -109,7 +109,7 @@ if has "fzf"; then
     cat {}) 2> /dev/null | head -500"'
 
   export FZF_ALT_C_COMMAND='fd --type d --hidden'
-  export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'exa -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
+  export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'eza -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
 
   history-fzf() {
     local tac

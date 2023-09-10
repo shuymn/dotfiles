@@ -7,9 +7,9 @@ if has "terraform"; then
   alias tf="terraform"
 fi
 
-if has "exa"; then
-  alias ls='exa --classify --group-directories-first --icons'
-  alias ll='exa --classify --group-directories-first --icons --long --header --git'
+if has "eza"; then
+  alias ls='eza --classify --group-directories-first --icons'
+  alias ll='eza --classify --group-directories-first --icons --long --header --git'
 else
   alias ls='ls -G'
 fi
@@ -75,7 +75,7 @@ if has "fzf"; then
         return
       fi
 
-      cd "$(ghq list --full-path | fzf --preview 'exa -aT --level=2 --ignore-glob='.git' {} | head -200')"
+      cd "$(ghq list --full-path | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200')"
     }
     alias repos='ghq-cd'
   fi
