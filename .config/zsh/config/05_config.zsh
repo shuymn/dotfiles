@@ -71,6 +71,7 @@ if has "rbenv"; then
   fi
 fi
 
+# phpenv
 if has "phpenv"; then
   eval "$(phpenv init -)"
 
@@ -80,9 +81,17 @@ if has "phpenv"; then
   fi
 fi
 
+# fnm
 if has "fnm"; then
   export PATH="$HOME/Library/Application Support/fnm:$PATH"
   eval "$(fnm env)"
+fi
+
+# bun
+if [[ -d "$HOME/.bun" ]]; then
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  [ -s "$BUN_INSTALL/_bun" ] && source "$BUN_INSTALL/_bun"
 fi
 
 # starship
