@@ -212,7 +212,12 @@ fi
 # aws-vault
 if has "aws-vault"; then
   eval "$(aws-vault --completion-script-zsh)"
-  export AWS_SESSION_TOKEN_TTL=12h
+  # export AWS_SESSION_TOKEN_TTL=12h
+fi
+
+# granted
+if has "granted"; then
+  export GRANTED_ENABLE_AUTO_REASSUME=true
 fi
 
 # terraform
@@ -245,4 +250,7 @@ load "${HOME}/.config/op/plugins.sh"
 add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # bat / delta
-export BAT_THEME="Catppuccin-macchiato"
+# export BAT_THEME="Catppuccin-macchiato"
+
+# bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
