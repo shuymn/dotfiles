@@ -504,15 +504,15 @@ return require("lazy").setup({
 				})
 			end
 
-			local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
+			-- local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 
 			null_ls.setup({
 				sources = {
 					null_ls.builtins.formatting.stylua,
-					null_ls.builtins.formatting.goimports,
-					null_ls.builtins.formatting.prettier,
-					null_ls.builtins.formatting.shfmt,
-					null_ls.builtins.code_actions.gitsigns,
+					-- null_ls.builtins.formatting.goimports,
+					-- null_ls.builtins.formatting.prettier,
+					-- null_ls.builtins.formatting.shfmt,
+					-- null_ls.builtins.code_actions.gitsigns,
 				},
 				-- disable format on save
 				-- on_attach = function(client, bufnr)
