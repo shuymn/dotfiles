@@ -84,7 +84,7 @@ fi
 # fnm
 if has "fnm"; then
   export PATH="$HOME/Library/Application Support/fnm:$PATH"
-  eval "$(fnm env)"
+  eval "$(fnm env --use-on-cd)"
 fi
 
 # bun
