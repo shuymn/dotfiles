@@ -254,3 +254,6 @@ add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# rye
+load "${HOME}/.rye/env"
