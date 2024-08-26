@@ -32,6 +32,9 @@
 .config/karabiner/automatic_backups/
 .config/kotap/
 .config/linearmouse/
+.config/nvim/.git/
+.config/nvim/.github/
+.config/nvim/LICENSE
 .config/mocword/
 .config/mozc/
 .config/nautilus/
