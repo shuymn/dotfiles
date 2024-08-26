@@ -2,7 +2,7 @@
 command_timeout = 5000
 
 [character]
-vimcmd_symbol = '[V](bold green) '
+vimcmd_symbol = '[❮](bold purple)'
 
 [aws]
 symbol = "  "
