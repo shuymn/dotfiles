@@ -35,6 +35,7 @@
 .config/nvim/.git/
 .config/nvim/.github/
 .config/nvim/LICENSE
+.config/nvim/README.md
 .config/mocword/
 .config/mozc/
 .config/nautilus/
