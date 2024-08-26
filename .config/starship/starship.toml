@@ -1,6 +1,9 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 command_timeout = 5000
 
+[character]
+vimcmd_symbol = '[V](bold green) '
+
 [aws]
 symbol = "  "
 
