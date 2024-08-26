@@ -3,7 +3,3 @@ load "/opt/homebrew/opt/zsh-fast-syntax-highlighting/share/zsh-fast-syntax-highl
 
 # ni.zsh
 load "$HOME/.config/zsh/plugins/ni.zsh"
-
-# zce.zsh
-load "$HOME/.config/zsh/plugins/zce.sh"
-bindkey -M vicmd 'F' zce

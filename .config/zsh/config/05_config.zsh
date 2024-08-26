@@ -257,3 +257,8 @@ add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # rye
 load "${HOME}/.rye/env"
+
+# edit-command-line
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd "F" edit-command-line
