@@ -261,4 +261,5 @@ load "${HOME}/.rye/env"
 # edit-command-line
 autoload -Uz edit-command-line
 zle -N edit-command-line
-bindkey -M vicmd "F" edit-command-line
+bindkey -M viins '^O' edit-command-line
+bindkey -M vicmd '^O' edit-command-line
