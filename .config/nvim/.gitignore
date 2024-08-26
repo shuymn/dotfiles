@@ -1,4 +1,3 @@
-.github
 plugin
 custom
 spell
@@ -9,4 +8,3 @@ coc-settings.json
 lazy-lock.json
 after
 **/.DS_Store
-LICENSE
