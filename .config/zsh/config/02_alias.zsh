@@ -37,28 +37,55 @@ if has "gomi"; then
 fi
 
 if has "fzf"; then
-  git-switch-fzf() {
-    local branches
-    branches=$(git branch)
+  change-branch() {
+    local all && all=false
 
-    if [ -n "$1" ]; then
-      local count
-      count=$(echo "$branches" | sed -e 's/[ +*]//g' | grep -x "$1" | wc -l | tr -d ' ')
+    while [ $# -ge 0 ]; do
+      case "$1" in
+      -a | --all)
+        all=true
+        shift 1
+        ;;
+      *)
+        local target && target="$1"
+        local branches && branches=$(git branch | sed -e 's/[ +*]//g')
 
-      if [ $count != "1" ]; then
-        echo "no branches found for '$1'"
+        if [ "$all" = false ]; then
+          branches=$(echo "$branches" | grep -x -f- --color=never <(git reflog | awk '$3 ~ /checkout/ {print $8}' | awk '!c[$1]++ {print $1}'))
+        fi
+
+        if [ -n "$target" ]; then
+          if [ "$target" -eq "$target" ]; then
+            local ba && IFS=$'\n' ba=($(echo $branches))
+            local branch && branch=${ba[$((target + 1))]}
+
+            if [ -z "$branch" ]; then
+              echo "branch #$target does not exist"
+              return
+            fi
+
+            git switch "$branch"
+            return
+          fi
+
+          local count && count=$(echo "$branches" | grep -x "$1" | wc -l | tr -d ' ')
+
+          if [ $count != "1" ]; then
+            echo "branch '$1' does not exist"
+            return
+          fi
+
+          git switch "$1"
+          return
+        fi
+
+        local branch && branch=$(echo "$branches" | fzf +m) && git switch "$branch"
         return
-      fi
-
-      git switch "$1"
-      return
-    fi
-
-    local branch
-    branch=$(echo "$branches" | fzf +m) &&
-      git switch $(echo "$branch" | sd '\*' '' | awk '{print $1}')
+        ;;
+      esac
+    done
   }
-  alias switch='git-switch-fzf'
+  alias cb='change-branch'
 
   if has "ghq"; then
     change-repository() {
