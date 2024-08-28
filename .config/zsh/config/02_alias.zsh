@@ -55,7 +55,7 @@ if has "fzf"; then
         fi
 
         if [ -n "$target" ]; then
-          if [ "$target" -eq "$target" ]; then
+          if [[ $target =~ ^-?[0-9]+([.][0-9]+)?$ ]]; then
             local ba && IFS=$'\n' ba=($(echo $branches))
             local branch && branch=${ba[$((target + 1))]}
 
