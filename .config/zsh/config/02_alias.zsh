@@ -61,7 +61,7 @@ if has "fzf"; then
   alias switch='git-switch-fzf'
 
   if has "ghq"; then
-    ghq-cd() {
+    change-repository() {
       if [ -n "$1" ]; then
         local dir
         dir="$(ghq list --full-path --exact "$1")"
@@ -77,7 +77,7 @@ if has "fzf"; then
 
       cd "$(ghq list --full-path | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200')"
     }
-    alias repos='ghq-cd'
+    alias cr='change-repository'
   fi
 
   if has "tmux" && has "tig"; then
