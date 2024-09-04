@@ -148,7 +148,7 @@ if has "fzf"; then
 
   # zoxide
   if has "zoxide"; then
-    eval "$(zoxide init zsh)"
+    eval "$(zoxide init --cmd j zsh)"
   fi
 fi
 
