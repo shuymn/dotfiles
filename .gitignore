@@ -19,6 +19,7 @@
 .config/gatsby/
 .config/gedit/
 .config/gh/
+.config/github-copilot/
 .config/google-chrome/
 .config/gtk-3.0/
 .config/gtk-4.0/
