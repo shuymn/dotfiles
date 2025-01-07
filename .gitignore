@@ -55,6 +55,7 @@
 .config/TabNine/
 .config/tabtab/
 .config/update-notifier/
+.config/uv/
 .config/vlc/
 .config/wireshark/
 .config/yarn/
