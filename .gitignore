@@ -2,6 +2,7 @@
 
 .config/.wrangler/
 .config/anyenv/
+.config/algia/
 .config/brittany/
 .config/byobu/
 .config/coc/
