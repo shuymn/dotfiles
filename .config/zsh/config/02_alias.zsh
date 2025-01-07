@@ -90,15 +90,15 @@ if has "fzf"; then
   if has "ghq"; then
     change-repository() {
       if [ -n "$1" ]; then
-        local dir
-        dir="$(ghq list --full-path --exact "$1")"
+        local repo_path=""
+        repo_path="$(ghq list --full-path --exact "$1")"
 
-        if [ -z "$dir" ]; then
+        if [ -z "$repo_path" ]; then
           echo "no directories found for '$1'"
           return 1
         fi
 
-        cd "$dir"
+        cd "$repo_path"
         return
       fi
 

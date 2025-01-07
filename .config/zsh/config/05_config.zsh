@@ -94,10 +94,36 @@ if [[ -d "$HOME/.bun" ]]; then
   [ -s "$BUN_INSTALL/_bun" ] && source "$BUN_INSTALL/_bun"
 fi
 
+# terminal title
+function set_terminal_title() {
+    # get directory name
+    local current_dir=""
+    if [[ "$PWD" == "$HOME" ]]; then
+        current_dir="~"
+    else
+        # get last part of current directory
+        current_dir=${PWD##*/}
+        # if current directory is /, display /
+        if [[ "${current_dir}" == "" ]]; then
+            current_dir="/"
+        fi
+    fi
+    
+    # get process name and remove leading dash if present
+    local process_name=$(ps -p $$ -o comm=)
+    process_name=${process_name##*/}  # Remove path
+    process_name=${process_name#-}    # Remove leading dash if present
+
+    # example: "zsh - dotfiles"
+    print -Pn "\033]0;${process_name} - ${current_dir}\007"
+}
+precmd_functions+=(set_terminal_title)
+
 # starship
 if has "starship"; then
   export STARSHIP_CONFIG="${HOME}/.config/starship/starship.toml"
   eval "$(starship init zsh)"
+  starship_precmd_user_func="set_terminal_title"
 fi
 
 # fzf
