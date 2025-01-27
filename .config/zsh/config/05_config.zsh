@@ -284,6 +284,9 @@ add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 # rye
 load "${HOME}/.rye/env"
 
+# GritQL
+load "${HOME}/.grit/bin/env"
+
 # edit-command-line
 autoload -Uz edit-command-line
 zle -N edit-command-line

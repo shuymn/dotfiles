@@ -14,6 +14,7 @@ path=( \
   ~/.cargo/bin(N-/) \
   ~/.poetry/bin(N-/) \
   ~/.volta/bin(N-/) \
+  ~/.grit/bin(N-/) \
   "$path[@]" \
 )
 
