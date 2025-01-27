@@ -96,26 +96,26 @@ fi
 
 # terminal title
 function set_terminal_title() {
-    # get directory name
-    local current_dir=""
-    if [[ "$PWD" == "$HOME" ]]; then
-        current_dir="~"
-    else
-        # get last part of current directory
-        current_dir=${PWD##*/}
-        # if current directory is /, display /
-        if [[ "${current_dir}" == "" ]]; then
-            current_dir="/"
-        fi
+  # get directory name
+  local current_dir=""
+  if [[ "$PWD" == "$HOME" ]]; then
+    current_dir="~"
+  else
+    # get last part of current directory
+    current_dir=${PWD##*/}
+    # if current directory is /, display /
+    if [[ "${current_dir}" == "" ]]; then
+      current_dir="/"
     fi
-    
-    # get process name and remove leading dash if present
-    local process_name=$(ps -p $$ -o comm=)
-    process_name=${process_name##*/}  # Remove path
-    process_name=${process_name#-}    # Remove leading dash if present
+  fi
 
-    # example: "zsh - dotfiles"
-    print -Pn "\033]0;${process_name} - ${current_dir}\007"
+  # get process name and remove leading dash if present
+  local process_name=$(ps -p $$ -o comm=)
+  process_name=${process_name##*/} # Remove path
+  process_name=${process_name#-}   # Remove leading dash if present
+
+  # example: "zsh - dotfiles"
+  print -Pn "\033]0;${process_name} - ${current_dir}\007"
 }
 precmd_functions+=(set_terminal_title)
 
@@ -288,7 +288,7 @@ load "${HOME}/.rye/env"
 autoload -Uz edit-command-line
 zle -N edit-command-line
 
-function kitty_scrollback_edit_command_line() { 
+function kitty_scrollback_edit_command_line() {
   local VISUAL="$HOME/.local/share/nvim/lazy/kitty-scrollback.nvim/scripts/edit_command_line.sh"
   zle edit-command-line
   zle kill-whole-line
