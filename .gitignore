@@ -1,6 +1,7 @@
 .DS_Store
 .vscode/
 
+.config/.semgrep/
 .config/.wrangler/
 .config/anyenv/
 .config/algia/
@@ -17,12 +18,14 @@
 .config/enchant/
 .config/evolution/
 .config/firebase/
+.config/fish/
 .config/fontforge/
 .config/gatsby/
 .config/gedit/
 .config/gh/
 .config/github-copilot/
 .config/google-chrome/
+.config/grit/
 .config/gtk-3.0/
 .config/gtk-4.0/
 .config/gup/
