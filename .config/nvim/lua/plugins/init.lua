@@ -68,5 +68,10 @@ return {
       }
       return conf
     end,
+  },
+
+  {
+    "github/copilot.vim",
+    lazy = false,
   }
 }
