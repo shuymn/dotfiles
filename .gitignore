@@ -4,6 +4,7 @@
 .config/.semgrep/
 .config/.wrangler/
 .config/anyenv/
+.config/Autodesk/
 .config/algia/
 .config/brittany/
 .config/byobu/
