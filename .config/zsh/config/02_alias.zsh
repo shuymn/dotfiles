@@ -132,15 +132,6 @@ if has "fzf"; then
   fi
 fi
 
-if has "vscode-launcher-go"; then
-  alias code="vscode-launcher-go"
-  alias code-insiders="vscode-launcher-go -insiders"
-fi
-
-if has "code-insiders"; then
-  alias c="code-insiders"
-fi
-
 if has "pbcopy"; then
   alias teee='tee >(pbcopy)'
 fi
