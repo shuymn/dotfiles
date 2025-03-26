@@ -1255,6 +1255,14 @@
                             ]
                         }
                     ]
+                },
+                {
+                    "identifiers": {
+                        "is_pointing_device": true,
+                        "product_id": 21506,
+                        "vendor_id": 14096
+                    },
+                    "ignore": false
                 }
             ],
             "fn_function_keys": [
