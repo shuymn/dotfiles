@@ -135,3 +135,7 @@ fi
 if has "pbcopy"; then
   alias teee='tee >(pbcopy)'
 fi
+
+if has "kitty"; then
+  alias kish="kitty +kitten ssh"
+fi
