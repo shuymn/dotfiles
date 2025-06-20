@@ -4,10 +4,12 @@
 .config/.semgrep/
 .config/.wrangler/
 .config/anyenv/
+.config/atlassian-cli/
 .config/Autodesk/
 .config/algia/
 .config/brittany/
 .config/byobu/
+.config/claude/
 .config/coc/
 .config/Code/
 .config/composer/
@@ -22,6 +24,7 @@
 .config/fish/
 .config/fontforge/
 .config/gatsby/
+.config/gcloud/
 .config/gedit/
 .config/gh/
 .config/github-copilot/
