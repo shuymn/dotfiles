@@ -15,6 +15,7 @@ path=( \
   ~/.poetry/bin(N-/) \
   ~/.volta/bin(N-/) \
   ~/.grit/bin(N-/) \
+  ~/.deno/bin(N-/) \
   "$path[@]" \
 )
 
