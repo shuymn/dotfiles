@@ -139,3 +139,7 @@ fi
 if has "kitty"; then
   alias kish="kitty +kitten ssh"
 fi
+
+if has "deno"; then
+  alias ccusage="deno run -E -R=\"$HOME/.claude/projects/,$HOME/.cache/deno/node_modules,$HOME/.cache/node_modules,$HOME/node_modules,/Users/node_modules,/node_modules\" -S=homedir -N='raw.githubusercontent.com:443' npm:ccusage@latest"
+fi
