@@ -36,6 +36,26 @@ Claude: Let me confirm about the login function:
 - Are there any session management requirements?
 - Is it possible to use existing authentication gems?
 
+## Development Quality Standards
+
+### Hardcoded Values
+
+- **Never use hardcoded values**: Always use configuration files, environment variables, or constants
+- **Pre-commit check**: Review all code for hardcoded values before suggesting commits
+- **Dynamic over static**: Prefer parameterized solutions over fixed values
+
+### Prohibited Development Practices
+
+**Never compromise code quality to bypass errors:**
+
+- [ ] Relaxing conditions just to pass tests or type checks
+- [ ] Skipping tests or using inappropriate mocks to avoid real issues
+- [ ] Hardcoding expected outputs or responses
+- [ ] Ignoring, suppressing, or hiding error messages
+- [ ] Applying temporary fixes that defer problems
+
+**Always address root causes**: When encountering errors, investigate and fix the underlying issue rather than working around it.
+
 ## Gemini MCP・OpenAI MCP Utilization
 
 ### Quadrinity Development Principle
