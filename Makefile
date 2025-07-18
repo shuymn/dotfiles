@@ -3,9 +3,12 @@ CANDIDATES := $(wildcard .??*)
 EXCLUSIONS := .DS_Store .git .gitmodules .gitignore .Brewfile .prettierrc.json .claude .vscode
 DOTFILES := $(filter-out $(EXCLUSIONS), $(CANDIDATES))
 
+CLAUDE_BASE := etc/claude
 CLAUDE_HOME := $(HOME)/.claude
-CLAUDE_FILES := $(shell find etc/claude -type f 2>/dev/null)
-CLAUDE_TARGETS := $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
+CLAUDE_EXCLUSIONS := $(CLAUDE_BASE)/hooks/hooks.json
+CLAUDE_CANDIDATES := $(shell find $(CLAUDE_BASE) -type f 2>/dev/null)
+CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
+CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 
 .DEFAULT_GOAL := help
 
