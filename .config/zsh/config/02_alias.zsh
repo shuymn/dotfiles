@@ -32,8 +32,8 @@ if has "nvim"; then
   alias zshrc="nvim ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
-if has "gomi"; then
-  alias rm=gomi
+if has "$(brew --prefix)/bin/gomi"; then
+  alias rm="$(brew --prefix)/bin/gomi"
 fi
 
 if has "fzf"; then
