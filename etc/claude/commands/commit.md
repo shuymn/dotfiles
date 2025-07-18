@@ -24,6 +24,8 @@ description: Create meaningful git commits by analyzing changes and committing i
 
 Create git commits that follow the principle of "meaningful units" - each commit should represent a single logical change that can be understood and potentially reverted independently.
 
+**⚠️ CRITICAL: Always verify actual git state with live commands. Do not trust the initial context about staging status, as it may be stale or incorrect. Run `git diff --staged --name-only` to see what's actually staged.**
+
 ### 1. Analyze All Changes
 - Review all modified files and their changes
 - Identify logical groupings of changes that belong together
@@ -95,14 +97,25 @@ git log -1 --pretty=%s | wc -c
 
 ### 4. Execution Process
 
+**IMPORTANT: Always verify actual git state before committing**
+
 1. **Review all changes** to understand the full scope
-2. **Group related changes** into logical units
-3. **For each logical unit**:
-   - Stage only the files that belong to this unit: `git add <files>`
+2. **Verify staging state** with `git diff --staged --name-only`
+   - If no files are staged, report: "No files are staged for commit"
+   - Never assume files are staged based on initial context
+3. **If staging is needed**:
+   - Explicitly show which files need staging
+   - Ask user: "These files need to be staged: [list]. Should I stage them?"
+   - Only stage after user confirmation
+4. **Group related changes** into logical units
+5. **For each logical unit**:
+   - Verify what's actually staged: `git diff --staged --name-only`
+   - Show user: "These files will be committed: [list]"
    - Create a descriptive commit message
-   - Commit the changes: `git commit -m "<message>"`
-4. **Verify each commit** represents a meaningful, atomic change
-5. **Continue until all changes are committed**
+   - Attempt commit: `git commit -m "<message>"`
+   - If commit fails, handle the error appropriately
+6. **Verify each commit** represents a meaningful, atomic change
+7. **Continue until all changes are committed**
 
 ### 5. Common Scenarios
 
@@ -127,6 +140,9 @@ git log -1 --pretty=%s | wc -c
 - Don't commit broken code (each commit should leave the project working)
 - Don't use vague messages like "updates" or "fixes"
 - Don't commit generated files unless necessary
+- **Don't trust initial context over actual git state** - always verify with git commands
+- **Don't assume files are staged** - check with `git diff --staged --name-only`
+- **Don't auto-stage files without user permission** - this can override deliberate choices
 
 ### 7. Final Steps
 After creating commits:
