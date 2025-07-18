@@ -22,7 +22,7 @@ DOTFILES_GITHUB="https://github.com/shuymn/dotfiles.git"
 export DOTFILES_GITHUB
 
 download() {
-  if [ -d $DOTPATH ]; then
+  if [ -d "$DOTPATH" ]; then
     errorf "$DOTPATH: already exists"
   fi
 
@@ -40,7 +40,7 @@ download() {
 link() {
   echo "Linking dotfiles..."
 
-  if [ ! -d $DOTPATH ]; then
+  if [ ! -d "$DOTPATH" ]; then
     errorf "$DOTPATH: not found"
   fi
 
