@@ -7,41 +7,43 @@ description: Create meaningful git commits by analyzing changes and committing i
 
 ## Context
 
-### Current Git Status
-- Working directory status: !`git status --short`
+### Repository State
+- Status overview: !`git status --short`
 - Current branch: !`git branch --show-current`
-- Unstaged changes: !`git diff --stat`
-- Staged changes: !`git diff --cached --stat`
 - Recent commits: !`git log --oneline -10`
 
-### Detailed Change Analysis
-- Unstaged file changes: !`git diff --name-status`
-- Staged file changes: !`git diff --cached --name-status`
-- Full unstaged diff: !`git diff`
-- Full staged diff: !`git diff --cached`
+### Change Analysis
+- **Unstaged changes**: !`git diff --stat` (summary) | !`git diff` (full)
+- **Staged changes**: !`git diff --cached --stat` (summary) | !`git diff --cached` (full)
 
 ## Your Task
 
-Create git commits that follow the principle of "meaningful units" - each commit should represent a single logical change that can be understood and potentially reverted independently.
+Create git commits where each commit represents a single logical change that can be understood and potentially reverted independently.
 
-**⚠️ CRITICAL: Always verify actual git state with live commands. Do not trust the initial context about staging status, as it may be stale or incorrect. Run `git diff --staged --name-only` to see what's actually staged.**
+**⚠️ CRITICAL: Always verify actual git state with live commands. Do not trust the initial context about staging status, as it may be stale or incorrect.**
 
-### 1. Analyze All Changes
-- Review all modified files and their changes
-- Identify logical groupings of changes that belong together
-- Look for:
-  - Related functionality changes
-  - Changes that depend on each other
-  - Changes to the same feature or component
-  - Separate concerns (e.g., refactoring vs. new features)
+### 1. How to Create Meaningful Commits
 
-### 2. Commit Guidelines
-- **One logical change per commit**: Each commit should do one thing well
-- **Self-contained**: The codebase should work after each commit
-- **Clear purpose**: Anyone reading the commit should understand why it exists
-- **Atomic**: Include all files necessary for the change, but no more
+**Identify a Single Logical Change:**
+- Review all modifications using `git status` and `git diff`
+- Group changes that:
+  - Implement one feature together
+  - Fix one specific bug
+  - Refactor one component
+  - Update related documentation
+- Keep different concerns separate (don't mix features with unrelated refactoring)
 
-### 3. Commit Message Format
+**Stage Only That Change:**
+- Use `git add <files>` to stage complete files
+- Use `git add -p` for partial file staging when needed
+- Verify staged changes: `git diff --cached`
+
+**Ensure Self-Contained Commits:**
+- Each commit should leave the codebase in a working state
+- Include all files necessary for the change to function
+- Don't include unrelated changes
+
+### 2. Commit Message Format
 Follow conventional commit format:
 ```
 <type>(<scope>): <subject>
@@ -95,71 +97,48 @@ echo -n "feat(auth): add OAuth2 authentication support" | wc -c
 git log -1 --pretty=%s | wc -c
 ```
 
-### 4. Execution Process
+### 3. Execution Process
 
-**IMPORTANT: Always verify actual git state before committing**
-
-1. **Review all changes** to understand the full scope
+1. **Check current state**
    ```bash
    git status
-   git diff              # Review unstaged changes
-   git diff --cached     # Review staged changes
+   git diff --staged --name-only    # See what's already staged
    ```
 
-2. **Verify staging state**
-   ```bash
-   git diff --staged --name-only
-   ```
-   - If no files are staged, report: "No files are staged for commit"
-   - Never assume files are staged based on initial context
+2. **For each logical unit of work**:
+   - Review changes:
+     ```bash
+     git diff                      # Unstaged changes
+     git diff <file>              # Specific file changes
+     ```
+   - Stage related files:
+     ```bash
+     git add <file1> <file2>      # Stage specific files
+     # OR
+     git add -p                   # Interactive staging for partial changes
+     ```
+   - Verify staged content:
+     ```bash
+     git diff --cached            # Review what will be committed
+     ```
+   - Check commit message length:
+     ```bash
+     echo -n "feat(scope): description" | wc -c
+     ```
+   - Commit with descriptive message:
+     ```bash
+     git commit -m "type(scope): subject
 
-3. **If no files are staged but changes exist**:
-   ```bash
-   git diff --name-status        # See which files have changes
-   git diff <file>               # Review specific file changes
-   ```
-   - Analyze the unstaged changes to identify meaningful units
-   - Stage files that belong together as a logical unit:
-   ```bash
-   git add <file1> <file2>       # Stage specific files
-   ```
-   - Report what was staged: "Staged files for commit: [list]"
+     Detailed explanation if needed"
+     ```
 
-4. **Group related changes** into logical units
-
-5. **For each logical unit**:
-   - If nothing staged yet, stage the appropriate files:
+3. **After each commit**:
    ```bash
-   git add <files>
-   ```
-   - Verify what's actually staged:
-   ```bash
-   git diff --staged --name-only
-   ```
-   - Report: "Committing: [list of files]"
-   - Check message length before committing:
-   ```bash
-   echo -n "<your commit message>" | wc -c
-   ```
-   - Create and execute commit:
-   ```bash
-   git commit -m "<type>(<scope>): <subject>
-
-   <detailed body explaining the changes>"
-   ```
-   - If commit fails, handle the error appropriately
-
-6. **Verify each commit** represents a meaningful, atomic change
-   ```bash
-   git log --oneline -1          # Review the last commit
+   git log --oneline -1             # Verify the commit
+   git status                       # Check remaining changes
    ```
 
-7. **Continue until all changes are committed**
-   ```bash
-   git status                    # Check for remaining changes
-   ```
-
-### 5. Common Scenarios
+### 4. Common Scenarios
 
 **Multiple features touched:**
 - Commit each feature separately
@@ -176,23 +155,21 @@ git log -1 --pretty=%s | wc -c
 **Configuration and code changes:**
 - Usually separate commits unless configuration is required for the code
 
-### 6. What NOT to Do
+### 5. What NOT to Do
 - Don't commit all changes at once just because they were made together
 - Don't mix unrelated changes in one commit
 - Don't commit broken code (each commit should leave the project working)
 - Don't use vague messages like "updates" or "fixes"
 - Don't commit generated files unless necessary
-- **Don't trust initial context over actual git state** - always verify with git commands
-- **Don't assume files are staged** - check with `git diff --staged --name-only`
-- **Don't stage unrelated changes together** - maintain meaningful, logical units
+- Don't trust initial context over actual git state - always verify with live commands
 
-### 7. Final Steps
+### 6. Final Steps
 After creating commits:
 - Review commit history: `git log --oneline`
 - Ensure each commit message clearly describes its purpose
 - Verify the project works after each commit (if feasible)
 
-### 8. Handling Commit Hook Errors
+### 7. Handling Commit Hook Errors
 If a commit fails due to a commit-msg hook:
 - **Read the error message carefully** - hooks often provide specific guidance
 - **Show the full error to the user** and ask how they want to proceed
@@ -210,6 +187,5 @@ If a commit fails due to a commit-msg hook:
 ## Important Notes
 - If there are no changes to commit, notify the user
 - If changes are too intertwined to separate meaningfully, explain why and suggest alternatives
-- Always ensure commits maintain a working state of the codebase
 - Focus on clarity and future maintainability
-- **If a commit-msg hook fails, always prompt the user with the error and ask for guidance**
+- If a commit-msg hook fails, always prompt the user with the error and ask for guidance
