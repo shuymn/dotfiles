@@ -1,7 +1,7 @@
 DOTPATH    := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 CANDIDATES := $(wildcard .??*)
-EXCLUTIONS := .DS_Store .git .gitmodules .gitignore .Brewfile .prettierrc.json .claude .vscode
-DOTFILES := $(filter-out $(EXCLUTIONS), $(CANDIDATES))
+EXCLUSIONS := .DS_Store .git .gitmodules .gitignore .Brewfile .prettierrc.json .claude .vscode
+DOTFILES := $(filter-out $(EXCLUSIONS), $(CANDIDATES))
 
 CLAUDE_HOME := $(HOME)/.claude
 CLAUDE_FILES := $(shell find etc/claude -type f 2>/dev/null)
