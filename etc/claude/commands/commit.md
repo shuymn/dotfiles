@@ -100,22 +100,64 @@ git log -1 --pretty=%s | wc -c
 **IMPORTANT: Always verify actual git state before committing**
 
 1. **Review all changes** to understand the full scope
-2. **Verify staging state** with `git diff --staged --name-only`
+   ```bash
+   git status
+   git diff              # Review unstaged changes
+   git diff --cached     # Review staged changes
+   ```
+
+2. **Verify staging state**
+   ```bash
+   git diff --staged --name-only
+   ```
    - If no files are staged, report: "No files are staged for commit"
    - Never assume files are staged based on initial context
-3. **If staging is needed**:
-   - Explicitly show which files need staging
-   - Ask user: "These files need to be staged: [list]. Should I stage them?"
-   - Only stage after user confirmation
+
+3. **If no files are staged but changes exist**:
+   ```bash
+   git diff --name-status        # See which files have changes
+   git diff <file>               # Review specific file changes
+   ```
+   - Analyze the unstaged changes to identify meaningful units
+   - Stage files that belong together as a logical unit:
+   ```bash
+   git add <file1> <file2>       # Stage specific files
+   ```
+   - Report what was staged: "Staged files for commit: [list]"
+
 4. **Group related changes** into logical units
+
 5. **For each logical unit**:
-   - Verify what's actually staged: `git diff --staged --name-only`
-   - Show user: "These files will be committed: [list]"
-   - Create a descriptive commit message
-   - Attempt commit: `git commit -m "<message>"`
+   - If nothing staged yet, stage the appropriate files:
+   ```bash
+   git add <files>
+   ```
+   - Verify what's actually staged:
+   ```bash
+   git diff --staged --name-only
+   ```
+   - Report: "Committing: [list of files]"
+   - Check message length before committing:
+   ```bash
+   echo -n "<your commit message>" | wc -c
+   ```
+   - Create and execute commit:
+   ```bash
+   git commit -m "<type>(<scope>): <subject>
+
+   <detailed body explaining the changes>"
+   ```
    - If commit fails, handle the error appropriately
+
 6. **Verify each commit** represents a meaningful, atomic change
+   ```bash
+   git log --oneline -1          # Review the last commit
+   ```
+
 7. **Continue until all changes are committed**
+   ```bash
+   git status                    # Check for remaining changes
+   ```
 
 ### 5. Common Scenarios
 
@@ -142,7 +184,7 @@ git log -1 --pretty=%s | wc -c
 - Don't commit generated files unless necessary
 - **Don't trust initial context over actual git state** - always verify with git commands
 - **Don't assume files are staged** - check with `git diff --staged --name-only`
-- **Don't auto-stage files without user permission** - this can override deliberate choices
+- **Don't stage unrelated changes together** - maintain meaningful, logical units
 
 ### 7. Final Steps
 After creating commits:
