@@ -9,6 +9,7 @@ We will perform spec-driven development using Claude Code.
 
 Spec-driven development is a development methodology consisting of the following 5 phases.
 When writing documentation, prioritize using Mermaid notation over ASCII art.
+Think carefully and work hard on everything you do at ULTRATHINK.
 
 ### 1. Preparation Phase
 
