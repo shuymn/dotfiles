@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(mkdir:*), Bash(find:*), Bash(ls:*), Read, Write, Edit, MultiEdit, TodoWrite
+allowed-tools: [Bash, Read, Write, Edit, MultiEdit, TodoWrite, Grep, Glob, Task]
 description: Perform spec-driven development by creating requirements, design, and implementation plan documents
 ---
 

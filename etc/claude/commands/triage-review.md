@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git branch:*), Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(gh pr:*), ReadFile, WriteFile, mcp__github__get_pull_request_reviews, mcp__github__get_pull_request_comments, mcp__github__get_pull_request, mcp__gemini__google-search, mcp__openai__openai-search
+allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, mcp__github__get_pull_request_reviews, mcp__github__get_pull_request_comments, mcp__github__get_pull_request, mcp__gemini__google-search, mcp__openai__openai-search]
 description: Fetch PR review comments from AI reviewers, verify accuracy, and apply valid fixes
 ---
 
@@ -8,19 +8,19 @@ description: Fetch PR review comments from AI reviewers, verify accuracy, and ap
 ## Context
 
 ### Current State
-- Current branch: !`git branch --show-current`
-- Uncommitted changes: !`git status --porcelain`
-- PR number (if exists): !`gh pr view --json number --jq '.number' 2>/dev/null || echo "No PR found"`
-- PR URL: !`gh pr view --json url --jq '.url' 2>/dev/null || echo ""`
+- Current branch: `git branch --show-current`
+- Uncommitted changes: `git status --porcelain`
+- PR number (if exists): `gh pr view --json number --jq '.number' 2>/dev/null || echo "No PR found"`
+- PR URL: `gh pr view --json url --jq '.url' 2>/dev/null || echo ""`
 
 ### PR Information (if PR exists)
-- PR title: !`gh pr view --json title --jq '.title' 2>/dev/null || echo ""`
-- PR state: !`gh pr view --json state --jq '.state' 2>/dev/null || echo ""`
-- Changed files in PR: !`gh pr view --json files --jq '.files[].path' 2>/dev/null || echo ""`
+- PR title: `gh pr view --json title --jq '.title' 2>/dev/null || echo ""`
+- PR state: `gh pr view --json state --jq '.state' 2>/dev/null || echo ""`
+- Changed files in PR: `gh pr view --json files --jq '.files[].path' 2>/dev/null || echo ""`
 
 ### Review Comments
-- All PR comments: !`gh pr view --json comments --jq '.comments[] | "[\(.author.login)] \(.body)"' 2>/dev/null || echo "No comments"`
-- Review threads: !`gh pr view --json reviews --jq '.reviews[] | "[\(.author.login)] \(.state): \(.body)"' 2>/dev/null || echo "No reviews"`
+- All PR comments: `gh pr view --json comments --jq '.comments[] | "[\(.author.login)] \(.body)"' 2>/dev/null || echo "No comments"`
+- Review threads: `gh pr view --json reviews --jq '.reviews[] | "[\(.author.login)] \(.state): \(.body)"' 2>/dev/null || echo "No reviews"`
 
 ## Your task
 
