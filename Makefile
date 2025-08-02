@@ -5,7 +5,7 @@ DOTFILES := $(filter-out $(EXCLUSIONS), $(CANDIDATES))
 
 CLAUDE_BASE := etc/claude
 CLAUDE_HOME := $(HOME)/.claude
-CLAUDE_EXCLUSIONS := $(CLAUDE_BASE)/hooks/hooks.json $(CLAUDE_BASE)/CLAUDE.md
+CLAUDE_EXCLUSIONS := $(CLAUDE_BASE)/hooks/hooks.json
 CLAUDE_CANDIDATES := $(shell find $(CLAUDE_BASE) -type f 2>/dev/null)
 CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
 CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))

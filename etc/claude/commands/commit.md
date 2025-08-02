@@ -24,6 +24,17 @@ description: Create meaningful git commits by analyzing changes and committing i
   - `refactor(utils): バリデーションロジックを抽出`
 - Use である調, keep under 50 chars, use カタカナ for tech terms
 
+## Branch Support
+
+**--branch**: Creates a new branch before committing:
+- Creates feature branch using `git switch -c <branch-name>`
+- Branch names should use descriptive names without abbreviations
+- Always create from current branch or main/master
+- Examples:
+  - `--branch feature/add-oauth-support`
+  - `--branch fix/handle-null-values`
+  - `--branch refactor/extract-validation-logic`
+
 ## Commit Format
 
 **Types:**
@@ -46,12 +57,22 @@ description: Create meaningful git commits by analyzing changes and committing i
 
 ## Process
 
+### Standard Process
 1. **Check state**: `git status`
 2. **Review changes**: `git diff`
 3. **Stage logical unit**: `git add <files>` or `git add -p`
 4. **Verify**: `git diff --cached`
 5. **Commit**: `git commit -m "type(scope): description"`
 6. **Confirm**: `git log --oneline -1`
+
+### With --branch Option
+1. **Check state**: `git status`
+2. **Review changes**: `git diff`
+3. **Create branch**: `git switch -c <branch-name>` (based on changes reviewed)
+4. **Stage logical unit**: `git add <files>` or `git add -p`
+5. **Verify**: `git diff --cached`
+6. **Commit**: `git commit -m "type(scope): description"`
+7. **Confirm**: `git log --oneline -1`
 
 ## Best Practices
 - One logical change per commit
