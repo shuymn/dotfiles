@@ -133,6 +133,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - Use clear, concise English
 - Keep code references and file paths as-is
 - Be direct and professional
+- Wrap @ symbols in code/paths with backticks to prevent mentions: `@import`, `path/@file`
 
 **Japanese:**
 - Use appropriate technical Japanese

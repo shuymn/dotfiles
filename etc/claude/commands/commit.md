@@ -198,6 +198,11 @@ How would you like me to group these changes?
 echo -n "feat(auth): add OAuth2 support" | wc -c
 ```
 
+## Handling @ Symbols
+When commit messages contain @ symbols:
+- Wrap code/paths in backticks to prevent GitHub mentions: `@import` or `path/@file`
+- This prevents unintended user notifications
+
 ## Hook Errors
 If commit-msg hook fails:
 - Read error carefully
