@@ -1,6 +1,8 @@
 ---
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
+argument-hint: --japanese | --branch
 description: Create meaningful git commits by analyzing changes and committing in logical units
+model: claude-sonnet-4-20250514
 ---
 
 # Commit in Meaningful Units
