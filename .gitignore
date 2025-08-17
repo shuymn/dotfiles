@@ -14,6 +14,7 @@
 .config/Code/
 .config/composer/
 .config/configstore/
+.config/cursor/
 .config/Cypress/
 .config/dconf/
 .config/discord/
