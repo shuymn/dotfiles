@@ -1,6 +1,6 @@
 DOTPATH    := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 CANDIDATES := $(wildcard .??*)
-EXCLUSIONS := .DS_Store .git .gitmodules .gitignore .Brewfile .prettierrc.json .claude .vscode .editorconfig
+EXCLUSIONS := .DS_Store .git .gitmodules .gitignore .Brewfile .prettierrc.json .claude .vscode .editorconfig .tmux.conf
 DOTFILES := $(filter-out $(EXCLUSIONS), $(CANDIDATES))
 
 CLAUDE_BASE := etc/claude
