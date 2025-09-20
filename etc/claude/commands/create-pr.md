@@ -2,7 +2,6 @@
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite, mcp__github__create_pull_request, mcp__github__get_me]
 argument-hint: --japanese
 description: Review committed changes and create a pull request on GitHub (English by default, Japanese with --japanese)
-model: claude-sonnet-4-20250514
 ---
 
 # Create Pull Request on GitHub from Committed Changes
