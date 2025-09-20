@@ -70,6 +70,7 @@
 .config/vlc/
 .config/wireshark/
 .config/yarn/
+.config/zed/
 .config/zsh/.zcompcache
 .config/zsh/.zcompdump
 .config/zsh/.zsh_history
