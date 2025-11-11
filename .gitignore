@@ -73,6 +73,7 @@
 .config/zed/
 .config/zsh/.zcompcache
 .config/zsh/.zcompdump
+.config/zsh/.zprofile
 .config/zsh/.zsh_history
 .config/zsh/config/*local.zsh
 .config/.nuxtrc
