@@ -2,6 +2,7 @@ typeset -gx -U path
 path=( \
   /usr/local/bin(N-/) \
   /usr/local/sbin(N-/) \
+  /usr/local/go/bin(N-/) \
   /usr/local/opt/zplug(N-/) \
   /usr/local/opt/mysql@5.6/bin(N-/) \
   /usr/local/opt/curl/bin(N-/) \
@@ -80,7 +81,7 @@ bindkey -v
 setopt no_global_rcs
 
 # golang
-export GOPATH="$HOME/go"
+export GOPATH="$(go env GOPATH)"
 export GOBIN="$GOPATH/bin"
 if [[ -d "${GOBIN}" ]]; then
   export PATH="$GOBIN:$PATH"
