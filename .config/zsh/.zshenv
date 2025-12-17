@@ -17,6 +17,7 @@ path=( \
   ~/.volta/bin(N-/) \
   ~/.grit/bin(N-/) \
   ~/.deno/bin(N-/) \
+  ~/.antigravity/antigravity/bin(N-/) \
   "$path[@]" \
 )
 
