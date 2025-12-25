@@ -18,6 +18,7 @@ path=( \
   ~/.grit/bin(N-/) \
   ~/.deno/bin(N-/) \
   ~/.antigravity/antigravity/bin(N-/) \
+  ~/.codeium/windsurf/bin(N-/) \
   "$path[@]" \
 )
 
