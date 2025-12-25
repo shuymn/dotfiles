@@ -13,6 +13,7 @@
 .config/claude
 .config/coc/
 .config/Code/
+.config/colima/
 .config/composer/
 .config/configstore/
 .config/cursor/
@@ -31,6 +32,7 @@
 .config/gh/
 .config/github-copilot/
 .config/google-chrome/
+.config/granted/
 .config/grit/
 .config/gtk-3.0/
 .config/gtk-4.0/
