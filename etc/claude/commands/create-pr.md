@@ -11,21 +11,21 @@ description: Review committed changes and create a pull request on GitHub (Engli
 ### Git Information
 - Current branch: `git branch --show-current`
 - Remote branches: `git branch -r`
-- Default branch: `git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`
+- Default branch: `git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@'`
 - Repository root: `git rev-parse --show-toplevel`
 - Unpushed commits: `git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || echo "Branch not pushed yet"`
 - Push status: `git status -sb | head -1`
 
 ### Committed Changes Only
-- Commits different from default branch: `git log $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD --oneline`
-- Number of commits ahead: `git rev-list --count $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD`
-- Files changed in commits: `git diff --name-status $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD`
-- Lines added/removed: `git diff --shortstat $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD`
-- Full diff: `git diff $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD`
+- Commits different from default branch: `git log origin/HEAD..HEAD --oneline`
+- Number of commits ahead: `git rev-list --count origin/HEAD..HEAD`
+- Files changed in commits: `git diff --name-status origin/HEAD..HEAD`
+- Lines added/removed: `git diff --shortstat origin/HEAD..HEAD`
+- Full diff: `git diff origin/HEAD..HEAD`
 
 ### Detailed Commit History
-- Commit messages with body: `git log $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD --format="### %s%n%n%b%n"`
-- Commit authors: `git log $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/@@')..HEAD --format="%an <%ae>" | sort | uniq`
+- Commit messages with body: `git log origin/HEAD..HEAD --format="### %s%n%n%b%n"`
+- Commit authors: `git log origin/HEAD..HEAD --format="%an <%ae>" | sort | uniq`
 
 ### PR Templates
 - GitHub template: `cat .github/pull_request_template.md 2>/dev/null || echo "No GitHub template"`
