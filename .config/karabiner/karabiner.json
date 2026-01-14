@@ -153,7 +153,23 @@
                         "vendor_id": 1149
                     },
                     "ignore": true,
+                    "ignore_vendor_events": true,
                     "manipulate_caps_lock_led": false
+                },
+                {
+                    "identifiers": {
+                        "is_pointing_device": true,
+                        "product_id": 33021,
+                        "vendor_id": 1149
+                    },
+                    "ignore": false,
+                    "ignore_vendor_events": true,
+                    "simple_modifications": [
+                        {
+                            "from": { "pointing_button": "button3" },
+                            "to": [{ "key_code": "f13" }]
+                        }
+                    ]
                 }
             ],
             "fn_function_keys": [
