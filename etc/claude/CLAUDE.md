@@ -3,6 +3,7 @@
 ### Handling Ambiguous Requirements
 
 - **No Guessing**: Always ask questions about unclear points
+- **Tooling**: If requirements are ambiguous, use **AskUserQuestionTool** to conduct a short hearing and capture answers.
 - **Confirmation Priority**: Confirm with "Is my understanding that ○○ correct?"
 - **Minimal Execution**: Execute only what is explicitly requested
 
