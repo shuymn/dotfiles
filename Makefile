@@ -44,7 +44,9 @@ help: ## Self-documented Makefile
 link-claude: ## Create symlinks to the claude directory
 	@echo 'Start to link claude files'
 	@echo ''
-	@$(foreach file,$(CLAUDE_FILES),ln -sfnv $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
+	@$(foreach file,$(CLAUDE_FILES), \
+		mkdir -p $(dir $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file))) && \
+		ln -sfnv $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
 	@echo 'Finish linking claude files'
 
 .PHONY: clean-claude
