@@ -6,6 +6,17 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 
 # Commit in Meaningful Units
 
+## ⚠️ CRITICAL: Only Execute When Explicitly Invoked
+
+**This skill MUST ONLY run when the user explicitly invokes the `/commit` command.**
+
+- **NEVER** create commits automatically or proactively
+- **NEVER** commit changes as part of another task or workflow
+- **ONLY** execute when the user explicitly types `/commit` or directly requests commit creation
+- If you complete a task that results in file changes, **DO NOT** commit them unless specifically asked
+
+**This is a fundamental safety requirement to prevent unintended commits.**
+
 ## 🚨 FUNDAMENTAL PRINCIPLE: One Logical Change Per Commit
 
 **Every commit MUST represent exactly ONE meaningful unit of change.** This is the most important rule of good commit hygiene. A meaningful unit is a single, coherent change that:
