@@ -8,11 +8,11 @@ set -euo pipefail
 input=$(cat)
 
 # Extract tool name and command from the JSON input
-tool=$(echo "$input" | jq -r '.tool // empty')
-command=$(echo "$input" | jq -r '.parameters.command // empty')
+tool_name=$(echo "$input" | jq -r '.tool_name // empty')
+command=$(echo "$input" | jq -r '.tool_input.command // empty')
 
 # Only check Bash tool calls
-if [[ "$tool" != "Bash" ]]; then
+if [[ "$tool_name" != "Bash" ]]; then
     exit 0
 fi
 
@@ -37,7 +37,7 @@ if [[ "$command" =~ git[[:space:]]+commit ]]; then
     echo "If you need to commit changes, please ask the user first." >&2
     echo "" >&2
 
-    exit 1
+    exit 2
 fi
 
 # Allow all other commands
