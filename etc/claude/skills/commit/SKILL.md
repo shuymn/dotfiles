@@ -66,13 +66,16 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ## Branch Support
 
 **--branch**: Creates a new branch before committing:
-- Creates feature branch using `git switch -c <branch-name>`
-- Branch names should use descriptive names without abbreviations
-- Always create from current branch or main/master
+- **CRITICAL**: When `--branch` is specified, a branch MUST be created - never skip this step
+- Branch name is automatically determined from the primary change in the diff
+- Creates branch using `git switch -c <branch-name>`
+- Branch names use descriptive names without abbreviations
+- Default base: current branch
+- Use `--base=<branch>` to specify a different base branch
 - Examples:
-  - `--branch feature/add-oauth-support`
-  - `--branch fix/handle-null-values`
-  - `--branch refactor/extract-validation-logic`
+  - `/commit --branch` → Auto-generates name like `feature/add-oauth-support`
+  - `/commit --branch --base=main` → Create from main branch
+  - `/commit --branch --base=develop` → Create from develop branch
 
 ## Commit Format
 
@@ -112,15 +115,20 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 4. **Repeat for next logical unit** until all changes are committed
 
 ### With --branch Option
-1. **🔍 ANALYZE FIRST**: `git diff` - identify EVERY logical unit
+1. **🔍 ANALYZE FIRST**: `git diff` - identify EVERY logical unit and determine primary change
 2. **Check state**: `git status`
-3. **Create branch**: `git switch -c <branch-name>` (based on primary change)
-4. **For EACH logical unit separately**:
+3. **Determine branch name**: Analyze diff to generate descriptive branch name based on primary change
+   - Format: `<type>/<descriptive-name>`
+   - Examples: `feature/add-oauth-support`, `fix/handle-null-values`, `refactor/extract-validation`
+4. **Switch to base branch** (if `--base` specified): `git switch <base-branch>`
+5. **Create branch**: `git switch -c <branch-name>`
+   - **CRITICAL**: This step is MANDATORY when `--branch` is specified
+6. **For EACH logical unit separately**:
    - **Stage ONLY related files**: `git add <specific-files>` or `git add -p`
    - **Verify staged changes**: `git diff --cached` - ensure ONLY one logical change
    - **Commit**: `git commit -m "type(scope): description"`
    - **Confirm**: `git log --oneline -1`
-5. **Repeat for next logical unit** until all changes are committed
+7. **Repeat for next logical unit** until all changes are committed
 
 ### Interactive Staging for Mixed Files
 
