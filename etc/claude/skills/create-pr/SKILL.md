@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions. Works with GitHub repositories using the github MCP server.
+description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions and --base flag to specify target branch. Works with GitHub repositories using the github MCP server.
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ---
 
@@ -17,13 +17,17 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 - Push status: `git status -sb | head -1`
 
 ### Committed Changes Only
-- Commits different from default branch: `git log origin/HEAD..HEAD --oneline`
+**Note**: Replace `origin/HEAD` with `origin/<base-branch>` if `--base=<branch>` is specified
+
+- Commits different from base branch: `git log origin/HEAD..HEAD --oneline`
 - Number of commits ahead: `git rev-list --count origin/HEAD..HEAD`
 - Files changed in commits: `git diff --name-status origin/HEAD..HEAD`
 - Lines added/removed: `git diff --shortstat origin/HEAD..HEAD`
 - Full diff: `git diff origin/HEAD..HEAD`
 
 ### Detailed Commit History
+**Note**: Replace `origin/HEAD` with `origin/<base-branch>` if `--base=<branch>` is specified
+
 - Commit messages with body: `git log origin/HEAD..HEAD --format="### %s%n%n%b%n"`
 - Commit authors: `git log origin/HEAD..HEAD --format="%an <%ae>" | sort | uniq`
 
@@ -38,6 +42,19 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 
 **Default**: English
 **--japanese**: Creates PR in Japanese
+
+## Base Branch Support
+
+**Default**: Repository's default branch (usually `main` or `master`)
+**--base=<branch>**: Specify target branch for the pull request
+
+- Use `--base=<branch>` to create PR against a specific branch
+- Default behavior: Uses repository default branch from `git symbolic-ref --short refs/remotes/origin/HEAD`
+- Examples:
+  - `/create-pr` → Creates PR to default branch
+  - `/create-pr --base=develop` → Creates PR to develop branch
+  - `/create-pr --base=release/v2.0` → Creates PR to release branch
+  - `/create-pr --japanese --base=develop` → Japanese PR to develop branch
 
 ## Your Task
 
@@ -144,25 +161,30 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 
 ### 5. Execution Steps
 
-0. **Ensure changes are pushed**:
+0. **Determine base branch**:
+   - If `--base=<branch>` specified: Use the specified branch
+   - Otherwise: Use repository default branch (`git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@'`)
+
+1. **Ensure changes are pushed**:
    ```bash
    git push -u origin [current branch name]
    ```
 
-1. **Prepare PR content**:
+2. **Prepare PR content**:
    - Generate appropriate title summarizing commits
    - Create PR body following template or standard format
+   - Analyze commits against the determined base branch
 
-2. **Create pull request**:
+3. **Create pull request**:
    ```
    mcp__github__create_pull_request:
    - title: [Generated title in selected language]
    - body: [Generated body in selected language]
    - head: [Current branch]
-   - base: [Default branch]
+   - base: [Determined base branch from step 0]
    ```
 
-3. **After creation**:
+4. **After creation**:
    - Provide PR URL
    - Confirm success
    - Explain any errors clearly
