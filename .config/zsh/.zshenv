@@ -19,6 +19,7 @@ path=( \
   ~/.deno/bin(N-/) \
   ~/.antigravity/antigravity/bin(N-/) \
   ~/.codeium/windsurf/bin(N-/) \
+  ~/.opencode/bin(N-/) \
   "$path[@]" \
 )
 
