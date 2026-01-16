@@ -68,14 +68,38 @@ if has "fzf"; then
             return
           fi
 
-          local count && count=$(echo "$branches" | grep -x "$1" | wc -l | tr -d ' ')
-
-          if [ $count != "1" ]; then
-            echo "branch '$1' does not exist"
-            return
+          # 明示的にブランチを指定された場合は reflogで絞った一覧ではなく、参照の存在で判断する
+          # master/mainは相互にフォールバックする
+          local -a candidates
+          if [ "$target" = "master" ]; then
+          candidates=("master" "main")
+          elif [ "$target" = "main" ]; then
+            candidates=("main" "master")
+          else
+            candidates=("$target")
           fi
 
-          git switch "$1"
+          local name
+          for name in "${candidates[@]}"; do
+            # 1: ローカルブランチがあればそれに切り替え
+            if git show-ref --verify --quiet "refs/heads/$name"; then
+                if [ "$name" != "$target" ]; then
+                    echo "branch '$target' does not exist; switched to '$name'" >&2
+                fi
+                git switch "$name"
+                return
+            fi
+            # 2: originにだけあるならtrackingで作って切り替え
+            if git show-ref --verify --quiet "refs/remotes/origin/$name"; then
+                if [ "$name" != "$target" ]; then
+                    echo "branch '$target' does not exist; switched to '$name'" >&2
+                fi
+                git switch --track "origin/$name"
+                return
+            fi
+          done
+
+          echo "branch '$target' does not exist"
           return
         fi
 
