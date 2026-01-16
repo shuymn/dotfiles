@@ -1,6 +1,7 @@
 ---
-name: sdd
+name: spec-driven-development
 description: Perform spec-driven development by creating requirements, design, and implementation plan documents. Use when the user wants to follow a structured development approach with separate requirement, design, and planning phases before implementation. Works through a 5-phase process to ensure thorough planning.
+allowed-tools: [Bash, Read, Write, Edit, TodoWrite, Grep, Glob, Task]
 ---
 
 # Spec-Driven Development
@@ -11,7 +12,6 @@ We will perform spec-driven development using Claude Code.
 
 Spec-driven development is a development methodology consisting of the following 5 phases.
 When writing documentation, prioritize using Mermaid notation over ASCII art.
-Think carefully and work hard on everything you do at ULTRATHINK.
 
 ### 1. Preparation Phase
 

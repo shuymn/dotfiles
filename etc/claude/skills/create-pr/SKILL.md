@@ -1,6 +1,7 @@
 ---
 name: create-pr
 description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions. Works with GitHub repositories using the github MCP server.
+allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ---
 
 # Create Pull Request on GitHub from Committed Changes
