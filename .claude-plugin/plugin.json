@@ -1,0 +1,9 @@
+{
+  "name": "shuymn-skills",
+  "version": "0.0.1",
+  "description": "Development workflow skills for git commits, PR creation, spec-driven development, and AI review triage",
+  "author": {
+    "name": "shuymn"
+  },
+  "skills": "./etc/claude/skills/"
+}
