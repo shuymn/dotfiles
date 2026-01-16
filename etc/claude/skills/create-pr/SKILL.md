@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions and --base flag to specify target branch. Works with GitHub repositories using the github MCP server.
+description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions, --base flag to specify target branch, and --update flag to update existing PR. Works with GitHub repositories using the github MCP server.
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ---
 
@@ -55,6 +55,20 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
   - `/create-pr --base=develop` → Creates PR to develop branch
   - `/create-pr --base=release/v2.0` → Creates PR to release branch
   - `/create-pr --japanese --base=develop` → Japanese PR to develop branch
+
+## Update PR Support
+
+**--update**: Updates an existing pull request instead of creating a new one
+
+- Use when you've added commits to a branch that already has an open PR
+- Finds the existing PR for the current branch
+- Updates PR title and description based on all commits
+- Useful after addressing review comments or adding more changes
+- Examples:
+  - `/create-pr --update` → Updates existing PR for current branch
+  - `/create-pr --update --japanese` → Updates PR with Japanese description
+- **Note**: Only works if an open PR exists for the current branch
+- If no PR is found, will notify the user (does not create a new PR)
 
 ## Your Task
 
@@ -161,6 +175,8 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 
 ### 5. Execution Steps
 
+#### Standard Flow (Create New PR)
+
 0. **Determine base branch**:
    - If `--base=<branch>` specified: Use the specified branch
    - Otherwise: Use repository default branch (`git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@'`)
@@ -189,9 +205,52 @@ Based on the above context (focusing ONLY on committed changes), create and subm
    - Confirm success
    - Explain any errors clearly
 
+#### Update Flow (--update flag)
+
+0. **Get current branch**:
+   ```bash
+   git branch --show-current
+   ```
+
+1. **Find existing PR for current branch**:
+   ```
+   mcp__github__list_pull_requests:
+   - state: open
+   - head: [repository owner]:[current branch]
+   ```
+
+2. **Verify PR exists**:
+   - If no PR found: Notify user and exit (do NOT create new PR)
+   - If PR found: Extract PR number and current base branch
+
+3. **Ensure latest changes are pushed**:
+   ```bash
+   git push origin [current branch name]
+   ```
+
+4. **Prepare updated PR content**:
+   - Generate new title summarizing all commits
+   - Create new PR body following template or standard format
+   - Analyze all commits against the PR's base branch
+
+5. **Update pull request**:
+   ```
+   mcp__github__update_pull_request:
+   - pull_number: [PR number from step 2]
+   - title: [Generated title in selected language]
+   - body: [Generated body in selected language]
+   ```
+
+6. **After update**:
+   - Provide PR URL
+   - Confirm successful update
+   - Explain any errors clearly
+
 ## Important Notes
 - ONLY analyze committed changes (ignore uncommitted work)
 - Notify if no commits exist between branches
 - Focus on what was committed, not work in progress
 - Be concise, avoid redundancy across sections
-- Actually CREATE the PR using mcp__github__create_pull_request
+- **Without --update**: CREATE new PR using mcp__github__create_pull_request
+- **With --update**: UPDATE existing PR using mcp__github__update_pull_request
+- **With --update**: If no PR exists, notify user and DO NOT create new PR
