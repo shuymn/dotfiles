@@ -105,7 +105,7 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
    - Group changes by their purpose
    - Plan separate commits for each unit
    - NEVER proceed if changes are mixed
-   - **If uncertain about grouping**: Use human-in-the-loop tools (or ask directly if unavailable)
+   - **If uncertain about grouping**: Use AskUserQuestionTool
 2. **Check state**: `git status`
 3. **For EACH logical unit separately**:
    - **Stage ONLY related files**: `git add <specific-files>` or `git add -p`
@@ -149,15 +149,10 @@ When a single file contains multiple logical changes, use `git add -p`:
 
 **If you have LOW CONFIDENCE about whether changes belong together:**
 
-1. **FIRST: Use human-in-the-loop tools** (if available)
+1. **Use AskUserQuestionTool**:
    - Present the changes you're unsure about
    - Explain your reasoning for potential groupings
-   - Let the tool guide the decision
-
-2. **IF human-in-the-loop tools are unavailable:**
-   - **STOP and ASK** the user directly
-   - Clearly present the ambiguous changes
-   - Provide grouping options with reasoning
+   - Provide clear options for the user to choose from
    - Wait for user confirmation before proceeding
 
 **Common uncertainty triggers:**

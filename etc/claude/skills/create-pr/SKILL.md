@@ -254,3 +254,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - **Without --update**: CREATE new PR using mcp__github__create_pull_request
 - **With --update**: UPDATE existing PR using mcp__github__update_pull_request
 - **With --update**: If no PR exists, notify user and DO NOT create new PR
+- **Use AskUserQuestionTool** when you need clarification on:
+  - Whether certain commits should be included in the PR
+  - How to categorize or describe ambiguous changes
+  - Which base branch to use if not specified and multiple options exist

@@ -146,3 +146,7 @@ allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
 - Document all verification sources for transparency
 - Be especially careful with security-related changes
 - When in doubt, search multiple sources
+- **Use AskUserQuestionTool** when you need clarification on:
+  - Whether to apply a partially verified suggestion
+  - How to prioritize conflicting recommendations
+  - Whether a security-related change should be applied
