@@ -1,7 +1,6 @@
 ---
-allowed-tools: [Bash, Read, Grep, Glob, TodoWrite, mcp__github__create_pull_request, mcp__github__get_me]
-argument-hint: --japanese
-description: Review committed changes and create a pull request on GitHub (English by default, Japanese with --japanese)
+name: create-pr
+description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions. Works with GitHub repositories using the github MCP server.
 ---
 
 # Create Pull Request on GitHub from Committed Changes
@@ -36,7 +35,7 @@ description: Review committed changes and create a pull request on GitHub (Engli
 
 ## Language Support
 
-**Default**: English  
+**Default**: English
 **--japanese**: Creates PR in Japanese
 
 ## Your Task
@@ -109,9 +108,9 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 [コミットからの実装アプローチ]
 
 ## 影響範囲
-- 影響を受ける機能：[コミットにより影響を受ける機能]
-- 影響を受けるファイル：[変更された主要ファイル]
-- 破壊的変更：[あり/なし]
+- 影響を受ける機能:[コミットにより影響を受ける機能]
+- 影響を受けるファイル:[変更された主要ファイル]
+- 破壊的変更:[あり/なし]
 
 ## テスト方法
 1. [テスト手順1]
@@ -120,7 +119,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 ## チェックリスト
 - [ ] コードは正常に動作することを確認した
 - [ ] 適切なテストを追加/更新した
-- [ ] ドキュメントを更新した（必要な場合）
+- [ ] ドキュメントを更新した(必要な場合)
 - [ ] LintやFormatterを実行した
 - [ ] 破壊的変更がある場合は明記した
 

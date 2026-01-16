@@ -1,7 +1,6 @@
 ---
-allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
-argument-hint: --japanese | --branch
-description: Create meaningful git commits by analyzing changes and committing in logical units
+name: commit
+description: Create meaningful git commits by analyzing changes and committing in logical units. Use when the user wants to commit changes to git, requests commit creation, or asks to save changes to version control. Supports --japanese flag for Japanese commit messages and --branch flag to create a new branch before committing.
 ---
 
 # Commit in Meaningful Units

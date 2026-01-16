@@ -1,6 +1,6 @@
 ---
-allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, mcp__github__get_pull_request_reviews, mcp__github__get_pull_request_comments, mcp__github__get_pull_request, mcp__gemini__google-search, mcp__openai__openai-search]
-description: Fetch PR review comments from AI reviewers, verify accuracy, and apply valid fixes
+name: triage-review
+description: Fetch PR review comments from AI reviewers, verify accuracy, and apply valid fixes. Use when the user wants to process AI code review comments, apply AI reviewer suggestions, or verify and implement automated code review feedback. Works with GitHub PRs and uses web search to verify AI claims before applying changes.
 ---
 
 # Apply Verified Fixes from AI Review Comments
@@ -30,40 +30,40 @@ description: Fetch PR review comments from AI reviewers, verify accuracy, and ap
 
 2. **Verify Each AI Suggestion**
    For each AI comment, perform fact-checking:
-   
+
    a) **Extract Technical Claims**
       - API usage recommendations
       - Security vulnerability claims
       - Performance optimization suggestions
       - Best practice recommendations
-      
+
     b) **Verify Using Web Search**
       Use BOTH mcp__gemini__google-search and mcp__openai__openai-search with the SAME query to cross-verify information:
-      
-      - **Search Strategy**: 
+
+      - **Search Strategy**:
         1. Send identical queries to both search tools
         2. Compare results from both sources
         3. Look for consensus or discrepancies
         4. Prioritize information that appears in both results
-      
+
       - **Verification Process**:
         - API/Method validation: Search "[language] [method_name] documentation" in both tools
         - Security claims: Search "[vulnerability] CVE [year]" and compare findings
         - Performance claims: Search "[technique] benchmark comparison" across both engines
         - Best practices: Search "[technology] official best practices" and verify consistency
-      
+
       - **Cross-Verification Examples**:
         ```
         Query: "React useEffect cleanup function best practice"
         → Compare if both tools return similar official React documentation
-        
+
         Query: "Log4j CVE-2021-44228 vulnerability details"
         → Verify if both tools confirm the same security issue
-        
+
         Query: "Python list comprehension vs for loop performance"
         → Check if benchmarks from both searches align
         ```
-      
+
       - **Decision Criteria**:
         - ✅ Apply if: Both tools confirm the same information
         - ⚠️ Review carefully if: Results differ between tools
@@ -71,18 +71,18 @@ description: Fetch PR review comments from AI reviewers, verify accuracy, and ap
 
 3. **Categorize Verified Suggestions**
    After verification, classify each suggestion:
-   
+
    **✅ Verified & Apply**:
    - Confirmed security vulnerabilities
    - Documented API misuse
    - Proven performance issues
    - Official best practices
-   
+
    **⚠️ Partially Verified**:
    - Mixed opinions in community
    - Context-dependent improvements
    - Style preferences with some backing
-   
+
    **❌ Incorrect/Unverified**:
    - Outdated recommendations
    - Non-existent APIs/methods
@@ -106,7 +106,7 @@ description: Fetch PR review comments from AI reviewers, verify accuracy, and ap
    - After each topic fix:
      1. Save the modified files
      2. Create a focused commit
-   
+
    **Commit Guidelines**:
    - One commit per logical fix topic
    - Group related changes in same file(s) together
@@ -146,4 +146,3 @@ description: Fetch PR review comments from AI reviewers, verify accuracy, and ap
 - Be especially careful with security-related changes
 - When in doubt, search multiple sources
 - ULTRATHINK. DO YOUR BEST.
-
