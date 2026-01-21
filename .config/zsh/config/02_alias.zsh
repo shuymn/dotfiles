@@ -163,8 +163,3 @@ fi
 if has "kitty"; then
   alias kish="kitty +kitten ssh"
 fi
-
-if has "deno"; then
-  alias ccusage="deno run --allow-env --allow-read=\"$HOME/.cache/deno/node_modules,$HOME/.cache/node_modules,$HOME/node_modules,/Users/node_modules,/node_modules,$TMPDIR,$HOME/.config/claude,$HOME/.claude\" --allow-sys=homedir --allow-net='raw.githubusercontent.com:443' npm:ccusage@latest"
-  alias ccresume="deno run --allow-env --allow-read=\"$HOME/.claude/projects/,$HOME/.cache/deno/node_modules,$HOME/.cache/node_modules,$HOME/node_modules,/Users/node_modules,/node_modules\" --allow-sys=homedir npm:@sasazame/ccresume@latest"
-fi
