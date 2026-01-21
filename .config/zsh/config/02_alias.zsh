@@ -42,70 +42,70 @@ if has "fzf"; then
 
     while [ $# -ge 0 ]; do
       case "$1" in
-      -a | --all)
-        all=true
-        shift 1
-        ;;
-      *)
-        local target && target="$1"
-        local branches && branches=$(git branch | sed -e 's/[ +*]//g')
+        -a | --all)
+          all=true
+          shift 1
+          ;;
+        *)
+          local target && target="$1"
+          local branches && branches=$(git branch | sed -e 's/[ +*]//g')
 
-        if [ "$all" = false ]; then
-          branches=$(echo "$branches" | grep -x -f- --color=never <(git reflog | awk '$3 ~ /checkout/ {print $8}' | awk '!c[$1]++ {print $1}'))
-        fi
+          if [ "$all" = false ]; then
+            branches=$(echo "$branches" | grep -x -f- --color=never <(git reflog | awk '$3 ~ /checkout/ {print $8}' | awk '!c[$1]++ {print $1}'))
+          fi
 
-        if [ -n "$target" ]; then
-          if [[ $target =~ ^-?[0-9]+([.][0-9]+)?$ ]]; then
-            local ba && IFS=$'\n' ba=($(echo $branches))
-            local branch && branch=${ba[$((target + 1))]}
+          if [ -n "$target" ]; then
+            if [[ $target =~ ^-?[0-9]+([.][0-9]+)?$ ]]; then
+              local ba && IFS=$'\n' ba=($(echo $branches))
+              local branch && branch=${ba[$((target + 1))]}
 
-            if [ -z "$branch" ]; then
-              echo "branch #$target does not exist"
+              if [ -z "$branch" ]; then
+                echo "branch #$target does not exist"
+                return
+              fi
+
+              git switch "$branch"
               return
             fi
 
-            git switch "$branch"
-            return
-          fi
+            # 明示的にブランチを指定された場合は reflogで絞った一覧ではなく、参照の存在で判断する
+            # master/mainは相互にフォールバックする
+            local -a candidates
+            if [ "$target" = "master" ]; then
+              candidates=("master" "main")
+            elif [ "$target" = "main" ]; then
+              candidates=("main" "master")
+            else
+              candidates=("$target")
+            fi
 
-          # 明示的にブランチを指定された場合は reflogで絞った一覧ではなく、参照の存在で判断する
-          # master/mainは相互にフォールバックする
-          local -a candidates
-          if [ "$target" = "master" ]; then
-          candidates=("master" "main")
-          elif [ "$target" = "main" ]; then
-            candidates=("main" "master")
-          else
-            candidates=("$target")
-          fi
-
-          local name
-          for name in "${candidates[@]}"; do
-            # 1: ローカルブランチがあればそれに切り替え
-            if git show-ref --verify --quiet "refs/heads/$name"; then
+            local name
+            for name in "${candidates[@]}"; do
+              # 1: ローカルブランチがあればそれに切り替え
+              if git show-ref --verify --quiet "refs/heads/$name"; then
                 if [ "$name" != "$target" ]; then
-                    echo "branch '$target' does not exist; switched to '$name'" >&2
+                  echo "branch '$target' does not exist; switched to '$name'" >&2
                 fi
                 git switch "$name"
                 return
-            fi
-            # 2: originにだけあるならtrackingで作って切り替え
-            if git show-ref --verify --quiet "refs/remotes/origin/$name"; then
+              fi
+              # 2: originにだけあるならtrackingで作って切り替え
+              if git show-ref --verify --quiet "refs/remotes/origin/$name"; then
                 if [ "$name" != "$target" ]; then
-                    echo "branch '$target' does not exist; switched to '$name'" >&2
+                  echo "branch '$target' does not exist; switched to '$name'" >&2
                 fi
                 git switch --track "origin/$name"
                 return
-            fi
-          done
+              fi
+            done
 
-          echo "branch '$target' does not exist"
+            echo "branch '$target' does not exist"
+            return
+          fi
+
+          local branch && branch=$(echo "$branches" | fzf +m) && git switch "$branch"
           return
-        fi
-
-        local branch && branch=$(echo "$branches" | fzf +m) && git switch "$branch"
-        return
-        ;;
+          ;;
       esac
     done
   }

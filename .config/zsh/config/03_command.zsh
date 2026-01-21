@@ -7,11 +7,11 @@ ssh() {
     local pane_id="$(tmux display -p '#{pane_id}')"
     local style="default"
     case "$1" in
-    *.local) ;;
+      *.local) ;;
 
-    *)
-      style="bg=colour52,fg=white"
-      ;;
+      *)
+        style="bg=colour52,fg=white"
+        ;;
     esac
     tmux select-pane -P "$style"
     command ssh $@
@@ -26,7 +26,7 @@ update() {
     echo "[update] brew"
     brew upgrade --fetch-HEAD
 
-    if uname | grep Darwin 1>/dev/null 2>&1; then
+    if uname | grep Darwin 1> /dev/null 2>&1; then
       echo "[update] brew cask"
       brew upgrade --cask
     fi
@@ -36,7 +36,7 @@ update() {
     topgrade
     echo ""
   else
-    if has apt && uname -a | grep -v Darwin 1>/dev/null 2>&1; then
+    if has apt && uname -a | grep -v Darwin 1> /dev/null 2>&1; then
       echo "[update] apt"
       sudo apt update && sudo apt upgrade -y
     fi
@@ -112,30 +112,30 @@ godl() {
 
   while [[ $# -gt 0 ]]; do
     case $1 in
-    latest)
-      version=$(https 'go.dev/dl/?mode=json' | jq -r '.[] | select(.stable == true) | .version' | head -n 1)
-      shift
-      ;;
-    --no-update)
-      update_goroot=false
-      shift
-      ;;
-    -h | --help)
-      echo "Usage: godl [latest|<version>] [--no-update]"
-      echo "  latest        Install the latest stable version of Go"
-      echo "  <version>     Install a specific version of Go"
-      echo "  --no-update   Install without setting GOROOT"
-      return 0
-      ;;
-    *)
-      if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        version="go$1"
+      latest)
+        version=$(https 'go.dev/dl/?mode=json' | jq -r '.[] | select(.stable == true) | .version' | head -n 1)
         shift
-      else
-        echo "\"$version\" is invalid version format. Abort."
-        return 1
-      fi
-      ;;
+        ;;
+      --no-update)
+        update_goroot=false
+        shift
+        ;;
+      -h | --help)
+        echo "Usage: godl [latest|<version>] [--no-update]"
+        echo "  latest        Install the latest stable version of Go"
+        echo "  <version>     Install a specific version of Go"
+        echo "  --no-update   Install without setting GOROOT"
+        return 0
+        ;;
+      *)
+        if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          version="go$1"
+          shift
+        else
+          echo "\"$version\" is invalid version format. Abort."
+          return 1
+        fi
+        ;;
     esac
   done
 
@@ -154,7 +154,7 @@ godl() {
     if grep -q "export GOROOT=" "$config_file"; then
       local temp_file && temp_file=$(mktemp)
       local new_goroot_line='export GOROOT=$('$version' env GOROOT)'
-      awk -v new_line="$new_goroot_line" '/export GOROOT=/ {print new_line; next} {print}' $config_file >"$temp_file" &&
+      awk -v new_line="$new_goroot_line" '/export GOROOT=/ {print new_line; next} {print}' $config_file > "$temp_file" &&
         mv "$temp_file" "$config_file" &&
         echo "Updated GOROOT"
     else
