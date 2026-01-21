@@ -111,6 +111,50 @@ if has "fzf"; then
   }
   alias cb='change-branch'
 
+  # Local/Remote branch selector (zsh)
+  # Usage:
+  #   lsb              # local branches
+  #   lsb --remote     # remote branches (origin/*), outputs without "origin/"
+  # Examples:
+  #   git switch "$(lsb)"
+  #   git switch -c "$(lsb --remote)" --track "origin/$(lsb --remote)"
+  lsb() {
+    emulate -L zsh
+    setopt pipefail no_aliases
+
+    local remote=0
+    if [[ "${1:-}" == "--remote" || "${1:-}" == "-r" ]]; then
+      remote=1
+    elif [[ -n "${1:-}" ]]; then
+      print -u2 "usage: lsb [--remote|-r]"
+      return 2
+    fi
+
+    local preview_cmd
+    local selection
+
+    if ((remote)); then
+      # List origin/*, strip "origin/", sort by latest commit epoch, show branch in fzf
+      preview_cmd='git log -n 30 --date=short --pretty=format:"%C(auto)%h %ad %d %s" origin/{}'
+      selection="$(
+        git for-each-ref --sort=-committerdate refs/remotes/origin --format='%(refname:short)' |
+          grep -vE '^(origin/HEAD|origin)$' |
+          sed 's#^origin/##' |
+          fzf --prompt='remote> ' --preview "$preview_cmd"
+      )" || return
+    else
+      # Local refs/heads, sort by latest commit epoch, show branch in fzf
+      preview_cmd='git log -n 30 --date=short --pretty=format:"%C(auto)%h %ad %d %s" {}'
+      selection="$(
+        git for-each-ref --sort=-committerdate refs/heads --format='%(refname:short)' |
+          fzf --prompt='branch> ' --preview "$preview_cmd"
+      )" || return
+    fi
+
+    [[ -n "$selection" ]] && print -r -- "$selection"
+  }
+  alias lsbr='lsb --remote'
+
   if has "ghq"; then
     change-repository() {
       if [ -n "$1" ]; then
