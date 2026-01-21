@@ -123,12 +123,27 @@ if has "fzf"; then
     setopt pipefail no_aliases
 
     local remote=0
-    if [[ "${1:-}" == "--remote" || "${1:-}" == "-r" ]]; then
-      remote=1
-    elif [[ -n "${1:-}" ]]; then
-      print -u2 "usage: lsb [--remote|-r]"
-      return 2
-    fi
+    local author=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --remote | -r)
+          remote=1
+          shift
+          ;;
+        --author)
+          author="${2:-}"
+          shift 2
+          ;;
+        --author=*)
+          author="${1#*=}"
+          shift
+          ;;
+        *)
+          print -u2 "usage: lsb [--remote|-r] [--author <pattern>]"
+          return 2
+          ;;
+      esac
+    done
 
     local preview_cmd
     local selection
@@ -140,6 +155,14 @@ if has "fzf"; then
         git for-each-ref --sort=-committerdate refs/remotes/origin --format='%(refname:short)' |
           grep -vE '^(origin/HEAD|origin)$' |
           sed 's#^origin/##' |
+          while IFS= read -r br; do
+            if [[ -n "$author" ]]; then
+                # local と代入を分けると local の終了ステータス(常に0)が標準出力されるため1行で書く
+                local tip="$(git log -1 --format='%an <%ae>' "origin/$br" 2>/dev/null)" || continue
+                [[ "$tip" =~ "$author" ]] || continue
+            fi
+            print -r -- "$br"
+          done |
           fzf --prompt='remote> ' --preview "$preview_cmd"
       )" || return
     else
