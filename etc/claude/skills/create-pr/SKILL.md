@@ -171,7 +171,18 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - Use appropriate technical Japanese
 - Keep English proper nouns (libraries, functions) as-is
 - Use clear Japanese without honorifics
-- Use である調 for professional tone
+- Use ですます調 for paragraph-style sentences
+- For bullet points, use である調 or noun-ending style (体言止め)
+- Omit final punctuation in bullet points (no `。`)
+
+**Escaping Rules (Important):**
+- For GitHub MCP tools (`mcp__github__create_pull_request`, `mcp__github__update_pull_request`):
+  - Pass `body` as raw Markdown text
+  - Do NOT escape backticks in Markdown (use `` `code` ``, never `\`code\``)
+  - If generated text contains `\` before backticks, normalize it to plain backticks before tool call
+- For `gh` CLI commands:
+  - Prefer `--body-file` to avoid shell-escaping issues
+  - If inline body is unavoidable, use a single-quoted heredoc (`<<'EOF'`) so backticks are preserved as-is
 
 ### 5. Execution Steps
 
@@ -190,12 +201,13 @@ Based on the above context (focusing ONLY on committed changes), create and subm
    - Generate appropriate title summarizing commits
    - Create PR body following template or standard format
    - Analyze commits against the determined base branch
+   - Apply escaping rules based on execution method (MCP vs `gh`)
 
 3. **Create pull request**:
    ```
    mcp__github__create_pull_request:
    - title: [Generated title in selected language]
-   - body: [Generated body in selected language]
+   - body: [Raw Markdown body in selected language; do NOT escape backticks]
    - head: [Current branch]
    - base: [Determined base branch from step 0]
    ```
@@ -232,13 +244,14 @@ Based on the above context (focusing ONLY on committed changes), create and subm
    - Generate new title summarizing all commits
    - Create new PR body following template or standard format
    - Analyze all commits against the PR's base branch
+   - Apply escaping rules based on execution method (MCP vs `gh`)
 
 5. **Update pull request**:
    ```
    mcp__github__update_pull_request:
    - pull_number: [PR number from step 2]
    - title: [Generated title in selected language]
-   - body: [Generated body in selected language]
+   - body: [Raw Markdown body in selected language; do NOT escape backticks]
    ```
 
 6. **After update**:
