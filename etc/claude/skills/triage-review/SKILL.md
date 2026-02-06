@@ -39,36 +39,37 @@ allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
       - Best practice recommendations
 
     b) **Verify Using Web Search**
-      Use BOTH mcp__gemini__google-search and mcp__openai__openai-search with the SAME query to cross-verify information:
+      Use the agent's available Web Search Tool(s) with the SAME query to cross-verify information:
 
       - **Search Strategy**:
-        1. Send identical queries to both search tools
-        2. Compare results from both sources
+        1. Send identical queries to all available web search tools
+        2. Compare results across tools and sources
         3. Look for consensus or discrepancies
-        4. Prioritize information that appears in both results
+        4. Prioritize information that appears in multiple reliable sources
+        5. If only one web search tool is available, cross-check with multiple independent sources
 
       - **Verification Process**:
-        - API/Method validation: Search "[language] [method_name] documentation" in both tools
+        - API/Method validation: Search "[language] [method_name] documentation" across available tool(s)
         - Security claims: Search "[vulnerability] CVE [year]" and compare findings
-        - Performance claims: Search "[technique] benchmark comparison" across both engines
+        - Performance claims: Search "[technique] benchmark comparison" and compare sources
         - Best practices: Search "[technology] official best practices" and verify consistency
 
       - **Cross-Verification Examples**:
         ```
         Query: "React useEffect cleanup function best practice"
-        → Compare if both tools return similar official React documentation
+        → Compare whether multiple sources return similar official React documentation
 
         Query: "Log4j CVE-2021-44228 vulnerability details"
-        → Verify if both tools confirm the same security issue
+        → Verify whether multiple sources confirm the same security issue
 
         Query: "Python list comprehension vs for loop performance"
-        → Check if benchmarks from both searches align
+        → Check whether benchmark conclusions align across sources
         ```
 
       - **Decision Criteria**:
-        - ✅ Apply if: Both tools confirm the same information
-        - ⚠️ Review carefully if: Results differ between tools
-        - ❌ Skip if: Neither tool can verify the claim
+        - ✅ Apply if: Multiple reliable sources confirm the same information
+        - ⚠️ Review carefully if: Results differ between tools/sources
+        - ❌ Skip if: No reliable source can verify the claim
 
 3. **Categorize Verified Suggestions**
    After verification, classify each suggestion:
@@ -106,13 +107,6 @@ allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
    - Apply verified changes ONE topic at a time
    - After each topic fix:
      1. Save the modified files
-     2. Create a focused commit
-
-   **Commit Guidelines**:
-   - One commit per logical fix topic
-   - Group related changes in same file(s) together
-   - Keep commits atomic and reversible
-   - Use Conventional Commits format
 
 6. **Final Report in Japanese**
    ```markdown
