@@ -108,8 +108,11 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
    - **If uncertain about grouping**: Use AskUserQuestionTool
 2. **Check state**: `git status`
 3. **For EACH logical unit separately**:
-   - **Stage ONLY related files**: `git add <specific-files>` or `git add -p`
+   - **Stage ONLY related files**:
+     - For whole-file commits: `git add <specific-files>`
+     - For partial staging within a file: follow **Patch-Based Partial Staging**
    - **Verify staged changes**: `git diff --cached` - ensure ONLY one logical change
+   - **If staging is wrong**: STOP and ask user before proceeding; do NOT use `git restore` or any `git reset` command to "fix" partial commit state
    - **Commit**: `git commit -m "type(scope): description"`
    - **Confirm**: `git log --oneline -1`
 4. **Repeat for next logical unit** until all changes are committed
@@ -124,18 +127,43 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 5. **Create branch**: `git switch -c <branch-name>`
    - **CRITICAL**: This step is MANDATORY when `--branch` is specified
 6. **For EACH logical unit separately**:
-   - **Stage ONLY related files**: `git add <specific-files>` or `git add -p`
+   - **Stage ONLY related files**:
+     - For whole-file commits: `git add <specific-files>`
+     - For partial staging within a file: follow **Patch-Based Partial Staging**
    - **Verify staged changes**: `git diff --cached` - ensure ONLY one logical change
+   - **If staging is wrong**: STOP and ask user before proceeding; do NOT use `git restore` or any `git reset` command to "fix" partial commit state
    - **Commit**: `git commit -m "type(scope): description"`
    - **Confirm**: `git log --oneline -1`
 7. **Repeat for next logical unit** until all changes are committed
 
-### Interactive Staging for Mixed Files
+### Patch-Based Partial Staging
 
-When a single file contains multiple logical changes, use `git add -p`:
-- Review each hunk carefully
-- Stage ONLY hunks related to the current logical unit
-- Leave unrelated changes for separate commits
+When a file contains multiple logical changes, stage partial changes via editable patch:
+1. Export the full diff for target files:
+   - `git diff -- <target-file> > /tmp/partial-stage.patch`
+   - Or multiple files: `git diff -- <file1> <file2> > /tmp/partial-stage.patch`
+2. Keep a backup of the original patch:
+   - `cp /tmp/partial-stage.patch /tmp/partial-stage.full.patch`
+3. Edit `/tmp/partial-stage.patch` and remove hunks unrelated to the current logical unit
+4. Validate before applying:
+   - `git apply --check --cached /tmp/partial-stage.patch`
+5. Apply patch to index only (working tree remains unchanged):
+   - `git apply --cached /tmp/partial-stage.patch`
+6. Verify split is correct:
+   - `git diff --cached`
+   - `git diff`
+7. If check/apply fails, STOP and ask user how to proceed
+
+### Prohibited Commands During Partial Commit Preparation
+
+To prevent accidental data loss, the following are NOT allowed while splitting changes into logical commits:
+- Any `git restore ...` command
+- Any `git reset ...` command
+- Any `git checkout -- ...` command (or `git checkout -f`)
+- Any `git switch --discard-changes ...` command
+- Any `git clean ...` command (e.g. `git clean -fd`, `git clean -fdx`)
+
+If these commands seem necessary, pause and ask the user for explicit direction instead of executing them.
 
 ## Identifying Meaningful Units
 
@@ -201,10 +229,11 @@ How would you like me to group these changes?
 2. **NEVER mix different types of changes** - No exceptions
 3. **Each commit must be independently valid** - Code works after every commit
 4. **Commit message must describe ONE thing** - If you need "and", make separate commits
+5. **Do NOT use local reset/discard commands to adjust partial commit scope** (`git restore`, `git reset`, `git checkout --`, `git checkout -f`, `git switch --discard-changes`, `git clean`) - Stop and ask user instead
 
 ### Additional Guidelines:
 - Use clear, specific messages
-- Use `git add -p` for surgical precision when needed
+- Use patch-based partial staging (`git diff` + edit + `git apply --cached`) when partial file staging is needed
 - If unsure, err on the side of MORE commits, not fewer
 
 ## Character Count
@@ -224,6 +253,15 @@ If commit-msg hook fails:
 - Show full error to user
 - Ask how to proceed
 - Don't bypass hooks
+
+## Signing Errors (1Password/GPG/SSH)
+If commit signing fails (for example with 1Password or other signing agents):
+- Read and show the exact error to the user
+- STOP the commit workflow and ask the user how to proceed
+- Do NOT modify git signing config to force commit success
+- Do NOT run `git config` changes for signing bypass (e.g. `git config commit.gpgsign false`, `git config --global commit.gpgsign false`)
+- Do NOT run bypass options such as `--no-gpg-sign` or `-c commit.gpgsign=false`
+- Wait for user instruction after reporting the failure
 
 ## ⚠️ Common Anti-Patterns to Avoid
 
