@@ -172,7 +172,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - Keep English proper nouns (libraries, functions) as-is
 - Use clear Japanese without honorifics
 - Use ですます調 for paragraph-style sentences
-- For bullet points, use である調 or noun-ending style (体言止め)
+- For bullet points, use だ・である調 or noun-ending style (体言止め)
 - Omit final punctuation in bullet points (no `。`)
 
 **Escaping Rules (Important):**
