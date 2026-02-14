@@ -94,6 +94,7 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 **Rules:**
 - Max 50 characters for subject line
 - Imperative mood (English) / である調 (Japanese)
+- Start English subject with lowercase (e.g., `fix bug`, not `Fix bug`)
 - No period at end
 - Format: `type(scope): subject`
 
