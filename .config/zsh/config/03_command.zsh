@@ -32,6 +32,24 @@ update() {
     fi
   fi
 
+  if has claude; then
+    echo "[update] claude"
+    claude update
+    echo ""
+  fi
+
+  if has opencode; then
+    echo "[update] opencode"
+    opencode upgrade
+    echo ""
+  fi
+
+  if has copilot; then
+    echo "[update] copilot"
+    copilot update
+    echo ""
+  fi
+
   if has topgrade; then
     topgrade
     echo ""
