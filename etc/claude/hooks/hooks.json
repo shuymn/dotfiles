@@ -1,17 +1,6 @@
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/check-commit-intent.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
+    "PreToolUse": [],
     "Notification": [
       {
         "matcher": "",
