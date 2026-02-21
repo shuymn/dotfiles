@@ -128,7 +128,7 @@ Order tasks to build incrementally, with each task building on the previous:
 
 1. Read the design doc specified by the user (or ask which one to use if not specified)
 2. Read the Acceptance Criteria section carefully — these drive the task list
-3. Read all related ADRs to understand design decisions and constraints
+3. Read ADRs linked in the design doc's Decision Log — only those, not all ADRs in the directory
 4. Identify the tech stack and testing framework
 
 ### Step 2: Analyze and Decompose
