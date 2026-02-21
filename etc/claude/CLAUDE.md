@@ -1,58 +1,26 @@
-## Requirements Interpretation Rules
+<!-- Do not restructure or delete sections. Update inline when behavior changes. -->
 
-### Handling Ambiguous Requirements
+## Core Principles
 
-- **No Guessing**: Always ask questions about unclear points
-- **Tooling**: If requirements are ambiguous, use **AskUserQuestionTool** to conduct a short hearing and capture answers.
-- **Confirmation Priority**: Confirm with "Is my understanding that ○○ correct?"
-- **Minimal Execution**: Execute only what is explicitly requested
+- Do NOT maintain backward compatibility unless explicitly requested. Break things boldly.
+- Keep this file under 20-30 lines of instructions. Every line competes for the agent's limited context budget.
+- Execute only what is explicitly requested. No unrequested features, no "while we're at it" work.
+- When requirements are ambiguous, ask via AskUserQuestionTool before proceeding. Never guess.
+- Confirm interpretation: "Is my understanding that ○○ correct?"
+- Never hardcode values. Use configuration, environment variables, or constants.
+- Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
+- Bad: User asks "Create a login function" → you add 2FA unrequested. Good: you ask about auth method, session management, and existing libraries first.
 
-### Prohibited Actions Checklist
+## Skill Usage Guide
 
-- [ ] Adding unrequested features
-- [ ] Unauthorized refactoring
-- [ ] Implementation based on assumptions
-- [ ] "While we're at it" work
-- [ ] Expansive interpretation from good intentions
+If there is even a small chance a skill applies, invoke it BEFORE responding.
 
-### Self-Check Before Execution
+**Workflow:** Design needed → `design-doc` | Task breakdown → `decompose-tasks` | Implementation → `execute-plan`
 
-1. Was this explicitly requested? → If NO, don't execute
-2. Does the interpretation include assumptions? → If YES, ask questions
-3. Am I trying to do something "while we're at it"? → If YES, stop
+**Priority:** Process skills first (design-doc, decompose-tasks), then implementation skills (execute-plan, domain-specific).
 
-### Bad Example vs Good Example
+**Red flags — if you think any of these, stop and check skills:** "Just a simple question" / "Let me explore first" / "This skill is overkill" / "I remember this skill" (skills evolve; read current version).
 
-#### ❌ Bad Example
+**Discipline:** Rigid skills (TDD, verification) — follow exactly. Flexible skills (patterns) — adapt to context. The skill itself indicates which.
 
-User: "Create a login function"
-Claude: Security is important too, so I implemented two-factor authentication as well!
-
-#### ✅ Good Example
-
-User: "Create a login function"
-Claude: Let me confirm about the login function:
-
-- Is email/password authentication acceptable?
-- Are there any session management requirements?
-- Is it possible to use existing authentication gems?
-
-## Development Quality Standards
-
-### Hardcoded Values
-
-- **Never use hardcoded values**: Always use configuration files, environment variables, or constants
-- **Pre-commit check**: Review all code for hardcoded values before suggesting commits
-- **Dynamic over static**: Prefer parameterized solutions over fixed values
-
-### Prohibited Development Practices
-
-**Never compromise code quality to bypass errors:**
-
-- [ ] Relaxing conditions just to pass tests or type checks
-- [ ] Skipping tests or using inappropriate mocks to avoid real issues
-- [ ] Hardcoding expected outputs or responses
-- [ ] Ignoring, suppressing, or hiding error messages
-- [ ] Applying temporary fixes that defer problems
-
-**Always address root causes**: When encountering errors, investigate and fix the underlying issue rather than working around it.
+<!-- Maintenance: Review this file when adding/removing skills or changing core workflow. Keep each line high-density — if it can be inferred from code or linters, remove it. -->
