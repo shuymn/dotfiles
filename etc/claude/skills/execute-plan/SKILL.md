@@ -33,11 +33,10 @@ Execute tasks in batches of **3 tasks** (default). For each task:
 
 1. **Mark** the task as `in_progress` in TodoWrite
 2. **Follow each step exactly** as written in the plan:
-   - Step 1: Write the failing test (copy the exact code from the plan)
-   - Step 2: Run the test command and verify it fails with the expected error
-   - Step 3: Write the minimal implementation (copy the exact code from the plan)
-   - Step 4: Run the test command and verify it passes
-   - Step 5: Execute the commit command from the plan
+   - **RED**: Write the failing test. If the test references types, functions, or modules that don't exist yet, add minimal stubs (empty definitions, placeholder return values) so the code **compiles**. Run the test and confirm it **compiles and runs but fails** (assertion error, not-yet-implemented panic, or wrong value). A compilation error is NOT RED — it means scaffolding is incomplete; add stubs until the test runner actually executes the test.
+   - **GREEN**: Write the minimal implementation to make the test pass. Run the test and verify it passes.
+   - **REFACTOR** (if needed): Clean up duplication or structure while keeping all tests green.
+   - Execute the commit command from the plan.
 3. **Verify before moving on**: After each step, confirm the actual result matches the expected result in the plan
 4. **Mark** the task as `completed` in TodoWrite
 
@@ -82,7 +81,8 @@ After ALL tasks in the plan are completed:
 
 **Stop executing immediately** and ask the user for guidance when:
 
-- A test does not fail as expected in Step 2 (wrong error or passes unexpectedly)
+- A test does not compile after adding stubs (RED scaffolding incomplete)
+- A test does not fail as expected in RED (wrong error, compilation error instead of assertion failure, or passes unexpectedly)
 - A test does not pass after implementing Step 3
 - A commit fails (hook error, signing error, merge conflict)
 - A dependency is missing that the plan did not account for
