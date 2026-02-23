@@ -1,21 +1,15 @@
 ---
 name: commit
-description: Create meaningful git commits by analyzing changes and committing in logical units. Use when the user wants to commit changes to git, requests commit creation, or asks to save changes to version control. Supports --japanese flag for Japanese commit messages and --branch flag to create a new branch before committing.
+description: Creates meaningful git commits by analyzing changes and committing in logical units. Use when the user wants to commit changes to git, requests commit creation, or asks to save changes to version control. Supports --japanese flag for Japanese commit messages and --branch flag to create a new branch before committing.
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ---
 
 # Commit in Meaningful Units
 
-## ⚠️ CRITICAL: Only Execute When Explicitly Invoked
+## ⚠️ Only Execute When Explicitly Invoked
 
-**This skill MUST ONLY run when the user explicitly invokes the `/commit` command.**
-
-- **NEVER** create commits automatically or proactively
-- **NEVER** commit changes as part of another task or workflow
-- **ONLY** execute when the user explicitly types `/commit` or directly requests commit creation
-- If you complete a task that results in file changes, **DO NOT** commit them unless specifically asked
-
-**This is a fundamental safety requirement to prevent unintended commits.**
+This skill runs only via `/commit`. Never create commits automatically or as part of another task.
 
 ## 🚨 FUNDAMENTAL PRINCIPLE: One Logical Change Per Commit
 
@@ -27,22 +21,7 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 
 ### ❌ NEVER Bundle Unrelated Changes
 
-**Common violations to avoid:**
-- Fixing a bug AND adding a new feature
-- Refactoring code AND changing behavior
-- Updating documentation AND modifying implementation
-- Fixing multiple unrelated bugs in one commit
-- Making style changes alongside functional changes
-
-### ✅ Examples of Meaningful Units
-
-**Good (separate commits):**
-- `fix(auth): handle null user sessions`
-- `refactor(auth): extract session validation logic`
-- `feat(auth): add remember me option`
-
-**Bad (bundled together):**
-- `fix(auth): handle null sessions and add remember me option and refactor validation`
+For examples of good/bad groupings and common scenarios, see [examples.md](references/examples.md).
 
 ## Context
 - Status: !`git status --short`
@@ -139,21 +118,7 @@ allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 
 ### Patch-Based Partial Staging
 
-When a file contains multiple logical changes, stage partial changes via editable patch:
-1. Export the full diff for target files:
-   - `git diff -- <target-file> > /tmp/partial-stage.patch`
-   - Or multiple files: `git diff -- <file1> <file2> > /tmp/partial-stage.patch`
-2. Keep a backup of the original patch:
-   - `cp /tmp/partial-stage.patch /tmp/partial-stage.full.patch`
-3. Edit `/tmp/partial-stage.patch` and remove hunks unrelated to the current logical unit
-4. Validate before applying:
-   - `git apply --check --cached /tmp/partial-stage.patch`
-5. Apply patch to index only (working tree remains unchanged):
-   - `git apply --cached /tmp/partial-stage.patch`
-6. Verify split is correct:
-   - `git diff --cached`
-   - `git diff`
-7. If check/apply fails, STOP and ask user how to proceed
+When a file contains multiple logical changes, use the patch-based approach. See [examples.md](references/examples.md#patch-based-partial-staging) for the full procedure.
 
 ### Prohibited Commands During Partial Commit Preparation
 
@@ -176,52 +141,11 @@ If these commands seem necessary, pause and ask the user for explicit direction 
 
 ### When Uncertain About Grouping
 
-**If you have LOW CONFIDENCE about whether changes belong together:**
+**When uncertain about grouping**, present the changes and options to the user via AskUserQuestionTool. See [examples.md](references/examples.md#when-uncertain-about-grouping--example-prompt) for an example prompt.
 
-1. **Use AskUserQuestionTool**:
-   - Present the changes you're unsure about
-   - Explain your reasoning for potential groupings
-   - Provide clear options for the user to choose from
-   - Wait for user confirmation before proceeding
+### Common Scenarios
 
-**Common uncertainty triggers:**
-- Changes touch related but distinct features
-- Refactoring mixed with small behavior tweaks
-- Multiple files changed for what might be one feature
-- Dependencies between changes are unclear
-- Changes could be seen as either one large feature or multiple small ones
-
-**Example prompt when uncertain:**
-```
-I see changes to both authentication and user profile code. I'm unsure if these should be:
-1. One commit (if profile changes depend on auth changes)
-2. Two commits (if they're independent improvements)
-
-The changes are:
-- auth.js: Added session timeout handling
-- profile.js: Added avatar upload validation
-
-How would you like me to group these changes?
-```
-
-### Common Scenarios Requiring Separate Commits:
-
-**Refactoring + Feature:**
-- COMMIT 1: Refactor existing code (no behavior change)
-- COMMIT 2: Add new feature using refactored structure
-
-**Bug Fix + Test:**
-- COMMIT 1: Add failing test that demonstrates the bug
-- COMMIT 2: Fix the bug (test now passes)
-
-**Multiple Bug Fixes:**
-- COMMIT 1: Fix null pointer in user service
-- COMMIT 2: Fix race condition in cache manager
-- COMMIT 3: Fix memory leak in data processor
-
-**Style + Logic Changes:**
-- COMMIT 1: Fix business logic error
-- COMMIT 2: Format/lint the affected files
+For scenarios requiring separate commits (refactoring + feature, bug fix + test, etc.), see [examples.md](references/examples.md#common-scenarios-requiring-separate-commits).
 
 ## Best Practices
 

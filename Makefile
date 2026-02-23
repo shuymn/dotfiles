@@ -10,6 +10,10 @@ CLAUDE_CANDIDATES := $(shell find $(CLAUDE_BASE) -type f 2>/dev/null)
 CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
 CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 
+CODEX_BASE := $(CLAUDE_BASE)/skills
+CODEX_HOME := $(HOME)/.codex/skills
+CODEX_FILES := $(shell find $(CODEX_BASE) -type f 2>/dev/null)
+
 .DEFAULT_GOAL := help
 
 .PHONY: list
@@ -48,6 +52,15 @@ link-claude: ## Create symlinks to the claude directory
 		mkdir -p $(dir $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file))) && \
 		ln -sfnv $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
 	@echo 'Finish linking claude files'
+
+.PHONY: link-codex
+link-codex: ## Create symlinks to the codex directory
+	@echo 'Start to link codex files'
+	@echo ''
+	@$(foreach file,$(CODEX_FILES), \
+		mkdir -p $(dir $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file))) && \
+		ln -sfnv $(abspath $(file)) $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file));)
+	@echo 'Finish linking codex files'
 
 .PHONY: clean-claude
 clean-claude: ## Remove symlinks from the claude directory

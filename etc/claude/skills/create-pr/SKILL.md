@@ -1,6 +1,7 @@
 ---
 name: create-pr
-description: Review committed changes and create a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions, --base flag to specify target branch, and --update flag to update existing PR. Works with GitHub repositories using the github MCP server.
+description: Reviews committed changes and creates a pull request on GitHub. Use when the user wants to create a PR, requests pull request creation, or asks to open changes for review. Supports --japanese flag for Japanese PR descriptions, --base flag to specify target branch, and --update flag to update existing PR. Works with GitHub repositories using the github MCP server.
+disable-model-invocation: true
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ---
 
@@ -87,77 +88,11 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - Delete empty sections
 - Maintain checklist format (- [ ])
 
-### 3. Standard Format If No Template
+### 3. PR Body Format
 
-**English (Default):**
-```markdown
-## Summary
-[2-3 sentences explaining purpose and background of commits]
-
-## Changes
-- [Major change from commits]
-- [Major change from commits]
-
-## Motivation
-[Why these commits were necessary]
-
-## Technical Details
-[Implementation approach from commits]
-
-## Impact
-- Affected features: [Features affected by commits]
-- Affected files: [Major files changed]
-- Breaking changes: [Yes/No]
-
-## Testing
-1. [Test step 1]
-2. [Test step 2]
-
-## Checklist
-- [ ] Code works as expected
-- [ ] Tests have been added/updated
-- [ ] Documentation has been updated (if necessary)
-- [ ] Linter and formatter have been run
-- [ ] Breaking changes are clearly documented
-
-## Additional Notes
-[Additional information for reviewers]
-```
-
-**Japanese (--japanese):**
-```markdown
-## 概要
-[コミットの目的と背景を2-3文で説明]
-
-## 変更内容
-- [コミットからの主な変更]
-- [コミットからの主な変更]
-
-## 変更理由
-[これらのコミットが必要だった理由]
-
-## 技術的詳細
-[コミットからの実装アプローチ]
-
-## 影響範囲
-- 影響を受ける機能:[コミットにより影響を受ける機能]
-- 影響を受けるファイル:[変更された主要ファイル]
-- 破壊的変更:[あり/なし]
-
-## テスト方法
-1. [テスト手順1]
-2. [テスト手順2]
-
-## チェックリスト
-- [ ] コードは正常に動作することを確認した
-- [ ] 適切なテストを追加/更新した
-- [ ] ドキュメントを更新した(必要な場合)
-- [ ] LintやFormatterを実行した
-- [ ] 破壊的変更がある場合は明記した
-
-## その他
-[レビュアーへの追加情報]
-```
+- If a PR template exists (`.github/pull_request_template.md`), follow it strictly.
+- Otherwise, use the standard format from [pr-templates.md](references/pr-templates.md).
+- For `--japanese`, use the Japanese format from the same file.
 
 ### 4. Writing Guidelines
 

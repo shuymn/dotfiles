@@ -1,6 +1,6 @@
 ---
 name: triage-review
-description: Fetch PR review comments from AI reviewers, verify accuracy, and apply valid fixes. Use when the user wants to process AI code review comments, apply AI reviewer suggestions, or verify and implement automated code review feedback. Works with GitHub PRs and uses web search to verify AI claims before applying changes.
+description: Fetches PR review comments from AI reviewers, verifies accuracy, and applies valid fixes. Use when the user wants to process AI code review comments, apply AI reviewer suggestions, or verify and implement automated code review feedback. Works with GitHub PRs and uses web search to verify AI claims before applying changes.
 allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
 ---
 

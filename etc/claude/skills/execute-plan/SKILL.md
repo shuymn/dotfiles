@@ -1,133 +1,137 @@
 ---
 name: execute-plan
-description: Execute an approved implementation plan step by step with human review checkpoints. Use when you have a reviewed task plan and are ready to begin implementation.
+description: Executes exactly one explicitly user-selected task from an approved decompose-tasks plan bundle. Use when the user specifies a concrete task ID from docs/plans/YYYY-MM-DD-<topic>-plan.md to implement now, with on-demand reads of plan.trace.md and plan.compose.md.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite, Task]
 ---
 
 # Plan Execution
 
-Execute an approved implementation plan task by task, with human review checkpoints between batches. Follow each step exactly as written in the plan.
+Execute one selected task from an approved plan bundle.
+Do not continue to other tasks unless the user explicitly asks in a new instruction.
 
 ## When to Use
 
-- You have an approved implementation plan (typically from the `decompose-tasks` skill)
-- Input: a plan file in `docs/plans/`
-- The user is ready to begin implementation
+- You have an approved plan bundle from `decompose-tasks`.
+- The user explicitly asks to execute a specific task (for example, `Task 7`).
+- Input includes:
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (primary)
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (on-demand traceability evidence)
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md` (on-demand reconstruction evidence)
+
+## <HARD-GATE: TASK SELECTION>
+
+Never choose a task implicitly.
+
+- Require an explicit user-specified task ID before any implementation step.
+- If task ID is missing, ask for it and stop.
+- Do not infer from dependency order, priority, first pending task, or any heuristic.
 
 ## Process
 
-### Step 1: Load and Review Plan
+### Step 1: Load Bundle and Select One Task
 
-1. Read the plan file specified by the user (or ask which one if not specified)
-2. Review it critically before starting:
-   - Are file paths still valid?
-   - Has the codebase changed since the plan was written?
-   - Are there any obvious gaps or concerns?
-3. If concerns exist: **report them to the user before starting implementation**
-4. Read the source design doc (linked in the plan header) to understand Acceptance Criteria
-5. Register ALL tasks in TodoWrite as `pending`
+1. Read `plan.md`.
+2. Resolve `Trace Pack` and `Compose Pack` paths from the plan header.
+3. Confirm the target task ID:
+   - Use only the task ID explicitly specified by the user.
+   - If not explicitly specified, ask which task ID to execute and stop.
+   - Never auto-select a task.
+4. Validate bundle consistency:
+   - `plan.md` exists and includes the selected task ID.
+   - Referenced sidecars exist.
+   - `Checkpoint Summary` exists and uses required keys:
+     - `Alignment Verdict`
+     - `Forward Fidelity`
+     - `Reverse Fidelity`
+     - `Non-Goal Guard`
+     - `Granularity Guard`
+     - `Trace Pack`
+     - `Compose Pack`
+     - `Updated At`
+   - `Checkpoint Summary` has `Alignment Verdict: PASS`.
+   - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
+5. Check task dependencies:
+   - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
+   - If explicit user confirmation is missing, stop and ask for confirmation.
+6. Read source design doc linked in header for acceptance context.
+7. Read sidecars only when needed:
+   - `plan.trace.md` for requirement/anchor ambiguity.
+   - `plan.compose.md` for scope ambiguity.
+8. Register only the selected task in TodoWrite (`pending` -> `in_progress` -> `completed`).
 
-### Step 2: Execute Batch
+If validation fails, stop and ask for plan correction before implementation.
 
-Execute tasks in batches of **3 tasks** (default). For each task:
+### Step 2: Execute Selected Task
 
-1. **Mark** the task as `in_progress` in TodoWrite
-2. **Follow each step exactly** as written in the plan:
-   - **RED**: Write the failing test. If the test references types, functions, or modules that don't exist yet, add minimal stubs (empty definitions, placeholder return values) so the code **compiles**. Run the test and confirm it **compiles and runs but fails** (assertion error, not-yet-implemented panic, or wrong value). A compilation error is NOT RED — it means scaffolding is incomplete; add stubs until the test runner actually executes the test.
-   - **GREEN**: Write the minimal implementation to make the test pass. Run the test and verify it passes.
-   - **REFACTOR** (if needed): Clean up duplication or structure while keeping all tests green.
-   - Execute the commit command from the plan.
-3. **Verify before moving on**: After each step, confirm the actual result matches the expected result in the plan
-4. **Mark** the task as `completed` in TodoWrite
+1. Execute the selected task exactly per task contract:
+   - `RED`: create failing test and confirm test runner executes and fails.
+   - `GREEN`: implement minimal code to pass RED.
+   - `REFACTOR`: perform safe cleanup while keeping tests green.
+   - `DoD`: run verification command and confirm `PASS`.
+2. Verify expected outputs after each step before proceeding.
+3. Mark the task as `completed` in TodoWrite.
 
-**If a step does not produce the expected result:**
-- Do NOT proceed to the next step
-- Do NOT improvise a fix
-- See Stop Conditions below
+If expected results are not met, stop and follow Stop Conditions.
 
-### Step 3: Report and Checkpoint
+### Step 3: Report and Stop
 
-After completing each batch:
-
-1. Summarize what was implemented (list tasks completed)
-2. Show verification output (test results, commands run, exit codes)
-3. Display: **"Ready for feedback."**
-4. **WAIT for the user to respond** — do NOT auto-proceed to the next batch
-
-This checkpoint is mandatory. Skipping it or asking "shall I continue?" and proceeding without an answer violates this protocol.
-
-### Step 4: Continue or Adjust
-
-Based on user feedback:
-
-- **No changes needed**: Proceed to the next batch
-- **Adjustments needed**: Apply the requested changes, re-verify, then proceed
-- **Plan needs revision**: Stop execution and suggest re-invoking `decompose-tasks`
-- **Stop**: Halt execution entirely
-
-### Step 5: Completion
-
-After ALL tasks in the plan are completed:
-
-1. **Run the full test suite** — not just individual test files
-2. **Verify the build succeeds** (if applicable)
-3. **Check each Acceptance Criterion** from the source design doc:
-   - For each criterion, identify how to verify it
-   - Run the verification
-   - Report PASS or FAIL with evidence
-4. Report the final status with all verification evidence
+1. Summarize what was implemented for this single task.
+2. Provide verification evidence (commands, key outputs, exit codes).
+3. Explicitly stop after this task.
+4. If the user wants another task, ask them to specify the next task ID.
 
 ## Stop Conditions
 
-**Stop executing immediately** and ask the user for guidance when:
+Stop immediately and ask user guidance when:
 
-- A test does not compile after adding stubs (RED scaffolding incomplete)
-- A test does not fail as expected in RED (wrong error, compilation error instead of assertion failure, or passes unexpectedly)
-- A test does not pass after implementing Step 3
-- A commit fails (hook error, signing error, merge conflict)
-- A dependency is missing that the plan did not account for
-- The plan references a file or function that does not exist
-- You discover the plan has a critical gap or contradiction
-- Verification fails **3 or more times** for the same step
+- Plan bundle validation fails (missing sidecar, invalid summary, broken links).
+- Target task ID is missing, ambiguous, or not explicitly provided by the user.
+- Dependency satisfaction was not explicitly confirmed by the user.
+- A test does not compile after required scaffolding in RED.
+- RED does not fail as expected (compilation error, unexpected pass, wrong failure mode).
+- GREEN cannot reach pass state.
+- DoD verification fails.
+- A task anchor/requirement mapping is unclear and cannot be resolved from `plan.md`.
+- Sidecar evidence contradicts `plan.md`.
+- Verification fails **3 or more times** for the same step.
 
-**When stopped:**
-- Report exactly what happened (command, output, expected vs actual)
-- Do NOT guess at a fix
-- Do NOT modify the plan without user approval
-- Wait for the user to decide how to proceed
+When stopped:
+
+- Report command, output, expected vs actual.
+- Do not guess a fix.
+- Do not modify the plan bundle without user approval.
+- Wait for user decision.
+
+## On-Demand Read Policy
+
+- Default to `plan.md` during execution.
+- Read `plan.trace.md` only to resolve mapping/coverage ambiguity.
+- Read `plan.compose.md` only to resolve scope ambiguity.
+- After resolving, return to `plan.md`.
+- Do not repeatedly re-read full sidecars unless a new ambiguity appears.
 
 ## Verification Principle
 
-Before claiming any task, batch, or the overall plan is complete:
+Before claiming task completion:
 
-1. **Identify** the verification command
-2. **Run** it fresh — do not rely on cached results, previous runs, or assumptions
-3. **Read** the full output, including exit codes and failure counts
-4. **Confirm** the output supports the claim you are about to make
-5. **Only then** make the claim, citing the evidence
+1. Identify the exact verification command.
+2. Run it fresh.
+3. Read full output and exit code.
+4. Confirm evidence matches the claim.
+5. State claim with evidence.
 
-**Prohibited language before verification evidence is shown:**
-- "should work"
-- "probably"
-- "seems to"
-- "I believe"
-- "Great!"
-- "Perfect!"
-- "Done!"
-
-These words signal that you are about to claim completion without evidence. Stop and verify first.
-
-**This is non-negotiable.** If you catch yourself about to use these words, treat it as a red flag and run the verification command before saying anything.
+Avoid unevidenced completion claims.
 
 ## Adapting to Plan Deviations
 
-Reality often diverges from plans. Here is how to handle common situations:
-
 | Situation | Action |
 |-----------|--------|
-| Test command in plan is wrong (e.g., wrong path) | Fix the command, note the deviation, continue |
-| Implementation needs a minor adjustment beyond plan | Make the minimal adjustment, note it in the batch report |
-| Task is much more complex than planned | STOP. Report to user. May need plan revision. |
-| A task depends on something the plan did not anticipate | STOP. Report the missing dependency. |
-| Test passes without implementation (logic already exists) | STOP. The plan may be stale. Report to user. |
-| User asks to skip a task | Skip it, mark as completed with note, continue |
+| Test command in task is invalid | Apply minimal command correction, record deviation |
+| Minor implementation adjustment needed | Make minimal adjustment, record deviation |
+| Task is materially larger than planned scope | STOP; request plan reslicing |
+| Missing prerequisite not captured by task | STOP; report dependency gap |
+| Dependency completion is uncertain | Ask user for explicit confirmation and STOP |
+| Test passes before intended change | STOP; plan may be stale |
+| Sidecar and `plan.md` conflict | STOP; request plan bundle correction |
+| User asks to continue immediately to another task | STOP current turn and request explicit next task ID |
+| User asks to run execute-plan without task ID | Ask for explicit task ID and STOP |

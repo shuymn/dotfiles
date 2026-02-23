@@ -1,18 +1,22 @@
 ---
 name: decompose-tasks
-description: Decompose a design document into a granular implementation plan with TDD steps. Use when you have an approved design doc and need to create a step-by-step task breakdown before implementation.
+description: Decomposes an approved design document into a TDD-based implementation plan bundle with traceability. Use after design-doc approval to generate an execution plan with round-trip verification.
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
 # Task Decomposition from Design Doc
 
-Convert an approved design document into a granular, step-by-step implementation plan where each task follows a TDD cycle and represents a single, independently testable unit of work.
+Convert an approved design doc into a concise, execution-ready plan bundle.
+Output instruction-level guidance only. Do not output implementation code snippets.
 
 ## When to Use
 
-- You have an approved design doc and need an implementation plan
-- Input: a design doc in `docs/plans/` (typically created by the `design-doc` skill)
-- Output: `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+- You have an approved design doc and need an implementation plan.
+- Input is a design doc in `docs/plans/` (typically created by the `design-doc` skill).
+- Output is a 3-file bundle:
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (core, frequently read)
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (traceability evidence, on-demand)
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md` (reconstruction check, on-demand)
 
 ## <HARD-GATE>
 
@@ -20,156 +24,169 @@ Do NOT begin any implementation until the plan is explicitly approved by the use
 
 No exceptions. Not even "just to test one thing" or "the first task is trivial."
 
-## Granularity Rules
+## Round-Trip Contract
 
-Each task must satisfy ALL of these criteria:
+Treat decomposition as a reversible transform.
 
-- **Single purpose** — one verifiable outcome. If the task name contains "and", split it into separate tasks
-- **Independently testable** — the task produces a result that can be verified on its own
-- **Complete TDD cycle** — every task includes RED → GREEN → REFACTOR steps
-- **Atomic commit** — each task ends with a commit
+- Forward: `Design Doc -(decompose)-> Tasks` must preserve all implementable intent.
+- Reverse: `Tasks -(compose)-> Design Doc` must reconstruct the same scope and acceptance intent.
+- Source of truth is always the design doc; tasks are a normalized executable view.
+- If round-trip fidelity fails, revise tasks before presenting the plan.
 
-**Time guideline:** Most tasks should take 2-5 minutes. This is a guideline, not a hard constraint. The criteria above are the real measure of correct granularity.
+## Plan Artifact Strategy
 
-If a task meets all four criteria above but exceeds 5 minutes, **keep it as-is**. Add a note in the plan:
+Keep the execution file thin and move heavy analysis to sidecars.
 
-> This task exceeds the 2-5 min guideline because: [reason]
+- `plan.md` must contain only what is needed repeatedly during implementation.
+- `plan.trace.md` stores traceability and full check evidence.
+- `plan.compose.md` stores reconstruction outputs and scope-diff evidence.
+- Do not duplicate long sections across files. Use stable IDs and file links.
 
-**Do NOT force a split when:**
-- The split would create an untestable intermediate state
-- The split requires artificial scaffolding that will be immediately removed
-- The components are so tightly coupled that testing them separately would require extensive mocking
-- The task is inherently atomic (e.g., a database migration, a complex algorithm with no meaningful partial state)
+## Output Contract
 
-**Self-check:** Read each task description aloud. If you need to take a breath in the middle, it is probably too big — but verify against the four criteria before splitting.
+### Core Plan (`...-plan.md`) Required Sections
 
-## Plan Structure
+1. Header
+2. Task Dependency Graph (compact form)
+3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`)
+4. Checkpoint Summary
 
-### Header (Required)
+### Trace Pack (`...-plan.trace.md`) Required Sections
 
-Every plan starts with this header:
+1. Design Atom Index
+2. Decision Trace (`DECxx -> ADR-xxxx`)
+3. Design -> Task Trace Matrix
+4. Task -> Design Compose Matrix
+5. Full Cross Self-Check evidence
 
-```markdown
-# [Feature] Implementation Plan
+### Compose Pack (`...-plan.compose.md`) Required Sections
 
-**Source**: `docs/plans/YYYY-MM-DD-<topic>-design.md`
-**Goal**: [One sentence describing the end result]
-**Architecture**: [2-3 sentences on the high-level approach]
-**Tech Stack**: [Key technologies, frameworks, libraries]
-```
+1. Reconstructed design summary from tasks
+2. Scope diff (`missing`, `extra`, `ambiguous`)
+3. Alignment verdict and required fixes
 
-### Task Format
+### Link Contract (Required)
 
-Each task follows this exact structure:
+`plan.md` header must include:
 
-```markdown
-### Task N: [Component Name]
+- `**Trace Pack**: docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
+- `**Compose Pack**: docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
 
-**Files:**
-- Create: `exact/path/from/project-root/to/file.ext`
-- Modify: `exact/path/from/project-root/to/existing.ext` (what changes and why)
+### Templates
 
-**Step 1: Write failing test**
+- **Plan templates** (header, checkpoint summary, task structure): See [plan-templates.md](references/plan-templates.md)
+- **Trace templates** (trace matrices, cross self-check, compose reconstruction): See [trace-templates.md](references/trace-templates.md)
 
-\`\`\`<language>
-// Complete test code — not a description, not a placeholder
-\`\`\`
+### Compression Rules
 
-**Step 2: Run test to verify it fails**
+- Keep `plan.md` concise: no duplicated requirement prose, no full trace matrices, no long rationale blocks.
+- Prefer stable IDs (`REQxx`, `ACxx`, `DECxx`) over repeated natural-language restatement.
+- Put exhaustive mapping and diagnostics into sidecars.
+- Keep each task minimal but executable; avoid narrative that does not change implementation behavior.
 
-Run: `<exact test command with flags>`
-Expected: FAIL with `<expected error message or pattern>`
+### Strict Scope Rules
 
-**Step 3: Write minimal implementation**
-
-\`\`\`<language>
-// Complete implementation code — minimal to pass the test
-\`\`\`
-
-**Step 4: Run test to verify it passes**
-
-Run: `<exact test command with flags>`
-Expected: PASS (all tests green)
-
-**Step 5: Commit**
-
-\`\`\`bash
-git add <specific-files>
-git commit -m "<type>(<scope>): <description>"
-\`\`\`
-```
-
-**Requirements for task content:**
-
-| Element | Required | Bad Example | Good Example |
-|---------|----------|-------------|--------------|
-| File paths | Exact, from project root | `file.py` | `src/auth/validator.py` |
-| Test code | Complete, runnable | "Add test for validation" | Full test function with assertions |
-| Implementation code | Complete, minimal | "Implement the validator" | Full function body |
-| Test commands | Exact, with flags | "Run the tests" | `pytest tests/auth/test_validator.py::test_email_format -v` |
-| Expected output | Specific pattern | "Should fail" | `FAIL with "AssertionError: expected validate_email to be defined"` |
-| Commit message | Conventional format | "Add stuff" | `feat(auth): add email format validation` |
-
-### Task Ordering Strategy
-
-Order tasks to build incrementally, with each task building on the previous:
-
-1. **Setup tasks** — project initialization, tooling, configuration
-2. **Foundation tasks** — core data structures, storage, base utilities
-3. **Component tasks** — individual components (one task per component)
-4. **Integration tasks** — wiring components together
-5. **Feature tasks** — user-facing functionality, interactions
-6. **Polish tasks** — styling, UX improvements, edge cases
-7. **Testing tasks** — E2E tests, integration tests beyond unit level
+- Do not include code blocks for test or implementation in the plan bundle.
+- Do not prescribe line-by-line implementation details.
+- Do not add features outside the design doc.
+- Keep each task outcome independently testable.
+- Keep task granularity at a one-task-one-commit equivalent level:
+  - Each task should represent one coherent, reviewable change unit.
+  - Do not include commit commands or require commit execution in the plan.
+- Prefer task granularity that avoids micro-management; split only at meaningful test boundaries.
 
 ## Process
 
 ### Step 1: Load Design Doc
 
-1. Read the design doc specified by the user (or ask which one to use if not specified)
-2. Read the Acceptance Criteria section carefully — these drive the task list
-3. Read ADRs linked in the design doc's Decision Log — only those, not all ADRs in the directory
-4. Identify the tech stack and testing framework
+1. Read the design doc specified by the user.
+2. Read `Goals`, `Non-Goals`, `Design`, `Decision Log`, and `Acceptance Criteria`.
+3. Read only ADRs linked from the design doc's Decision Log.
+4. Build a **Design Atom Index** with stable IDs:
+   - `GOALxx`: in-scope outcomes
+   - `NONGOALxx`: explicit exclusions
+   - `REQxx`: implementable requirements
+   - `DECxx`: key design decisions; each must map to exactly one `ADR-xxxx` from Decision Log
+   - `ACxx`: acceptance criteria
+5. Create a **Decision Trace** table: `DECxx -> ADR-xxxx`.
+6. Identify test frameworks and canonical verification commands.
 
 ### Step 2: Analyze and Decompose
 
-1. List all features and components from the design
-2. Build a dependency graph: which components depend on which
-3. Order components by dependency (foundations first)
-4. For each component:
-   - Identify the test file path and implementation file path
-   - Determine what constitutes a failing test (what does not exist yet)
-   - Determine the minimal implementation to pass that test
-   - Determine the commit scope
+1. Build a design-atom-to-component map from the design.
+2. Build task dependencies (foundation before integration).
+3. Create tasks that each deliver one verifiable increment.
+4. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
+5. Assign `Design Anchors` for each task:
+   - Each task must map to at least one `REQxx` or `ACxx`.
+   - If a task enforces a design decision, include `DECxx` in anchors.
+   - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
+   - No task may exist without traceable design anchors.
+6. Validate granularity quality:
+   - A task should be small enough to fit one coherent commit-sized change unit.
+   - If a task would require multiple unrelated change units, split it.
+   - If multiple tasks would naturally collapse into one indistinguishable change unit, merge or re-slice them.
 
-### Step 3: Write Plan
+### Step 3: Write Plan Bundle
 
-1. Create the plan file: `docs/plans/YYYY-MM-DD-<topic>-plan.md`
-   - Use the same date prefix as the source design doc
-   - Create the directory if it does not exist: `mkdir -p docs/plans`
-2. Write the header with Source, Goal, Architecture, Tech Stack
-3. Write each task following the exact Task Format above
-4. Verify every task has:
-   - Exact file paths (from project root)
-   - Complete code (not descriptions or placeholders)
-   - Exact commands with expected output
-   - A commit step with a proper message
+1. Create output files:
+   - `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+   - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
+   - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
+2. Write `plan.md` as compact execution instructions.
+3. Write `plan.trace.md` with Design Atom Index, Decision Trace, both matrices, and full check details.
+4. Write `plan.compose.md` with reconstruction summary and scope diff.
+5. Ensure `plan.md` links to both sidecars in its header.
+6. Ensure each task in `plan.md` references `REQxx/ACxx` in `Satisfied Requirements` and has complete `Design Anchors`.
+7. Write `Checkpoint Summary` in `plan.md` using the required fixed format.
 
-### Step 4: Review with User
+### Step 4: Cross Self-Check (Required)
 
-1. Present the plan to the user
-2. Request review using AskUserQuestionTool
-3. Apply feedback and update the plan
-4. Repeat until the user explicitly approves
-5. After approval, suggest using the `execute-plan` skill
+Perform all checks before presenting the plan. Use templates from [trace-templates.md](references/trace-templates.md).
+
+1. Forward fidelity (`design -> tasks`)
+   - Every `REQxx` and `ACxx` must appear in at least one task `Satisfied Requirements`.
+   - Every `REQxx` and `ACxx` must appear in at least one task `DoD`.
+   - `GOALxx` must be covered by one or more tasks.
+   - Every `DECxx` must appear in at least one task `Design Anchors`.
+   - Every `DECxx` must have exactly one `ADR-xxxx` mapping in Decision Trace.
+2. Reverse fidelity (`tasks -> design`)
+   - Reconstruct design intent using only task `Design Anchors`, `Goal`, `GREEN`, and `DoD`.
+   - Verify the reconstructed result preserves source design scope, key decisions, and acceptance intent.
+   - Verify every task anchor points to an existing design atom.
+   - Verify every task has at least one `REQxx` or `ACxx` in `Satisfied Requirements`.
+3. Non-goal guard
+   - Verify no task maps to `NONGOALxx`.
+   - Verify no task introduces behavior outside mapped design atoms.
+4. Granularity guard
+   - Verify each task is a coherent commit-sized change unit (without requiring commit execution).
+   - Flag tasks that are too broad or too fragmented.
+5. Round-trip gate
+   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, and granularity guard all pass.
+   - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
+   - Repeat until all checks pass.
+6. Record results:
+   - Full evidence in `plan.trace.md`
+   - Reconstructed summary and scope diff in `plan.compose.md`
+   - Update `Checkpoint Summary` in `plan.md`
+
+### Step 5: Review with User
+
+1. Present the compact `plan.md` first.
+2. Mention that detailed traceability is in `plan.trace.md` and reconstruction evidence is in `plan.compose.md`.
+3. Apply feedback and update all impacted files.
+4. Re-run Cross Self-Check after each meaningful change.
+5. Repeat until the user explicitly approves.
+6. After approval, suggest using the `execute-plan` skill.
 
 ## Key Principles
 
-- **DRY**: Do not repeat yourself across tasks
-- **YAGNI**: Only plan what the design doc specifies — do not add features
-- **TDD**: Every task starts with a failing test. No exceptions. No rationalizations.
-  - "Too simple to test" → Simple code breaks. The test takes 30 seconds to write.
-  - "I will test it after" → Tests written after pass immediately and prove nothing.
-  - "Just as a reference" → You will adapt it. That is testing after. Start from the test.
-- **Frequent Commits**: One commit per task, always
-- **Exact over vague**: A plan that cannot be followed by someone with zero codebase context is not specific enough
+- **Design Fidelity (YAGNI)**: Plan only what design atoms require. Do not add behavior outside approved design scope.
+- **Requirement Traceability (Exact over vague)**: Every task and DoD must map to explicit design IDs and concrete verification commands.
+- **TDD Discipline**: Every task includes `RED -> GREEN -> REFACTOR`.
+- **Maintainability (DRY)**: Avoid duplicated task intent; express shared logic once via trace matrices and dependency graph.
+- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries at one coherent commit-sized change unit, without requiring commit steps.
+- **Instruction over Implementation**: Describe intent and verification, not code.
+- **No Micromanagement**: Avoid over-splitting and line-by-line directives.
+- **Context Efficiency**: Keep frequently-read artifacts compact; move heavy evidence to on-demand sidecars.
+- **Round-Trip Integrity**: The composed tasks must reconstruct the design doc scope without loss or scope creep.
