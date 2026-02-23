@@ -48,8 +48,10 @@ Use this structure for every task.
 
 **RED**
 - [Failing test intent]
+- If referenced implementation symbols/files do not exist yet, add minimal scaffolding so the test compiles and runs.
 - Run: `[exact test command]`
-- Expected: `FAIL with [error pattern]`
+- Expected: `FAIL with [assertion/runtime error pattern]`
+- Note: compilation/import/module errors are not valid RED outcomes.
 
 **GREEN**
 - [Minimal implementation intent to pass RED]

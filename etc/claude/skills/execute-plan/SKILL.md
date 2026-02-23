@@ -64,7 +64,7 @@ If validation fails, stop and ask for plan correction before implementation.
 ### Step 2: Execute Selected Task
 
 1. Execute the selected task exactly per task contract:
-   - `RED`: create failing test and confirm test runner executes and fails.
+   - `RED`: create failing test. If referenced implementation symbols/files do not exist, add minimal scaffolding first so the test compiles and runs. RED is valid only when the test runner executes the test and fails (assertion/runtime); compilation/import/module errors are not valid RED.
    - `GREEN`: implement minimal code to pass RED.
    - `REFACTOR`: perform safe cleanup while keeping tests green.
    - `DoD`: run verification command and confirm `PASS`.

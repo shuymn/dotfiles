@@ -117,6 +117,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 2. Build task dependencies (foundation before integration).
 3. Create tasks that each deliver one verifiable increment.
 4. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
+   - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
+   - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
 5. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
@@ -184,6 +186,7 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 - **Design Fidelity (YAGNI)**: Plan only what design atoms require. Do not add behavior outside approved design scope.
 - **Requirement Traceability (Exact over vague)**: Every task and DoD must map to explicit design IDs and concrete verification commands.
 - **TDD Discipline**: Every task includes `RED -> GREEN -> REFACTOR`.
+- **RED Validity**: RED means test execution fails for expected behavior reasons; compilation errors indicate incomplete scaffolding, not valid RED.
 - **Maintainability (DRY)**: Avoid duplicated task intent; express shared logic once via trace matrices and dependency graph.
 - **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries at one coherent commit-sized change unit, without requiring commit steps.
 - **Instruction over Implementation**: Describe intent and verification, not code.
