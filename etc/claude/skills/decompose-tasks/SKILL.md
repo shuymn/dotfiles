@@ -119,6 +119,9 @@ Keep the execution file thin and move heavy analysis to sidecars.
 4. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
+   - If direct unit-level RED is technically difficult, require the nearest executable boundary test (integration/contract/e2e) while keeping fail-first.
+   - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
+   - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
 5. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
@@ -160,14 +163,17 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 3. Non-goal guard
    - Verify no task maps to `NONGOALxx`.
    - Verify no task introduces behavior outside mapped design atoms.
-4. Granularity guard
+4. DoD semantics guard
+   - Verify each task treats DoD as AND (all items mandatory, no OR wording).
+   - Verify each DoD item is independently verifiable.
+5. Granularity guard
    - Verify each task is a coherent commit-sized change unit (without requiring commit execution).
    - Flag tasks that are too broad or too fragmented.
-5. Round-trip gate
-   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, and granularity guard all pass.
+6. Round-trip gate
+   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, and granularity guard all pass.
    - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
    - Repeat until all checks pass.
-6. Record results:
+7. Record results:
    - Full evidence in `plan.trace.md`
    - Reconstructed summary and scope diff in `plan.compose.md`
    - Update `Checkpoint Summary` in `plan.md`
@@ -187,6 +193,8 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 - **Requirement Traceability (Exact over vague)**: Every task and DoD must map to explicit design IDs and concrete verification commands.
 - **TDD Discipline**: Every task includes `RED -> GREEN -> REFACTOR`.
 - **RED Validity**: RED means test execution fails for expected behavior reasons; compilation errors indicate incomplete scaffolding, not valid RED.
+- **No TDD Abandonment**: Testability difficulty is resolved by scaffolding or boundary-level tests, not by skipping RED.
+- **DoD Conjunction**: DoD is always AND semantics; all DoD items must be satisfied.
 - **Maintainability (DRY)**: Avoid duplicated task intent; express shared logic once via trace matrices and dependency graph.
 - **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries at one coherent commit-sized change unit, without requiring commit steps.
 - **Instruction over Implementation**: Describe intent and verification, not code.

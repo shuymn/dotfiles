@@ -65,9 +65,11 @@ If validation fails, stop and ask for plan correction before implementation.
 
 1. Execute the selected task exactly per task contract:
    - `RED`: create failing test. If referenced implementation symbols/files do not exist, add minimal scaffolding first so the test compiles and runs. RED is valid only when the test runner executes the test and fails (assertion/runtime); compilation/import/module errors are not valid RED.
+   - If direct unit-level RED is technically difficult, apply this recovery loop in order: (1) add minimal seams/scaffolding, (2) retry unit-level RED, (3) move to nearest executable boundary test (integration/contract/e2e) while preserving fail-first.
+   - Do not abandon implementation solely because testing is difficult. Continue until executable RED is established or a true blocker is reached.
    - `GREEN`: implement minimal code to pass RED.
    - `REFACTOR`: perform safe cleanup while keeping tests green.
-   - `DoD`: run verification command and confirm `PASS`.
+   - `DoD`: treat all DoD items as AND conditions. Task completion requires every DoD item to pass.
 2. Verify expected outputs after each step before proceeding.
 3. Mark the task as `completed` in TodoWrite.
 
@@ -87,10 +89,9 @@ Stop immediately and ask user guidance when:
 - Plan bundle validation fails (missing sidecar, invalid summary, broken links).
 - Target task ID is missing, ambiguous, or not explicitly provided by the user.
 - Dependency satisfaction was not explicitly confirmed by the user.
-- A test does not compile after required scaffolding in RED.
-- RED does not fail as expected (compilation error, unexpected pass, wrong failure mode).
+- RED cannot reach executable failing state after applying the RED recovery loop.
 - GREEN cannot reach pass state.
-- DoD verification fails.
+- Any DoD item fails verification (DoD is AND, not OR).
 - A task anchor/requirement mapping is unclear and cannot be resolved from `plan.md`.
 - Sidecar evidence contradicts `plan.md`.
 - Verification fails **3 or more times** for the same step.

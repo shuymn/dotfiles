@@ -49,6 +49,7 @@ Use this structure for every task.
 **RED**
 - [Failing test intent]
 - If referenced implementation symbols/files do not exist yet, add minimal scaffolding so the test compiles and runs.
+- If direct unit-level RED is technically difficult, choose the nearest executable boundary test (integration/contract/e2e) while preserving fail-first.
 - Run: `[exact test command]`
 - Expected: `FAIL with [assertion/runtime error pattern]`
 - Note: compilation/import/module errors are not valid RED outcomes.
@@ -60,6 +61,7 @@ Use this structure for every task.
 - [Safe cleanup after GREEN]
 
 **DoD**
+- All DoD items are mandatory AND conditions (never OR).
 - [Verifiable completion criterion]
 - [Behavior/contract check tied to requirement IDs]
 - Run: `[exact verification command]`

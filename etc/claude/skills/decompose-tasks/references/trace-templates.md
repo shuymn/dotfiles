@@ -40,6 +40,10 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 ### Non-Goal Guard
 - Violations against `NONGOALxx`: [if any]
 
+### DoD Semantics Guard
+- Tasks with OR-like DoD wording: [if any]
+- DoD items missing independent verification: [if any]
+
 ### Granularity Guard
 - Tasks too broad for a single coherent change unit: [if any]
 - Tasks too fragmented (should be merged): [if any]
