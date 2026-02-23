@@ -54,12 +54,13 @@ link-claude: ## Create symlinks to the claude directory
 	@echo 'Finish linking claude files'
 
 .PHONY: link-codex
-link-codex: ## Create symlinks to the codex directory
+link-codex: ## Copy codex skill files to the codex directory
 	@echo 'Start to link codex files'
 	@echo ''
 	@$(foreach file,$(CODEX_FILES), \
 		mkdir -p $(dir $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file))) && \
-		ln -sfnv $(abspath $(file)) $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file));)
+		rm -f $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file)) && \
+		cp -fv $(abspath $(file)) $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file));)
 	@echo 'Finish linking codex files'
 
 .PHONY: clean-claude
