@@ -276,7 +276,7 @@ load "${HOME}/.config/op/plugins.sh"
 add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # bat / delta
-# export BAT_THEME="Catppuccin-macchiato"
+export BAT_THEME="ansi"
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
