@@ -22,9 +22,10 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 
 Never choose a task implicitly.
 
-- Require an explicit user-specified task ID before any implementation step.
+- Require an explicit task ID before any implementation step.
+- The task ID may be specified by the user directly, or by a calling agent (e.g., ralph runtime's Task Selection Algorithm).
 - If task ID is missing, ask for it and stop.
-- Do not infer from dependency order, priority, first pending task, or any heuristic.
+- Do not infer from dependency order, priority, first pending task, or any heuristic on your own.
 
 ## Process
 
