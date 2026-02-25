@@ -1,6 +1,6 @@
 ---
 name: execute-plan
-description: Executes exactly one explicitly user-selected task from an approved and analyzed decompose-tasks plan bundle. Use when the user specifies a concrete task ID from docs/plans/YYYY-MM-DD-<topic>-plan.md after analyze-plan PASS, with on-demand reads of plan.trace.md and plan.compose.md.
+description: Executes exactly one explicitly user-selected task from an approved and analyzed decompose-tasks plan bundle. Use when the user specifies a concrete task ID from docs/plans/YYYY-MM-DD-{topic}-plan.md after analyze-plan PASS, with on-demand reads of plan.trace.md and plan.compose.md.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite, Task]
 ---
 
