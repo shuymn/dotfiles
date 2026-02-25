@@ -45,6 +45,7 @@ Path rule:
    - `Reverse Fidelity`
    - `Non-Goal Guard`
    - `Granularity Guard`
+   - `Temporal Completeness Guard`
    - `Trace Pack`
    - `Compose Pack`
    - `Updated At`
@@ -70,7 +71,11 @@ Evaluate each area independently and record PASS/FAIL with evidence.
 5. **Execution Readiness**
    - Verification commands are concrete and runnable in principle.
    - Flag missing/unclear commands, unknown tools, or environment assumptions that are not documented.
-6. **Ambiguity and Risk**
+6. **Temporal Integrity**
+   - Validate `TEMPxx` lifecycle trace exists when plan includes staged migration/breaking-change work.
+   - Verify each `TEMPxx` has both create-side and retire-side task coverage, or explicit waiver metadata.
+   - Verify retire task DoD includes negative verification for temporary-path/fallback removal.
+7. **Ambiguity and Risk**
    - Identify vague directives that can cause divergent implementations.
    - Identify oversized or fragmented task boundaries.
 
@@ -89,6 +94,7 @@ Write `...-plan.analysis.md` with this structure:
 - Scope Integrity: PASS | FAIL
 - Testability Integrity: PASS | FAIL
 - Execution Readiness: PASS | FAIL
+- Temporal Integrity: PASS | FAIL
 - Updated At: YYYY-MM-DD HH:MM TZ
 
 ## Findings
@@ -116,6 +122,7 @@ Rules:
 - `Overall Verdict: PASS` only when there are no blocking issues.
 - If any blocker exists, set `Overall Verdict: FAIL`.
 - Keep findings specific and actionable. Avoid generic wording.
+- Missing `TEMPxx` retirement coverage in a breaking-change plan is a blocker.
 
 ### Step 4: Review with User
 
@@ -130,6 +137,7 @@ Stop and ask for user guidance when:
 - Plan path is missing or invalid.
 - `Trace Pack` or `Compose Pack` is missing.
 - Plan format is malformed and cannot be analyzed reliably.
+- Breaking-change intent exists but temporal/lifecycle evidence (`TEMPxx` trace) is missing.
 - The user asks to modify plan content during this analysis flow.
 - The user asks to implement tasks during this analysis flow.
 
@@ -139,3 +147,4 @@ Stop and ask for user guidance when:
 - **Fail-Closed Readiness**: Default to FAIL when readiness evidence is missing.
 - **Actionable Findings**: Every blocker must include a concrete correction path.
 - **Execution Safety**: Do not allow downstream execution on ambiguous or unverified plan state.
+- **Temporal Closure Safety**: Do not pass plans that introduce temporary mechanisms without validated retirement paths.

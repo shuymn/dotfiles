@@ -25,6 +25,8 @@ Templates for `plan.md` output artifact.
 - Reverse Fidelity: PASS | FAIL
 - Non-Goal Guard: PASS | FAIL
 - Granularity Guard: PASS | FAIL
+- Temporal Completeness Guard: PASS | FAIL
+- TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
 - Trace Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
 - Compose Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
 - Updated At: `YYYY-MM-DD`
@@ -39,6 +41,7 @@ Use this structure for every task.
 
 **Satisfied Requirements**: [REQxx/ACxx IDs from design doc]
 **Design Anchors**: [GOAL/REQ/AC/DEC IDs this task realizes]
+**Temporary Mechanisms**: Creates [TEMPxx or `none`], Retires [TEMPxx or `none`], Waiver [ID or `none`]
 **Goal**: [Why this task exists, 1-2 sentences]
 **Dependencies**: [Task IDs or `none`]
 

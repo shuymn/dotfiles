@@ -24,6 +24,15 @@ Do NOT begin any implementation until the plan is explicitly approved by the use
 
 No exceptions. Not even "just to test one thing" or "the first task is trivial."
 
+## Design Sufficiency Gate
+
+Do not infer migration lifecycle details that are absent from the design doc.
+
+- If the design includes breaking change, replacement, deprecation, migration, or compatibility staging:
+  - Require `## Compatibility & Sunset` and a `Temporary Mechanism Ledger` (`TEMPxx` IDs) in the design doc.
+  - If missing, stop as `BLOCKED` and request design completion before decomposition.
+- Decomposition is allowed only when lifecycle closure is design-defined.
+
 ## Round-Trip Contract
 
 Treat decomposition as a reversible transform.
@@ -48,7 +57,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 1. Header
 2. Task Dependency Graph (compact form)
-3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`)
+3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`, lifecycle metadata when `TEMPxx` exists)
 4. Checkpoint Summary
 
 ### Trace Pack (`...-plan.trace.md`) Required Sections
@@ -57,7 +66,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 2. Decision Trace (`DECxx -> ADR-xxxx`)
 3. Design -> Task Trace Matrix
 4. Task -> Design Compose Matrix
-5. Full Cross Self-Check evidence
+5. Temporary Mechanism Trace (`TEMPxx` lifecycle and closure status)
+6. Full Cross Self-Check evidence
 
 ### Compose Pack (`...-plan.compose.md`) Required Sections
 
@@ -108,26 +118,35 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - `REQxx`: implementable requirements
    - `DECxx`: key design decisions; each must map to exactly one `ADR-xxxx` from Decision Log
    - `ACxx`: acceptance criteria
+   - `TEMPxx`: temporary mechanisms from `Compatibility & Sunset` (required for breaking-change designs)
 5. Create a **Decision Trace** table: `DECxx -> ADR-xxxx`.
 6. Identify test frameworks and canonical verification commands.
+7. Run the design sufficiency gate:
+   - If migration/breaking-change intent exists but `TEMPxx` ledger is missing/incomplete, stop as `BLOCKED`.
 
 ### Step 2: Analyze and Decompose
 
 1. Build a design-atom-to-component map from the design.
 2. Build task dependencies (foundation before integration).
 3. Create tasks that each deliver one verifiable increment.
-4. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
+4. For each `TEMPxx`, enforce lifecycle slicing by construction:
+   - `Introduce` task (creates temporary mechanism)
+   - `Migrate/Cutover` task(s) (moves consumers/data/paths)
+   - `Retire` task (removes temporary mechanism and fallback paths)
+   - If retirement is intentionally deferred, create explicit waiver metadata (owner, reason, deadline).
+5. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
    - If direct unit-level RED is technically difficult, require the nearest executable boundary test (integration/contract/e2e) while keeping fail-first.
    - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
-5. Assign `Design Anchors` for each task:
+6. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
+   - Tasks that create/retire temporary mechanisms must include `TEMPxx`.
    - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
    - No task may exist without traceable design anchors.
-6. Validate granularity quality:
+7. Validate granularity quality:
    - A task should be small enough to fit one coherent commit-sized change unit.
    - If a task would require multiple unrelated change units, split it.
    - If multiple tasks would naturally collapse into one indistinguishable change unit, merge or re-slice them.
@@ -143,7 +162,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 4. Write `plan.compose.md` with reconstruction summary and scope diff.
 5. Ensure `plan.md` links to both sidecars in its header.
 6. Ensure each task in `plan.md` references `REQxx/ACxx` in `Satisfied Requirements` and has complete `Design Anchors`.
-7. Write `Checkpoint Summary` in `plan.md` using the required fixed format.
+7. Ensure each `TEMPxx` has `Creates` and `Retires` coverage (or explicit waiver metadata) in tasks.
+8. Write `Checkpoint Summary` in `plan.md` using the required fixed format.
 
 ### Step 4: Cross Self-Check (Required)
 
@@ -169,13 +189,18 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 5. Granularity guard
    - Verify each task is a coherent commit-sized change unit (without requiring commit execution).
    - Flag tasks that are too broad or too fragmented.
-6. Round-trip gate
-   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, and granularity guard all pass.
+6. Temporal completeness guard
+   - Every `TEMPxx` must map to at least one introducing task and one retiring task.
+   - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
+   - `Open TEMPxx` entries are allowed only with explicit waiver metadata (owner, reason, deadline).
+7. Round-trip gate
+   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, granularity guard, and temporal completeness guard all pass.
    - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
    - Repeat until all checks pass.
-7. Record results:
+8. Record results:
    - Full evidence in `plan.trace.md`
    - Reconstructed summary and scope diff in `plan.compose.md`
+   - `TEMPxx introduced/retired/open/waived` counts in `Checkpoint Summary`
    - Update `Checkpoint Summary` in `plan.md`
 
 ### Step 5: Review with User
@@ -201,3 +226,5 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 - **No Micromanagement**: Avoid over-splitting and line-by-line directives.
 - **Context Efficiency**: Keep frequently-read artifacts compact; move heavy evidence to on-demand sidecars.
 - **Round-Trip Integrity**: The composed tasks must reconstruct the design doc scope without loss or scope creep.
+- **Lifecycle Closure by Construction**: Temporary mechanisms must have explicit create/migrate/retire paths in plan artifacts.
+- **Fail-Closed Decomposition**: If lifecycle data is missing in design, stop as `BLOCKED` instead of inferring.

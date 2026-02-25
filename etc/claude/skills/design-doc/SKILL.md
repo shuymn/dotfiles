@@ -25,6 +25,20 @@ Do NOT take any of these actions until the design doc is explicitly approved by 
 
 No exceptions. Not even "just setting up the structure" or "a quick prototype to validate."
 
+## Lifecycle Contract for Breaking Changes
+
+For breaking changes or staged migrations, the design doc must specify lifecycle closure, not only end-state architecture.
+
+- Add a `## Compatibility & Sunset` section.
+- Add a `Temporary Mechanism Ledger` table with stable IDs (`TEMPxx`).
+- Every `TEMPxx` must define:
+  - Mechanism
+  - Introduced for (why it exists)
+  - Retirement trigger (objective condition)
+  - Retirement verification (how closure is proven)
+  - Owner and target milestone/date
+- Missing retirement definitions are design gaps, not implementation details.
+
 ## Process
 
 ### Phase 1: Context Exploration
@@ -40,6 +54,7 @@ Before writing anything, understand the landscape:
    - If unsure whether an ADR is relevant, read just its Title and Status lines before committing to the full content
 4. Identify related components, APIs, or systems that the design will interact with
 5. Create a TodoWrite checklist to track the design process phases
+6. Determine whether the request includes a breaking change or staged migration; if yes, enumerate candidate temporary mechanisms to track as `TEMPxx`.
 
 ### Phase 1.5: Clarification Gate (Required)
 
@@ -55,7 +70,8 @@ Before drafting the design, remove requirement ambiguity explicitly.
    - `assumed` (no answer yet, but safe temporary assumption documented)
    - `blocked` (cannot continue without answer)
 4. Do not start design drafting while any `blocked` item remains.
-5. Record outcomes in the design doc under `## Clarifications` with:
+5. For breaking-change designs, treat missing retirement trigger/verification for any `TEMPxx` as `blocked`.
+6. Record outcomes in the design doc under `## Clarifications` with:
    - Question
    - Answer or assumption
    - Impact on scope/design
@@ -143,7 +159,8 @@ What was decided. Be specific and unambiguous.
 1. Save the final version of the design doc
 2. Verify all design decisions have corresponding ADRs
 3. Verify the Decision Log section in the design doc links to all related ADRs
-4. Suggest the `decompose-plan` skill as the next step
+4. For breaking-change designs, verify all `TEMPxx` entries include retirement trigger and retirement verification.
+5. Suggest the `decompose-plan` skill as the next step
 
 ## Design Doc Template
 
@@ -181,6 +198,16 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 ### [Subsection as needed]
 
 [Use diagrams (Mermaid preferred over ASCII art) where they add clarity.]
+
+## Compatibility & Sunset
+
+[Required for breaking changes or staged migrations.]
+
+### Temporary Mechanism Ledger
+
+| ID | Mechanism | Introduced For | Retirement Trigger | Retirement Verification | Owner | Target |
+|----|-----------|----------------|--------------------|-------------------------|-------|--------|
+| TEMP01 | [e.g., compatibility alias] | [reason] | [objective condition] | [verification command/test] | [owner] | [milestone/date] |
 
 ## Decision Log
 

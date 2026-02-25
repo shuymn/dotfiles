@@ -18,6 +18,9 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 ## Task -> Design Compose Matrix
 - Task A: REQxx, ACxx, GOALxx
 - Task B: REQyy, DECzz
+
+## Temporary Mechanism Trace
+- TEMP01: introduced_by=[Task A], retired_by=[Task E], retire_condition=[...], retire_test=[...], status=open|closed|waived
 ```
 
 ## Cross Self-Check Template (for `plan.trace.md`)
@@ -47,6 +50,12 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 ### Granularity Guard
 - Tasks too broad for a single coherent change unit: [if any]
 - Tasks too fragmented (should be merged): [if any]
+
+### Temporal Completeness Guard
+- TEMP entries missing introducing tasks: [if any]
+- TEMP entries missing retiring tasks: [if any]
+- Retire tasks missing negative fallback-removal verification: [if any]
+- Open TEMP entries without waiver metadata: [if any]
 ```
 
 ## Compose Reconstruction Template (for `plan.compose.md`)
@@ -61,6 +70,7 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 - Missing from tasks: [if any]
 - Extra in tasks: [if any]
 - Ambiguous mappings: [if any]
+- Open temporary mechanisms (`TEMPxx`): [if any]
 
 ### Alignment Verdict
 - PASS | FAIL
