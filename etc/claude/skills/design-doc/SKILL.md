@@ -19,7 +19,7 @@ Create design documents through iterative dialogue with the user, capturing desi
 Do NOT take any of these actions until the design doc is explicitly approved by the user:
 
 - Write any implementation code or scaffolding
-- Invoke the `decompose-tasks` skill
+- Invoke the `decompose-plan` skill
 - Create an implementation plan
 - Create any project files outside of `docs/`
 
@@ -143,7 +143,7 @@ What was decided. Be specific and unambiguous.
 1. Save the final version of the design doc
 2. Verify all design decisions have corresponding ADRs
 3. Verify the Decision Log section in the design doc links to all related ADRs
-4. Suggest the `decompose-tasks` skill as the next step
+4. Suggest the `decompose-plan` skill as the next step
 
 ## Design Doc Template
 
@@ -195,5 +195,5 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 ## Acceptance Criteria
 
 1. [Specific, verifiable criteria that the implementation must satisfy]
-2. [These will be used by decompose-tasks and execute-plan skills]
+2. [These will be used by decompose-plan and execute-plan skills]
 ```

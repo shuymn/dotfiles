@@ -1,6 +1,6 @@
 ---
 name: analyze-plan
-description: Independently audits an approved decompose-tasks plan bundle before setup-ralph or execute-plan to decide execution readiness. Trigger after plan approval and before any implementation. Verifies bundle integrity, traceability, scope boundaries, task testability, and execution readiness, then writes docs/plans/YYYY-MM-DD-{topic}-plan.analysis.md with PASS/FAIL verdicts.
+description: Independently audits an approved decompose-plan plan bundle before setup-ralph or execute-plan to decide execution readiness. Trigger after plan approval and before any implementation. Verifies bundle integrity, traceability, scope boundaries, task testability, and execution readiness, then writes docs/plans/YYYY-MM-DD-{topic}-plan.analysis.md with PASS/FAIL verdicts.
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 

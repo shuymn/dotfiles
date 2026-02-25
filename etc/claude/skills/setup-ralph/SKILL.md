@@ -1,6 +1,6 @@
 ---
 name: setup-ralph
-description: Prepares .ralph/ runtime state from an approved and analyzed decompose-tasks plan bundle. Fills prd.json from plan.md task mappings and updates prompt.md with project-specific context, rules, and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
+description: Prepares .ralph/ runtime state from an approved and analyzed decompose-plan plan bundle. Fills prd.json from plan.md task mappings and updates prompt.md with project-specific context, rules, and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
 argument-hint: "[plan-path]"
 disable-model-invocation: true
 ---
@@ -13,7 +13,7 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 
 ## When to Use
 
-- You have an approved plan bundle from `decompose-tasks`.
+- You have an approved plan bundle from `decompose-plan`.
 - `analyze-plan` has produced `...-plan.analysis.md` with PASS verdict.
 - `.ralph/` already exists (created by `ralph init`).
 - Input: a plan.md file path (passed as argument or resolved interactively) and its derived `...-plan.analysis.md`.
@@ -35,7 +35,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
 2. If no argument, search `docs/plans/*-plan.md` for available plans.
 3. If multiple plans exist, present the list and ask the user to select one.
 4. If no plans exist, stop and inform the user.
-5. Validate the resolved path exists and is a `decompose-tasks` plan bundle:
+5. Validate the resolved path exists and is a `decompose-plan` plan bundle:
    - The file contains `## Task Dependency Graph`.
    - The file contains `## Checkpoint Summary` with all required keys:
      - `Alignment Verdict: PASS`

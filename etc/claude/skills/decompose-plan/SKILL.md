@@ -1,5 +1,5 @@
 ---
-name: decompose-tasks
+name: decompose-plan
 description: Decomposes an approved design document into a TDD-based implementation plan bundle with traceability. Use after design-doc approval to generate an execution plan with round-trip verification.
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
