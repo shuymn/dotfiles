@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: Creates or updates a design document through iterative dialogue with the user. Use when starting a new feature, system design, or architectural change that needs a written design before implementation. Produces design docs and ADRs.
+description: Creates or updates a design document through iterative dialogue with the user, including a mandatory clarification gate before drafting. Use when starting a new feature, system design, or architectural change that needs a written design before implementation. Produces design docs and ADRs.
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
@@ -41,17 +41,32 @@ Before writing anything, understand the landscape:
 4. Identify related components, APIs, or systems that the design will interact with
 5. Create a TodoWrite checklist to track the design process phases
 
+### Phase 1.5: Clarification Gate (Required)
+
+Before drafting the design, remove requirement ambiguity explicitly.
+
+1. Build a clarification list from user requests, existing docs, and code context.
+2. Resolve each item with the user one-by-one:
+   - Use AskUserQuestionTool.
+   - Ask **one question at a time** (do not batch multiple questions).
+   - Prefer multiple-choice options when feasible.
+3. Classify each clarification item as one of:
+   - `resolved` (explicit answer exists)
+   - `assumed` (no answer yet, but safe temporary assumption documented)
+   - `blocked` (cannot continue without answer)
+4. Do not start design drafting while any `blocked` item remains.
+5. Record outcomes in the design doc under `## Clarifications` with:
+   - Question
+   - Answer or assumption
+   - Impact on scope/design
+   - Status (`resolved` or `assumed`)
+
 ### Phase 2: Initial Design Draft
 
-1. Clarify requirements through dialogue with the user
-   - Use AskUserQuestionTool
-   - Ask **one question at a time** (do not batch multiple questions)
-   - Prefer multiple-choice options when feasible
-   - Continue until you have enough clarity to draft
-2. Create the initial design doc draft
-3. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
+1. Create the initial design doc draft
+2. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
    - Create the directory if it does not exist: `mkdir -p docs/plans`
-4. Present the draft to the user and request feedback
+3. Present the draft to the user and request feedback
 
 ### Phase 3: Feedback Loop (Core Loop)
 
@@ -152,6 +167,12 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 ## Background
 
 [Context needed to understand this design. Prior art, related systems, constraints.]
+
+## Clarifications
+
+| Question | Answer / Assumption | Impact | Status |
+|----------|----------------------|--------|--------|
+| [What needed clarification] | [Final answer or explicit assumption] | [How design/scope changes] | resolved / assumed |
 
 ## Design
 
