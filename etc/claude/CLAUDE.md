@@ -8,6 +8,7 @@
 - When requirements are ambiguous, ask via AskUserQuestionTool before proceeding. Never guess.
 - Confirm interpretation: "Is my understanding that ○○ correct?"
 - Never hardcode values. Use configuration, environment variables, or constants.
+- Use `uv run` for Python execution by default (including one-off scripts and tooling).
 - Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
 - Bad: User asks "Create a login function" → you add 2FA unrequested. Good: you ask about auth method, session management, and existing libraries first.
 
