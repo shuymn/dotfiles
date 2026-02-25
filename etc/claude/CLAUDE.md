@@ -15,9 +15,9 @@
 
 If there is even a small chance a skill applies, invoke it BEFORE responding.
 
-**Workflow:** Design needed → `design-doc` | Task breakdown → `decompose-tasks` | Implementation → `execute-plan`
+**Workflow:** Design needed → `design-doc` | Task breakdown → `decompose-tasks` | Pre-execution audit → `analyze-plan` | Runtime prep → `setup-ralph` | Implementation → `execute-plan`
 
-**Priority:** Process skills first (design-doc, decompose-tasks), then implementation skills (execute-plan, domain-specific).
+**Priority:** Process skills first (design-doc, decompose-tasks, analyze-plan, setup-ralph), then implementation skills (execute-plan, domain-specific).
 
 **Red flags — if you think any of these, stop and check skills:** "Just a simple question" / "Let me explore first" / "This skill is overkill" / "I remember this skill" (skills evolve; read current version).
 

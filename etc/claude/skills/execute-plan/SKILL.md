@@ -1,6 +1,6 @@
 ---
 name: execute-plan
-description: Executes exactly one explicitly user-selected task from an approved decompose-tasks plan bundle. Use when the user specifies a concrete task ID from docs/plans/YYYY-MM-DD-<topic>-plan.md to implement now, with on-demand reads of plan.trace.md and plan.compose.md.
+description: Executes exactly one explicitly user-selected task from an approved and analyzed decompose-tasks plan bundle. Use when the user specifies a concrete task ID from docs/plans/YYYY-MM-DD-<topic>-plan.md after analyze-plan PASS, with on-demand reads of plan.trace.md and plan.compose.md.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite, Task]
 ---
 
@@ -12,11 +12,13 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 ## When to Use
 
 - You have an approved plan bundle from `decompose-tasks`.
+- `analyze-plan` has produced `...-plan.analysis.md` with PASS verdict.
 - The user explicitly asks to execute a specific task (for example, `Task 7`).
 - Input includes:
   - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (primary)
   - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (on-demand traceability evidence)
   - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md` (on-demand reconstruction evidence)
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.analysis.md` (required readiness gate)
 
 ## <HARD-GATE: TASK SELECTION>
 
@@ -51,6 +53,13 @@ Never choose a task implicitly.
      - `Updated At`
    - `Checkpoint Summary` has `Alignment Verdict: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
+   - Analysis report exists at `...-plan.analysis.md` (replace `-plan.md` with `-plan.analysis.md`) and has:
+     - `Overall Verdict: PASS`
+     - `Bundle Integrity: PASS`
+     - `Traceability Integrity: PASS`
+     - `Scope Integrity: PASS`
+     - `Testability Integrity: PASS`
+     - `Execution Readiness: PASS`
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.
@@ -88,6 +97,7 @@ If expected results are not met, stop and follow Stop Conditions.
 Stop immediately and ask user guidance when:
 
 - Plan bundle validation fails (missing sidecar, invalid summary, broken links).
+- Analysis report is missing, malformed, or has any verdict that is not PASS.
 - Target task ID is missing, ambiguous, or not explicitly provided by the user.
 - Dependency satisfaction was not explicitly confirmed by the user.
 - RED cannot reach executable failing state after applying the RED recovery loop.

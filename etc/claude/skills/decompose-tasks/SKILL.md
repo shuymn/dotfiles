@@ -185,6 +185,7 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 3. Apply feedback and update all impacted files.
 4. Re-run Cross Self-Check after each meaningful change.
 5. Repeat until the user explicitly approves.
+6. After approval, suggest running `analyze-plan` before `setup-ralph` or `execute-plan`.
 
 ## Key Principles
 

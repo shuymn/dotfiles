@@ -1,6 +1,6 @@
 ---
 name: setup-ralph
-description: Prepares .ralph/ runtime state from an approved decompose-tasks plan bundle. Fills prd.json from plan.md task mappings and updates prompt.md with project-specific context, rules, and quality gates. Use after plan approval and ralph init.
+description: Prepares .ralph/ runtime state from an approved and analyzed decompose-tasks plan bundle. Fills prd.json from plan.md task mappings and updates prompt.md with project-specific context, rules, and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
 argument-hint: "[plan-path]"
 disable-model-invocation: true
 ---
@@ -14,8 +14,9 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 ## When to Use
 
 - You have an approved plan bundle from `decompose-tasks`.
+- `analyze-plan` has produced `...-plan.analysis.md` with PASS verdict.
 - `.ralph/` already exists (created by `ralph init`).
-- Input: a plan.md file path (passed as argument or resolved interactively).
+- Input: a plan.md file path (passed as argument or resolved interactively) and its derived `...-plan.analysis.md`.
 - Output: updated `.ralph/prd.json` and `.ralph/prompt.md`.
 
 ## <HARD-GATE: PLAN APPROVAL>
@@ -23,6 +24,7 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 Do NOT sync a plan that has not been explicitly approved by the user.
 
 - Verify the plan's `Checkpoint Summary` passes full validation (see Step 1.5).
+- Verify the analysis report (`...-plan.analysis.md`) exists and has PASS verdicts (see Step 1.6).
 - If any required key is missing or any verdict is not PASS, stop and ask the user to fix the plan first.
 
 ## Process
@@ -42,6 +44,17 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Non-Goal Guard: PASS`
      - `Granularity Guard: PASS`
      - `Trace Pack` and `Compose Pack` paths that match the plan header links
+     - `Updated At`
+6. Validate analysis report readiness:
+   - Derive analysis path by replacing `-plan.md` with `-plan.analysis.md`.
+   - The analysis file exists.
+   - The analysis `## Summary` contains:
+     - `Overall Verdict: PASS`
+     - `Bundle Integrity: PASS`
+     - `Traceability Integrity: PASS`
+     - `Scope Integrity: PASS`
+     - `Testability Integrity: PASS`
+     - `Execution Readiness: PASS`
      - `Updated At`
 
 ### Step 2: Parse Plan Tasks
@@ -143,6 +156,7 @@ Stop immediately and ask user guidance when:
 - `.ralph/prd.json` or `.ralph/prompt.md` does not exist.
 - Plan path cannot be resolved or does not exist.
 - Plan is missing `Checkpoint Summary`, missing required keys, or has any verdict that is not PASS.
+- Analysis report is missing, malformed, or has any verdict that is not PASS.
 - A dependency references a task ID that does not exist in the plan.
 - Circular dependency detected.
 - branchName cannot be derived and user does not provide it.
