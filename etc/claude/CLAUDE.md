@@ -5,6 +5,7 @@
 - Do NOT maintain backward compatibility unless explicitly requested. Break things boldly.
 - Keep this file under 20-30 lines of instructions. Every line competes for the agent's limited context budget.
 - Execute only what is explicitly requested. No unrequested features, no "while we're at it" work.
+- When implementation changes approved scope or design decisions, update the related Design Doc and ADR in the same task.
 - When requirements are ambiguous, ask via AskUserQuestionTool before proceeding. Never guess.
 - Confirm interpretation: "Is my understanding that ○○ correct?"
 - Never hardcode values. Use configuration, environment variables, or constants.
