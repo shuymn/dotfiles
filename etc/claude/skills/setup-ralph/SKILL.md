@@ -123,8 +123,12 @@ Rules for editing prompt.md:
 
 ### Step 6: Report
 
-1. Display the generated `prd.json` content.
-2. Display the updated sections of `prompt.md` (Context, Rules, Quality Gates only).
+1. Summarize `prd.json` updates without dumping full file content:
+   - project, plan path, branchName
+   - story count and task ID range (e.g., `task-1` to `task-8`)
+2. Summarize `prompt.md` updates without dumping section content:
+   - What changed in Context, Rules, and Quality Gates
+   - Any commands or constraints added/updated
 3. Summarize:
    - Number of stories synced.
    - Dependency chain (e.g., `T1 -> T2 -> T3 -> T4`).
