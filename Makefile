@@ -13,6 +13,8 @@ CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 CODEX_BASE := $(CLAUDE_BASE)/skills
 CODEX_HOME := $(HOME)/.codex/skills
 CODEX_FILES := $(shell find $(CODEX_BASE) -type f 2>/dev/null)
+CODEX_AGENTS_SOURCE := $(CLAUDE_BASE)/CLAUDE.md
+CODEX_AGENTS_TARGET := $(HOME)/.codex/AGENTS.md
 
 .DEFAULT_GOAL := help
 
@@ -54,13 +56,15 @@ link-claude: ## Create symlinks to the claude directory
 	@echo 'Finish linking claude files'
 
 .PHONY: link-codex
-link-codex: ## Copy codex skill files to the codex directory
+link-codex: ## Copy codex skill files and AGENTS.md to the codex directory
 	@echo 'Start to link codex files'
 	@echo ''
 	@$(foreach file,$(CODEX_FILES), \
 		mkdir -p $(dir $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file))) && \
 		rm -f $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file)) && \
 		cp -fv $(abspath $(file)) $(patsubst $(CODEX_BASE)/%,$(CODEX_HOME)/%,$(file));)
+	@mkdir -p $(dir $(CODEX_AGENTS_TARGET))
+	@cp -fv $(abspath $(CODEX_AGENTS_SOURCE)) $(CODEX_AGENTS_TARGET)
 	@echo 'Finish linking codex files'
 
 .PHONY: clean-claude
