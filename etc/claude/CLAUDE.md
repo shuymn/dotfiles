@@ -7,7 +7,7 @@
 - Execute only what is explicitly requested. No unrequested features, no "while we're at it" work.
 - When implementation changes approved scope or design decisions, update the related Design Doc and ADR in the same task.
 - When requirements are ambiguous, ask via AskUserQuestionTool before proceeding. Never guess.
-- Confirm interpretation: "Is my understanding that ○○ correct?"
+- Confirm interpretation in the current response language (e.g., Japanese: 「私の理解は○○で正しいですか？」 / English: "Is my understanding that ○○ correct?").
 - Never hardcode values. Use configuration, environment variables, or constants.
 - Use `uv run` for Python execution by default (including one-off scripts and tooling).
 - Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
