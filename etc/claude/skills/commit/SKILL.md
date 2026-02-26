@@ -1,7 +1,6 @@
 ---
 name: commit
 description: Creates meaningful git commits by analyzing changes and committing in logical units. Use when the user wants to commit changes to git, requests commit creation, or asks to save changes to version control. Supports --japanese flag for Japanese commit messages and --branch flag to create a new branch before committing.
-disable-model-invocation: true
 allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
 ---
 

@@ -2,7 +2,6 @@
 name: setup-ralph
 description: Prepares .ralph/ runtime state from an approved and analyzed decompose-plan plan bundle. Fills prd.json from plan.md task mappings and updates prompt.md with project-specific context, rules, and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
 argument-hint: "[plan-path]"
-disable-model-invocation: true
 ---
 
 # Setup Ralph
