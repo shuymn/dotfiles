@@ -26,3 +26,5 @@ If there is even a small chance a skill applies, invoke it BEFORE responding.
 **Discipline:** Rigid skills (TDD, verification) — follow exactly. Flexible skills (patterns) — adapt to context. The skill itself indicates which.
 
 <!-- Maintenance: Review this file when adding/removing skills or changing core workflow. Keep each line high-density — if it can be inferred from code or linters, remove it. -->
+
+@RTK.md
