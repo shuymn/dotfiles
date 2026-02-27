@@ -126,7 +126,7 @@ Update only the following sections (preserve all other sections unchanged):
 
 3. **Quality Gates**: Add project-specific verification commands.
    - Build/test/lint commands from `AGENTS.md` (e.g., `task test`, `task lint`, `task fmt`).
-   - Plan-specific verification commands from task `**DoD**` sections (e.g., `go test ./internal/config/...`).
+   - Plan-specific verification commands from task `**DoD**` sections (e.g., `rtk go test ./internal/config/...`).
 
 Rules for editing prompt.md:
 - Never modify sections marked `<!-- do not edit: ... -->`.

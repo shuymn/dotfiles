@@ -55,7 +55,7 @@ Count lines that contain actual instructions (exclude blank lines, comments, hea
 
 Flag any instruction that the agent can infer from the codebase itself:
 
-- Directory structure descriptions (agent can run `ls` / `find`)
+- Directory structure descriptions (agent can run `rtk ls` / `rtk find`)
 - Code style rules already enforced by linters (eslint, prettier, rustfmt, etc.)
 - Dependency lists (agent can read package.json, Cargo.toml, etc.)
 - Build/test commands that are standard for the framework (e.g., `npm test` for a Node project with no custom config)
@@ -105,7 +105,7 @@ Check for:
 1. Resolve symlinks and identify the canonical file to edit
 2. Read the target file
 3. If the file is in a project, also read:
-   - Available skills (`ls` the skills directory if a `.claude-plugin` exists)
+   - Available skills (`rtk ls` the skills directory if a `.claude-plugin` exists)
    - Project structure (top-level files and directories)
    - Linter configs (`.eslintrc*`, `.prettierrc*`, `rustfmt.toml`, etc.)
    - Global instruction file (`~/.claude/CLAUDE.md` or `~/.claude/AGENTS.md`) to check for redundancy across levels

@@ -48,7 +48,7 @@ Before writing anything, understand the landscape:
 1. Explore the project structure, existing code, and related documentation
 2. Check for existing design docs in `docs/plans/`
 3. Check for existing ADRs in `docs/adr/` — **use a tiered reading strategy:**
-   - **Always:** List filenames only first (`ls docs/adr/`) to get an overview
+   - **Always:** List filenames only first (`rtk ls docs/adr/`) to get an overview
    - **Then:** Read only ADRs that are clearly relevant to the current design topic (judge by title)
    - **Never:** Read all ADRs upfront — in large projects this will consume context for no benefit
    - If unsure whether an ADR is relevant, read just its Title and Status lines before committing to the full content
