@@ -61,6 +61,26 @@ If `Split Decision: root-sub`, require:
 - Explicit boundary ownership (what each sub owns, and what remains integration-only).
 - Root-level coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration tasks.
 
+## Scale-Appropriate Depth
+
+Default to the **Core Profile**. Add sections only when triggered.
+
+**Core Profile (always include):** `Overview`, `Goals`, `Non-Goals`, `Proposed Solution`, `Detailed Design`, `Acceptance Criteria`. Add `Background` only when extra context is needed.
+
+**Default-prohibited sections — add only when trigger is met:**
+
+| Section | Trigger |
+|---|---|
+| `Compatibility & Sunset` | Breaking change or staged migration (see Lifecycle Contract for required `TEMPxx` details) |
+| `Operational Considerations` | 2+ teams impacted, or monitoring/rollout changes required |
+| `root-sub` decomposition | Meets Decomposition Strategy Contract conditions |
+
+`Verification Plan`, `Alternatives Considered`, and `Risks & Mitigations` are optional — include when they add value; omit otherwise.
+
+**Size guideline (non-blocking):** Target 600–1500 words, up to 2 diagrams. If exceeded, before continuing: (1) state in one line why the additional length is necessary, (2) re-evaluate `single` vs `root-sub` split.
+
+Quality is judged by `Acceptance Criteria` clarity, trade-off coverage, and verifiability — not word count. Avoid cargo-cult overhead (release signoff checklists, committee-style gates, extensive ops runbooks) unless requested.
+
 ## Process
 
 ### Phase 1: Context Exploration
@@ -105,6 +125,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
 ### Phase 2: Initial Design Draft
 
 1. Create the initial design doc draft
+   - Start with the Core Profile sections; add optional sections only when triggered.
 2. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
    - Create the directory if it does not exist: `mkdir -p docs/plans`
 3. If `Split Decision: root-sub`, also create sub docs at:
@@ -178,11 +199,13 @@ When a significant design decision is made, record it as an ADR.
 3. Verify the Decision Log section in the design doc links to all related ADRs
 4. For breaking-change designs, verify all `TEMPxx` entries include retirement trigger and retirement verification.
 5. Verify `## Decomposition Strategy` is complete and consistent with produced design files:
-   - Every `Sub-Doc Index` file path exists.
-   - Every `Root Coverage` entry references a valid sub ID or `Integration`.
-   - Every sub ID referenced in `Root Coverage` exists in `Sub-Doc Index`.
-   - Boundary ownership text is explicit and non-overlapping.
-6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, links).
+   - If `Split Decision: root-sub`, verify:
+     - Every `Sub-Doc Index` file path exists.
+     - Every `Root Coverage` entry references a valid sub ID or `Integration`.
+     - Every sub ID referenced in `Root Coverage` exists in `Sub-Doc Index`.
+     - Boundary ownership text is explicit and non-overlapping.
+   - If `Split Decision: single`, verify no unnecessary root/sub scaffolding remains.
+6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, validation, links).
 7. Verify supersession links are coherent (`Supersedes`/`Superseded by` are reciprocal where applicable).
 8. Suggest the `decompose-plan` skill as the next step
 

@@ -2,7 +2,7 @@
 
 ## Design Doc Template
 
-Use this structure as a starting point. Adapt sections as needed for the specific topic — not every section is required for every design.
+Use this structure as a starting point. Default to the Core Profile sections. Add default-prohibited sections only when their trigger conditions are met (see SKILL.md § Scale-Appropriate Depth).
 
 ```markdown
 # <Topic> - Design
@@ -19,9 +19,9 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 
 - [What is explicitly out of scope]
 
-## Background
+## Background (Optional)
 
-[Context needed to understand this design. Prior art, related systems, constraints.]
+[Use when extra context is needed beyond Overview (prior art, related systems, constraints).]
 
 ## Clarifications
 
@@ -47,13 +47,30 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 |---------------------|------------------------------------|-------|
 | [ROOT-REQ/ROOT-AC] | [SUB-A / Integration] | [mapping rationale] |
 
-## Design
+## Proposed Solution
 
-[Main design content. Organize into subsections appropriate for the topic.]
+[What we are changing and why this approach is chosen.]
 
-### [Subsection as needed]
+## Detailed Design
 
 [Use diagrams (Mermaid preferred over ASCII art) where they add clarity.]
+
+## Alternatives Considered (Optional)
+
+[Use when there are meaningful trade-offs or rejected options.]
+
+## Risks & Mitigations (Optional)
+
+[Use when failure modes, rollout risks, or uncertainty are non-trivial.]
+
+## Verification Plan (Optional)
+
+[How success is validated: tests, benchmarks, measurable checks.]
+[This describes verification methods/evidence, not the acceptance bar itself.]
+
+## Operational Considerations (Optional)
+
+[Use only when production operations are materially impacted (rollout, monitoring, dependency coordination).]
 
 ## Compatibility & Sunset
 
@@ -79,6 +96,7 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 
 1. [Specific, verifiable criteria that the implementation must satisfy]
 2. [These will be used by decompose-plan and execute-plan skills]
+3. [Keep this as the pass/fail bar; reference Verification Plan only as supporting evidence.]
 ```
 
 ## ADR Template
