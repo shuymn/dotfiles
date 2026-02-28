@@ -11,6 +11,9 @@
 - Never hardcode values. Use configuration, environment variables, or constants.
 - Use `uv run` for Python execution by default (including one-off scripts and tooling).
 - Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
+- For non-trivial changes, ask "Would a staff engineer accept this?" and document rationale, impact scope, and verification evidence (relevant tests/logs/repro steps) before marking done.
+- Prefer the most elegant solution that stays in scope: compare up to 2 alternatives for non-trivial changes and choose the lowest-risk option.
+- If new findings invalidate the current plan, stop execution, update the plan, then continue.
 - Bad: User asks "Create a login function" → you add 2FA unrequested. Good: you ask about auth method, session management, and existing libraries first.
 
 ## Skill Usage Guide
