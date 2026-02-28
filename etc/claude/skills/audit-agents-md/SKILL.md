@@ -1,6 +1,6 @@
 ---
 name: audit-agents-md
-description: Audits and refines a CLAUDE.md or AGENTS.md file for instruction density, staleness, and effectiveness. Use when reviewing or improving an agent instruction file, checking instruction quality, or when the user says "review my CLAUDE.md" or "audit agent instructions".
+description: Audits and refines a CLAUDE.md or AGENTS.md file for instruction density, staleness, and effectiveness. Use when reviewing or improving an agent instruction file, after significant project changes (skills, architecture, or tooling), when agent behavior suggests instructions are ignored or misinterpreted, when the file grows beyond ~30 instruction lines, or when the user says "review my AGENTS.md" or "audit agent instructions".
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
@@ -17,13 +17,6 @@ Agent instruction files go by different names depending on the tool:
 - **COPILOT.md**, **CURSOR.md**, etc. — other tool-specific variants
 
 A common setup is `AGENTS.md` as the real file with `CLAUDE.md` symlinked to it. This skill handles all of these transparently.
-
-## When to Use
-
-- Periodic review of instruction file quality
-- After significant project changes (new skills, architecture shifts, tool changes)
-- When agent behavior suggests instructions are being ignored or misinterpreted
-- When the file has grown beyond ~30 lines of instructions
 
 ## Arguments
 
@@ -43,6 +36,16 @@ Before auditing, resolve the file's symlink chain:
 
 Evaluate the file against each criterion below. For each, assign a verdict: **PASS**, **WARN**, or **FAIL**.
 
+### Evidence-Based Guardrails
+
+Use this evidence to prioritize recommendations:
+
+- LLM-generated context files reduced success rate on average while increasing cost by ~20-23%.
+- Agents strongly follow tool mentions in context files; naming a tool can materially increase tool usage.
+- Codebase overview sections are often redundant and did not consistently reduce time-to-relevant-files.
+
+Therefore, prefer **minimal, repository-specific requirements** over broad guidance.
+
 ### 1. Density (target: 20-30 instruction lines)
 
 Count lines that contain actual instructions (exclude blank lines, comments, headers). Every line competes for the agent's limited instruction-following budget.
@@ -56,6 +59,7 @@ Count lines that contain actual instructions (exclude blank lines, comments, hea
 Flag any instruction that the agent can infer from the codebase itself:
 
 - Directory structure descriptions (agent can run `rtk ls` / `rtk find`)
+- Full codebase overviews that mostly restate discoverable paths/files
 - Code style rules already enforced by linters (eslint, prettier, rustfmt, etc.)
 - Dependency lists (agent can read package.json, Cargo.toml, etc.)
 - Build/test commands that are standard for the framework (e.g., `npm test` for a Node project with no custom config)
@@ -80,6 +84,7 @@ Every instruction must be something the agent can act on. Flag:
 - Vague guidance ("be careful with...", "keep in mind...")
 - Aspirational statements ("we strive to...", "ideally...")
 - Context without directive ("this project uses X" without "therefore do Y")
+- Blanket "always do X" directives (full test suite, full lint/format, broad exploration) unless explicitly required by repo policy
 
 ### 5. Redundancy
 
@@ -88,8 +93,25 @@ Flag instructions that duplicate:
 - What is already in a skill's SKILL.md
 - What is already in another instruction file in the hierarchy (global vs project)
 - What is stated multiple times in different words within the same file
+- What is already captured in README/docs/CI scripts without adding repository-specific constraints
 
-### 6. Structure
+### 6. Requirement Cost Pressure
+
+Context-file instructions should avoid adding unnecessary execution burden.
+
+Flag lines that force extra work without clear repository-specific benefit:
+
+- Generic mandatory tool directives (e.g., "always use uv/pytest/ruff") with no project-specific reason
+- Long mandatory checklists that add broad exploration/testing unrelated to task scope
+- Multiple overlapping directives that likely increase steps/tokens without improving correctness
+
+Verdict guideline:
+
+- **PASS**: All mandatory/tool-specific directives are repository-specific and justified
+- **WARN**: 1-3 low-value mandatory directives remain
+- **FAIL**: 4+ low-value mandatory directives or checklist-heavy file behavior
+
+### 7. Structure
 
 Check for:
 
@@ -107,6 +129,7 @@ Check for:
 3. If the file is in a project, also read:
    - Available skills (`rtk ls` the skills directory if a `.claude-plugin` exists)
    - Project structure (top-level files and directories)
+   - README/docs and CI workflows to detect documentation and command redundancy
    - Linter configs (`.eslintrc*`, `.prettierrc*`, `rustfmt.toml`, etc.)
    - Global instruction file (`~/.claude/CLAUDE.md` or `~/.claude/AGENTS.md`) to check for redundancy across levels
    - Other agent instruction files in the same directory (check for divergent copies vs proper symlinks)
@@ -114,7 +137,7 @@ Check for:
 
 ### Step 2: Score Each Criterion
 
-For each of the 6 criteria, provide:
+For each of the 7 criteria, provide:
 
 - **Verdict**: PASS / WARN / FAIL
 - **Evidence**: Specific lines or findings
@@ -125,6 +148,9 @@ For each of the 6 criteria, provide:
 If any criterion is WARN or FAIL:
 
 1. Draft a revised version of the file
+   - Keep only minimal requirements that are non-inferable and repository-specific
+   - Remove generic tool mandates unless backed by repository constraints
+   - Replace broad codebase overviews with only non-obvious navigation hints
 2. Show a diff summary: what was removed, what was added, what was reworded
 3. Present to the user via AskUserQuestionTool with options:
    - Apply the full rewrite
@@ -150,3 +176,5 @@ Do NOT introduce these when rewriting:
 - **Over-compression** that loses meaning — each line must still be independently clear
 - **Moving essential instructions to comments** — HTML comments are for maintenance notes, not instructions
 - **Divergent copies** — if both AGENTS.md and CLAUDE.md exist as separate files with different content, flag this and recommend consolidating to one canonical file with symlinks
+- **Tool-list cargo culting** — listing many tools/commands as mandatory without repository-specific necessity
+- **Directory tree dumps** — long path enumerations that are easily discoverable by the agent
