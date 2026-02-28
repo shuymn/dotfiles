@@ -33,6 +33,34 @@ For breaking changes or staged migrations, the design doc must specify lifecycle
   - Owner and target milestone/date
 - Missing retirement definitions are design gaps, not implementation details.
 
+## Decomposition Strategy Contract (Single vs Root/Sub)
+
+Default to a single design doc. Use root/sub split only when structural conditions require it.
+
+- Default: `Split Decision: single`
+- Do not split only because the document is long.
+- Record the decision in the design doc under `## Decomposition Strategy`.
+
+Split is required if any of these are true:
+
+- Distinct domains/components have independent acceptance flows and verification commands.
+- Staged migration or `TEMPxx` lifecycle differs by domain.
+- Work is expected to proceed in parallel streams with clear ownership boundaries.
+- A single doc cannot keep `requirements -> tasks` traceability unambiguous.
+
+Split is discouraged (keep single) if any of these are true:
+
+- Most requirements target one cohesive component boundary.
+- Verification is primarily a single integrated flow.
+- Proposed sub-doc boundaries would create many cross-boundary tasks.
+
+If `Split Decision: root-sub`, require:
+
+- Root doc with global scope, shared constraints, cross-domain dependencies, and integration acceptance criteria.
+- One sub design doc per boundary with local requirements and acceptance criteria.
+- Explicit boundary ownership (what each sub owns, and what remains integration-only).
+- Root-level coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration tasks.
+
 ## Process
 
 ### Phase 1: Context Exploration
@@ -49,6 +77,7 @@ Before writing anything, understand the landscape:
 4. Identify related components, APIs, or systems that the design will interact with
 5. Create a TodoWrite checklist to track the design process phases
 6. Determine whether the request includes a breaking change or staged migration; if yes, enumerate candidate temporary mechanisms to track as `TEMPxx`.
+7. Determine decomposition strategy (`single` or `root-sub`) using the Decomposition Strategy Contract.
 
 ### Phase 1.5: Clarification Gate (Required)
 
@@ -78,7 +107,10 @@ Before drafting the design, remove requirement ambiguity explicitly.
 1. Create the initial design doc draft
 2. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
    - Create the directory if it does not exist: `mkdir -p docs/plans`
-3. Present the draft to the user and request feedback
+3. If `Split Decision: root-sub`, also create sub docs at:
+   - `docs/plans/YYYY-MM-DD-<topic>-<subtopic>-design.md`
+   - Use the sub-doc template: [design-templates.md](references/design-templates.md#sub-design-doc-template-for-root-sub)
+4. Present the draft to the user and request feedback
 
 ### Phase 3: Feedback Loop (Core Loop)
 
@@ -129,7 +161,12 @@ When a significant design decision is made, record it as an ADR.
 2. Verify all design decisions have corresponding ADRs
 3. Verify the Decision Log section in the design doc links to all related ADRs
 4. For breaking-change designs, verify all `TEMPxx` entries include retirement trigger and retirement verification.
-5. Suggest the `decompose-plan` skill as the next step
+5. Verify `## Decomposition Strategy` is complete and consistent with produced design files:
+   - Every `Sub-Doc Index` file path exists.
+   - Every `Root Coverage` entry references a valid sub ID or `Integration`.
+   - Every sub ID referenced in `Root Coverage` exists in `Sub-Doc Index`.
+   - Boundary ownership text is explicit and non-overlapping.
+6. Suggest the `decompose-plan` skill as the next step
 
 ## Design Doc Template
 

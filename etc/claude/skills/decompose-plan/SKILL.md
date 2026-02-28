@@ -12,6 +12,7 @@ Output instruction-level guidance only. Do not output implementation code snippe
 ## Input / Output
 
 - Input: a design doc in `docs/plans/` (typically created by the `design-doc` skill).
+  - If the design doc declares `Split Decision: root-sub`, treat the root doc plus all sub docs listed in its `Sub-Doc Index` as the design input set.
 - Output is a 3-file bundle:
   - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (core, frequently read)
   - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (traceability evidence, on-demand)
@@ -100,28 +101,35 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - Do not prescribe line-by-line implementation details.
 - Do not add features outside the design doc.
 - Keep each task outcome independently testable.
-- Keep task granularity at a one-task-one-commit equivalent level:
-  - Each task should represent one coherent, reviewable change unit.
-  - Do not include commit commands or require commit execution in the plan.
-- Prefer task granularity that avoids micro-management; split only at meaningful test boundaries.
+- Keep task granularity at one coherent, reviewable change unit; do not include commit commands or require commit execution.
+- Do not use fixed file-count or LOC thresholds as hard rules.
+- Apply granularity triage:
+  - Hard gate (must pass): one primary objective, one main verification flow, and a clear rollback boundary.
+  - Split signals (if 2+ signals, split by default): unrelated components/domains, unrelated `REQxx/ACxx` targets, multiple independent verification environments/commands, or inability to rollback part of the task safely.
+  - Waiver rule: if you keep a task unsplit despite split signals, add explicit waiver metadata in the task (`reason`, `added risk`, `rollback plan`).
 
 ## Process
 
 ### Step 1: Load Design Doc
 
 1. Read the design doc specified by the user.
-2. Read `Goals`, `Non-Goals`, `Design`, `Decision Log`, and `Acceptance Criteria`.
-3. Read only ADRs linked from the design doc's Decision Log.
-4. Build a **Design Atom Index** with stable IDs:
+2. Detect decomposition strategy from `## Decomposition Strategy`:
+   - If `Split Decision: single`, continue with the single design doc.
+   - If `Split Decision: root-sub`, read all sub docs listed in `Sub-Doc Index`.
+   - If `root-sub` is declared but `Sub-Doc Index` is missing or any listed sub doc is unreadable, stop as `BLOCKED`.
+3. Read `Goals`, `Non-Goals`, `Design`, `Decision Log`, and `Acceptance Criteria` from the full design input set (root + sub docs when `root-sub`).
+4. Read only ADRs linked from the design input set Decision Logs (root + sub docs when `root-sub`).
+5. Build a **Design Atom Index** with stable IDs:
    - `GOALxx`: in-scope outcomes
    - `NONGOALxx`: explicit exclusions
    - `REQxx`: implementable requirements
    - `DECxx`: key design decisions; each must map to exactly one `ADR-xxxx` from Decision Log
    - `ACxx`: acceptance criteria
    - `TEMPxx`: temporary mechanisms from `Compatibility & Sunset` (required for breaking-change designs)
-5. Create a **Decision Trace** table: `DECxx -> ADR-xxxx`.
-6. Identify test frameworks and canonical verification commands.
-7. Run the design sufficiency gate:
+   - When `root-sub`, verify design-atom IDs are globally unique across root and all sub docs; if duplicate IDs exist, stop as `BLOCKED`.
+6. Create a **Decision Trace** table: `DECxx -> ADR-xxxx`.
+7. Identify test frameworks and canonical verification commands.
+8. Run the design sufficiency gate:
    - If migration/breaking-change intent exists but `TEMPxx` ledger is missing/incomplete, stop as `BLOCKED`.
 
 ### Step 2: Analyze and Decompose
@@ -147,9 +155,10 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
    - No task may exist without traceable design anchors.
 7. Validate granularity quality:
-   - A task should be small enough to fit one coherent commit-sized change unit.
-   - If a task would require multiple unrelated change units, split it.
-   - If multiple tasks would naturally collapse into one indistinguishable change unit, merge or re-slice them.
+   - Require all hard-gate properties to pass (single objective, single verification flow, clear rollback boundary).
+   - Count split signals; if 2 or more, split by default.
+   - If not splitting despite 2+ signals, record waiver metadata (`reason`, `added risk`, `rollback plan`).
+   - If multiple tasks collapse into one indistinguishable change unit, merge or re-slice.
 
 ### Step 3: Write Plan Bundle
 
@@ -187,8 +196,9 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
    - Verify each task treats DoD as AND (all items mandatory, no OR wording).
    - Verify each DoD item is independently verifiable.
 5. Granularity guard
-   - Verify each task is a coherent commit-sized change unit (without requiring commit execution).
-   - Flag tasks that are too broad or too fragmented.
+   - Verify each task passes hard-gate properties (single objective, single verification flow, clear rollback boundary).
+   - Count split signals per task; when 2+ signals exist, verify task is split or has waiver metadata.
+   - Flag overly broad, fragmented, or unjustified waived tasks.
 6. Temporal completeness guard
    - Every `TEMPxx` must map to at least one introducing task and one retiring task.
    - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
@@ -221,7 +231,7 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 - **No TDD Abandonment**: Testability difficulty is resolved by scaffolding or boundary-level tests, not by skipping RED.
 - **DoD Conjunction**: DoD is always AND semantics; all DoD items must be satisfied.
 - **Maintainability (DRY)**: Avoid duplicated task intent; express shared logic once via trace matrices and dependency graph.
-- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries at one coherent commit-sized change unit, without requiring commit steps.
+- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries at one coherent change unit using hard-gate/split-signal triage rather than fixed size thresholds.
 - **Instruction over Implementation**: Describe intent and verification, not code.
 - **No Micromanagement**: Avoid over-splitting and line-by-line directives.
 - **Context Efficiency**: Keep frequently-read artifacts compact; move heavy evidence to on-demand sidecars.

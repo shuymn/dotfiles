@@ -57,6 +57,8 @@ Path rule:
    - `Trace Pack`
    - `Compose Pack`
    - `Updated At`
+5. Resolve `Source` design doc path from the plan header when present.
+6. If `Source` exists, read it and detect whether it declares `Split Decision: root-sub` under `## Decomposition Strategy`.
 
 ### Step 2: Independent Analysis (Do Not Trust Prior Verdict Blindly)
 
@@ -86,6 +88,11 @@ Evaluate each area independently and record PASS/FAIL with evidence.
 7. **Ambiguity and Risk**
    - Identify vague directives that can cause divergent implementations.
    - Identify oversized or fragmented task boundaries.
+8. **Design Partition Integrity** (only when source design uses `Split Decision: root-sub`)
+   - Verify source design contains `## Decomposition Strategy`.
+   - Verify source design includes explicit boundary ownership and a sub-doc index.
+   - Verify source design includes a root coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration work.
+   - If any of the above are missing, mark blocker (decomposition basis is under-specified).
 
 ### Step 3: Write Analysis Report
 
@@ -103,6 +110,7 @@ Write `...-plan.analysis.md` with this structure:
 - Testability Integrity: PASS | FAIL
 - Execution Readiness: PASS | FAIL
 - Temporal Integrity: PASS | FAIL
+- Design Partition Integrity: PASS | FAIL | N/A (single-doc design)
 - Updated At: YYYY-MM-DD HH:MM TZ
 
 ## Findings
@@ -131,6 +139,8 @@ Rules:
 - If any blocker exists, set `Overall Verdict: FAIL`.
 - Keep findings specific and actionable. Avoid generic wording.
 - Missing `TEMPxx` retirement coverage in a breaking-change plan is a blocker.
+- Missing root/sub decomposition evidence in source design (when `Split Decision: root-sub`) is a blocker.
+- `Design Partition Integrity` may be `N/A` only when source design does not declare `Split Decision: root-sub`.
 
 ### Step 4: Review with User
 
@@ -145,6 +155,7 @@ Stop and ask for user guidance when:
 - Plan path is missing or invalid.
 - `Trace Pack` or `Compose Pack` is missing.
 - Plan format is malformed and cannot be analyzed reliably.
+- Source design path is declared but unreadable.
 - Breaking-change intent exists but temporal/lifecycle evidence (`TEMPxx` trace) is missing.
 - The user asks to modify plan content during this analysis flow.
 - The user asks to implement tasks during this analysis flow.
