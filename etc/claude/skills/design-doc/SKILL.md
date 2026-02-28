@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: Creates or updates a design document through iterative dialogue with the user, including a mandatory clarification gate before drafting. Use when starting a new feature, system design, or architectural change that needs a written design before implementation. Produces design docs and ADRs.
+description: Creates or updates a design document through iterative dialogue, producing design docs and ADRs. Use when planning a new feature, API design, system architecture, data model change, or any non-trivial change that benefits from written design before implementation.
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 

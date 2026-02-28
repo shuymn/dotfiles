@@ -1,6 +1,6 @@
 ---
 name: audit-agents-md
-description: Audits and refines a CLAUDE.md or AGENTS.md file for instruction density, staleness, and effectiveness. Use when reviewing or improving an agent instruction file against best practices.
+description: Audits and refines a CLAUDE.md or AGENTS.md file for instruction density, staleness, and effectiveness. Use when reviewing or improving an agent instruction file, checking instruction quality, or when the user says "review my CLAUDE.md" or "audit agent instructions".
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 

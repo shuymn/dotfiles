@@ -1,6 +1,6 @@
 ---
 name: handover
-description: Creates or refreshes a HANDOVER.md file that captures current session state for the next assistant. Use when the user invokes /handover, when wrapping up a session, when context is getting full, when switching operators, or when the user asks for a handoff summary including decisions, pitfalls, lessons learned, next steps, and important files.
+description: Creates or refreshes a HANDOVER.md that captures current session state for the next assistant. Use when wrapping up a session, context is getting full, switching operators, or when the user asks for a handoff summary including decisions, pitfalls, lessons learned, next steps, and important files. Also trigger when the user says "save progress", "session summary", or "prepare for next session".
 disable-model-invocation: true
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 ---
