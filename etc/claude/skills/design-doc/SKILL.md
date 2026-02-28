@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: Creates or updates a design document through iterative dialogue, producing design docs and ADRs. Use when planning a new feature, API design, system architecture, data model change, or any non-trivial change that benefits from written design before implementation.
+description: Creates or updates a design document through iterative dialogue, producing design docs and ADRs. Use this skill whenever a feature, API, architecture, or data model change would benefit from written design before coding — even if the user doesn't explicitly say "design doc". When in doubt, invoke this skill first.
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
@@ -90,7 +90,7 @@ Before writing anything, understand the landscape:
 1. Explore the project structure, existing code, and related documentation
 2. Check for existing design docs in `docs/plans/`
 3. Check for existing ADRs in `docs/adr/` — **use a tiered reading strategy:**
-   - **Always:** List filenames only first (`rtk ls docs/adr/`) to get an overview
+   - **Always:** List filenames only first (`rtk ls docs/adr/ 2>/dev/null || ls docs/adr/ 2>/dev/null`) to get an overview
    - **Then:** Read only ADRs that are clearly relevant to the current design topic (judge by title)
    - **Never:** Read all ADRs upfront — in large projects this will consume context for no benefit
    - If unsure whether an ADR is relevant, read just its Title and Status lines before committing to the full content
