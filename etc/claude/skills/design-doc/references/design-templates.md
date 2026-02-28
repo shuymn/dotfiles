@@ -86,28 +86,60 @@ Use this structure as a starting point. Adapt sections as needed for the specifi
 ```markdown
 # NNNN: <Decision Title>
 
-## Status
+- Status: Proposed | Accepted | Rejected | Deprecated | Superseded by [NNNN](NNNN-title.md)
+- Date: YYYY-MM-DD
+- Deciders: [person/role, ...] <!-- optional -->
+- Technical Story: [ticket/issue URL] <!-- optional -->
 
-Proposed | Accepted | Deprecated | Superseded by [NNNN](link)
+## Context and Problem Statement
 
-## Context
+[What problem are we solving now? Include concrete constraints, forces, and requirement links.]
 
-Why this decision is needed. What problem or requirement prompted it.
+## Decision Drivers
 
-## Decision
+<!-- Include when trade-offs exist; remove if decision had no meaningful alternatives -->
 
-What was decided. Be specific and unambiguous.
+- [driver 1]
+- [driver 2]
+
+## Considered Options
+
+<!-- Include at least two options unless truly single-option; remove otherwise -->
+
+- [option A]
+- [option B]
+
+## Decision Outcome
+
+Chosen option: "[option X]", because:
+
+- [reason 1 tied to driver/constraint]
+- [reason 2 tied to driver/constraint]
 
 ## Consequences
 
 ### Positive
-- [Benefits of this decision]
+
+- [benefit]
 
 ### Negative
-- [Trade-offs or costs of this decision]
+
+- [trade-off, risk, or cost]
 
 ### Neutral
-- [Other effects worth noting]
+
+- [other notable effects]
+
+## Validation
+
+- [How we verify success: metric/test/review checkpoint]
+
+## Links
+
+- Related ADR: [NNNN](NNNN-title.md) <!-- optional -->
+- Supersedes: [NNNN](NNNN-title.md) <!-- optional -->
+- Superseded by: [NNNN](NNNN-title.md) <!-- optional -->
+- Related issue/PR/docs: [link] <!-- optional -->
 ```
 
 ## Sub Design Doc Template (for root-sub)

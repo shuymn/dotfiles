@@ -139,8 +139,24 @@ When a significant design decision is made, record it as an ADR.
 - Use the next sequential number (zero-padded to 4 digits)
 - If no ADRs exist, start with `0001`
 - Create the directory if missing: `mkdir -p docs/adr`
+- Use a concise, verb-led kebab-case title (example: `0042-adopt-grpc-for-public-api.md`)
 
 **ADR format:** See [design-templates.md](references/design-templates.md#adr-template).
+
+**ADR quality bar (derived from proven ADR templates/examples):**
+- One ADR must capture exactly one decision.
+- Include top metadata: `Status`, `Date`, and `Deciders` (if known).
+- Write `Context and Problem Statement` with concrete forces, constraints, and requirement links.
+- If trade-offs exist, include `Decision Drivers` and `Considered Options` (at least two unless truly single-option).
+- Use `Decision Outcome` to name the chosen option and explain why it wins.
+- In `Consequences`, capture positive/negative/neutral impacts plus concrete follow-up work.
+- Add `Validation` to describe how success is measured (metric/test/review checkpoint).
+- Add `Links` to related ADRs, tickets, PRs, and docs.
+
+**ADR lifecycle rules:**
+- Treat ADRs as immutable history: do not rewrite accepted decisions to fit new reality.
+- When a decision changes, create a new ADR and connect it using `Supersedes` / `Superseded by`.
+- Keep status transitions explicit (`Proposed` -> `Accepted` -> `Deprecated`/`Superseded`/`Rejected`).
 
 **When to create an ADR:**
 - Technology or library selection
@@ -166,7 +182,9 @@ When a significant design decision is made, record it as an ADR.
    - Every `Root Coverage` entry references a valid sub ID or `Integration`.
    - Every sub ID referenced in `Root Coverage` exists in `Sub-Doc Index`.
    - Boundary ownership text is explicit and non-overlapping.
-6. Suggest the `decompose-plan` skill as the next step
+6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, links).
+7. Verify supersession links are coherent (`Supersedes`/`Superseded by` are reciprocal where applicable).
+8. Suggest the `decompose-plan` skill as the next step
 
 ## Design Doc Template
 
