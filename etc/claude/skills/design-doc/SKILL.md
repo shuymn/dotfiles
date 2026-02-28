@@ -74,6 +74,8 @@ Default to the **Core Profile**. Add sections only when triggered.
 
 **Core Profile (always include):** `Overview`, `Goals`, `Non-Goals`, `Proposed Solution`, `Detailed Design`, `Acceptance Criteria`. Add `Background` only when extra context is needed.
 
+`Non-Goals` quality rule: list only things a reader could reasonably infer are in scope after reading `Goals`, but are actually excluded. Test: "would a reasonable engineer assume this is included?" — if yes, state it is out of scope. Omit anything with no logical connection to the goals, regardless of how it came up: casual conversation mentions, reference-doc features dismissed as unneeded, or "we won't do X" rejections that no one would have inferred were in scope.
+
 **Default-prohibited sections — add only when trigger is met:**
 
 | Section | Trigger |

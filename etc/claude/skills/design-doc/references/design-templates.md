@@ -17,7 +17,8 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ## Non-Goals
 
-- [What is explicitly out of scope]
+<!-- List only things a reader might assume are in scope from Goals, but are excluded. Omit anything with no logical connection to the goals. -->
+- [Item a reader could infer is in scope from Goals, but is explicitly excluded]
 
 ## Background (Optional)
 
@@ -200,7 +201,8 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 ## Local Non-Goals
 
-- [Out-of-scope items for this boundary]
+<!-- List only things a reader might assume are in this boundary's scope from Local Goals, but are excluded. -->
+- [Item a reader could infer is in this boundary's scope, but is explicitly excluded]
 
 ## Local Requirements
 
