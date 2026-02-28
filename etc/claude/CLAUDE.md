@@ -6,13 +6,13 @@
 - Keep this file under 20-30 lines of instructions. Every line competes for the agent's limited context budget.
 - Execute only what is explicitly requested. No unrequested features, no "while we're at it" work.
 - When implementation changes approved scope or design decisions, update the related Design Doc and ADR in the same task.
-- When requirements are ambiguous, ask via AskUserQuestionTool before proceeding. Never guess.
+- When requirements are ambiguous, ask via AskUserQuestionTool when available; otherwise ask a concise plain-text question before proceeding. Never guess.
 - Confirm interpretation in the current response language (e.g., Japanese: 「私の理解は○○で正しいですか？」 / English: "Is my understanding that ○○ correct?").
 - Never hardcode values. Use configuration, environment variables, or constants.
 - Use `uv run` for Python execution by default (including one-off scripts and tooling).
 - Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
 - For non-trivial changes, ask "Would a staff engineer accept this?" and document rationale, impact scope, and verification evidence (relevant tests/logs/repro steps) before marking done.
-- Prefer the most elegant solution that stays in scope: compare up to 2 alternatives for non-trivial changes and choose the lowest-risk option.
+- Prefer the most elegant solution that stays in scope: for non-trivial changes with material trade-offs, compare up to 2 alternatives and choose the lowest-risk option.
 - If new findings invalidate the current plan, stop execution, update the plan, then continue.
 - Bad: User asks "Create a login function" → you add 2FA unrequested. Good: you ask about auth method, session management, and existing libraries first.
 
