@@ -49,6 +49,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Reverse Fidelity`
      - `Non-Goal Guard`
      - `Granularity Guard`
+     - `Temporal Completeness Guard`
      - `Trace Pack`
      - `Compose Pack`
      - `Updated At`
@@ -61,6 +62,8 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Scope Integrity: PASS`
      - `Testability Integrity: PASS`
      - `Execution Readiness: PASS`
+     - `Temporal Integrity: PASS`
+     - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.

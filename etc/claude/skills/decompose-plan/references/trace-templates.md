@@ -20,7 +20,7 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 - Task B: REQyy, DECzz
 
 ## Temporary Mechanism Trace
-- TEMP01: introduced_by=[Task A], retired_by=[Task E], retire_condition=[...], retire_test=[...], status=open|closed|waived
+- TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[...], retirement_verification=[...], removal_scope=[...], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived
 ```
 
 ## Cross Self-Check Template (for `plan.trace.md`)
@@ -55,7 +55,9 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 - TEMP entries missing introducing tasks: [if any]
 - TEMP entries missing retiring tasks: [if any]
 - Retire tasks missing negative fallback-removal verification: [if any]
-- Open TEMP entries without waiver metadata: [if any]
+- TEMP entries missing in-doc closure summary (checklist/ledger row): [if any]
+- TEMP entries missing closure tuple fields (trigger/verification/removal_scope): [if any]
+- Open TEMP entries without waiver metadata (`reason`, `deadline`, `owner?`): [if any]
 ```
 
 ## Compose Reconstruction Template (for `plan.compose.md`)

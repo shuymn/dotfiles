@@ -30,8 +30,19 @@ No exceptions. Not even "just to test one thing" or "the first task is trivial."
 Do not infer migration lifecycle details that are absent from the design doc.
 
 - If the design includes breaking change, replacement, deprecation, migration, or compatibility staging:
-  - Require `## Compatibility & Sunset` and a `Temporary Mechanism Ledger` (`TEMPxx` IDs) in the design doc.
-  - If missing, stop as `BLOCKED` and request design completion before decomposition.
+  - Require `## Compatibility & Sunset` and `TEMPxx` enumeration in either:
+    - `Temporary Mechanism Index` (preferred)
+    - `Temporary Mechanism Ledger` (legacy-compatible)
+  - Require in-doc closure summary for every `TEMPxx`:
+    - `Sunset Closure Checklist` row (preferred)
+    - legacy ledger row with equivalent closure fields (`Retirement Trigger`, `Retirement Verification`, `Removal Scope`; exact labels or unambiguous synonyms)
+  - For every `TEMPxx`, require lifecycle closure fields:
+    - Retirement Trigger
+    - Retirement Verification
+    - Removal Scope
+  - Closure fields must be sourced from the in-doc checklist/ledger row; ADR `Sunset Clause` is supplemental and not a substitute for in-doc closure summary.
+  - If lifecycle record points to ADR, require linked ADR `Sunset Clause` for that `TEMPxx`.
+  - If any required lifecycle evidence is missing, stop as `BLOCKED` and request design completion before decomposition.
 - Decomposition is allowed only when lifecycle closure is design-defined.
 
 ## Round-Trip Contract
@@ -118,7 +129,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - If `Split Decision: root-sub`, read all sub docs listed in `Sub-Doc Index`.
    - If `root-sub` is declared but `Sub-Doc Index` is missing or any listed sub doc is unreadable, stop as `BLOCKED`.
 3. Read `Goals`, `Non-Goals`, `Design`, `Decision Log`, and `Acceptance Criteria` from the full design input set (root + sub docs when `root-sub`).
-4. Read only ADRs linked from the design input set Decision Logs (root + sub docs when `root-sub`).
+4. Read only ADRs linked from the design input set Decision Logs and linked `TEMPxx` lifecycle records (root + sub docs when `root-sub`).
 5. Build a **Design Atom Index** with stable IDs:
    - `GOALxx`: in-scope outcomes
    - `NONGOALxx`: explicit exclusions
@@ -126,11 +137,17 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - `DECxx`: key design decisions; each must map to exactly one `ADR-xxxx` from Decision Log
    - `ACxx`: acceptance criteria
    - `TEMPxx`: temporary mechanisms from `Compatibility & Sunset` (required for breaking-change designs)
+   - For each `TEMPxx`, capture lifecycle tuple:
+     - `retirement_trigger`
+     - `retirement_verification`
+     - `removal_scope`
+     - `closure_source` (`checklist` or `ledger`)
+     - `record_source` (`adr` or `ledger`)
    - When `root-sub`, verify design-atom IDs are globally unique across root and all sub docs; if duplicate IDs exist, stop as `BLOCKED`.
 6. Create a **Decision Trace** table: `DECxx -> ADR-xxxx`.
 7. Identify test frameworks and canonical verification commands.
 8. Run the design sufficiency gate:
-   - If migration/breaking-change intent exists but `TEMPxx` ledger is missing/incomplete, stop as `BLOCKED`.
+   - If migration/breaking-change intent exists but `TEMPxx` lifecycle evidence is missing/incomplete, stop as `BLOCKED`.
 
 ### Step 2: Analyze and Decompose
 
@@ -141,7 +158,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - `Introduce` task (creates temporary mechanism)
    - `Migrate/Cutover` task(s) (moves consumers/data/paths)
    - `Retire` task (removes temporary mechanism and fallback paths)
-   - If retirement is intentionally deferred, create explicit waiver metadata (owner, reason, deadline).
+   - If retirement is intentionally deferred, create explicit waiver metadata (reason, deadline, owner optional for solo operation).
 5. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
@@ -202,7 +219,7 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 6. Temporal completeness guard
    - Every `TEMPxx` must map to at least one introducing task and one retiring task.
    - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
-   - `Open TEMPxx` entries are allowed only with explicit waiver metadata (owner, reason, deadline).
+   - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation).
 7. Round-trip gate
    - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, granularity guard, and temporal completeness guard all pass.
    - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.

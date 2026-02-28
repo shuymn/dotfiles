@@ -24,14 +24,21 @@ No exceptions. Not even "just setting up the structure" or "a quick prototype to
 For breaking changes or staged migrations, the design doc must specify lifecycle closure, not only end-state architecture.
 
 - Add a `## Compatibility & Sunset` section.
-- Add a `Temporary Mechanism Ledger` table with stable IDs (`TEMPxx`).
-- Every `TEMPxx` must define:
-  - Mechanism
-  - Introduced for (why it exists)
+- Add a `Temporary Mechanism Index` with stable IDs (`TEMPxx`) and lifecycle-record pointers.
+- Add a `Sunset Closure Checklist` row for every `TEMPxx` (required even when lifecycle record details are in ADR).
+- For each `TEMPxx`, choose a lifecycle record:
+  - ADR (preferred when the mechanism includes design trade-offs or policy decisions)
+  - In-doc ledger row (acceptable for small/local temporary mechanics)
+- Every `Temporary Mechanism Index` row must define:
+  - ID, Mechanism, Lifecycle Record, Status
+- Every `TEMPxx` checklist row must define:
+  - ID, Introduced for (why it exists)
   - Retirement trigger (objective condition)
   - Retirement verification (how closure is proven)
-  - Owner and target milestone/date
-- Missing retirement definitions are design gaps, not implementation details.
+  - Removal scope (what is removed/disabled when retired)
+- If tracked in ADR, link the ADR from `Compatibility & Sunset` and include a matching ADR `Sunset Clause`.
+- `Owner` and `Target milestone/date` are required only when coordination or handoff risk exists (for solo development, keep them optional).
+- Missing `TEMPxx` index row, checklist row, or closure fields is a design gap, not an implementation detail.
 
 ## Decomposition Strategy Contract (Single vs Root/Sub)
 
@@ -96,7 +103,7 @@ Before writing anything, understand the landscape:
    - If unsure whether an ADR is relevant, read just its Title and Status lines before committing to the full content
 4. Identify related components, APIs, or systems that the design will interact with
 5. Create a TodoWrite checklist to track the design process phases
-6. Determine whether the request includes a breaking change or staged migration; if yes, enumerate candidate temporary mechanisms to track as `TEMPxx`.
+6. Determine whether the request includes a breaking change or staged migration; if yes, enumerate candidate temporary mechanisms as `TEMPxx` and choose lifecycle record mode (ADR or in-doc ledger).
 7. Determine decomposition strategy (`single` or `root-sub`) using the Decomposition Strategy Contract.
 
 ### Phase 1.5: Clarification Gate (Required)
@@ -114,7 +121,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
    - `assumed` (no answer yet, but safe temporary assumption documented; requires finalization trigger)
    - `blocked` (cannot continue without answer)
 4. Do not start design drafting while any `blocked` item remains.
-5. For breaking-change designs, treat missing retirement trigger/verification for any `TEMPxx` as `blocked`.
+5. For breaking-change designs, treat missing `TEMPxx` checklist row or missing retirement trigger/verification/removal scope for any `TEMPxx` as `blocked`.
 6. Record outcomes in the design doc under `## Clarifications` with:
    - Question
    - Answer or assumption
@@ -173,6 +180,7 @@ When a significant design decision is made, record it as an ADR.
 - In `Consequences`, capture positive/negative/neutral impacts plus concrete follow-up work.
 - Add `Validation` to describe how success is measured (metric/test/review checkpoint).
 - Add `Links` to related ADRs, tickets, PRs, and docs.
+- If an ADR defines a temporary mechanism (`TEMPxx`), include a `Sunset Clause` (TEMP ID, retirement trigger, retirement verification, removal scope).
 
 **ADR lifecycle rules:**
 - Treat ADRs as immutable history: do not rewrite accepted decisions to fit new reality.
@@ -197,7 +205,10 @@ When a significant design decision is made, record it as an ADR.
 1. Save the final version of the design doc
 2. Verify all design decisions have corresponding ADRs
 3. Verify the Decision Log section in the design doc links to all related ADRs
-4. For breaking-change designs, verify all `TEMPxx` entries include retirement trigger and retirement verification.
+4. For breaking-change designs, verify every `TEMPxx` has:
+   - a `Temporary Mechanism Index` entry,
+   - a lifecycle record (ADR or in-doc ledger), and
+   - a `Sunset Closure Checklist` row with retirement trigger, retirement verification, and removal scope.
 5. Verify `## Decomposition Strategy` is complete and consistent with produced design files:
    - If `Split Decision: root-sub`, verify:
      - Every `Sub-Doc Index` file path exists.

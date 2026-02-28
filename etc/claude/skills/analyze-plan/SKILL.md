@@ -59,6 +59,7 @@ Path rule:
    - `Updated At`
 5. Resolve `Source` design doc path from the plan header when present.
 6. If `Source` exists, read it and detect whether it declares `Split Decision: root-sub` under `## Decomposition Strategy`.
+7. If the plan/trace includes `TEMPxx` work and `Source` is missing or unreadable, stop as `BLOCKED` (cannot validate in-doc closure evidence).
 
 ### Step 2: Independent Analysis (Do Not Trust Prior Verdict Blindly)
 
@@ -83,6 +84,8 @@ Evaluate each area independently and record PASS/FAIL with evidence.
    - Flag missing/unclear commands, unknown tools, or environment assumptions that are not documented.
 6. **Temporal Integrity**
    - Validate `TEMPxx` lifecycle trace exists when plan includes staged migration/breaking-change work.
+   - Verify each `TEMPxx` has in-doc closure summary evidence in the source design doc (`## Compatibility & Sunset`: checklist/ledger row) with closure tuple fields (`retirement_trigger`, `retirement_verification`, `removal_scope`).
+   - Verify each `TEMPxx` declares lifecycle record source (`adr` or `ledger`); when `adr`, verify linked ADR includes matching `Sunset Clause`.
    - Verify each `TEMPxx` has both create-side and retire-side task coverage, or explicit waiver metadata.
    - Verify retire task DoD includes negative verification for temporary-path/fallback removal.
 7. **Ambiguity and Risk**
@@ -138,7 +141,8 @@ Rules:
 - `Overall Verdict: PASS` only when there are no blocking issues.
 - If any blocker exists, set `Overall Verdict: FAIL`.
 - Keep findings specific and actionable. Avoid generic wording.
-- Missing `TEMPxx` retirement coverage in a breaking-change plan is a blocker.
+- Missing `TEMPxx` checklist/ledger closure summary, closure tuple, or retirement coverage in a breaking-change plan is a blocker.
+- `TEMPxx` work exists but source design doc is missing/unreadable is a blocker.
 - Missing root/sub decomposition evidence in source design (when `Split Decision: root-sub`) is a blocker.
 - `Design Partition Integrity` may be `N/A` only when source design does not declare `Split Decision: root-sub`.
 
@@ -156,7 +160,8 @@ Stop and ask for user guidance when:
 - `Trace Pack` or `Compose Pack` is missing.
 - Plan format is malformed and cannot be analyzed reliably.
 - Source design path is declared but unreadable.
-- Breaking-change intent exists but temporal/lifecycle evidence (`TEMPxx` trace) is missing.
+- Plan/trace includes `TEMPxx` work but `Source` design doc path is missing.
+- Breaking-change intent exists but temporal/lifecycle evidence (`TEMPxx` trace, checklist/ledger closure summary, or closure tuple fields) is missing.
 - The user asks to modify plan content during this analysis flow.
 - The user asks to implement tasks during this analysis flow.
 

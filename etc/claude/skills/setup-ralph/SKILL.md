@@ -48,6 +48,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Reverse Fidelity: PASS`
      - `Non-Goal Guard: PASS`
      - `Granularity Guard: PASS`
+     - `Temporal Completeness Guard: PASS`
      - `Trace Pack` and `Compose Pack` paths that match the plan header links
      - `Updated At`
 6. Validate analysis report readiness:
@@ -60,6 +61,8 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Scope Integrity: PASS`
      - `Testability Integrity: PASS`
      - `Execution Readiness: PASS`
+     - `Temporal Integrity: PASS`
+     - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
      - `Updated At`
 
 ### Step 2: Parse Plan Tasks

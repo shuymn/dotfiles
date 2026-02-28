@@ -76,11 +76,23 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 [Required for breaking changes or staged migrations.]
 
-### Temporary Mechanism Ledger
+### Temporary Mechanism Index
 
-| ID | Mechanism | Introduced For | Retirement Trigger | Retirement Verification | Owner | Target |
-|----|-----------|----------------|--------------------|-------------------------|-------|--------|
-| TEMP01 | [e.g., compatibility alias] | [reason] | [objective condition] | [verification command/test] | [owner] | [milestone/date] |
+Use stable IDs (`TEMPxx`). For each entry, point to the lifecycle record (`ADR` preferred; local ledger acceptable for small/local mechanics).
+
+| ID | Mechanism | Lifecycle Record | Status |
+|----|-----------|------------------|--------|
+| TEMP01 | [e.g., compatibility alias] | [0042](../adr/0042-temp-compat-alias.md) or local | active |
+
+### Sunset Closure Checklist
+
+Required for every `TEMPxx`, even when details are captured in ADR.
+
+| ID | Introduced For | Retirement Trigger | Retirement Verification | Removal Scope |
+|----|----------------|--------------------|-------------------------|---------------|
+| TEMP01 | [reason] | [objective condition] | [verification command/test] | [what is deleted/disabled] |
+
+If coordination or handoff risk exists, add optional `Owner` and `Target` columns.
 
 ## Decision Log
 
@@ -147,6 +159,15 @@ Chosen option: "[option X]", because:
 ### Neutral
 
 - [other notable effects]
+
+## Sunset Clause (Only for TEMPxx decisions)
+
+- TEMP ID: TEMPxx
+- Introduced For: [why this is temporary]
+- Retirement Trigger: [objective condition]
+- Retirement Verification: [how closure is proven]
+- Removal Scope: [what is removed/disabled]
+- Owner/Target: [optional; include when coordination or handoff risk exists]
 
 ## Validation
 
