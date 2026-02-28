@@ -145,3 +145,4 @@ allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
   - Whether to apply a partially verified suggestion
   - How to prioritize conflicting recommendations
   - Whether a security-related change should be applied
+  - If AskUserQuestionTool is unavailable and multiple independent clarifications are needed, ask in a single message using QID labels (`Q1`, `Q2`, ...); require `QID: <answer>` responses and allow `QID: OTHER(<concise detail>)` when no option fits

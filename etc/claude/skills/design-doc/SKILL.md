@@ -104,10 +104,10 @@ Before writing anything, understand the landscape:
 Before drafting the design, remove requirement ambiguity explicitly.
 
 1. Build a clarification list from user requests, existing docs, and code context.
-2. Resolve each item with the user one-by-one:
-   - Use AskUserQuestionTool.
-   - Include in the question text: (1) what decision this resolves, (2) which section of the design doc or artifact the answer will affect.
-   - Ask **one question at a time** (do not batch multiple questions).
+2. Resolve clarification items with the user:
+   - **If AskUserQuestionTool is available**: batch independent items into the `questions` array (up to 4); ask dependent/blocking decisions in a separate call.
+   - **If AskUserQuestionTool is unavailable** (e.g., Claude.ai): ask multiple independent questions in a single message using QID labels (`Q1`, `Q2`, ...); require response format `QID: <answer>` and allow `QID: OTHER(<concise detail>)` when no option fits.
+   - In either case, include in each question: (1) what decision this resolves, (2) which section of the design doc or artifact the answer will affect.
    - Prefer multiple-choice options when feasible.
 3. Classify each clarification item as one of:
    - `resolved` (explicit answer exists)

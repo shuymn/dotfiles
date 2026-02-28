@@ -140,7 +140,7 @@ If these commands seem necessary, pause and ask the user for explicit direction 
 
 ### When Uncertain About Grouping
 
-**When uncertain about grouping**, present the changes and options via AskUserQuestionTool. Include in the question text: (1) which grouping options are under consideration, (2) how the decision affects commit count and independent revertibility. See [examples.md](references/examples.md#when-uncertain-about-grouping--example-prompt) for an example prompt.
+**When uncertain about grouping**, present the changes and options to the user. Include: (1) which grouping options are under consideration, (2) how the decision affects commit count and independent revertibility. If AskUserQuestionTool is available, use it; if multiple independent grouping decisions are needed, batch them into the `questions` array. If AskUserQuestionTool is unavailable, ask in a single message using QID labels (`Q1`, `Q2`, ...); require `QID: <answer>` responses and allow `QID: OTHER(<concise detail>)` when no option fits. See [examples.md](references/examples.md#when-uncertain-about-grouping--example-prompt) for an example prompt.
 
 ### Common Scenarios
 

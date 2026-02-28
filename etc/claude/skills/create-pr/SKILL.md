@@ -205,3 +205,4 @@ Based on the above context (focusing ONLY on committed changes), create and subm
   - Whether certain commits should be included in the PR
   - How to categorize or describe ambiguous changes
   - Which base branch to use if not specified and multiple options exist
+  - If AskUserQuestionTool is unavailable and multiple independent clarifications are needed, ask in a single message using QID labels (`Q1`, `Q2`, ...); require `QID: <answer>` responses and allow `QID: OTHER(<concise detail>)` when no option fits
