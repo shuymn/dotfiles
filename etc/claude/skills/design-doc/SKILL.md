@@ -57,17 +57,19 @@ Before drafting the design, remove requirement ambiguity explicitly.
 1. Build a clarification list from user requests, existing docs, and code context.
 2. Resolve each item with the user one-by-one:
    - Use AskUserQuestionTool.
+   - Include in the question text: (1) what decision this resolves, (2) which section of the design doc or artifact the answer will affect.
    - Ask **one question at a time** (do not batch multiple questions).
    - Prefer multiple-choice options when feasible.
 3. Classify each clarification item as one of:
    - `resolved` (explicit answer exists)
-   - `assumed` (no answer yet, but safe temporary assumption documented)
+   - `assumed` (no answer yet, but safe temporary assumption documented; requires finalization trigger)
    - `blocked` (cannot continue without answer)
 4. Do not start design drafting while any `blocked` item remains.
 5. For breaking-change designs, treat missing retirement trigger/verification for any `TEMPxx` as `blocked`.
 6. Record outcomes in the design doc under `## Clarifications` with:
    - Question
    - Answer or assumption
+   - Finalization trigger (for `assumed`: what condition or event will convert this to `resolved`)
    - Impact on scope/design
    - Status (`resolved` or `assumed`)
 

@@ -23,6 +23,7 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 ## <HARD-GATE: TASK SELECTION>
 
 Never choose a task implicitly.
+Reason: implicit selection hides unvalidated dependency assumptions and removes the user's control over execution rhythm.
 
 - Require an explicit task ID before any implementation step.
 - The task ID may be specified by the user directly, or by a calling agent (e.g., ralph runtime's Task Selection Algorithm).

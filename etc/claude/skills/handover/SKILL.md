@@ -9,6 +9,12 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 Generate a `HANDOVER.md` file in the current project folder so the next session can continue without losing context.
 
+## Not in Scope
+
+- Generating implementation code, task plans, or decomposing incomplete work.
+- Reviewing or critiquing code quality.
+- Summarizing AI/human code review comments.
+
 ## Core Behavior
 
 - Produce one actionable handover document, not a generic summary.

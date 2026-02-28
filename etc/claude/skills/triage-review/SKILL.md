@@ -6,6 +6,12 @@ allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
 
 # Apply Verified Fixes from AI Review Comments
 
+## Not in Scope
+
+- Comments from human reviewers — this skill processes AI-generated suggestions only.
+- Evaluating overall PR quality or proposing improvements beyond what AI reviewers raised.
+- Applying suggestions that cannot be verified through web search.
+
 ## Context
 
 ### Current State

@@ -9,9 +9,23 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 Run an independent quality gate on an approved plan bundle before execution.
 Write one analysis artifact and block downstream execution when critical issues exist.
 
+## When to Use
+
+- A plan bundle has been created by `decompose-plan` and explicitly approved by the user.
+- You are preparing to run `setup-ralph` or `execute-plan`.
+- Input: an approved `docs/plans/YYYY-MM-DD-<topic>-plan.md` and its sidecars.
+- Output: `docs/plans/YYYY-MM-DD-<topic>-plan.analysis.md`.
+
+## Not in Scope
+
+- Modifying plan.md, design docs, or any source code.
+- Suggesting architectural improvements or alternative designs.
+- Running `setup-ralph` or `execute-plan` — this skill only produces the analysis report.
+
 ## <HARD-GATE>
 
 Do NOT implement any task while running this skill.
+Reason: implementation during analysis contaminates the independence of the quality gate — the same agent both writing and auditing cannot reliably catch its own blind spots.
 
 - Do not edit source code or plan/design artifacts while analyzing.
 - Write only the analysis report.

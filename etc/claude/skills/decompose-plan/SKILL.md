@@ -20,6 +20,7 @@ Output instruction-level guidance only. Do not output implementation code snippe
 ## <HARD-GATE>
 
 Do NOT begin any implementation until the plan is explicitly approved by the user.
+Reason: implementing against an unapproved plan locks in scope decisions the user hasn't seen yet; adjusting the plan before code is written is far cheaper than reverting code afterward.
 
 No exceptions. Not even "just to test one thing" or "the first task is trivial."
 

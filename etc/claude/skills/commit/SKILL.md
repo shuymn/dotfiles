@@ -6,6 +6,12 @@ allowed-tools: [Bash, Read, Grep, Glob]
 
 # Commit in Meaningful Units
 
+## Not in Scope
+
+- `git push` — this skill creates local commits only.
+- Creating pull requests — use the `create-pr` skill.
+- Merging or rebasing branches.
+
 ## Invocation Guard
 
 This skill runs only via `/commit`. Never create commits automatically or as part of another task.
@@ -134,7 +140,7 @@ If these commands seem necessary, pause and ask the user for explicit direction 
 
 ### When Uncertain About Grouping
 
-**When uncertain about grouping**, present the changes and options to the user via AskUserQuestionTool. See [examples.md](references/examples.md#when-uncertain-about-grouping--example-prompt) for an example prompt.
+**When uncertain about grouping**, present the changes and options via AskUserQuestionTool. Include in the question text: (1) which grouping options are under consideration, (2) how the decision affects commit count and independent revertibility. See [examples.md](references/examples.md#when-uncertain-about-grouping--example-prompt) for an example prompt.
 
 ### Common Scenarios
 

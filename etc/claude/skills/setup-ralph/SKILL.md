@@ -10,6 +10,12 @@ Prepare `.ralph/` for the execution loop: fill `prd.json` from an approved plan 
 
 Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 
+## Not in Scope
+
+- Running `ralph init` — `.ralph/` must already exist before this skill runs.
+- Modifying plan.md, design docs, or analysis reports.
+- Selecting or executing tasks — that is `execute-plan`'s responsibility.
+
 ## When to Use
 
 - You have an approved plan bundle from `decompose-plan`.
