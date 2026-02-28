@@ -9,12 +9,6 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 Run an independent quality gate on an approved plan bundle before execution.
 Write one analysis artifact and block downstream execution when critical issues exist.
 
-## When to Use
-
-- You have an approved `docs/plans/YYYY-MM-DD-<topic>-plan.md`.
-- You want an independent pre-execution check before `setup-ralph` or `execute-plan`.
-- You need a deterministic PASS/FAIL report for readiness.
-
 ## <HARD-GATE>
 
 Do NOT implement any task while running this skill.

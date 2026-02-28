@@ -1,24 +1,21 @@
 ---
 name: commit
 description: Creates meaningful git commits by analyzing changes and committing in logical units. Use when the user wants to commit changes to git, requests commit creation, or asks to save changes to version control. Supports --japanese flag for Japanese commit messages and --branch flag to create a new branch before committing.
-allowed-tools: [Bash, Read, Grep, Glob, TodoWrite]
+allowed-tools: [Bash, Read, Grep, Glob]
 ---
 
 # Commit in Meaningful Units
 
-## ⚠️ Only Execute When Explicitly Invoked
+## Invocation Guard
 
 This skill runs only via `/commit`. Never create commits automatically or as part of another task.
 
-## 🚨 FUNDAMENTAL PRINCIPLE: One Logical Change Per Commit
+## Core Principle: One Logical Change Per Commit
 
-**Every commit MUST represent exactly ONE meaningful unit of change.** This is the most important rule of good commit hygiene. A meaningful unit is a single, coherent change that:
-- Has ONE clear purpose
-- Could be reverted independently without breaking other functionality
-- Makes sense in isolation from other changes
-- Can be described with a single, specific commit message
-
-### ❌ NEVER Bundle Unrelated Changes
+Every commit represents exactly one meaningful unit of change. Bundling unrelated changes makes reverts dangerous (reverting one fix undoes an unrelated feature), makes code review noisy, and makes `git bisect` useless. A meaningful unit:
+- Has one clear purpose
+- Can be reverted independently without breaking other functionality
+- Can be described with a single, specific commit message (no "and")
 
 For examples of good/bad groupings and common scenarios, see [examples.md](references/examples.md).
 
@@ -29,7 +26,7 @@ For examples of good/bad groupings and common scenarios, see [examples.md](refer
 - Unstaged: !`git diff --stat`
 - Staged: !`git diff --cached --stat`
 
-**⚠️ CRITICAL: Always verify actual git state with live commands.**
+Always verify actual git state with live commands — cached snapshots from skill context may be stale.
 
 ## Language Support
 
@@ -44,7 +41,7 @@ For examples of good/bad groupings and common scenarios, see [examples.md](refer
 ## Branch Support
 
 **--branch**: Creates a new branch before committing:
-- **CRITICAL**: When `--branch` is specified, a branch MUST be created - never skip this step
+- When `--branch` is specified, branch creation is mandatory — skipping it defeats the purpose of the flag
 - Branch name is automatically determined from the primary change in the diff
 - Creates branch using `git switch -c <branch-name>`
 - Branch names use descriptive names without abbreviations
@@ -79,38 +76,35 @@ For examples of good/bad groupings and common scenarios, see [examples.md](refer
 ## Process
 
 ### Standard Process
-1. **🔍 ANALYZE FIRST**: `git diff` - identify EVERY logical unit
-   - Review ALL changes before ANY commits
-   - Group changes by their purpose
-   - Plan separate commits for each unit
-   - NEVER proceed if changes are mixed
-   - **If uncertain about grouping**: Use AskUserQuestionTool
+1. **Analyze first**: `git diff` — identify every logical unit before making any commits
+   - Group changes by their purpose and plan separate commits for each unit
+   - If changes are mixed, split them before proceeding
+   - If uncertain about grouping: use AskUserQuestionTool
 2. **Check state**: `git status`
 3. **For EACH logical unit separately**:
    - **Stage ONLY related files**:
      - For whole-file commits: `git add <specific-files>`
      - For partial staging within a file: follow **Patch-Based Partial Staging**
-   - **Verify staged changes**: `git diff --cached` - ensure ONLY one logical change
-   - **If staging is wrong**: STOP and ask user before proceeding; do NOT use `git restore` or any `git reset` command to "fix" partial commit state
+   - **Verify staged changes**: `git diff --cached` — ensure only one logical change is staged
+   - **If staging is wrong**: stop and ask user before proceeding (see Prohibited Commands)
    - **Commit**: `git commit -m "type(scope): description"`
    - **Confirm**: `git log --oneline -1`
 4. **Repeat for next logical unit** until all changes are committed
 
 ### With --branch Option
-1. **🔍 ANALYZE FIRST**: `git diff` - identify EVERY logical unit and determine primary change
+1. **Analyze first**: `git diff` — identify every logical unit and determine primary change
 2. **Check state**: `git status`
 3. **Determine branch name**: Analyze diff to generate descriptive branch name based on primary change
    - Format: `<type>/<descriptive-name>`
    - Examples: `feature/add-oauth-support`, `fix/handle-null-values`, `refactor/extract-validation`
 4. **Switch to base branch** (if `--base` specified): `git switch <base-branch>`
 5. **Create branch**: `git switch -c <branch-name>`
-   - **CRITICAL**: This step is MANDATORY when `--branch` is specified
 6. **For EACH logical unit separately**:
    - **Stage ONLY related files**:
      - For whole-file commits: `git add <specific-files>`
      - For partial staging within a file: follow **Patch-Based Partial Staging**
-   - **Verify staged changes**: `git diff --cached` - ensure ONLY one logical change
-   - **If staging is wrong**: STOP and ask user before proceeding; do NOT use `git restore` or any `git reset` command to "fix" partial commit state
+   - **Verify staged changes**: `git diff --cached` — ensure only one logical change is staged
+   - **If staging is wrong**: stop and ask user before proceeding (see Prohibited Commands)
    - **Commit**: `git commit -m "type(scope): description"`
    - **Confirm**: `git log --oneline -1`
 7. **Repeat for next logical unit** until all changes are committed
@@ -146,20 +140,6 @@ If these commands seem necessary, pause and ask the user for explicit direction 
 
 For scenarios requiring separate commits (refactoring + feature, bug fix + test, etc.), see [examples.md](references/examples.md#common-scenarios-requiring-separate-commits).
 
-## Best Practices
-
-### 🔴 NON-NEGOTIABLE RULES:
-1. **ONE logical change per commit** - This is absolute
-2. **NEVER mix different types of changes** - No exceptions
-3. **Each commit must be independently valid** - Code works after every commit
-4. **Commit message must describe ONE thing** - If you need "and", make separate commits
-5. **Do NOT use local reset/discard commands to adjust partial commit scope** (`git restore`, `git reset`, `git checkout --`, `git checkout -f`, `git switch --discard-changes`, `git clean`) - Stop and ask user instead
-
-### Additional Guidelines:
-- Use clear, specific messages
-- Use patch-based partial staging (`git diff` + edit + `git apply --cached`) when partial file staging is needed
-- If unsure, err on the side of MORE commits, not fewer
-
 ## Character Count
 ```bash
 # Check length
@@ -187,9 +167,9 @@ If commit signing fails (for example with 1Password or other signing agents):
 - Do NOT run bypass options such as `--no-gpg-sign` or `-c commit.gpgsign=false`
 - Wait for user instruction after reporting the failure
 
-## ⚠️ Common Anti-Patterns to Avoid
+## Anti-Patterns
 
-**Red flags that indicate you're violating the meaningful units principle:**
+Red flags that indicate multiple logical changes are bundled:
 - Commit message contains "and" (except in detailed descriptions)
 - Using vague messages like "various fixes" or "multiple improvements"
 - Staging all changed files without reviewing each one
@@ -197,6 +177,5 @@ If commit signing fails (for example with 1Password or other signing agents):
 - Bundling a hotfix with a feature because "it's just one line"
 
 ## Final Reminders
-- Always verify actual git state with live commands
+- When in doubt, make separate commits — you can always squash later
 - For Japanese commits, ensure UTF-8 support in your environment
-- **When in doubt, make separate commits** - you can always squash later

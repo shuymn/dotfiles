@@ -9,10 +9,9 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 Convert an approved design doc into a concise, execution-ready plan bundle.
 Output instruction-level guidance only. Do not output implementation code snippets.
 
-## When to Use
+## Input / Output
 
-- You have an approved design doc and need an implementation plan.
-- Input is a design doc in `docs/plans/` (typically created by the `design-doc` skill).
+- Input: a design doc in `docs/plans/` (typically created by the `design-doc` skill).
 - Output is a 3-file bundle:
   - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (core, frequently read)
   - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (traceability evidence, on-demand)

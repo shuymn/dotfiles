@@ -1,7 +1,7 @@
 ---
 name: triage-review
 description: Fetches PR review comments from AI reviewers, verifies accuracy, and applies valid fixes. Use when the user wants to process AI code review comments, apply AI reviewer suggestions, or verify and implement automated code review feedback. Works with GitHub PRs and uses web search to verify AI claims before applying changes.
-allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
+allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
 ---
 
 # Apply Verified Fixes from AI Review Comments
@@ -96,7 +96,7 @@ allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
    ```
    File: [filename]
    Line: [line number or range]
-   Issue: [Brief description in Japanese]
+   Issue: [Brief description]
    Verification: [What was confirmed via search]
    Fix: [Exact change to apply]
    Source: [Documentation/CVE/Benchmark URL]
@@ -108,38 +108,33 @@ allowed-tools: [Bash, Read, TodoWrite, Grep, Glob, Task, WebSearch]
    - After each topic fix:
      1. Save the modified files
 
-6. **Final Report in Japanese**
+6. **Final Report** (use the user's language)
    ```markdown
-   ## AI レビュー検証・修正レポート
+   ## AI Review Verification Report
 
-   ### ✅ 検証済み・適用した修正
+   ### Verified & Applied
    1. **[File]**: [What was fixed]
-      - 根拠: [Verification source/URL]
-      - 修正内容: [Brief description]
+      - Evidence: [Verification source/URL]
+      - Change: [Brief description]
 
-   ### ⚠️ 部分的に検証・条件付き適用
+   ### Partially Verified
    1. **[File]**: [What was conditionally fixed]
-      - 検証結果: [Mixed findings]
-      - 判断理由: [Why applied or not]
+      - Findings: [Mixed findings]
+      - Rationale: [Why applied or not]
 
-   ### ❌ 誤り・未適用の提案
+   ### Incorrect / Not Applied
    1. **[Suggestion]**: [Why it was incorrect]
-      - 検証結果: [What search revealed]
+      - Findings: [What search revealed]
 
-   ### 検証サマリー
-   - AI提案総数: X件
-   - 検証済み修正: Y件
-   - 誤った提案: Z件
+   ### Summary
+   - Total AI suggestions: X
+   - Verified fixes applied: Y
+   - Incorrect suggestions: Z
    ```
 
 ## Important Notes
-- ALWAYS verify AI suggestions before applying
-- Prioritize official documentation over blog posts
-- Check publication dates to avoid outdated advice
-- If unable to verify, mark as "unverified" and skip
-- Document all verification sources for transparency
-- Be especially careful with security-related changes
-- When in doubt, search multiple sources
+- Prioritize official documentation over blog posts; check publication dates to avoid outdated advice
+- If unable to verify a claim, mark as "unverified" and skip — false positives from AI reviewers are common
 - **Use AskUserQuestionTool** when you need clarification on:
   - Whether to apply a partially verified suggestion
   - How to prioritize conflicting recommendations

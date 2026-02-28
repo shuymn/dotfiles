@@ -122,7 +122,7 @@ Update only the following sections (preserve all other sections unchanged):
 2. **Rules**: Add project-specific coding rules.
    - Coding conventions from `AGENTS.md` (error handling, naming, testing style).
    - Plan-specific constraints (protected paths, file placement rules from task `**Files**` sections).
-   - Add: "Use the `execute-plan` skill to implement each story. When the Turn Procedure says 'Implement exactly that one story with TDD', invoke `execute-plan` with the corresponding task ID from the plan."
+   - Add a rule directing the agent to use the `execute-plan` skill for each story during the Turn Procedure.
 
 3. **Quality Gates**: Add project-specific verification commands.
    - Build/test/lint commands from `AGENTS.md` (e.g., `task test`, `task lint`, `task fmt`).
@@ -159,7 +159,7 @@ Stop immediately and ask user guidance when:
 - A dependency references a task ID that does not exist in the plan.
 - Circular dependency detected.
 - branchName cannot be derived and user does not provide it.
-- `AGENTS.md` does not exist (no source for project-specific guidance).
+- Neither `AGENTS.md` nor `CLAUDE.md` exists at the project root (no source for project-specific guidance).
 
 ## Key Principles
 
