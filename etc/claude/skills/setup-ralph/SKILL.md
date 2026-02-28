@@ -1,12 +1,12 @@
 ---
 name: setup-ralph
-description: Prepares .ralph/ runtime state from an approved and analyzed plan bundle. Syncs plan tasks into prd.json and updates prompt.md with project-specific context and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
+description: Prepares .ralph/ runtime state from an approved and analyzed plan bundle. Syncs plan tasks into prd.json and updates prompt.run.md with project-specific context and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
 argument-hint: "[plan-path]"
 ---
 
 # Setup Ralph
 
-Prepare `.ralph/` for the execution loop: fill `prd.json` from an approved plan bundle and update `prompt.md` with project-specific guidance.
+Prepare `.ralph/` for the execution loop: fill `prd.json` from an approved plan bundle and update `prompt.run.md` with project-specific guidance.
 
 Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 
@@ -22,7 +22,7 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 - `analyze-plan` has produced `...-plan.analysis.md` with PASS verdict.
 - `.ralph/` already exists (created by `ralph init`).
 - Input: a plan.md file path (passed as argument or resolved interactively) and its derived `...-plan.analysis.md`.
-- Output: updated `.ralph/prd.json` and `.ralph/prompt.md`.
+- Output: updated `.ralph/prd.json` and `.ralph/prompt.run.md`.
 
 ## <HARD-GATE: PLAN APPROVAL>
 
@@ -113,9 +113,9 @@ Rules:
 - Story order matches task order in the plan.
 - The `plan` field is the relative path from the project root.
 
-### Step 5: Update prompt.md
+### Step 5: Update prompt.run.md
 
-Update the editable sections of `.ralph/prompt.md` with project-specific content derived from `AGENTS.md` (or `CLAUDE.md`) and the plan.
+Update the editable sections of `.ralph/prompt.run.md` with project-specific content derived from `AGENTS.md` (or `CLAUDE.md`) and the plan.
 
 Read project guidance sources in order:
 1. `AGENTS.md` at project root (if exists).
@@ -137,7 +137,7 @@ Update only the following sections (preserve all other sections unchanged):
    - Build/test/lint commands from `AGENTS.md` (e.g., `task test`, `task lint`, `task fmt`).
    - Plan-specific verification commands from task `**DoD**` sections (e.g., `rtk go test ./internal/config/...`).
 
-Rules for editing prompt.md:
+Rules for editing prompt.run.md:
 - Never modify sections marked `<!-- do not edit: ... -->`.
 - Never modify Task Selection, Turn Procedure, Progress Format, Codebase Patterns, or Stop Condition sections.
 - Keep additions concise; prefer referencing `AGENTS.md` over duplicating its content.
@@ -147,7 +147,7 @@ Rules for editing prompt.md:
 1. Summarize `prd.json` updates without dumping full file content:
    - project, plan path, branchName
    - story count and task ID range (e.g., `task-1` to `task-8`)
-2. Summarize `prompt.md` updates without dumping section content:
+2. Summarize `prompt.run.md` updates without dumping section content:
    - What changed in Context, Rules, and Quality Gates
    - Any commands or constraints added/updated
 3. Summarize:
@@ -161,7 +161,7 @@ Rules for editing prompt.md:
 Stop immediately and ask user guidance when:
 
 - `.ralph/` does not exist (user should run `ralph init` first).
-- `.ralph/prd.json` or `.ralph/prompt.md` does not exist.
+- `.ralph/prd.json` or `.ralph/prompt.run.md` does not exist.
 - Plan path cannot be resolved or does not exist.
 - Plan is missing `Checkpoint Summary`, missing required keys, or has any verdict that is not PASS.
 - Analysis report is missing, malformed, or has any verdict that is not PASS.
@@ -174,5 +174,5 @@ Stop immediately and ask user guidance when:
 
 - **Deterministic Mapping**: The same plan.md always produces the same prd.json stories (task mapping is purely structural).
 - **Plan Fidelity**: prd.json is a direct projection of plan.md tasks; do not add, remove, or reorder stories.
-- **Minimal Edit**: Update only Context, Rules, and Quality Gates in prompt.md; never touch ralph runtime machinery sections.
+- **Minimal Edit**: Update only Context, Rules, and Quality Gates in prompt.run.md; never touch ralph runtime machinery sections.
 - **Fail-Fast Validation**: Validate the plan structure and dependencies before writing any files.
