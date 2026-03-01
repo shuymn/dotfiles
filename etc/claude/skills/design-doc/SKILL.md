@@ -73,6 +73,18 @@ If `Split Decision: root-sub`, require:
 - Explicit boundary ownership (what each sub owns, and what remains integration-only).
 - Root-level coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration tasks.
 
+## Codebase Constraint Contract (Required for Non-Greenfield)
+
+When the design modifies existing behavior, APIs, runtime paths, or tests, do not treat design as greenfield.
+
+- Add an `## Existing Codebase Constraints` section in the design doc.
+- Capture constraints in a stable table (constraint ID, source file/test, constraint, impact on design, required verification).
+- Include existing-test assumptions that may require task-scope updates later (shared helpers, fixtures, implicit legacy paths).
+- For replacement/removal intent (`only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`), include both:
+  - prohibited-path expectation (what must fail or disappear)
+  - allowed-path expectation (what must work)
+- If required constraints cannot be identified from current code/tests, stop as `BLOCKED` and request missing context before finalizing design.
+
 ## Scale-Appropriate Depth
 
 Default to the **Core Profile**. Add sections only when triggered.
@@ -112,6 +124,10 @@ Before writing anything, understand the landscape:
 5. Create a TodoWrite checklist to track the design process phases
 6. Determine whether the request includes a breaking change or staged migration; if yes, enumerate candidate temporary mechanisms as `TEMPxx` and choose lifecycle record mode (ADR or in-doc ledger).
 7. Determine decomposition strategy (`single` or `root-sub`) using the Decomposition Strategy Contract.
+8. Build a preliminary **Constraint Register** from existing code/tests:
+   - Read affected implementation files and nearest existing tests.
+   - Record implicit contracts (data shape, helper behavior, path assumptions, legacy compatibility assumptions).
+   - Record likely ripple zones that are not directly requested but may require planned verification.
 
 ### Phase 1.5: Clarification Gate (Required)
 
@@ -129,7 +145,8 @@ Before drafting the design, remove requirement ambiguity explicitly.
    - `blocked` (cannot continue without answer)
 4. Do not start design drafting while any `blocked` item remains.
 5. For breaking-change designs, treat missing `TEMPxx` checklist row or missing retirement trigger/verification/removal scope for any `TEMPxx` as `blocked`.
-6. Record outcomes in the design doc under `## Clarifications` with:
+6. For non-greenfield changes, treat unresolved high-impact constraints (existing test/runtime assumptions that can change scope) as `blocked`.
+7. Record outcomes in the design doc under `## Clarifications` with:
    - Question
    - Answer or assumption
    - Finalization trigger (for `assumed`: what condition or event will convert this to `resolved`)
@@ -140,6 +157,8 @@ Before drafting the design, remove requirement ambiguity explicitly.
 
 1. Create the initial design doc draft
    - Start with the Core Profile sections; add optional sections only when triggered.
+   - If non-greenfield, include `## Existing Codebase Constraints` and map constraints to design choices.
+   - Encode replacement/removal/fail-closed intent as explicit design requirements and acceptance criteria, not prose-only goals.
 2. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
    - Create the directory if it does not exist: `mkdir -p docs/plans`
 3. If `Split Decision: root-sub`, also create sub docs at:
@@ -226,6 +245,10 @@ When a significant design decision is made, record it as an ADR.
 6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, validation, links).
 7. Verify supersession links are coherent (`Supersedes`/`Superseded by` are reciprocal where applicable).
 8. Suggest the `decompose-plan` skill as the next step
+9. For non-greenfield designs, verify:
+   - Every high-impact constraint has at least one linked requirement or acceptance criterion.
+   - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
+   - Verification guidance covers both newly added behavior and impacted existing behavior.
 
 ## Design Doc Template
 

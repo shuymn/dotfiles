@@ -30,6 +30,12 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 |----------|----------------------|--------|--------|
 | [What needed clarification] | [Final answer or explicit assumption] | [How design/scope changes] | resolved / assumed |
 
+## Existing Codebase Constraints (Required for non-greenfield)
+
+| Constraint ID | Source (file/test) | Constraint | Impact on Design | Required Verification |
+|---------------|--------------------|------------|------------------|-----------------------|
+| CONS-01 | [path/to/file or test] | [Existing assumption or coupling] | [How this limits or shapes design] | [How regression/contract will be checked] |
+
 ## Decomposition Strategy
 
 - Split Decision: single | root-sub
@@ -109,7 +115,8 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 
 1. [Specific, verifiable criteria that the implementation must satisfy]
 2. [These will be used by decompose-plan and execute-plan skills]
-3. [Keep this as the pass/fail bar; reference Verification Plan only as supporting evidence.]
+3. [For replacement/removal/fail-closed intent, include both prohibited-path and allowed-path expectations.]
+4. [Keep this as the pass/fail bar; reference Verification Plan only as supporting evidence.]
 ```
 
 ## ADR Template
