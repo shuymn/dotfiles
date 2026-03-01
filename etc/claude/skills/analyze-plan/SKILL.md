@@ -94,8 +94,9 @@ Evaluate each area independently and record PASS/FAIL with evidence.
    - Validate `TEMPxx` lifecycle trace exists when plan includes staged migration/breaking-change work.
    - Verify each `TEMPxx` has in-doc closure summary evidence in the source design doc (`## Compatibility & Sunset`: checklist/ledger row) with closure tuple fields (`retirement_trigger`, `retirement_verification`, `removal_scope`).
    - Verify each `TEMPxx` declares lifecycle record source (`adr` or `ledger`); when `adr`, verify linked ADR includes matching `Sunset Clause`.
-   - Verify each `TEMPxx` has both create-side and retire-side task coverage, or explicit waiver metadata.
-   - Verify retire task DoD includes negative verification for temporary-path/fallback removal.
+   - Resolve `TEMPxx` lifecycle coverage exclusively from `Temporary Mechanism Trace` in `plan.trace.md`; task blocks in `plan.md` do not carry `Creates/Retires` fields.
+   - Verify each `TEMPxx` has both create-side and retire-side task coverage (or explicit waiver metadata) in the trace.
+   - For each `TEMPxx` with a retire task ID in the trace, verify that task's DoD in `plan.md` includes negative verification for temporary-path/fallback removal.
 7. **Ambiguity and Risk**
    - Identify vague directives that can cause divergent implementations.
    - Identify oversized or fragmented task boundaries.

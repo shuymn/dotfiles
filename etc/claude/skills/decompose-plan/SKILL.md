@@ -69,7 +69,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 1. Header (includes ## Quality Gates when detected)
 2. Task Dependency Graph (compact form)
-3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`, lifecycle metadata when `TEMPxx` exists)
+3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`; no `TEMPxx`-specific fields)
 4. Checkpoint Summary
 
 ### Trace Pack (`...-plan.trace.md`) Required Sections
@@ -174,11 +174,11 @@ For design atoms that imply hard behavioral constraints (`only`, `must not`, `re
 1. Build a design-atom-to-component map from the design.
 2. Build task dependencies (foundation before integration).
 3. Create tasks that each deliver one verifiable increment.
-4. For each `TEMPxx`, enforce lifecycle slicing by construction:
-   - `Introduce` task (creates temporary mechanism)
-   - `Migrate/Cutover` task(s) (moves consumers/data/paths)
-   - `Retire` task (removes temporary mechanism and fallback paths)
-   - If retirement is intentionally deferred, create explicit waiver metadata (reason, deadline, owner optional for solo operation).
+4. For each `TEMPxx`, map lifecycle coverage in `Temporary Mechanism Trace` using existing implementation tasks:
+   - Identify introducing, migrate/cutover, and retiring task IDs where applicable.
+   - Do not create `TEMPxx`-only tasks or add `TEMPxx` fields to `plan.md` task blocks.
+   - If retirement is intentionally deferred, record waiver metadata in the trace (`reason`, `deadline`, `owner` optional for solo operation).
+   - When a retiring task is identified, ensure its DoD in `plan.md` includes negative verification that the `TEMPxx` removal is complete (fallback/temporary path must fail or be absent).
 5. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
@@ -193,7 +193,7 @@ For design atoms that imply hard behavioral constraints (`only`, `must not`, `re
 7. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
-   - Tasks that create/retire temporary mechanisms must include `TEMPxx`.
+   - `TEMPxx` IDs are not valid `Design Anchors` for `plan.md`; keep TEMP mapping in `plan.trace.md`.
    - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
    - No task may exist without traceable design anchors.
 8. Validate granularity quality:
@@ -213,7 +213,7 @@ For design atoms that imply hard behavioral constraints (`only`, `must not`, `re
 4. Write `plan.compose.md` with reconstruction summary and scope diff.
 5. Ensure `plan.md` links to both sidecars in its header.
 6. Ensure each task in `plan.md` references `REQxx/ACxx` in `Satisfied Requirements` and has complete `Design Anchors`.
-7. Ensure each `TEMPxx` has `Creates` and `Retires` coverage (or explicit waiver metadata) in tasks.
+7. Ensure each `TEMPxx` has introducing/retiring task mappings (or explicit waiver metadata) in `plan.trace.md`.
 8. Write `Checkpoint Summary` in `plan.md` using the required fixed format.
 
 ### Step 4: Cross Self-Check (Required)
@@ -245,9 +245,9 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
    - Count split signals per task; when 2+ signals exist, verify task is split or has waiver metadata.
    - Flag overly broad, fragmented, or unjustified waived tasks.
 7. Temporal completeness guard
-   - Every `TEMPxx` must map to at least one introducing task and one retiring task.
+   - Every `TEMPxx` must map to at least one introducing task and one retiring task in `Temporary Mechanism Trace`.
    - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
-   - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation).
+   - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation) in the trace.
 7. Quality gate guard
    - If Step 1.7 detected quality gates, verify `## Quality Gates` section is present in `plan.md`.
    - If Step 1.7 detected quality gates but `## Quality Gates` is absent from `plan.md`, mark as FAIL.

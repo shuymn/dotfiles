@@ -56,7 +56,6 @@ Use this structure for every task.
 
 - **Satisfied Requirements**: [REQxx/ACxx IDs from design doc]
 - **Design Anchors**: [GOAL/REQ/AC/DEC IDs this task realizes]
-- **Temporary Mechanisms**: Creates [TEMPxx or `none`], Retires [TEMPxx or `none`], Waiver [`none` or `{reason, deadline, owner?}`]
 - **Goal**: [Why this task exists, 1-2 sentences]
 - **Dependencies**: [Task IDs or `none`]
 

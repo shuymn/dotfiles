@@ -44,6 +44,7 @@ For breaking changes or staged migrations, the design doc must specify lifecycle
 - If tracked in ADR, link the ADR from `Compatibility & Sunset` and include a matching ADR `Sunset Clause`.
 - `Owner` and `Target milestone/date` are required only when coordination or handoff risk exists (for solo development, keep them optional).
 - Missing `TEMPxx` index row, checklist row, or closure fields is a design gap, not an implementation detail.
+- `TEMPxx` IDs are lifecycle-governance artifacts; downstream planning should track them in trace artifacts, not as standalone task-list entries.
 
 ## Decomposition Strategy Contract (Single vs Root/Sub)
 
