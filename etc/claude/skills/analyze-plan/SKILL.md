@@ -57,6 +57,7 @@ Path rule:
    - `Forward Fidelity`
    - `Reverse Fidelity`
    - `Non-Goal Guard`
+   - `Behavioral Lock Guard`
    - `Granularity Guard`
    - `Temporal Completeness Guard`
    - `Quality Gate Guard`
@@ -66,6 +67,7 @@ Path rule:
 5. Resolve `Source` design doc path from the plan header when present.
 6. If `Source` exists, read it and detect whether it declares `Split Decision: root-sub` under `## Decomposition Strategy`.
 7. If the plan/trace includes `TEMPxx` work and `Source` is missing or unreadable, stop as `BLOCKED` (cannot validate in-doc closure evidence).
+8. Build a lock-atom candidate list from source design and plan terms (`only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`).
 
 ### Step 2: Independent Analysis (Do Not Trust Prior Verdict Blindly)
 
@@ -109,6 +111,10 @@ Evaluate each area independently and record PASS/FAIL with evidence.
    - Verify source design includes explicit boundary ownership and a sub-doc index.
    - Verify source design includes a root coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration work.
    - If any of the above are missing, mark blocker (decomposition basis is under-specified).
+9. **Behavioral Lock Integrity**
+   - For each lock atom, verify plan tasks/DoD include at least one negative executable check proving forbidden paths fail.
+   - Verify each lock atom has at least one positive boundary-level verification command (integration/contract/CLI smoke) when scope crosses runtime boundaries.
+   - Mark blocker when lock atoms are represented only by prose and not by executable checks.
 
 ### Step 3: Write Analysis Report
 
@@ -128,6 +134,7 @@ Write `...-plan.analysis.md` with this structure:
 - Temporal Integrity: PASS | FAIL
 - Quality Gate Integrity: PASS | FAIL | N/A (no quality gates detected)
 - Design Partition Integrity: PASS | FAIL | N/A (single-doc design)
+- Behavioral Lock Integrity: PASS | FAIL
 - Updated At: YYYY-MM-DD HH:MM TZ
 
 ## Findings
@@ -160,6 +167,8 @@ Rules:
 - Missing root/sub decomposition evidence in source design (when `Split Decision: root-sub`) is a blocker.
 - `Quality Gate Integrity` may be `N/A` only when `## Quality Gates` is absent and no task DoD contains the reference line.
 - Mismatch between `Quality Gate Guard: N/A` and presence of `## Quality Gates` (or reference lines) is a blocker.
+- Missing executable negative checks for lock atoms (`only/remove/no-fallback/fail-closed`) is a blocker.
+- Runtime-boundary replacement scope with no boundary-level verification command is a blocker.
 - `Design Partition Integrity` may be `N/A` only when source design does not declare `Split Decision: root-sub`.
 
 ### Step 4: Review with User
@@ -178,6 +187,7 @@ Stop and ask for user guidance when:
 - Source design path is declared but unreadable.
 - Plan/trace includes `TEMPxx` work but `Source` design doc path is missing.
 - Breaking-change intent exists but temporal/lifecycle evidence (`TEMPxx` trace, checklist/ledger closure summary, or closure tuple fields) is missing.
+- Lock-atom intent exists but executable negative verification is missing.
 - The user asks to modify plan content during this analysis flow.
 - The user asks to implement tasks during this analysis flow.
 
@@ -188,3 +198,4 @@ Stop and ask for user guidance when:
 - **Actionable Findings**: Every blocker must include a concrete correction path.
 - **Execution Safety**: Do not allow downstream execution on ambiguous or unverified plan state.
 - **Temporal Closure Safety**: Do not pass plans that introduce temporary mechanisms without validated retirement paths.
+- **False-PASS Resistance**: Reject plans that can pass document checks while still allowing legacy/fallback behavior due to missing lock tests.

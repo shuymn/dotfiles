@@ -37,6 +37,7 @@ Project-wide checks that every task must pass at DoD.
 - Forward Fidelity: PASS | FAIL
 - Reverse Fidelity: PASS | FAIL
 - Non-Goal Guard: PASS | FAIL
+- Behavioral Lock Guard: PASS | FAIL
 - Granularity Guard: PASS | FAIL
 - Temporal Completeness Guard: PASS | FAIL
 - Quality Gate Guard: PASS | FAIL | N/A (no quality gates detected)
@@ -81,6 +82,8 @@ Use this structure for every task.
 - All DoD items are mandatory AND conditions (never OR).
 - [Verifiable completion criterion]
 - [Behavior/contract check tied to requirement IDs]
+- [Negative verification for replacement/removal/no-fallback/fail-closed requirements when applicable]
+- [Boundary-level verification command when scope crosses runtime boundaries]
 - Run: `[exact verification command]`
 - Expected: `PASS`
 - Run: all commands in `## Quality Gates`

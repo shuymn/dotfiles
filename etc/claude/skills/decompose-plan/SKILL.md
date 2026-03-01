@@ -79,7 +79,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 3. Design -> Task Trace Matrix
 4. Task -> Design Compose Matrix
 5. Temporary Mechanism Trace (`TEMPxx` lifecycle and closure status)
-6. Full Cross Self-Check evidence
+6. Behavioral Lock Map (`only/remove/no-fallback/fail-closed` requirements and their negative checks)
+7. Full Cross Self-Check evidence
 
 ### Compose Pack (`...-plan.compose.md`) Required Sections
 
@@ -125,6 +126,15 @@ Keep the execution file thin and move heavy analysis to sidecars.
   - Split signals (if 2+ signals, split by default): unrelated components/domains, unrelated `REQxx/ACxx` targets, multiple independent verification environments/commands, or inability to rollback part of the task safely.
   - Waiver rule: if you keep a task unsplit despite split signals, add explicit waiver metadata in the task (`reason`, `added risk`, `rollback plan`).
 
+### Behavioral Lock Rules (Required)
+
+For design atoms that imply hard behavioral constraints (`only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`):
+
+- Add at least one executable negative check in RED or DoD proving the forbidden path fails.
+- Add at least one executable positive check proving the new path works.
+- For cross-boundary replacements (runtime path, transport, lifecycle), include at least one boundary-level command (integration/contract/CLI smoke), not package-local unit tests only.
+- For legacy-key removals, include explicit rejection checks and an absence guard (no surviving legacy path).
+
 ## Process
 
 ### Step 1: Load Design Doc
@@ -134,7 +144,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - If `Split Decision: single`, continue with the single design doc.
    - If `Split Decision: root-sub`, read all sub docs listed in `Sub-Doc Index`.
    - If `root-sub` is declared but `Sub-Doc Index` is missing or any listed sub doc is unreadable, stop as `BLOCKED`.
-3. Read `Goals`, `Non-Goals`, `Design`, `Decision Log`, and `Acceptance Criteria` from the full design input set (root + sub docs when `root-sub`).
+3. Read `Goals`, `Non-Goals`, `Design`, `Decision Log`, `Acceptance Criteria`, and `Existing Codebase Constraints` (when present) from the full design input set (root + sub docs when `root-sub`).
 4. Read only ADRs linked from the design input set Decision Logs and linked `TEMPxx` lifecycle records (root + sub docs when `root-sub`).
 5. Build a **Design Atom Index** with stable IDs:
    - `GOALxx`: in-scope outcomes
@@ -176,13 +186,17 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
    - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
-6. Assign `Design Anchors` for each task:
+6. Build a **Behavioral Lock Map** from design atoms:
+   - Extract lock atoms from design wording, acceptance criteria, and `Existing Codebase Constraints` table (`only`, `remove`, `no fallback`, `fail-closed`, and Japanese equivalents).
+   - Map each lock atom to one or more task-level negative checks and one positive boundary check.
+   - If a lock atom cannot be mapped to executable checks, stop as `BLOCKED`.
+7. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
    - Tasks that create/retire temporary mechanisms must include `TEMPxx`.
    - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
    - No task may exist without traceable design anchors.
-7. Validate granularity quality:
+8. Validate granularity quality:
    - Require all hard-gate properties to pass (single objective, single verification flow, clear rollback boundary).
    - Count split signals; if 2 or more, split by default.
    - If not splitting despite 2+ signals, record waiver metadata (`reason`, `added risk`, `rollback plan`).
@@ -195,7 +209,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
    - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
 2. Write `plan.md` as compact execution instructions.
-3. Write `plan.trace.md` with Design Atom Index, Decision Trace, both matrices, and full check details.
+3. Write `plan.trace.md` with Design Atom Index, Decision Trace, both matrices, Behavioral Lock Map, and full check details.
 4. Write `plan.compose.md` with reconstruction summary and scope diff.
 5. Ensure `plan.md` links to both sidecars in its header.
 6. Ensure each task in `plan.md` references `REQxx/ACxx` in `Satisfied Requirements` and has complete `Design Anchors`.
@@ -223,11 +237,14 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 4. DoD semantics guard
    - Verify each task treats DoD as AND (all items mandatory, no OR wording).
    - Verify each DoD item is independently verifiable.
-5. Granularity guard
+5. Behavioral lock guard
+   - Verify each lock atom has at least one negative executable check and one positive boundary check.
+   - Verify lock checks are strong enough that forbidden legacy paths cannot silently pass.
+6. Granularity guard
    - Verify each task passes hard-gate properties (single objective, single verification flow, clear rollback boundary).
    - Count split signals per task; when 2+ signals exist, verify task is split or has waiver metadata.
    - Flag overly broad, fragmented, or unjustified waived tasks.
-6. Temporal completeness guard
+7. Temporal completeness guard
    - Every `TEMPxx` must map to at least one introducing task and one retiring task.
    - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
    - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation).
@@ -237,12 +254,13 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
    - If Step 1.7 detected quality gates: verify every task DoD contains the quality gate reference line (`Run: all commands in \`## Quality Gates\``).
    - If Step 1.7 detected no quality gates: verify no task DoD contains the quality gate reference line.
 8. Round-trip gate
-   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, granularity guard, temporal completeness guard, and quality gate guard all pass.
+   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, behavioral lock guard, granularity guard, temporal completeness guard, and quality gate guard all pass.
    - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
    - Repeat until all checks pass.
 9. Record results:
    - Full evidence in `plan.trace.md`
    - Reconstructed summary and scope diff in `plan.compose.md`
+   - Behavioral Lock Map and verdict in `plan.trace.md`
    - `TEMPxx introduced/retired/open/waived` counts in `Checkpoint Summary`
    - Update `Checkpoint Summary` in `plan.md`
 
@@ -271,3 +289,4 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
 - **Round-Trip Integrity**: The composed tasks must reconstruct the design doc scope without loss or scope creep.
 - **Lifecycle Closure by Construction**: Temporary mechanisms must have explicit create/migrate/retire paths in plan artifacts.
 - **Fail-Closed Decomposition**: If lifecycle data is missing in design, stop as `BLOCKED` instead of inferring.
+- **Behavioral Lock Integrity**: Replacement/removal/fail-closed intent must be encoded as executable negative checks, not prose-only promises.

@@ -21,6 +21,10 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 
 ## Temporary Mechanism Trace
 - TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[...], retirement_verification=[...], removal_scope=[...], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived
+
+## Behavioral Lock Map
+- LOCK01 (`REQxx`, `ACyy`): intent="gateway only path / no fallback", negative_checks=[Task C DoD-2], positive_boundary_checks=[Task C DoD-3]
+- LOCK02 (`REQzz`): intent="legacy key removal", negative_checks=[Task A RED-1, DoD-2], positive_boundary_checks=[Task A DoD-3]
 ```
 
 ## Cross Self-Check Template (for `plan.trace.md`)
@@ -46,6 +50,11 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 ### DoD Semantics Guard
 - Tasks with OR-like DoD wording: [if any]
 - DoD items missing independent verification: [if any]
+
+### Behavioral Lock Guard
+- Lock atoms missing negative executable checks: [if any]
+- Runtime-boundary lock atoms missing boundary-level verification: [if any]
+- Verdict: PASS | FAIL
 
 ### Granularity Guard
 - Tasks too broad for a single coherent change unit: [if any]
