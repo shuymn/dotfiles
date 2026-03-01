@@ -61,6 +61,7 @@ Path rule:
    - `Granularity Guard`
    - `Temporal Completeness Guard`
    - `Quality Gate Guard`
+   - `Integration Coverage Guard`
    - `Trace Pack`
    - `Compose Pack`
    - `Updated At`
@@ -116,6 +117,11 @@ Evaluate each area independently and record PASS/FAIL with evidence.
    - For each lock atom, verify plan tasks/DoD include at least one negative executable check proving forbidden paths fail.
    - Verify each lock atom has at least one positive boundary-level verification command (integration/contract/CLI smoke) when scope crosses runtime boundaries.
    - Mark blocker when lock atoms are represented only by prose and not by executable checks.
+10. **Integration Coverage Integrity**
+   - Identify cross-task boundaries: pairs (A, B) where task B's `**Dependencies**` field lists task A.
+   - For each cross-task boundary, verify at least one of the spanning tasks has a boundary-level test command (integration/contract/e2e — not a package-local unit test against a mock substitute) in its RED or DoD.
+   - Mark blocker when any cross-task boundary has no boundary-level test in any spanning task's RED or DoD.
+   - Mark N/A when no task in the plan has a non-empty `**Dependencies**` field.
 
 ### Step 3: Write Analysis Report
 
@@ -136,6 +142,7 @@ Write `...-plan.analysis.md` with this structure:
 - Quality Gate Integrity: PASS | FAIL | N/A (no quality gates detected)
 - Design Partition Integrity: PASS | FAIL | N/A (single-doc design)
 - Behavioral Lock Integrity: PASS | FAIL
+- Integration Coverage Integrity: PASS | FAIL | N/A (no cross-task deps)
 - Updated At: YYYY-MM-DD HH:MM TZ
 
 ## Findings
@@ -170,7 +177,9 @@ Rules:
 - Mismatch between `Quality Gate Guard: N/A` and presence of `## Quality Gates` (or reference lines) is a blocker.
 - Missing executable negative checks for lock atoms (`only/remove/no-fallback/fail-closed`) is a blocker.
 - Runtime-boundary replacement scope with no boundary-level verification command is a blocker.
+- Any cross-task boundary with no boundary-level test (integration/contract/e2e) in any spanning task's RED or DoD is a blocker.
 - `Design Partition Integrity` may be `N/A` only when source design does not declare `Split Decision: root-sub`.
+- `Integration Coverage Integrity` may be `N/A` only when the plan has no cross-task dependency edges.
 
 ### Step 4: Review with User
 

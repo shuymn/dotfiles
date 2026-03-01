@@ -51,6 +51,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Granularity Guard`
      - `Temporal Completeness Guard`
      - `Quality Gate Guard`
+     - `Integration Coverage Guard`
      - `Trace Pack`
      - `Compose Pack`
      - `Updated At`
@@ -66,6 +67,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Temporal Integrity: PASS`
      - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
      - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
+     - `Integration Coverage Integrity: PASS` (or `N/A` for plans with no cross-task deps)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.
@@ -87,6 +89,7 @@ If validation fails, stop and ask for plan correction before implementation.
    - `REFACTOR`: perform safe cleanup while keeping tests green.
    - `DoD`: treat all DoD items as AND conditions. Task completion requires every DoD item to pass.
      - When a DoD item reads `Run: all commands in \`## Quality Gates\``, resolve the command list from the `## Quality Gates` section in `plan.md` and run each command individually.
+   - If the task has `deps` and the DoD includes boundary-level tests (integration/contract/e2e), confirm those tests exercise the actual dependency implementations — not mock substitutes. If boundary tests run against mocks only, follow Stop Conditions.
 2. Verify expected outputs after each step before proceeding.
 3. Mark the task as `completed` in TodoWrite.
 
@@ -110,6 +113,7 @@ Stop immediately and ask user guidance when:
 - RED cannot reach executable failing state after applying the RED recovery loop.
 - GREEN cannot reach pass state.
 - Any DoD item fails verification (DoD is AND, not OR).
+- The task has `deps`, the DoD includes boundary-level tests, and those tests exercise only mock substitutes instead of actual dependency implementations.
 - A task anchor/requirement mapping is unclear and cannot be resolved from `plan.md`.
 - Sidecar evidence contradicts `plan.md`.
 - Verification fails **3 or more times** for the same step.

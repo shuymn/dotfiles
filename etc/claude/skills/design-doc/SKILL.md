@@ -160,6 +160,10 @@ Before drafting the design, remove requirement ambiguity explicitly.
    - Start with the Core Profile sections; add optional sections only when triggered.
    - If non-greenfield, include `## Existing Codebase Constraints` and map constraints to design choices.
    - Encode replacement/removal/fail-closed intent as explicit design requirements and acceptance criteria, not prose-only goals.
+   - When the design spans multiple components or has cross-component data flows, distinguish acceptance criteria by level:
+     - **Component-level AC**: each component's individual behavior in isolation.
+     - **Integration-level AC**: observable behavior when components are combined (e.g., end-to-end data flow, API contract, lifecycle correctness across boundaries).
+     - Include at least one integration-level AC in this case; component-level ACs alone are insufficient to verify the design.
 2. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
    - Create the directory if it does not exist: `mkdir -p docs/plans`
 3. If `Split Decision: root-sub`, also create sub docs at:
@@ -250,6 +254,7 @@ When a significant design decision is made, record it as an ADR.
    - Every high-impact constraint has at least one linked requirement or acceptance criterion.
    - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
    - Verification guidance covers both newly added behavior and impacted existing behavior.
+10. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
 
 ## Design Doc Template
 

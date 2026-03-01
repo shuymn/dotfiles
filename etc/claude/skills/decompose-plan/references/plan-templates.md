@@ -41,6 +41,7 @@ Project-wide checks that every task must pass at DoD.
 - Granularity Guard: PASS | FAIL
 - Temporal Completeness Guard: PASS | FAIL
 - Quality Gate Guard: PASS | FAIL | N/A (no quality gates detected)
+- Integration Coverage Guard: PASS | FAIL | N/A
 - TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
 - Trace Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
 - Compose Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
