@@ -9,6 +9,11 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 Run an independent quality gate on an approved plan bundle before execution.
 Write one analysis artifact and block downstream execution when critical issues exist.
 
+## Markdown Formatting Contract
+
+- Never rely on soft line breaks for visible separation in rendered markdown.
+- For key-value metadata, always use list or table syntax (preferred: `- **Key**: value`).
+
 ## When to Use
 
 - A plan bundle has been created by `decompose-plan` and explicitly approved by the user.

@@ -71,7 +71,7 @@ Extract tasks from the plan.md by parsing each `### Task N: <title>` section:
 
 1. **Task ID**: Extract `N` from `### Task N:` and map to `task-N`.
 2. **Title**: Extract the title text after `### Task N: `.
-3. **Dependencies**: Parse `**Dependencies**: T1, T2` (or `none`).
+3. **Dependencies**: Parse `**Dependencies**: T1, T2` (or `none`), with or without a leading markdown list marker (`- `).
    - Map `TN` references to `task-N` story IDs.
    - `none` maps to an empty array `[]`.
 4. Validate the dependency graph:

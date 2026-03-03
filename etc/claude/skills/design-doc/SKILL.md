@@ -8,6 +8,11 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 
 Create design documents through iterative dialogue with the user, capturing design decisions as Architecture Decision Records (ADRs).
 
+## Markdown Formatting Contract
+
+- Never rely on soft line breaks for visible separation in rendered markdown.
+- For key-value metadata, always use list or table syntax (preferred: `- **Key**: value`).
+
 ## <HARD-GATE>
 
 Do NOT take any of these actions until the design doc is explicitly approved by the user:

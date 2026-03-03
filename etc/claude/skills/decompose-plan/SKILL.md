@@ -94,6 +94,12 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - `**Trace Pack**: docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
 - `**Compose Pack**: docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
 
+### Markdown Rendering Rule (Required)
+
+- Never rely on soft line breaks between consecutive key-value lines.
+- Preferred format for key-value metadata blocks: `- **Key**: value`
+- Alternative when many fields are present: markdown table
+
 ### Templates
 
 - **Plan templates** (header, checkpoint summary, task structure): See [plan-templates.md](references/plan-templates.md)

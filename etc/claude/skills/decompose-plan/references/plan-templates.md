@@ -7,12 +7,12 @@ Templates for `plan.md` output artifact.
 ```markdown
 # [Feature] Implementation Plan
 
-**Source**: `docs/plans/YYYY-MM-DD-<topic>-design.md`
-**Trace Pack**: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
-**Compose Pack**: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
-**Goal**: [One-sentence end state]
-**Architecture**: [2-3 sentences]
-**Tech Stack**: [Key technologies]
+- **Source**: `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- **Trace Pack**: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
+- **Compose Pack**: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
+- **Goal**: [One-sentence end state]
+- **Architecture**: [2-3 sentences]
+- **Tech Stack**: [Key technologies]
 ```
 
 ## Checkpoint Summary Template
@@ -39,11 +39,11 @@ Use this structure for every task.
 ```markdown
 ### Task N: [Short Title]
 
-**Satisfied Requirements**: [REQxx/ACxx IDs from design doc]
-**Design Anchors**: [GOAL/REQ/AC/DEC IDs this task realizes]
-**Temporary Mechanisms**: Creates [TEMPxx or `none`], Retires [TEMPxx or `none`], Waiver [`none` or `{reason, deadline, owner?}`]
-**Goal**: [Why this task exists, 1-2 sentences]
-**Dependencies**: [Task IDs or `none`]
+- **Satisfied Requirements**: [REQxx/ACxx IDs from design doc]
+- **Design Anchors**: [GOAL/REQ/AC/DEC IDs this task realizes]
+- **Temporary Mechanisms**: Creates [TEMPxx or `none`], Retires [TEMPxx or `none`], Waiver [`none` or `{reason, deadline, owner?}`]
+- **Goal**: [Why this task exists, 1-2 sentences]
+- **Dependencies**: [Task IDs or `none`]
 
 **Files:**
 - Create: `path/from/project/root.ext` (purpose)
