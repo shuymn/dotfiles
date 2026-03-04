@@ -50,6 +50,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Non-Goal Guard`
      - `Granularity Guard`
      - `Temporal Completeness Guard`
+     - `Quality Gate Guard`
      - `Trace Pack`
      - `Compose Pack`
      - `Updated At`
@@ -63,6 +64,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Testability Integrity: PASS`
      - `Execution Readiness: PASS`
      - `Temporal Integrity: PASS`
+     - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
      - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
@@ -84,6 +86,7 @@ If validation fails, stop and ask for plan correction before implementation.
    - `GREEN`: implement minimal code to pass RED.
    - `REFACTOR`: perform safe cleanup while keeping tests green.
    - `DoD`: treat all DoD items as AND conditions. Task completion requires every DoD item to pass.
+     - When a DoD item reads `Run: all commands in \`## Quality Gates\``, resolve the command list from the `## Quality Gates` section in `plan.md` and run each command individually.
 2. Verify expected outputs after each step before proceeding.
 3. Mark the task as `completed` in TodoWrite.
 

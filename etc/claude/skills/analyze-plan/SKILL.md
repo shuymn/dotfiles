@@ -59,6 +59,7 @@ Path rule:
    - `Non-Goal Guard`
    - `Granularity Guard`
    - `Temporal Completeness Guard`
+   - `Quality Gate Guard`
    - `Trace Pack`
    - `Compose Pack`
    - `Updated At`
@@ -96,7 +97,14 @@ Evaluate each area independently and record PASS/FAIL with evidence.
 7. **Ambiguity and Risk**
    - Identify vague directives that can cause divergent implementations.
    - Identify oversized or fragmented task boundaries.
-8. **Design Partition Integrity** (only when source design uses `Split Decision: root-sub`)
+8. **Quality Gate Integrity**
+   - Detect whether `## Quality Gates` section exists in `plan.md`.
+   - If `## Quality Gates` is present: verify each listed command is concrete and runnable in principle.
+   - If `## Quality Gates` is present: verify every task DoD contains `Run: all commands in \`## Quality Gates\``.
+   - If `## Quality Gates` is absent: verify no task DoD contains the quality gate reference line (no phantom references).
+   - Verify `Quality Gate Guard` in `Checkpoint Summary` is `PASS` or `N/A (no quality gates detected)`, not `FAIL`.
+   - If `Quality Gate Guard` is `N/A` but `## Quality Gates` exists, or vice versa, flag as inconsistency blocker.
+9. **Design Partition Integrity** (only when source design uses `Split Decision: root-sub`)
    - Verify source design contains `## Decomposition Strategy`.
    - Verify source design includes explicit boundary ownership and a sub-doc index.
    - Verify source design includes a root coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration work.
@@ -118,6 +126,7 @@ Write `...-plan.analysis.md` with this structure:
 - Testability Integrity: PASS | FAIL
 - Execution Readiness: PASS | FAIL
 - Temporal Integrity: PASS | FAIL
+- Quality Gate Integrity: PASS | FAIL | N/A (no quality gates detected)
 - Design Partition Integrity: PASS | FAIL | N/A (single-doc design)
 - Updated At: YYYY-MM-DD HH:MM TZ
 
@@ -149,6 +158,8 @@ Rules:
 - Missing `TEMPxx` checklist/ledger closure summary, closure tuple, or retirement coverage in a breaking-change plan is a blocker.
 - `TEMPxx` work exists but source design doc is missing/unreadable is a blocker.
 - Missing root/sub decomposition evidence in source design (when `Split Decision: root-sub`) is a blocker.
+- `Quality Gate Integrity` may be `N/A` only when `## Quality Gates` is absent and no task DoD contains the reference line.
+- Mismatch between `Quality Gate Guard: N/A` and presence of `## Quality Gates` (or reference lines) is a blocker.
 - `Design Partition Integrity` may be `N/A` only when source design does not declare `Split Decision: root-sub`.
 
 ### Step 4: Review with User

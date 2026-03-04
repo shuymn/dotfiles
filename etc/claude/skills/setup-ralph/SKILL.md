@@ -49,6 +49,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Non-Goal Guard: PASS`
      - `Granularity Guard: PASS`
      - `Temporal Completeness Guard: PASS`
+     - `Quality Gate Guard: PASS` (or `N/A (no quality gates detected)`)
      - `Trace Pack` and `Compose Pack` paths that match the plan header links
      - `Updated At`
 6. Validate analysis report readiness:
@@ -62,6 +63,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Testability Integrity: PASS`
      - `Execution Readiness: PASS`
      - `Temporal Integrity: PASS`
+     - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
      - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
      - `Updated At`
 

@@ -58,6 +58,11 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 - TEMP entries missing in-doc closure summary (checklist/ledger row): [if any]
 - TEMP entries missing closure tuple fields (trigger/verification/removal_scope): [if any]
 - Open TEMP entries without waiver metadata (`reason`, `deadline`, `owner?`): [if any]
+
+### Quality Gate Guard
+- Quality gates detected in Step 1.7: [count or `none`]
+- `## Quality Gates` present in plan.md: [yes/no]
+- Tasks missing quality gate DoD line: [if any]
 ```
 
 ## Compose Reconstruction Template (for `plan.compose.md`)

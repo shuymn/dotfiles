@@ -67,7 +67,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 ### Core Plan (`...-plan.md`) Required Sections
 
-1. Header
+1. Header (includes ## Quality Gates when detected)
 2. Task Dependency Graph (compact form)
 3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`, lifecycle metadata when `TEMPxx` exists)
 4. Checkpoint Summary
@@ -151,7 +151,11 @@ Keep the execution file thin and move heavy analysis to sidecars.
      - `record_source` (`adr` or `ledger`)
    - When `root-sub`, verify design-atom IDs are globally unique across root and all sub docs; if duplicate IDs exist, stop as `BLOCKED`.
 6. Create a **Decision Trace** table: `DECxx -> ADR-xxxx`.
-7. Identify test frameworks and canonical verification commands.
+7. Identify test frameworks, canonical verification commands, and project-wide Quality Gates.
+   - Detection source priority: `AGENTS.md` > `CLAUDE.md` > project config files (`package.json`, `Makefile`/`Taskfile.yml`, `pyproject.toml`, `.pre-commit-config.yaml`, CI config).
+   - Classify each gate by category: `test`, `lint`, `format`, `typecheck`, `other`.
+   - Record the exact executable command for each gate.
+   - If no quality gates are found, record `Quality Gates: none detected` and continue (non-blocking).
 8. Run the design sufficiency gate:
    - If migration/breaking-change intent exists but `TEMPxx` lifecycle evidence is missing/incomplete, stop as `BLOCKED`.
 
@@ -171,6 +175,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
    - If direct unit-level RED is technically difficult, require the nearest executable boundary test (integration/contract/e2e) while keeping fail-first.
    - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
+   - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
 6. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
@@ -226,11 +231,16 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
    - Every `TEMPxx` must map to at least one introducing task and one retiring task.
    - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
    - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation).
-7. Round-trip gate
-   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, granularity guard, and temporal completeness guard all pass.
+7. Quality gate guard
+   - If Step 1.7 detected quality gates, verify `## Quality Gates` section is present in `plan.md`.
+   - If Step 1.7 detected quality gates but `## Quality Gates` is absent from `plan.md`, mark as FAIL.
+   - If Step 1.7 detected quality gates: verify every task DoD contains the quality gate reference line (`Run: all commands in \`## Quality Gates\``).
+   - If Step 1.7 detected no quality gates: verify no task DoD contains the quality gate reference line.
+8. Round-trip gate
+   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, granularity guard, temporal completeness guard, and quality gate guard all pass.
    - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
    - Repeat until all checks pass.
-8. Record results:
+9. Record results:
    - Full evidence in `plan.trace.md`
    - Reconstructed summary and scope diff in `plan.compose.md`
    - `TEMPxx introduced/retired/open/waived` counts in `Checkpoint Summary`

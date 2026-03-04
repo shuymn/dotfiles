@@ -13,6 +13,19 @@ Templates for `plan.md` output artifact.
 - **Goal**: [One-sentence end state]
 - **Architecture**: [2-3 sentences]
 - **Tech Stack**: [Key technologies]
+
+## Quality Gates
+
+Project-wide checks that every task must pass at DoD.
+
+| Category    | Command                     |
+|-------------|-----------------------------|
+| [test]      | `[exact test command]`      |
+| [lint]      | `[exact lint command]`      |
+| [format]    | `[exact format command]`    |
+| [typecheck] | `[exact typecheck command]` |
+
+> Omit this section only when Step 1.7 detected no quality gates.
 ```
 
 ## Checkpoint Summary Template
@@ -26,6 +39,7 @@ Templates for `plan.md` output artifact.
 - Non-Goal Guard: PASS | FAIL
 - Granularity Guard: PASS | FAIL
 - Temporal Completeness Guard: PASS | FAIL
+- Quality Gate Guard: PASS | FAIL | N/A (no quality gates detected)
 - TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
 - Trace Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
 - Compose Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
@@ -69,4 +83,7 @@ Use this structure for every task.
 - [Behavior/contract check tied to requirement IDs]
 - Run: `[exact verification command]`
 - Expected: `PASS`
+- Run: all commands in `## Quality Gates`
+- Expected: all `PASS`
+> Omit the two lines above when Step 1.7 detected no quality gates.
 ```
