@@ -1,6 +1,6 @@
 ---
 name: triage-review
-description: Fetches PR review comments from AI reviewers (Copilot, Google Code Assist, etc.), verifies their accuracy against official sources, and applies only validated fixes. Use when the user wants to process AI code review comments, handle bot review suggestions, or triage automated review feedback on a pull request.
+description: "Processes AI reviewer feedback and applies only verified fixes. Works in two modes: (1) fetches comments from a PR URL or current branch, (2) processes feedback pasted directly into the conversation. Trigger when the user wants to bulk-process or apply AI review suggestions — from a GitHub PR or pasted text. Do NOT trigger for single questions about what a bot said, or general code review discussion."
 allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
 ---
 
@@ -12,135 +12,165 @@ allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
 - Evaluating overall PR quality or proposing improvements beyond what AI reviewers raised.
 - Applying suggestions that cannot be verified through web search.
 
-## Context
+## Input Mode Detection
 
-### Current State
-- Current branch: `git branch --show-current`
-- Uncommitted changes: `git status --porcelain`
-- PR number (if exists): `gh pr view --json number --jq '.number' 2>/dev/null || echo "No PR found"`
-- PR URL: `gh pr view --json url --jq '.url' 2>/dev/null || echo ""`
+Before fetching anything, determine where the feedback is coming from:
 
-### PR Information (if PR exists)
-- PR title: `gh pr view --json title --jq '.title' 2>/dev/null || echo ""`
-- PR state: `gh pr view --json state --jq '.state' 2>/dev/null || echo ""`
-- Changed files in PR: `gh pr view --json files --jq '.files[].path' 2>/dev/null || echo ""`
+- **Direct input**: The user has pasted review comments or a list of suggestions into the conversation. Use these directly — skip all `gh api` calls. The text may or may not name a specific bot; focus on extracting actionable technical suggestions. If suggestions reference specific files or line numbers, confirm those paths exist locally before applying fixes.
+- **PR reference**: A PR URL or number was given → proceed to Setup below.
+- **Current branch**: No argument and no pasted content → infer PR from current branch via Setup below.
 
-### Review Comments
-- All PR comments: `gh pr view --json comments --jq '.comments[] | "[\(.author.login)] \(.body)"' 2>/dev/null || echo "No comments"`
-- Review threads: `gh pr view --json reviews --jq '.reviews[] | "[\(.author.login)] \(.state): \(.body)"' 2>/dev/null || echo "No reviews"`
+## Setup: Resolve PR Target
+
+Arguments may be a PR URL, PR number, or empty (use current branch's PR).
+
+```bash
+# If a URL like https://github.com/owner/repo/pull/123 was given:
+OWNER=<parsed>; REPO=<parsed>; PR_NUM=<parsed>
+
+# If a number was given:
+OWNER=$(gh repo view --json owner -q .owner.login); REPO=$(gh repo view --json name -q .name); PR_NUM=<given>
+
+# If no argument:
+OWNER=$(gh repo view --json owner -q .owner.login)
+REPO=$(gh repo view --json name -q .name)
+PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
+```
+
+Gather PR info using `gh api` (works for any repo, not just the current one):
+
+```bash
+# PR metadata
+gh api repos/$OWNER/$REPO/pulls/$PR_NUM --jq '{title,state,body}'
+
+# Changed files
+gh api repos/$OWNER/$REPO/pulls/$PR_NUM/files --jq '.[].filename'
+
+# General PR comments (issue-level)
+gh api repos/$OWNER/$REPO/issues/$PR_NUM/comments \
+  --jq '.[] | "[\(.user.login)] \(.body)"'
+
+# Review-level comments (overall approval/request changes)
+gh api repos/$OWNER/$REPO/pulls/$PR_NUM/reviews \
+  --jq '.[] | "[\(.user.login)] \(.state): \(.body)"'
+
+# Inline review thread comments (line-specific suggestions — most common for bots)
+gh api repos/$OWNER/$REPO/pulls/$PR_NUM/comments \
+  --jq '.[] | "[\(.user.login)] \(.path):\(.line // .original_line): \(.body)"'
+```
 
 ## Your task
 
-1. **Identify AI Reviewers**
-   - Look for comments from: google-code-assist, github-copilot, copilot[bot], google-code-assist[bot]
-   - Extract all suggestions from AI reviewers
+### 0. Early exit check
 
-2. **Verify Each AI Suggestion**
-   For each AI comment, perform fact-checking:
+If no comments exist from any AI reviewer, report "No AI reviewer comments found" and stop.
 
-   a) **Extract Technical Claims**
-      - API usage recommendations
-      - Security vulnerability claims
-      - Performance optimization suggestions
-      - Best practice recommendations
+### 1. Identify AI Reviewers
 
-    b) **Verify Using Web Search**
-      Use the agent's available Web Search Tool(s) with the SAME query to cross-verify information:
+Look for comments from:
+`Copilot`, `copilot[bot]`, `copilot-pull-request-reviewer[bot]`, `github-copilot`,
+`gemini-code-assist[bot]`, `google-code-assist`, `google-code-assist[bot]`,
+`chatgpt-codex-connector[bot]`, `devin-ai-integration[bot]`
 
-      - **Search Strategy**:
-        1. Send identical queries to all available web search tools
-        2. Compare results across tools and sources
-        3. Look for consensus or discrepancies
-        4. Prioritize information that appears in multiple reliable sources
-        5. If only one web search tool is available, cross-check with multiple independent sources
+Extract all suggestions from these reviewers. If multiple bots commented, process each bot's suggestions as a group.
 
-      - **Verification Process**:
-        - API/Method validation: Search "[language] [method_name] documentation" across available tool(s)
-        - Security claims: Search "[vulnerability] CVE [year]" and compare findings
-        - Performance claims: Search "[technique] benchmark comparison" and compare sources
-        - Best practices: Search "[technology] official best practices" and verify consistency
+### 2. Verify Each AI Suggestion
 
-      - **Cross-Verification Examples**:
-        ```
-        Query: "React useEffect cleanup function best practice"
-        → Compare whether multiple sources return similar official React documentation
+For each AI comment, perform fact-checking:
 
-        Query: "Log4j CVE-2021-44228 vulnerability details"
-        → Verify whether multiple sources confirm the same security issue
+a) **Extract Technical Claims**
+   - API usage recommendations
+   - Security vulnerability claims
+   - Performance optimization suggestions
+   - Best practice recommendations
 
-        Query: "Python list comprehension vs for loop performance"
-        → Check whether benchmark conclusions align across sources
-        ```
+b) **Verify Using Web Search**
+   Use available Web Search tool(s) with the SAME query to cross-verify:
 
-      - **Decision Criteria**:
-        - ✅ Apply if: Multiple reliable sources confirm the same information
-        - ⚠️ Review carefully if: Results differ between tools/sources
-        - ❌ Skip if: No reliable source can verify the claim
+   - **Search Strategy**:
+     1. Send identical queries to all available web search tools
+     2. Compare results across tools and sources
+     3. Look for consensus or discrepancies
+     4. Prioritize information that appears in multiple reliable sources
 
-3. **Categorize Verified Suggestions**
-   After verification, classify each suggestion:
+   - **Verification Process**:
+     - API/Method validation: Search "[language] [method_name] documentation"
+     - Security claims: Search "[vulnerability] CVE [year]"
+     - Performance claims: Search "[technique] benchmark comparison"
+     - Best practices: Search "[technology] official best practices"
 
-   **✅ Verified & Apply**:
-   - Confirmed security vulnerabilities
-   - Documented API misuse
-   - Proven performance issues
-   - Official best practices
+   - **Decision Criteria**:
+     - ✅ Apply if: Multiple reliable sources confirm, or the suggestion is directionally correct even if not the absolute best option (e.g., "use bcrypt instead of MD5" is valid even if Argon2id is now preferred)
+     - ⚠️ Review carefully if: Results differ between sources, OR the claim is a contested style preference / best practice with reasonable community support (e.g., adopted by major ESLint configs or style guides)
+     - ❌ Skip only if: The claim is **factually wrong** — an API that no longer exists, a false CVE, a non-existent method, or a verifiably incorrect technical statement. Style preferences and debatable best practices belong in ⚠️, not ❌.
 
-   **⚠️ Partially Verified**:
-   - Mixed opinions in community
-   - Context-dependent improvements
-   - Style preferences with some backing
+### 3. Categorize Verified Suggestions
 
-   **❌ Incorrect/Unverified**:
-   - Outdated recommendations
-   - Non-existent APIs/methods
-   - False security claims
-   - Subjective preferences without backing
+**✅ Verified & Apply**:
+- Confirmed security vulnerabilities
+- Documented API misuse
+- Proven performance issues
+- Official best practices (including suggestions that are directionally correct even if a newer alternative exists — add a note rather than downgrading the verdict)
 
-4. **Apply Only Verified Fixes**
-   For each verified suggestion:
-   ```
-   File: [filename]
-   Line: [line number or range]
-   Issue: [Brief description]
-   Verification: [What was confirmed via search]
-   Fix: [Exact change to apply]
-   Source: [Documentation/CVE/Benchmark URL]
-   ```
+**⚠️ Partially Verified**:
+- Mixed opinions in community
+- Context-dependent improvements
+- Style preferences with reasonable backing (major style guides, popular linting configs)
+- Suggestions that are valid but not the newest best-in-class option
 
-5. **Implementation Process**
-   - Read current file content
-   - Apply verified changes ONE topic at a time
-   - After each topic fix:
-     1. Save the modified files
+**❌ Incorrect/Unverified**:
+- APIs or methods that genuinely no longer exist in the target version
+- False CVE/security claims that cannot be verified
+- Factually incorrect technical statements (e.g., "this function was removed" when it wasn't)
+- Do NOT use ❌ for contested style preferences or best practices that have legitimate community backing
 
-6. **Final Report** (use the user's language)
-   ```markdown
-   ## AI Review Verification Report
+### 4. Apply Only Verified Fixes
 
-   ### Verified & Applied
-   1. **[File]**: [What was fixed]
-      - Evidence: [Verification source/URL]
-      - Change: [Brief description]
+For each verified suggestion, document before applying:
+```
+File: [filename]
+Line: [line number or range]
+Issue: [Brief description]
+Verification: [What was confirmed via search]
+Fix: [Exact change to apply]
+Source: [Documentation/CVE/Benchmark URL]
+```
 
-   ### Partially Verified
-   1. **[File]**: [What was conditionally fixed]
-      - Findings: [Mixed findings]
-      - Rationale: [Why applied or not]
+### 5. Implementation Process
 
-   ### Incorrect / Not Applied
-   1. **[Suggestion]**: [Why it was incorrect]
-      - Findings: [What search revealed]
+- Read the current file content before editing
+- Apply verified changes ONE topic at a time
+- After each change: save the file, confirm the edit looks correct
+- Do not batch multiple unrelated fixes into one edit
 
-   ### Summary
-   - Total AI suggestions: X
-   - Verified fixes applied: Y
-   - Incorrect suggestions: Z
-   ```
+### 6. Final Report (use the user's language)
+
+```markdown
+## AI Review Verification Report
+
+### Verified & Applied
+1. **[File]**: [What was fixed]
+   - Evidence: [Verification source/URL]
+   - Change: [Brief description]
+
+### Partially Verified
+1. **[File]**: [What was conditionally fixed]
+   - Findings: [Mixed findings]
+   - Rationale: [Why applied or not]
+
+### Incorrect / Not Applied
+1. **[Suggestion]**: [Why it was incorrect]
+   - Findings: [What search revealed]
+
+### Summary
+- Total AI suggestions: X
+- Verified fixes applied: Y
+- Incorrect suggestions: Z
+```
 
 ## Important Notes
 - Prioritize official documentation over blog posts; check publication dates to avoid outdated advice
-- If unable to verify a claim, mark as "unverified" and skip — false positives from AI reviewers are common
+- If a claim cannot be verified but is also not contradicted by any source, mark as ⚠️ rather than ❌ — absence of evidence is not evidence of incorrectness. Reserve ❌ for claims that are actively disproven.
 - **Use AskUserQuestionTool** when you need clarification on:
   - Whether to apply a partially verified suggestion
   - How to prioritize conflicting recommendations
