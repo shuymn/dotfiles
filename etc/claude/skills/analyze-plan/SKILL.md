@@ -113,11 +113,11 @@ Evaluate each area independently and record PASS/FAIL with evidence.
    - Verify source design includes explicit boundary ownership and a sub-doc index.
    - Verify source design includes a root coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration work.
    - If any of the above are missing, mark blocker (decomposition basis is under-specified).
-9. **Behavioral Lock Integrity**
+10. **Behavioral Lock Integrity**
    - For each lock atom, verify plan tasks/DoD include at least one negative executable check proving forbidden paths fail.
    - Verify each lock atom has at least one positive boundary-level verification command (integration/contract/CLI smoke) when scope crosses runtime boundaries.
    - Mark blocker when lock atoms are represented only by prose and not by executable checks.
-10. **Integration Coverage Integrity**
+11. **Integration Coverage Integrity**
    - Identify cross-task boundaries: pairs (A, B) where task B's `**Dependencies**` field lists task A.
    - For each cross-task boundary, verify at least one of the spanning tasks has a boundary-level test command (integration/contract/e2e — not a package-local unit test against a mock substitute) in its RED or DoD.
    - Mark blocker when any cross-task boundary has no boundary-level test in any spanning task's RED or DoD.

@@ -248,21 +248,21 @@ Perform all checks before presenting the plan. Use templates from [trace-templat
    - Every `TEMPxx` must map to at least one introducing task and one retiring task in `Temporary Mechanism Trace`.
    - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
    - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation) in the trace.
-7. Quality gate guard
+8. Quality gate guard
    - If Step 1.7 detected quality gates, verify `## Quality Gates` section is present in `plan.md`.
    - If Step 1.7 detected quality gates but `## Quality Gates` is absent from `plan.md`, mark as FAIL.
    - If Step 1.7 detected quality gates: verify every task DoD contains the quality gate reference line (`Run: all commands in \`## Quality Gates\``).
    - If Step 1.7 detected no quality gates: verify no task DoD contains the quality gate reference line.
-8. Integration coverage guard
+9. Integration coverage guard
    - If no task in the plan has a non-empty `**Dependencies**` field, this check is N/A.
    - Identify cross-task boundaries: pairs (A, B) where task B's `**Dependencies**` field lists task A.
    - For each boundary, verify that at least one of the two tasks has a boundary-level test (integration/contract/e2e — not a package-local unit test using a mock substitute) in its RED or DoD.
    - If any boundary has no boundary-level test coverage, mark as failing.
-9. Round-trip gate
+10. Round-trip gate
    - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, behavioral lock guard, granularity guard, temporal completeness guard, quality gate guard, and integration coverage guard all pass.
    - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
    - Repeat until all checks pass.
-10. Record results:
+11. Record results:
    - Full evidence in `plan.trace.md`
    - Reconstructed summary and scope diff in `plan.compose.md`
    - Behavioral Lock Map and verdict in `plan.trace.md`

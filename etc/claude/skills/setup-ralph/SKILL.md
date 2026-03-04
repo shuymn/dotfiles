@@ -47,9 +47,11 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Forward Fidelity: PASS`
      - `Reverse Fidelity: PASS`
      - `Non-Goal Guard: PASS`
+     - `Behavioral Lock Guard: PASS`
      - `Granularity Guard: PASS`
      - `Temporal Completeness Guard: PASS`
      - `Quality Gate Guard: PASS` (or `N/A (no quality gates detected)`)
+     - `Integration Coverage Guard: PASS` (or `N/A` for plans with no cross-task deps)
      - `Trace Pack` and `Compose Pack` paths that match the plan header links
      - `Updated At`
 6. Validate analysis report readiness:
@@ -65,6 +67,8 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Temporal Integrity: PASS`
      - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
      - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
+     - `Behavioral Lock Integrity: PASS`
+     - `Integration Coverage Integrity: PASS` (or `N/A` for plans with no cross-task deps)
      - `Updated At`
 
 ### Step 2: Parse Plan Tasks

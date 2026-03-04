@@ -48,6 +48,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Forward Fidelity`
      - `Reverse Fidelity`
      - `Non-Goal Guard`
+     - `Behavioral Lock Guard`
      - `Granularity Guard`
      - `Temporal Completeness Guard`
      - `Quality Gate Guard`
@@ -67,6 +68,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Temporal Integrity: PASS`
      - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
      - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
+     - `Behavioral Lock Integrity: PASS`
      - `Integration Coverage Integrity: PASS` (or `N/A` for plans with no cross-task deps)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
