@@ -140,7 +140,7 @@ Write `...-plan.analysis.md` with this structure:
 - Execution Readiness: PASS | FAIL
 - Temporal Integrity: PASS | FAIL
 - Quality Gate Integrity: PASS | FAIL | N/A (no quality gates detected)
-- Design Partition Integrity: PASS | FAIL | N/A (single-doc design)
+- Design Partition Integrity: PASS | FAIL | N/A (single-doc source design)
 - Behavioral Lock Integrity: PASS | FAIL
 - Integration Coverage Integrity: PASS | FAIL | N/A (no cross-task deps)
 - Updated At: YYYY-MM-DD HH:MM TZ
