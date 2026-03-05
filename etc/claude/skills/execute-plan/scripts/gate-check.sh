@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# gate-check.sh — Verify review gate before downstream skill execution.
+# Usage: gate-check.sh <review-file> <source-file>
+#   review-file: path to the review artifact (e.g., ...-design.review.md)
+#   source-file: path to the source artifact that was reviewed
+# Exit 0 if all checks pass; exit 1 with reason on stdout otherwise.
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: gate-check.sh <review-file> <source-file>"
+  exit 1
+fi
+
+review_file="$1"
+source_file="$2"
+
+# 1. File existence
+if [[ ! -f "$review_file" ]]; then
+  echo "FAIL: Review file not found: $review_file"
+  exit 1
+fi
+
+if [[ ! -f "$source_file" ]]; then
+  echo "FAIL: Source file not found: $source_file"
+  exit 1
+fi
+
+# 2. Overall Verdict: PASS
+# Accept both plain and markdown-bold forms, e.g.:
+# - Overall Verdict: PASS
+# - **Overall Verdict**: PASS
+if ! grep -Eq 'Overall Verdict(\*\*)?:[[:space:]]*PASS([[:space:]]|$)' "$review_file"; then
+  echo "FAIL: Review file does not contain an Overall Verdict PASS entry"
+  exit 1
+fi
+
+# 3. Source Digest comparison
+# Match both plain "Source Digest: <hash>" and bold "**Source Digest**: <hash>"
+review_digest=$(grep -Eo 'Source Digest(\*\*)?:[[:space:]]*[a-f0-9]{64}' "$review_file" 2>/dev/null | sed -E 's/.*:[[:space:]]*//' | head -1 || true)
+if [[ -z "$review_digest" ]]; then
+  echo "FAIL: Could not extract Source Digest from review file"
+  exit 1
+fi
+
+current_digest=$(shasum -a 256 "$source_file" | cut -d' ' -f1)
+if [[ "$review_digest" != "$current_digest" ]]; then
+  echo "FAIL: Source Digest mismatch"
+  echo "  Review digest:  $review_digest"
+  echo "  Current digest: $current_digest"
+  echo "  Source file may have been modified after review"
+  exit 1
+fi
+
+echo "PASS: All gate checks passed"
+exit 0

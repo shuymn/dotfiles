@@ -1,6 +1,6 @@
 ---
 name: setup-ralph
-description: Prepares .ralph/ runtime state from an approved and analyzed plan bundle. Syncs plan tasks into prd.json and updates prompt.run.md with project-specific context and quality gates. Use after plan approval, analyze-plan PASS, and ralph init.
+description: Prepares .ralph/ runtime state from an approved and reviewed plan bundle. Syncs plan tasks into prd.json and updates prompt.run.md with project-specific context and quality gates. Use after plan approval, decompose-plan review PASS, and ralph init.
 argument-hint: "[plan-path]"
 ---
 
@@ -13,15 +13,15 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 ## Not in Scope
 
 - Running `ralph init` — `.ralph/` must already exist before this skill runs.
-- Modifying plan.md, design docs, or analysis reports.
+- Modifying plan.md, design docs, or review reports.
 - Selecting or executing tasks — that is `execute-plan`'s responsibility.
 
 ## When to Use
 
 - You have an approved plan bundle from `decompose-plan`.
-- `analyze-plan` has produced `...-plan.analysis.md` with PASS verdict.
+- `decompose-plan review` has produced `...-plan.review.md` with PASS verdict.
 - `.ralph/` already exists (created by `ralph init`).
-- Input: a plan.md file path (passed as argument or resolved interactively) and its derived `...-plan.analysis.md`.
+- Input: a plan.md file path (passed as argument or resolved interactively) and its derived `...-plan.review.md`.
 - Output: updated `.ralph/prd.json` and `.ralph/prompt.run.md`.
 
 ## <HARD-GATE: PLAN APPROVAL>
@@ -29,7 +29,7 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 Do NOT sync a plan that has not been explicitly approved by the user.
 
 - Verify the plan's `Checkpoint Summary` passes full validation (see Step 1.5).
-- Verify the analysis report (`...-plan.analysis.md`) exists and has PASS verdicts (see Step 1.6).
+- Verify the review report (`...-plan.review.md`) exists and has PASS verdicts (see Step 1.6).
 - If any required key is missing or any verdict is not PASS, stop and ask the user to fix the plan first.
 
 ## Process
@@ -54,21 +54,22 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Integration Coverage Guard: PASS` (or `N/A` for plans with no cross-task deps)
      - `Trace Pack` and `Compose Pack` paths that match the plan header links
      - `Updated At`
-6. Validate analysis report readiness:
-   - Derive analysis path by replacing `-plan.md` with `-plan.analysis.md`.
-   - The analysis file exists.
-   - The analysis `## Summary` contains:
+6. Validate review report readiness:
+   - Derive review path by replacing `-plan.md` with `-plan.review.md`.
+   - The review file exists.
+   - The review `## Summary` contains:
      - `Overall Verdict: PASS`
-     - `Bundle Integrity: PASS`
-     - `Traceability Integrity: PASS`
-     - `Scope Integrity: PASS`
-     - `Testability Integrity: PASS`
+     - `Forward Fidelity: PASS`
+     - `Reverse Fidelity: PASS`
+     - `Round-trip: PASS`
+     - `Behavioral Lock: PASS`
+     - `Negative Path: PASS`
+     - `Granularity: PASS`
+     - `Temporal: PASS`
+     - `Traceability: PASS`
+     - `Scope: PASS`
+     - `Testability: PASS`
      - `Execution Readiness: PASS`
-     - `Temporal Integrity: PASS`
-     - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
-     - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
-     - `Behavioral Lock Integrity: PASS`
-     - `Integration Coverage Integrity: PASS` (or `N/A` for plans with no cross-task deps)
      - `Updated At`
 
 ### Step 2: Parse Plan Tasks
@@ -170,7 +171,7 @@ Stop immediately and ask user guidance when:
 - `.ralph/prd.json` or `.ralph/prompt.run.md` does not exist.
 - Plan path cannot be resolved or does not exist.
 - Plan is missing `Checkpoint Summary`, missing required keys, or has any verdict that is not PASS.
-- Analysis report is missing, malformed, or has any verdict that is not PASS.
+- Review report is missing, malformed, or has any verdict that is not PASS.
 - A dependency references a task ID that does not exist in the plan.
 - Circular dependency detected.
 - branchName cannot be derived and user does not provide it.

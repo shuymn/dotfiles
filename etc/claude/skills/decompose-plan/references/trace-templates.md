@@ -22,6 +22,11 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 ## Temporary Mechanism Trace
 - TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[...], retirement_verification=[...], removal_scope=[...], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived
 
+## AC Ownership Map
+| AC ID | Owner Task | Contributors | Has RED for AC |
+|-------|-----------|-------------|----------------|
+| AC01  | Task 2    | Task 4      | Yes            |
+
 ## Behavioral Lock Map
 - LOCK01 (`REQxx`, `ACyy`): intent="gateway only path / no fallback", negative_checks=[Task C DoD-2], positive_boundary_checks=[Task C DoD-3]
 - LOCK02 (`REQzz`): intent="legacy key removal", negative_checks=[Task A RED-1, DoD-2], positive_boundary_checks=[Task A DoD-3]

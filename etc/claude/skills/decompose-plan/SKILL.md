@@ -1,8 +1,15 @@
 ---
 name: decompose-plan
-description: Decomposes an approved design document into a TDD-based implementation plan with task breakdown and traceability. Use after design-doc approval when the user needs to break down a design into executable tasks, create an implementation plan, or generate a task list from a design.
+description: "Decomposes an approved design document into a TDD-based implementation plan or reviews an existing plan (mode=create|review). Create mode: task breakdown with traceability. Review mode: independent sub-agent verification absorbing the former analyze-plan audit. Use after design-doc approval when the user needs to break down a design into executable tasks, create an implementation plan, or generate a task list from a design."
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
+
+## Mode Dispatch
+
+Determine the execution mode from `$ARGUMENTS`:
+
+- If `$ARGUMENTS` contains `review`, `--review`, or `mode=review` → **Review Mode**: read [references/review-mode.md](references/review-mode.md) and follow its instructions.
+- Otherwise → **Create Mode** (default; continue to `# Task Decomposition from Design Doc`)
 
 # Task Decomposition from Design Doc
 
@@ -24,6 +31,14 @@ Do NOT begin any implementation until the plan is explicitly approved by the use
 Reason: implementing against an unapproved plan locks in scope decisions the user hasn't seen yet; adjusting the plan before code is written is far cheaper than reverting code afterward.
 
 No exceptions. Not even "just to test one thing" or "the first task is trivial."
+
+## Create Mode Gate (Required before decomposition)
+
+Before starting decomposition in create mode, verify the design review gate:
+
+1. Run `scripts/gate-check.sh <design.review.md> <design.md>`.
+2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current design file.
+3. If the gate check fails, stop as `BLOCKED` and request the user to run `design-doc review` first.
 
 ## Design Sufficiency Gate
 
@@ -80,7 +95,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 4. Task -> Design Compose Matrix
 5. Temporary Mechanism Trace (`TEMPxx` lifecycle and closure status)
 6. Behavioral Lock Map (`only/remove/no-fallback/fail-closed` requirements and their negative checks)
-7. Full Cross Self-Check evidence
+7. AC Ownership Map (`ACxx` -> Owner Task + Contributors)
+8. Structural Self-Check evidence
 
 ### Compose Pack (`...-plan.compose.md`) Required Sections
 
@@ -128,7 +144,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 ### Behavioral Lock Rules (Required)
 
-For design atoms that imply hard behavioral constraints (`only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`):
+For design atoms expressing hard behavioral constraints — restricting behavior to a single path, removing or replacing an existing capability, or mandating failure when a former path is attempted. Common keyword examples (not exhaustive): `only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`:
 
 - Add at least one executable negative check in RED or DoD proving the forbidden path fails.
 - Add at least one executable positive check proving the new path works.
@@ -187,7 +203,7 @@ For design atoms that imply hard behavioral constraints (`only`, `must not`, `re
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
    - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
 6. Build a **Behavioral Lock Map** from design atoms:
-   - Extract lock atoms from design wording, acceptance criteria, and `Existing Codebase Constraints` table (`only`, `remove`, `no fallback`, `fail-closed`, and Japanese equivalents).
+   - Extract lock atoms: design wording, acceptance criteria, or constraint entries that express exclusivity, removal, replacement, or mandatory failure on a former path. Common keyword examples (not exhaustive): `only`, `remove`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`.
    - Map each lock atom to one or more task-level negative checks and one positive boundary check.
    - If a lock atom cannot be mapped to executable checks, stop as `BLOCKED`.
 7. Assign `Design Anchors` for each task:
@@ -196,7 +212,16 @@ For design atoms that imply hard behavioral constraints (`only`, `must not`, `re
    - `TEMPxx` IDs are not valid `Design Anchors` for `plan.md`; keep TEMP mapping in `plan.trace.md`.
    - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
    - No task may exist without traceable design anchors.
-8. Validate granularity quality:
+8. **AC Ownership Assignment**:
+   - For each `ACxx`, assign exactly one Owner Task (the task whose RED validates this AC) and zero or more Contributor Tasks.
+   - The Owner Task must include RED for the AC.
+   - Record in the `AC Ownership Map` (see Trace Pack required sections).
+9. **Negative Path Coverage**:
+   - For ACs with EARS Type=Unwanted or lock requirements (expressing exclusivity, removal, replacement, or mandatory failure on a former path), require at least one negative test in the Owner Task's RED or DoD.
+10. **High-Risk Auto-Detection**:
+    - ACs with EARS Type=Unwanted or lock requirements are automatically classified as high-risk.
+    - Manual override of high-risk classification requires documented reason in the task.
+11. Validate granularity quality:
    - Require all hard-gate properties to pass (single objective, single verification flow, clear rollback boundary).
    - Count split signals; if 2 or more, split by default.
    - If not splitting despite 2+ signals, record waiver metadata (`reason`, `added risk`, `rollback plan`).
@@ -216,68 +241,26 @@ For design atoms that imply hard behavioral constraints (`only`, `must not`, `re
 7. Ensure each `TEMPxx` has introducing/retiring task mappings (or explicit waiver metadata) in `plan.trace.md`.
 8. Write `Checkpoint Summary` in `plan.md` using the required fixed format.
 
-### Step 4: Cross Self-Check (Required)
+### Step 4: Structural Self-Check (Required)
 
-Perform all checks before presenting the plan. Use templates from [trace-templates.md](references/trace-templates.md).
+Perform structural checks before presenting the plan. Semantic verification is delegated to review mode.
 
-1. Forward fidelity (`design -> tasks`)
-   - Every `REQxx` and `ACxx` must appear in at least one task `Satisfied Requirements`.
-   - Every `REQxx` and `ACxx` must appear in at least one task `DoD`.
-   - `GOALxx` must be covered by one or more tasks.
-   - Every `DECxx` must appear in at least one task `Design Anchors`.
-   - Every `DECxx` must have exactly one `ADR-xxxx` mapping in Decision Trace.
-2. Reverse fidelity (`tasks -> design`)
-   - Reconstruct design intent using only task `Design Anchors`, `Goal`, `GREEN`, and `DoD`.
-   - Verify the reconstructed result preserves source design scope, key decisions, and acceptance intent.
-   - Verify every task anchor points to an existing design atom.
-   - Verify every task has at least one `REQxx` or `ACxx` in `Satisfied Requirements`.
-3. Non-goal guard
-   - Verify no task maps to `NONGOALxx`.
-   - Verify no task introduces behavior outside mapped design atoms.
-4. DoD semantics guard
-   - Verify each task treats DoD as AND (all items mandatory, no OR wording).
-   - Verify each DoD item is independently verifiable.
-5. Behavioral lock guard
-   - Verify each lock atom has at least one negative executable check and one positive boundary check.
-   - Verify lock checks are strong enough that forbidden legacy paths cannot silently pass.
-6. Granularity guard
-   - Verify each task passes hard-gate properties (single objective, single verification flow, clear rollback boundary).
-   - Count split signals per task; when 2+ signals exist, verify task is split or has waiver metadata.
-   - Flag overly broad, fragmented, or unjustified waived tasks.
-7. Temporal completeness guard
-   - Every `TEMPxx` must map to at least one introducing task and one retiring task in `Temporary Mechanism Trace`.
-   - Every retiring task DoD must include negative verification of fallback/temporary-path removal.
-   - `Open TEMPxx` entries are allowed only with explicit waiver metadata (reason, deadline, owner optional for solo operation) in the trace.
-8. Quality gate guard
-   - If Step 1.7 detected quality gates, verify `## Quality Gates` section is present in `plan.md`.
-   - If Step 1.7 detected quality gates but `## Quality Gates` is absent from `plan.md`, mark as FAIL.
-   - If Step 1.7 detected quality gates: verify every task DoD contains the quality gate reference line (`Run: all commands in \`## Quality Gates\``).
-   - If Step 1.7 detected no quality gates: verify no task DoD contains the quality gate reference line.
-9. Integration coverage guard
-   - If no task in the plan has a non-empty `**Dependencies**` field, this check is N/A.
-   - Identify cross-task boundaries: pairs (A, B) where task B's `**Dependencies**` field lists task A.
-   - For each boundary, verify that at least one of the two tasks has a boundary-level test (integration/contract/e2e — not a package-local unit test using a mock substitute) in its RED or DoD.
-   - If any boundary has no boundary-level test coverage, mark as failing.
-10. Round-trip gate
-   - Mark `Alignment verdict: PASS` only when forward fidelity, reverse fidelity, non-goal guard, DoD semantics guard, behavioral lock guard, granularity guard, temporal completeness guard, quality gate guard, and integration coverage guard all pass.
-   - If any check fails: identify failing items → revise affected tasks → re-run all checks from step 1.
-   - Repeat until all checks pass.
-11. Record results:
-   - Full evidence in `plan.trace.md`
-   - Reconstructed summary and scope diff in `plan.compose.md`
-   - Behavioral Lock Map and verdict in `plan.trace.md`
-   - Integration coverage boundaries and their boundary-level test coverage in `plan.trace.md`
-   - `TEMPxx introduced/retired/open/waived` counts in `Checkpoint Summary`
-   - Update `Checkpoint Summary` in `plan.md`
+1. Run `scripts/structural-check.sh <design-file> <plan-file>`.
+2. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
+3. Do NOT present the plan to the user if structural checks are failing.
+4. Record structural check results in `plan.trace.md`.
+5. Update `Checkpoint Summary` in `plan.md`.
+
+**Note**: The deep semantic checks (forward/reverse fidelity, behavioral lock guard, granularity guard, temporal completeness, etc.) are now performed by `decompose-plan review` mode, which runs as an independent sub-agent.
 
 ### Step 5: Review with User
 
 1. Present the compact `plan.md` first.
 2. Mention that detailed traceability is in `plan.trace.md` and reconstruction evidence is in `plan.compose.md`.
 3. Apply feedback and update all impacted files.
-4. Re-run Cross Self-Check after each meaningful change.
+4. Re-run Structural Self-Check after each meaningful change.
 5. Repeat until the user explicitly approves.
-6. After approval, suggest running `analyze-plan` before `setup-ralph` or `execute-plan`.
+6. After approval, suggest running `decompose-plan review` (independent sub-agent verification) before `execute-plan`.
 
 ## Key Principles
 

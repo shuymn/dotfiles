@@ -113,10 +113,13 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 
 ## Acceptance Criteria
 
-1. [Specific, verifiable criteria that the implementation must satisfy]
-2. [These will be used by decompose-plan and execute-plan skills]
-3. [For replacement/removal/fail-closed intent, include both prohibited-path and allowed-path expectations.]
-4. [Keep this as the pass/fail bar; reference Verification Plan only as supporting evidence.]
+| AC ID | EARS Type | Requirement Sentence | Verification Intent |
+|-------|-----------|---------------------|---------------------|
+| AC01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [EARS-formatted requirement sentence] | [EARS rationale: why this type was chosen] [Concrete verification method with expected outcome] |
+
+<!-- See ears-types.md for EARS type definitions, syntax templates, and selection guidance. -->
+<!-- For replacement/removal/fail-closed intent, include both prohibited-path and allowed-path rows. -->
+<!-- Keep this as the pass/fail bar; reference Verification Plan only as supporting evidence. -->
 ```
 
 ## ADR Template
@@ -226,7 +229,9 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 ## Local Acceptance Criteria
 
-1. AC-SUB-X-01: [Verifiable criterion for this boundary]
+| AC ID | EARS Type | Requirement Sentence | Verification Intent |
+|-------|-----------|---------------------|---------------------|
+| AC-SUB-X-01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [EARS-formatted requirement sentence] | [EARS rationale] [Verification method] |
 
 ## Decision Log
 

@@ -1,8 +1,15 @@
 ---
 name: execute-plan
-description: Executes exactly one user-selected task from an approved and analyzed plan bundle using TDD. Use when the user specifies a task ID to implement, e.g. "execute Task 3" or "implement task 5", after analyze-plan PASS.
+description: "Executes one user-selected task from an approved plan bundle using TDD, or rechecks DoD independently (mode=implement|dod-recheck). Use when the user specifies a task ID to implement, e.g. \"execute Task 3\" or \"implement task 5\", after decompose-plan review PASS. Also use with dod-recheck mode when the user says \"recheck task DoD\", \"verify task completion\", or \"dod-recheck\"."
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 ---
+
+## Mode Dispatch
+
+Determine the execution mode from `$ARGUMENTS`:
+
+- If `$ARGUMENTS` contains `dod-recheck`, `--dod-recheck`, or `mode=dod-recheck` → **DoD Recheck Mode**: read [references/dod-recheck-mode.md](references/dod-recheck-mode.md) and follow its instructions.
+- Otherwise → **Implement Mode** (default; continue to `# Plan Execution`)
 
 # Plan Execution
 
@@ -12,13 +19,21 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 ## When to Use
 
 - You have an approved plan bundle from `decompose-plan`.
-- `analyze-plan` has produced `...-plan.analysis.md` with PASS verdict.
+- `decompose-plan review` has produced `...-plan.review.md` with PASS verdict.
 - The user explicitly asks to execute a specific task (for example, `Task 7`).
 - Input includes:
   - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (primary)
   - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (on-demand traceability evidence)
   - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md` (on-demand reconstruction evidence)
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.analysis.md` (required readiness gate)
+  - `docs/plans/YYYY-MM-DD-<topic>-plan.review.md` (required readiness gate)
+
+## Implement Mode Gate (Required before execution)
+
+Before executing any task in implement mode, verify the plan review gate:
+
+1. Run `scripts/gate-check.sh <plan.review.md> <plan.md>`.
+2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
+3. If the gate check fails, stop as `BLOCKED` and request the user to run `decompose-plan review` first.
 
 ## <HARD-GATE: TASK SELECTION>
 
@@ -58,18 +73,19 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Updated At`
    - `Checkpoint Summary` has `Alignment Verdict: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
-   - Analysis report exists at `...-plan.analysis.md` (replace `-plan.md` with `-plan.analysis.md`) and has:
+   - Review report exists at `...-plan.review.md` (replace `-plan.md` with `-plan.review.md`) and has:
      - `Overall Verdict: PASS`
-     - `Bundle Integrity: PASS`
-     - `Traceability Integrity: PASS`
-     - `Scope Integrity: PASS`
-     - `Testability Integrity: PASS`
+     - `Forward Fidelity: PASS`
+     - `Reverse Fidelity: PASS`
+     - `Round-trip: PASS`
+     - `Behavioral Lock: PASS`
+     - `Negative Path: PASS`
+     - `Granularity: PASS`
+     - `Temporal: PASS`
+     - `Traceability: PASS`
+     - `Scope: PASS`
+     - `Testability: PASS`
      - `Execution Readiness: PASS`
-     - `Temporal Integrity: PASS`
-     - `Quality Gate Integrity: PASS` (or `N/A (no quality gates detected)`)
-     - `Design Partition Integrity: PASS` (or `N/A` for single-doc source design)
-     - `Behavioral Lock Integrity: PASS`
-     - `Integration Coverage Integrity: PASS` (or `N/A` for plans with no cross-task deps)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.
@@ -101,15 +117,24 @@ If expected results are not met, stop and follow Stop Conditions.
 
 1. Summarize what was implemented for this single task.
 2. Provide verification evidence (commands, key outputs, exit codes).
-3. Explicitly stop after this task.
-4. If the user wants another task, ask them to specify the next task ID.
+3. Output a Recheck Input block for the DoD Recheck Mode:
+   ```
+   ## Recheck Input
+   - **Task ID**: Task N
+   - **DoD Commands**: [DoD verification command list]
+   - **Expected Outcomes**: [Expected result for each command]
+   - **Quality Gates**: [Resolved commands from `## Quality Gates`, if applicable]
+   - **Risk Flags**: [Any deviations recorded during implementation]
+   ```
+4. Explicitly stop after this task.
+5. If the user wants another task, ask them to specify the next task ID.
 
 ## Stop Conditions
 
 Stop immediately and ask user guidance when:
 
 - Plan bundle validation fails (missing sidecar, invalid summary, broken links).
-- Analysis report is missing, malformed, or has any verdict that is not PASS.
+- Review report (plan.review.md) is missing, malformed, or has any verdict that is not PASS.
 - Target task ID is missing, ambiguous, or not explicitly provided by the user.
 - Dependency satisfaction was not explicitly confirmed by the user.
 - RED cannot reach executable failing state after applying the RED recovery loop.

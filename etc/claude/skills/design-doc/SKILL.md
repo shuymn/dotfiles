@@ -1,8 +1,15 @@
 ---
 name: design-doc
-description: Creates or updates a design document through iterative dialogue, producing design docs and ADRs. Use this skill whenever a feature, API, architecture, or data model change would benefit from written design before coding — even if the user doesn't explicitly say "design doc". When in doubt, invoke this skill first.
+description: "Creates or reviews a design document (mode=create|review). Create mode: iterative dialogue producing design docs and ADRs. Review mode: independent sub-agent verification of an approved design doc. Use this skill whenever a feature, API, architecture, or data model change would benefit from written design before coding — even if the user doesn't explicitly say \"design doc\". When in doubt, invoke this skill first."
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
+
+## Mode Dispatch
+
+Determine the execution mode from `$ARGUMENTS`:
+
+- If `$ARGUMENTS` contains `review`, `--review`, or `mode=review` → **Review Mode**: read [references/review-mode.md](references/review-mode.md) and follow its instructions.
+- Otherwise → **Create Mode** (default; continue to `# Design Doc Creation`)
 
 # Design Doc Creation
 
@@ -21,6 +28,8 @@ Do NOT take any of these actions until the design doc is explicitly approved by 
 - Invoke the `decompose-plan` skill
 - Create an implementation plan
 - Create any project files outside of `docs/`
+
+Reason: premature artifacts create sunk-cost pressure that biases design feedback — it is far cheaper to change a design doc than to revert code written against an unapproved design.
 
 No exceptions. Not even "just setting up the structure" or "a quick prototype to validate."
 
@@ -81,7 +90,7 @@ When the design modifies existing behavior, APIs, runtime paths, or tests, do no
 - Add an `## Existing Codebase Constraints` section in the design doc.
 - Capture constraints in a stable table (constraint ID, source file/test, constraint, impact on design, required verification).
 - Include existing-test assumptions that may require task-scope updates later (shared helpers, fixtures, implicit legacy paths).
-- For replacement/removal intent (`only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`), include both:
+- For design intent that restricts behavior to a single path, removes or replaces an existing capability, or mandates failure when a former path is attempted (replacement/removal/fail-closed semantics). Common keyword examples (not exhaustive): `only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`. Include both:
   - prohibited-path expectation (what must fail or disappear)
   - allowed-path expectation (what must work)
 - If required constraints cannot be identified from current code/tests, stop as `BLOCKED` and request missing context before finalizing design.
@@ -160,6 +169,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
    - Start with the Core Profile sections; add optional sections only when triggered.
    - If non-greenfield, include `## Existing Codebase Constraints` and map constraints to design choices.
    - Encode replacement/removal/fail-closed intent as explicit design requirements and acceptance criteria, not prose-only goals.
+   - When writing Acceptance Criteria, consult [ears-types.md](references/ears-types.md) for EARS type definitions and selection guidance. Choose the most specific EARS type; avoid defaulting to Ubiquitous.
    - When the design spans multiple components or has cross-component data flows, distinguish acceptance criteria by level:
      - **Component-level AC**: each component's individual behavior in isolation.
      - **Integration-level AC**: observable behavior when components are combined (e.g., end-to-end data flow, API contract, lifecycle correctness across boundaries).
@@ -249,12 +259,17 @@ When a significant design decision is made, record it as an ADR.
    - If `Split Decision: single`, verify no unnecessary root/sub scaffolding remains.
 6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, validation, links).
 7. Verify supersession links are coherent (`Supersedes`/`Superseded by` are reciprocal where applicable).
-8. Suggest the `decompose-plan` skill as the next step
-9. For non-greenfield designs, verify:
-   - Every high-impact constraint has at least one linked requirement or acceptance criterion.
-   - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
-   - Verification guidance covers both newly added behavior and impacted existing behavior.
-10. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
+8. **Ambiguity Check (Required)**:
+   - Scan all Acceptance Criteria for expressions whose verification cannot produce a deterministic PASS/FAIL result without subjective interpretation. Look for qualitative judgments, undefined thresholds, relative terms, and vague verbs — regardless of language.
+   - Common examples (not exhaustive): `appropriate`, `reasonable`, `adequate`, `sufficient`, `timely`, `properly`, `correctly`, `as needed`, `if possible`, `適切な`, `十分な`, `適宜`, `必要に応じて`, `正しく`, `それなりの`, `しかるべき`.
+   - If any ambiguous expression is found and has NOT been replaced with a concrete, measurable expression, mark the design as `BLOCKED` and request the user to revise the AC before approval.
+   - If the ambiguous expression has been explicitly replaced with an objectively measurable criterion in the same AC, it is permitted.
+9. Suggest running `design-doc review` (independent sub-agent verification) before proceeding to the `decompose-plan` skill
+10. For non-greenfield designs, verify:
+    - Every high-impact constraint has at least one linked requirement or acceptance criterion.
+    - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
+    - Verification guidance covers both newly added behavior and impacted existing behavior.
+11. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
 
 ## Design Doc Template
 
