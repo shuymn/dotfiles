@@ -396,6 +396,11 @@ def render_final_report(
     )
 
 
+def validate_artifact_paths(draft_file: Path, final_file: Path) -> None:
+    if draft_file == final_file:
+        raise SystemExit("Draft review file and final review file must differ.")
+
+
 def main() -> int:
     args = parse_args()
 
@@ -407,6 +412,7 @@ def main() -> int:
         raise SystemExit(f"Plan file not found: {plan_file}")
     if not draft_file.is_file():
         raise SystemExit(f"Draft review file not found: {draft_file}")
+    validate_artifact_paths(draft_file, final_file)
 
     plan_text = plan_file.read_text(encoding="utf-8")
     draft_text = draft_file.read_text(encoding="utf-8")
@@ -471,6 +477,7 @@ def main() -> int:
 
     final_file.parent.mkdir(parents=True, exist_ok=True)
     final_file.write_text(final_text, encoding="utf-8")
+    draft_file.unlink(missing_ok=True)
     return 0 if proceed == "yes" else 1
 
 
