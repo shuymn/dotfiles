@@ -65,7 +65,7 @@ while IFS= read -r line; do
       done
     fi
   fi
-done < "$plan_file" > "$edges_file"
+done <"$plan_file" >"$edges_file"
 
 if [[ ! -s "$edges_file" ]]; then
   echo "- **Verdict**: PASS"
@@ -156,7 +156,7 @@ else
     if [[ -n "$first_token" ]] && ! command -v "$first_token" >/dev/null 2>&1; then
       missing_cmds="${missing_cmds}  - \`${first_token}\`\n"
     fi
-  done < <(echo "$quality_gates_section" | grep '^|' | grep -v '^|[[:space:]]*-' | tail -n +2 | awk -F'|' '{print $3}' | grep -oE '`[^`]+`' | sed 's/^`//;s/`$//' || true)
+  done < <(echo "$quality_gates_section" | grep '^|' | grep -v '^|[[:space:]]*-' | tail -n +2 | cut -d'|' -f3 | grep -oE "\`[^\`]+\`" | tr -d '`' || true)
 
   if [[ -z "$missing_cmds" ]]; then
     echo "- **Verdict**: PASS"
