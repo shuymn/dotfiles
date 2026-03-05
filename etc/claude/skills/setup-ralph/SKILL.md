@@ -57,11 +57,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
 6. Validate review report readiness:
    - Derive review path by replacing `plan.md` with `plan.review.md`.
    - The review file exists.
-   - Validate gate checks inline:
-     - Verify review verdict is exactly `PASS` (`Overall Verdict` line in review metadata).
-     - Extract `Source Digest` from the review file.
-     - Compute current plan digest with `shasum -a 256 <plan.md>`.
-     - Compare digests; if mismatch, stop and ask the user to re-run `decompose-plan review`.
+   - Run gate check: `bash <skill-root>/_shared/scripts/gate-check.sh <plan.review.md> <plan.md>`. If exit code is non-zero, stop and ask the user to re-run `decompose-plan review`.
    - The review report contains (Review Metadata + Summary):
      - `Overall Verdict: PASS` (in `## Review Metadata`)
      - `Forward Fidelity: PASS`
