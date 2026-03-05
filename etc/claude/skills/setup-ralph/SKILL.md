@@ -48,7 +48,6 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Reverse Fidelity: PASS`
      - `Non-Goal Guard: PASS`
      - `Behavioral Lock Guard: PASS`
-     - `Granularity Guard: PASS`
      - `Temporal Completeness Guard: PASS`
      - `Quality Gate Guard: PASS` (or `N/A (no quality gates detected)`)
      - `Integration Coverage Guard: PASS` (or `N/A` for plans with no cross-task deps)

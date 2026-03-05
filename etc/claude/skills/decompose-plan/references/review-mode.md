@@ -7,8 +7,11 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 ## Constraints
 
 - The reviewing agent must NOT have created the plan being reviewed.
-- Do NOT modify the plan, design doc, or any other artifact.
-- Write only the review report.
+- Do NOT modify the plan, design doc, or `scripts/review_finalize.py`.
+- Do NOT edit the final review artifact by hand; let the finalizer generate it.
+- Write only the review draft report; the final gate artifact is produced by a script.
+- Do NOT read `scripts/review_finalize.py` or inspect its constants.
+- Do NOT compute granularity totals, thresholds, PASS/FAIL, or `Overall Verdict` yourself.
 
 ## Input
 
@@ -18,31 +21,24 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 ## Procedure
 
 1. **Design Review Gate Re-check**: Run `scripts/gate-check.sh <design.review.md> <design.md>` to confirm the design review is still valid. If FAIL, stop immediately.
-2. **Structural Check**: Run `scripts/structural-check.sh <design-file> <plan-file>`. If any structural check fails, mark `Overall Verdict: FAIL` immediately.
-3. **Generate Header**: Run `scripts/digest-stamp.sh plan-review <plan-file>` to produce the review metadata header.
-4. **Semantic Verification**: Load `references/review-criteria.md` and evaluate all 13 viewpoints against the plan bundle and source design.
-5. **Record Findings**: For each viewpoint, record PASS or FAIL with specific evidence.
-6. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL viewpoints are PASS. Any FAIL → `Overall Verdict: FAIL`.
-7. **Write Review Report**: Output to `.../plan.review.md` (derive path by replacing `plan.md` with `plan.review.md`).
+2. **Structural Check**: Run `scripts/structural-check.sh <design-file> <plan-file>` and keep the result for evidence. The finalizer will re-run it and make it authoritative.
+3. **Semantic Verification**: Load `references/review-criteria.md` and `references/granularity-poker.md`.
+4. **Write Draft Review**: Output reviewer findings to `.../plan.review.draft.md` (derive path by replacing `plan.md` with `plan.review.draft.md`).
+5. **Finalize Review**: Run `uv run python scripts/review_finalize.py <plan-file> <draft-file> <final-file>` where `<final-file>` is `.../plan.review.md`.
+6. **Use Only Final Artifact for Gates**: Downstream skills and gate checks must consume `plan.review.md`, never `plan.review.draft.md`.
 
-## Output Format
+## Draft Output Format
 
 ```markdown
-# <Topic> - Plan Review
+# <Topic> - Plan Review Draft
 
-## Review Metadata
-
-<digest-stamp.sh output>
-- **Overall Verdict**: PASS | FAIL
-
-## Summary
+## Reviewer Summary
 
 - Forward Fidelity: PASS | FAIL
 - Reverse Fidelity: PASS | FAIL
 - Round-trip: PASS | FAIL
 - Behavioral Lock: PASS | FAIL
 - Negative Path: PASS | FAIL
-- Granularity: PASS | FAIL
 - Temporal: PASS | FAIL
 - Traceability: PASS | FAIL
 - Scope: PASS | FAIL
@@ -50,7 +46,12 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 - Execution Readiness: PASS | FAIL
 - Integration Coverage: PASS | FAIL | N/A (no cross-task deps)
 - Risk Classification: PASS | FAIL | N/A (greenfield without Critical-domain changes)
-- Updated At: YYYY-MM-DD HH:MM TZ
+
+## Granularity Poker
+
+| Task | Objective | Surface | Verification | Rollback | Evidence |
+|------|-----------|---------|--------------|----------|----------|
+| Task 1 | 2 | 3 | 2 | 1 | [evidence tied to plan fields] |
 
 ## Findings
 
@@ -60,7 +61,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 ## Blocking Issues
 
-- [ ] [Issues that must be fixed — only if Overall Verdict is FAIL]
+- [ ] [Issues that must be fixed]
 
 ## Non-Blocking Improvements
 
@@ -68,10 +69,12 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 ## Decision
 
-- Proceed to `execute-plan`: yes/no
+- Proceed to `execute-plan`: pending machine finalization
 - Reason: [rationale]
-
-Note: This review validates design and plan artifacts only.
-Implementation correctness is verified by dod-recheck (L4) and adversarial-verify (L5).
-Plan PASS does not imply implementation PASS.
 ```
+
+## Final Artifact Notes
+
+- The finalizer script generates `plan.review.md`.
+- `plan.review.md` includes `## Review Metadata`, `## Summary`, `## Granularity Gate (Machine)`, and `## Decision`.
+- `Granularity` and `Overall Verdict` are machine-computed from the draft content; do not write them into the draft.

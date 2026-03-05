@@ -61,10 +61,6 @@ Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
 - Runtime-boundary lock atoms missing boundary-level verification: [if any]
 - Verdict: PASS | FAIL
 
-### Granularity Guard
-- Tasks too broad for a single coherent change unit: [if any]
-- Tasks too fragmented (should be merged): [if any]
-
 ### Temporal Completeness Guard
 - TEMP entries missing introducing tasks: [if any]
 - TEMP entries missing retiring tasks: [if any]

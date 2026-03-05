@@ -64,7 +64,6 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Reverse Fidelity`
      - `Non-Goal Guard`
      - `Behavioral Lock Guard`
-     - `Granularity Guard`
      - `Temporal Completeness Guard`
      - `Quality Gate Guard`
      - `Integration Coverage Guard`

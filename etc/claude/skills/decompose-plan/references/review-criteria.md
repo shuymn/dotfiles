@@ -1,6 +1,6 @@
 # Plan Review Criteria
 
-13 evaluation viewpoints for `decompose-plan(review)` mode. Absorbs the former `analyze-plan` audit function.
+12 evaluation viewpoints for `decompose-plan(review)` mode. Granularity is scored separately in `references/granularity-poker.md` and finalized by script.
 
 ## 1. Forward Fidelity
 
@@ -67,20 +67,7 @@
 **Severity**:
 - **Blocker**: Unwanted/lock AC with zero negative test coverage.
 
-## 6. Granularity
-
-**Definition**: Each task passes hard-gate properties and respects split signals.
-
-**Check Method**:
-- Verify hard-gate: single primary objective, single main verification flow, clear rollback boundary.
-- Count split signals per task; when 2+ signals, verify task is split or has waiver metadata.
-- Flag overly broad, fragmented, or unjustified waived tasks.
-
-**Severity**:
-- **Blocker**: Task failing hard-gate properties (multiple objectives, no rollback boundary).
-- **Warning**: Task with 2+ split signals and a waiver — check waiver quality.
-
-## 7. Temporal
+## 6. Temporal
 
 **Definition**: Every `TEMPxx` has complete lifecycle coverage (introducing, migrating/cutover, retiring).
 
@@ -94,7 +81,7 @@
 - **Blocker**: `TEMPxx` closure missing (retirement trigger, verification, or removal scope). `TEMPxx` without introducing or retiring task and no waiver.
 - **Warning**: `TEMPxx` with waiver but vague deadline.
 
-## 8. Traceability
+## 7. Traceability
 
 **Definition**: Design Anchors and Satisfied Requirements are correctly populated and valid.
 
@@ -107,7 +94,7 @@
 **Severity**:
 - **Blocker**: Invalid or non-existent design atom references. `TEMPxx` used as task anchor in `plan.md`.
 
-## 9. Scope
+## 8. Scope
 
 **Definition**: No task implements a non-goal, and no scope creep exists.
 
@@ -120,7 +107,7 @@
 - **Blocker**: Task explicitly implementing a documented non-goal.
 - **Warning**: Task with behavior not clearly anchored to design atoms.
 
-## 10. Testability
+## 9. Testability
 
 **Definition**: RED/GREEN/REFACTOR/DoD are defined, and RED is an executable failure.
 
@@ -134,7 +121,7 @@
 - **Blocker**: Task missing any of RED/GREEN/REFACTOR/DoD. RED that is a compile error, not an assertion failure.
 - **Warning**: Verification command that is concrete but may need environment setup.
 
-## 11. Execution Readiness
+## 10. Execution Readiness
 
 **Definition**: Verification commands are specific, concrete, and executable.
 
@@ -148,7 +135,7 @@
 - **Blocker**: Verification command referencing unknown tool or missing file. Quality Gate reference missing in any task DoD. `Allowed Files` missing in any task.
 - **Warning**: Command that is valid but could be more specific.
 
-## 12. Integration Coverage
+## 11. Integration Coverage
 
 **Definition**: Cross-task dependency boundaries are validated by at least one boundary-level test (integration/contract/e2e).
 
@@ -161,7 +148,7 @@
 - **Blocker**: Any cross-task boundary with no boundary-level test coverage.
 - **Info**: N/A when no dependency edges exist.
 
-## 13. Risk Classification Consistency
+## 12. Risk Classification Consistency
 
 **Definition**: Task risk tiers are consistent with the design doc's `## Risk Classification` and tier-specific DoD requirements are present.
 

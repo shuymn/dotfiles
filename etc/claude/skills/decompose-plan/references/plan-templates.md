@@ -38,7 +38,6 @@ Project-wide checks that every task must pass at DoD.
 - Reverse Fidelity: PASS | FAIL
 - Non-Goal Guard: PASS | FAIL
 - Behavioral Lock Guard: PASS | FAIL
-- Granularity Guard: PASS | FAIL
 - Temporal Completeness Guard: PASS | FAIL
 - Quality Gate Guard: PASS | FAIL
 - Integration Coverage Guard: PASS | FAIL | N/A
@@ -58,7 +57,7 @@ Use this structure for every task.
 
 - **Satisfied Requirements**: [REQxx/ACxx IDs from design doc]
 - **Design Anchors**: [GOAL/REQ/AC/DEC IDs this task realizes]
-- **Goal**: [Why this task exists, 1-2 sentences]
+- **Goal**: [Why this task exists, 1-2 sentences; state one primary objective]
 - **Dependencies**: [Task IDs or `none`]
 - **Risk Tier**: Standard | Sensitive | Critical
 
@@ -75,6 +74,7 @@ Use this structure for every task.
 
 **RED**
 - [Failing test intent]
+- [Expose one main verification flow for review-mode scoring]
 - If referenced implementation symbols/files do not exist yet, add minimal scaffolding so the test compiles and runs.
 - If direct unit-level RED is technically difficult, choose the nearest executable boundary test (integration/contract/e2e) while preserving fail-first.
 - Run: `[exact test command]`
@@ -89,6 +89,7 @@ Use this structure for every task.
 
 **DoD**
 - All DoD items are mandatory AND conditions (never OR).
+- [Keep rollback boundary legible through verifiable file or boundary checks]
 - [Verifiable completion criterion]
 - [Behavior/contract check tied to requirement IDs]
 - [Negative verification for replacement/removal/no-fallback/fail-closed requirements when applicable]

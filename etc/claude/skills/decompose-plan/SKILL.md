@@ -121,6 +121,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 - **Plan templates** (header, checkpoint summary, task structure): See [plan-templates.md](references/plan-templates.md)
 - **Trace templates** (trace matrices, cross self-check, compose reconstruction): See [trace-templates.md](references/trace-templates.md)
+- **Granularity poker rubric** (review-only scoring): See [granularity-poker.md](references/granularity-poker.md)
 
 ### Compression Rules
 
@@ -137,10 +138,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - Keep each task outcome independently testable.
 - Keep task granularity at one coherent, reviewable change unit; do not include commit commands or require commit execution.
 - Do not use fixed file-count or LOC thresholds as hard rules.
-- Apply granularity triage:
-  - Hard gate (must pass): one primary objective, one main verification flow, and a clear rollback boundary.
-  - Split signals (if 2+ signals, split by default): unrelated components/domains, unrelated `REQxx/ACxx` targets, multiple independent verification environments/commands, or inability to rollback part of the task safely.
-  - Waiver rule: if you keep a task unsplit despite split signals, add explicit waiver metadata in the task (`reason`, `added risk`, `rollback plan`).
+- In create mode, do not score granularity or assign a granularity verdict.
+- Ensure each task exposes the structural facts needed for review-mode scoring: one stated `Goal`, one main `RED` verification flow, explicit `Dependencies`, and a rollback boundary implied by `Files`/`Allowed Files`.
 
 ### Behavioral Lock Rules (Required)
 
@@ -234,11 +233,10 @@ For design atoms expressing hard behavioral constraints — restricting behavior
 11. **High-Risk Auto-Detection**:
     - ACs with EARS Type=Unwanted or lock requirements are automatically classified as high-risk.
     - Manual override of high-risk classification requires documented reason in the task.
-12. Validate granularity quality:
-   - Require all hard-gate properties to pass (single objective, single verification flow, clear rollback boundary).
-   - Count split signals; if 2 or more, split by default.
-   - If not splitting despite 2+ signals, record waiver metadata (`reason`, `added risk`, `rollback plan`).
-   - If multiple tasks collapse into one indistinguishable change unit, merge or re-slice.
+12. Prepare task structure for granularity review:
+   - Require every task to present a single stated objective, one main verification flow, and an explicit rollback boundary.
+   - If task structure is ambiguous enough that review mode would need extra inference, rewrite the task before presenting the plan.
+   - Do not assign granularity scores, totals, or PASS/FAIL in create mode; review mode is the authoritative granularity gate.
 
 ### Step 3: Write Plan Bundle
 
@@ -264,7 +262,8 @@ Perform structural checks before presenting the plan. Semantic verification is d
 4. Record structural check results in `plan.trace.md`.
 5. Update `Checkpoint Summary` in `plan.md`.
 
-**Note**: The deep semantic checks (forward/reverse fidelity, behavioral lock guard, granularity guard, temporal completeness, etc.) are now performed by `decompose-plan review` mode, which runs as an independent sub-agent.
+**Note**: The deep semantic checks (forward/reverse fidelity, behavioral lock guard, granularity scoring, temporal completeness, etc.) are now performed by `decompose-plan review` mode, which runs as an independent sub-agent.
+The review agent writes `plan.review.draft.md`, and a finalizer script produces the gate artifact `plan.review.md`.
 
 ### Step 5: Review with User
 
@@ -284,7 +283,7 @@ Perform structural checks before presenting the plan. Semantic verification is d
 - **No TDD Abandonment**: Testability difficulty is resolved by scaffolding or boundary-level tests, not by skipping RED.
 - **DoD Conjunction**: DoD is always AND semantics; all DoD items must be satisfied.
 - **Maintainability (DRY)**: Avoid duplicated task intent; express shared logic once via trace matrices and dependency graph.
-- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries at one coherent change unit using hard-gate/split-signal triage rather than fixed size thresholds.
+- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries reviewable by exposing clear task structure in create mode and delegating granularity scoring to the independent review flow.
 - **Instruction over Implementation**: Describe intent and verification, not code.
 - **No Micromanagement**: Avoid over-splitting and line-by-line directives.
 - **Context Efficiency**: Keep frequently-read artifacts compact; move heavy evidence to on-demand sidecars.
