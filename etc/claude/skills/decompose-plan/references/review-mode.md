@@ -20,7 +20,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 1. **Design Review Gate Re-check**: Run `scripts/gate-check.sh <design.review.md> <design.md>` to confirm the design review is still valid. If FAIL, stop immediately.
 2. **Structural Check**: Run `scripts/structural-check.sh <design-file> <plan-file>`. If any structural check fails, mark `Overall Verdict: FAIL` immediately.
 3. **Generate Header**: Run `scripts/digest-stamp.sh plan-review <plan-file>` to produce the review metadata header.
-4. **Semantic Verification**: Load `references/review-criteria.md` and evaluate all 12 viewpoints against the plan bundle and source design.
+4. **Semantic Verification**: Load `references/review-criteria.md` and evaluate all 13 viewpoints against the plan bundle and source design.
 5. **Record Findings**: For each viewpoint, record PASS or FAIL with specific evidence.
 6. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL viewpoints are PASS. Any FAIL → `Overall Verdict: FAIL`.
 7. **Write Review Report**: Output to `...-plan.review.md` (derive path by replacing `-plan.md` with `-plan.review.md`).
@@ -49,6 +49,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 - Testability: PASS | FAIL
 - Execution Readiness: PASS | FAIL
 - Integration Coverage: PASS | FAIL | N/A (no cross-task deps)
+- Risk Classification: PASS | FAIL | N/A (greenfield / all-Standard)
 - Updated At: YYYY-MM-DD HH:MM TZ
 
 ## Findings

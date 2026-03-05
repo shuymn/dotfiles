@@ -25,7 +25,7 @@ Project-wide checks that every task must pass at DoD.
 | [format]    | `[exact format command]`    |
 | [typecheck] | `[exact typecheck command]` |
 
-> Omit this section only when Step 1.7 detected no quality gates.
+> Always required. Step 1.7 blocks if no quality gates detected.
 ```
 
 ## Checkpoint Summary Template
@@ -40,8 +40,9 @@ Project-wide checks that every task must pass at DoD.
 - Behavioral Lock Guard: PASS | FAIL
 - Granularity Guard: PASS | FAIL
 - Temporal Completeness Guard: PASS | FAIL
-- Quality Gate Guard: PASS | FAIL | N/A (no quality gates detected)
+- Quality Gate Guard: PASS | FAIL
 - Integration Coverage Guard: PASS | FAIL | N/A
+- Risk Classification Guard: PASS | FAIL | N/A (greenfield / all-Standard)
 - TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
 - Trace Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
 - Compose Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
@@ -59,6 +60,7 @@ Use this structure for every task.
 - **Design Anchors**: [GOAL/REQ/AC/DEC IDs this task realizes]
 - **Goal**: [Why this task exists, 1-2 sentences]
 - **Dependencies**: [Task IDs or `none`]
+- **Risk Tier**: Standard | Sensitive | Critical
 
 **Files:**
 - Create: `path/from/project/root.ext` (purpose)
@@ -88,5 +90,5 @@ Use this structure for every task.
 - Expected: `PASS`
 - Run: all commands in `## Quality Gates`
 - Expected: all `PASS`
-> Omit the two lines above when Step 1.7 detected no quality gates.
+> Always required.
 ```

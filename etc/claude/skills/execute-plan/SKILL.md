@@ -68,6 +68,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Temporal Completeness Guard`
      - `Quality Gate Guard`
      - `Integration Coverage Guard`
+     - `Risk Classification Guard`
      - `Trace Pack`
      - `Compose Pack`
      - `Updated At`
@@ -87,6 +88,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Testability: PASS`
      - `Execution Readiness: PASS`
      - `Integration Coverage: PASS` (or `N/A (no cross-task deps)`)
+     - `Risk Classification: PASS` (or `N/A (greenfield / all-Standard)`)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.
@@ -122,13 +124,24 @@ If expected results are not met, stop and follow Stop Conditions.
    ```
    ## Recheck Input
    - **Task ID**: Task N
+   - **Risk Tier**: [Standard | Sensitive | Critical]
    - **DoD Commands**: [DoD verification command list]
    - **Expected Outcomes**: [Expected result for each command]
    - **Quality Gates**: [Resolved commands from `## Quality Gates`, if applicable]
    - **Risk Flags**: [Any deviations recorded during implementation]
    ```
-4. Explicitly stop after this task.
-5. If the user wants another task, ask them to specify the next task ID.
+4. If the task's Risk Tier is Critical, output an Adversarial Verify Input block:
+   ```
+   ## Adversarial Verify Input
+   - **Task ID**: Task N
+   - **Risk Tier**: Critical
+   - **Change Areas**: [Areas from Risk Classification that this task touches]
+   - **Change Rationale**: [From design doc Risk Classification]
+   - **Implementation Files**: [Files created/modified in this task]
+   - **DoD Evidence**: [Summary of verification results]
+   ```
+5. Explicitly stop after this task.
+6. If the user wants another task, ask them to specify the next task ID.
 
 ## Stop Conditions
 

@@ -95,6 +95,21 @@ When the design modifies existing behavior, APIs, runtime paths, or tests, do no
   - allowed-path expectation (what must work)
 - If required constraints cannot be identified from current code/tests, stop as `BLOCKED` and request missing context before finalizing design.
 
+## Risk Classification Contract
+
+Classify change areas by defect-impact severity. Risk tiers are **defined by humans**, not auto-inferred by agents. The tier definitions below describe semantic characteristics — the exact areas that qualify depend on the product and domain context.
+
+| Tier | Semantic Characteristics | Downstream Effect |
+|------|-------------------------|-------------------|
+| Critical | A defect would cause irreversible damage, security breach, data loss, financial harm, or compliance violation. The blast radius extends beyond the immediate component to users, external systems, or regulatory boundaries. Common examples (not exhaustive): authentication, billing, access control, encryption, PII handling. | Change Rationale required. `adversarial-verify` mandatory after `dod-recheck`. |
+| Sensitive | A defect would silently corrupt state, break contractual interfaces, or require coordinated rollback across multiple components. The failure mode is typically delayed or hidden rather than immediately visible. Common examples (not exhaustive): DB schema, API contracts, state management, external integrations. | Change Rationale required. Heightened `dod-recheck` scrutiny applies. |
+| Standard | A defect would be caught by normal testing or cause a visible, locally-contained failure with straightforward rollback. Common examples (not exhaustive): feature components, tests, documentation, configuration. | Normal DoD verification. |
+
+- Record classifications in `## Risk Classification` section of the design doc.
+- Critical and Sensitive areas must include Change Rationale (why the change is necessary + impact of a defect).
+- Standard areas may omit Change Rationale.
+- Classifications propagate downstream: `design-doc` → `decompose-plan` (task-level tier inheritance) → `execute-plan` (verification intensity).
+
 ## Scale-Appropriate Depth
 
 Default to the **Core Profile**. Add sections only when triggered.
@@ -110,6 +125,7 @@ Default to the **Core Profile**. Add sections only when triggered.
 | `Compatibility & Sunset` | Breaking change or staged migration (see Lifecycle Contract for required `TEMPxx` details) |
 | `Operational Considerations` | 2+ teams impacted, or monitoring/rollout changes required |
 | `root-sub` decomposition | Meets Decomposition Strategy Contract conditions |
+| `Risk Classification` | Design modifies existing behavior (non-greenfield) |
 
 `Verification Plan`, `Alternatives Considered`, and `Risks & Mitigations` are optional — include when they add value; omit otherwise.
 
@@ -156,6 +172,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
 4. Do not start design drafting while any `blocked` item remains.
 5. For breaking-change designs, treat missing `TEMPxx` checklist row or missing retirement trigger/verification/removal scope for any `TEMPxx` as `blocked`.
 6. For non-greenfield changes, treat unresolved high-impact constraints (existing test/runtime assumptions that can change scope) as `blocked`.
+   - If `## Risk Classification` is empty or missing for a non-greenfield design, add it as a clarification item (`blocked` until the user defines risk tiers).
 7. Record outcomes in the design doc under `## Clarifications` with:
    - Question
    - Answer or assumption
@@ -270,6 +287,7 @@ When a significant design decision is made, record it as an ADR.
     - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
     - Verification guidance covers both newly added behavior and impacted existing behavior.
 11. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
+12. For non-greenfield designs, verify `## Risk Classification` exists with at least one row, and every Critical/Sensitive entry has a non-empty Change Rationale.
 
 ## Design Doc Template
 

@@ -36,6 +36,17 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 |---------------|--------------------|------------|------------------|-----------------------|
 | CONS-01 | [path/to/file or test] | [Existing assumption or coupling] | [How this limits or shapes design] | [How regression/contract will be checked] |
 
+## Risk Classification
+
+| Area | Risk Tier | Change Rationale |
+|------|-----------|-----------------|
+| [e.g., Auth token validation] | Critical | [Why + impact of defect] |
+| [e.g., API response schema] | Sensitive | [Why + impact of defect] |
+| [e.g., Dashboard component] | Standard | — |
+
+<!-- Critical/Sensitive require Change Rationale. Standard may omit it. -->
+<!-- Tier semantics: Critical = irreversible damage, security breach, data loss, financial harm, compliance violation. Sensitive = silent state corruption, contractual interface breakage, coordinated rollback required. Standard = visible, locally-contained failure with straightforward rollback. Exact areas depend on product/domain context. -->
+
 ## Decomposition Strategy
 
 - Split Decision: single | root-sub

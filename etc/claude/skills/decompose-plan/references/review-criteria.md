@@ -1,6 +1,6 @@
 # Plan Review Criteria
 
-12 evaluation viewpoints for `decompose-plan(review)` mode. Absorbs the former `analyze-plan` audit function.
+13 evaluation viewpoints for `decompose-plan(review)` mode. Absorbs the former `analyze-plan` audit function.
 
 ## 1. Forward Fidelity
 
@@ -141,10 +141,10 @@
 **Check Method**:
 - Verify each task's verification commands reference specific files, modules, or endpoints.
 - Flag missing/unclear commands, unknown tools, or undocumented environment assumptions.
-- Verify Quality Gate references are consistent (present when gates exist, absent when they don't).
+- Verify Quality Gate references are present in every task DoD.
 
 **Severity**:
-- **Blocker**: Verification command referencing unknown tool or missing file. Quality Gate inconsistency (reference without `## Quality Gates`, or vice versa).
+- **Blocker**: Verification command referencing unknown tool or missing file. Quality Gate reference missing in any task DoD.
 - **Warning**: Command that is valid but could be more specific.
 
 ## 12. Integration Coverage
@@ -160,6 +160,19 @@
 - **Blocker**: Any cross-task boundary with no boundary-level test coverage.
 - **Info**: N/A when no dependency edges exist.
 
+## 13. Risk Classification Consistency
+
+**Definition**: Task risk tiers are consistent with the design doc's `## Risk Classification` and tier-specific DoD requirements are present.
+
+**Check Method**:
+- Verify each task's `Risk Tier` field matches the highest tier from the design doc's Risk Classification for its change targets.
+- Verify Critical tasks include `Adversarial verification required` in DoD.
+- Verify Sensitive tasks include `Heightened dod-recheck scrutiny applies` in DoD.
+
+**Severity**:
+- **Blocker**: Task touching a Critical-classified area but assigned Standard tier. Critical task missing adversarial verification DoD requirement.
+- **Warning**: Task touching a Sensitive-classified area but assigned Standard tier.
+
 ## Blocker Conditions Summary
 
 The following conditions are always blockers (inherited from the former `analyze-plan` audit):
@@ -167,8 +180,9 @@ The following conditions are always blockers (inherited from the former `analyze
 - `TEMPxx` closure field missing (retirement trigger, verification, or removal scope)
 - Lock atom with no executable negative check
 - Cross-task boundary with no boundary-level test (integration/contract/e2e)
-- Quality Gate presence/absence inconsistency
+- Quality Gate reference missing in any task DoD
 - Any `REQxx` or `ACxx` with zero task coverage
 - Orphan task with no valid design atom anchors
 - Task implementing a documented non-goal
 - RED that is a compile/import error instead of an assertion failure
+- Critical-area task classified as Standard tier

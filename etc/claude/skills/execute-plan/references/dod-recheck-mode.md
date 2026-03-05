@@ -27,6 +27,26 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
 4. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL DoD commands AND all Quality Gate commands PASS. Any failure → `Overall Verdict: FAIL`.
 5. **Write Recheck Report**: Output to `...-task-<N>.dod-recheck.md` (where N is the task number).
 
+## Heightened Scrutiny (Sensitive/Critical)
+
+When the Recheck Input indicates Risk Tier is Sensitive or Critical, perform additional inspection beyond DoD command re-execution:
+
+1. Read the implementation diff for files changed by the task.
+2. Inspect for:
+   - Unvalidated inputs at trust boundaries
+   - Missing error handling on failure paths
+   - Hardcoded values (secrets, credentials, magic numbers)
+   - Silent failures (swallowed exceptions, ignored error returns)
+   - Unsafe type coercions or unchecked casts
+3. Record findings in `## Heightened Scrutiny Findings` table:
+
+| # | File | Line(s) | Category | Finding | Severity |
+|---|------|---------|----------|---------|----------|
+| 1 | [path] | [lines] | [category] | [description] | warning |
+
+- Heightened scrutiny findings are **warnings only** and do not affect the Overall Verdict.
+- For Critical-tier tasks, note that `adversarial-verify` is required separately after dod-recheck PASS.
+
 ## On FAIL
 
 - Task completion is revoked — the task is not considered done.

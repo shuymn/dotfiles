@@ -181,8 +181,11 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - Detection source priority: `AGENTS.md` > `CLAUDE.md` > project config files (`package.json`, `Makefile`/`Taskfile.yml`, `pyproject.toml`, `.pre-commit-config.yaml`, CI config).
    - Classify each gate by category: `test`, `lint`, `format`, `typecheck`, `other`.
    - Record the exact executable command for each gate.
-   - If no quality gates are found, record `Quality Gates: none detected` and continue (non-blocking).
-8. Run the design sufficiency gate:
+   - If no quality gates are found from any source, stop as `BLOCKED` and request the user to define quality gates (in `AGENTS.md`, `CLAUDE.md`, or a project config file) before proceeding.
+8. Read `## Risk Classification` from the design doc:
+   - For each task's change targets, inherit the highest risk tier from matching areas in the classification table.
+   - If no `## Risk Classification` section exists, treat all areas as Standard.
+9. Run the design sufficiency gate:
    - If migration/breaking-change intent exists but `TEMPxx` lifecycle evidence is missing/incomplete, stop as `BLOCKED`.
 
 ### Step 2: Analyze and Decompose
@@ -202,6 +205,8 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
    - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
+   - If the task's inherited risk tier is Critical, append to DoD: `Adversarial verification required`.
+   - If the task's inherited risk tier is Sensitive, append to DoD: `Heightened dod-recheck scrutiny applies`.
 6. Build a **Behavioral Lock Map** from design atoms:
    - Extract lock atoms: design wording, acceptance criteria, or constraint entries that express exclusivity, removal, replacement, or mandatory failure on a former path. Common keyword examples (not exhaustive): `only`, `remove`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`.
    - Map each lock atom to one or more task-level negative checks and one positive boundary check.
