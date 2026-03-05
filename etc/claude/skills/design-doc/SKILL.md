@@ -144,9 +144,9 @@ Quality is judged by `Acceptance Criteria` clarity, trade-off coverage, and veri
 Before writing anything, understand the landscape:
 
 1. Explore the project structure, existing code, and related documentation
-2. Check for existing design docs in `docs/plans/`
-3. Check for existing ADRs in `docs/adr/` — **use a tiered reading strategy:**
-   - **Always:** List filenames only first (`rtk ls docs/adr/ 2>/dev/null || ls docs/adr/ 2>/dev/null`) to get an overview
+2. Check for existing design docs in `docs/plans/<topic>/`
+3. Check for existing ADRs in `docs/adr/<topic>/` — **use a tiered reading strategy:**
+   - **Always:** List filenames only first (`rtk ls docs/adr/<topic>/ 2>/dev/null || ls docs/adr/<topic>/ 2>/dev/null`) to get an overview
    - **Then:** Read only ADRs that are clearly relevant to the current design topic (judge by title)
    - **Never:** Read all ADRs upfront — in large projects this will consume context for no benefit
    - If unsure whether an ADR is relevant, read just its Title and Status lines before committing to the full content
@@ -196,10 +196,10 @@ Before drafting the design, remove requirement ambiguity explicitly.
      - **Component-level AC**: each component's individual behavior in isolation.
      - **Integration-level AC**: observable behavior when components are combined (e.g., end-to-end data flow, API contract, lifecycle correctness across boundaries).
      - Include at least one integration-level AC in this case; component-level ACs alone are insufficient to verify the design.
-2. Write to: `docs/plans/YYYY-MM-DD-<topic>-design.md`
-   - Create the directory if it does not exist: `mkdir -p docs/plans`
+2. Write to: `docs/plans/<topic>/design.md`
+   - Create the directory if it does not exist: `mkdir -p docs/plans/<topic>`
 3. If `Split Decision: root-sub`, also create sub docs at:
-   - `docs/plans/YYYY-MM-DD-<topic>-<subtopic>-design.md`
+   - `docs/plans/<topic>/<subtopic>-design.md`
    - Use the sub-doc template: [design-templates.md](references/design-templates.md#sub-design-doc-template-for-root-sub)
 4. Present the draft to the user and request feedback
 
@@ -223,14 +223,11 @@ Repeat until the user explicitly approves the design:
 
 When a significant design decision is made, record it as an ADR.
 
-**Output path:** `docs/adr/NNNN-<title>.md`
+**Output path:** `docs/adr/<topic>/<subject>.md`
 
-**Numbering:**
-- Check existing ADRs: `ls docs/adr/ 2>/dev/null | sort -n | tail -1`
-- Use the next sequential number (zero-padded to 4 digits)
-- If no ADRs exist, start with `0001`
-- Create the directory if missing: `mkdir -p docs/adr`
-- Use a concise, verb-led kebab-case title (example: `0042-adopt-grpc-for-public-api.md`)
+**Path rules:**
+- Create the directory if missing: `mkdir -p docs/adr/<topic>`
+- Use a concise, verb-led kebab-case subject filename (example: `adopt-grpc-for-public-api.md`)
 
 **ADR format:** See [design-templates.md](references/design-templates.md#adr-template).
 

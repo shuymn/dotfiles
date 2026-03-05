@@ -18,12 +18,12 @@ Output instruction-level guidance only. Do not output implementation code snippe
 
 ## Input / Output
 
-- Input: a design doc in `docs/plans/` (typically created by the `design-doc` skill).
+- Input: a design doc in `docs/plans/<topic>/` (typically created by the `design-doc` skill).
   - If the design doc declares `Split Decision: root-sub`, treat the root doc plus all sub docs listed in its `Sub-Doc Index` as the design input set.
 - Output is a 3-file bundle:
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (core, frequently read)
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (traceability evidence, on-demand)
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md` (reconstruction check, on-demand)
+  - `docs/plans/<topic>/plan.md` (core, frequently read)
+  - `docs/plans/<topic>/plan.trace.md` (traceability evidence, on-demand)
+  - `docs/plans/<topic>/plan.compose.md` (reconstruction check, on-demand)
 
 ## <HARD-GATE>
 
@@ -80,14 +80,14 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 ## Output Contract
 
-### Core Plan (`...-plan.md`) Required Sections
+### Core Plan (`plan.md`) Required Sections
 
 1. Header (includes ## Quality Gates when detected)
 2. Task Dependency Graph (compact form)
 3. Task list (`Goal`, `RED`, `GREEN`, `REFACTOR`, `DoD`; no `TEMPxx`-specific fields)
 4. Checkpoint Summary
 
-### Trace Pack (`...-plan.trace.md`) Required Sections
+### Trace Pack (`plan.trace.md`) Required Sections
 
 1. Design Atom Index
 2. Decision Trace (`DECxx -> ADR-xxxx`)
@@ -98,7 +98,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 7. AC Ownership Map (`ACxx` -> Owner Task + Contributors)
 8. Structural Self-Check evidence
 
-### Compose Pack (`...-plan.compose.md`) Required Sections
+### Compose Pack (`plan.compose.md`) Required Sections
 
 1. Reconstructed design summary from tasks
 2. Scope diff (`missing`, `extra`, `ambiguous`)
@@ -108,8 +108,8 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 `plan.md` header must include:
 
-- `**Trace Pack**: docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
-- `**Compose Pack**: docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
+- `**Trace Pack**: docs/plans/<topic>/plan.trace.md`
+- `**Compose Pack**: docs/plans/<topic>/plan.compose.md`
 
 ### Markdown Rendering Rule (Required)
 
@@ -238,9 +238,9 @@ For design atoms expressing hard behavioral constraints — restricting behavior
 ### Step 3: Write Plan Bundle
 
 1. Create output files:
-   - `docs/plans/YYYY-MM-DD-<topic>-plan.md`
-   - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
-   - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
+   - `docs/plans/<topic>/plan.md`
+   - `docs/plans/<topic>/plan.trace.md`
+   - `docs/plans/<topic>/plan.compose.md`
 2. Write `plan.md` as compact execution instructions.
 3. Write `plan.trace.md` with Design Atom Index, Decision Trace, both matrices, Behavioral Lock Map, and full check details.
 4. Write `plan.compose.md` with reconstruction summary and scope diff.

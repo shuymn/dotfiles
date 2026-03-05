@@ -19,9 +19,9 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 ## When to Use
 
 - You have an approved plan bundle from `decompose-plan`.
-- `decompose-plan review` has produced `...-plan.review.md` with PASS verdict.
+- `decompose-plan review` has produced `.../plan.review.md` with PASS verdict.
 - `.ralph/` already exists (created by `ralph init`).
-- Input: a plan.md file path (passed as argument or resolved interactively) and its derived `...-plan.review.md`.
+- Input: a plan.md file path (passed as argument or resolved interactively) and its derived `.../plan.review.md`.
 - Output: updated `.ralph/prd.json` and `.ralph/prompt.run.md`.
 
 ## <HARD-GATE: PLAN APPROVAL>
@@ -29,7 +29,7 @@ Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 Do NOT sync a plan that has not been explicitly approved by the user.
 
 - Verify the plan's `Checkpoint Summary` passes full validation (see Step 1.5).
-- Verify the review report (`...-plan.review.md`) exists and has PASS verdicts (see Step 1.6).
+- Verify the review report (`.../plan.review.md`) exists and has PASS verdicts (see Step 1.6).
 - If any required key is missing or any verdict is not PASS, stop and ask the user to fix the plan first.
 
 ## Process
@@ -37,7 +37,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
 ### Step 1: Resolve Plan Path
 
 1. If `$ARGUMENTS` is provided, use it as the plan path directly.
-2. If no argument, search `docs/plans/*-plan.md` for available plans.
+2. If no argument, search `docs/plans/*/plan.md` for available plans.
 3. If multiple plans exist, present the list and ask the user to select one.
 4. If no plans exist, stop and inform the user.
 5. Validate the resolved path exists and is a `decompose-plan` plan bundle:
@@ -55,7 +55,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
      - `Trace Pack` and `Compose Pack` paths that match the plan header links
      - `Updated At`
 6. Validate review report readiness:
-   - Derive review path by replacing `-plan.md` with `-plan.review.md`.
+   - Derive review path by replacing `plan.md` with `plan.review.md`.
    - The review file exists.
    - Validate gate checks inline:
      - Verify review verdict is exactly `PASS` (`Overall Verdict` line in review metadata).

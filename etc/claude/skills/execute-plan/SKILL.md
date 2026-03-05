@@ -19,13 +19,13 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 ## When to Use
 
 - You have an approved plan bundle from `decompose-plan`.
-- `decompose-plan review` has produced `...-plan.review.md` with PASS verdict.
+- `decompose-plan review` has produced `.../plan.review.md` with PASS verdict.
 - The user explicitly asks to execute a specific task (for example, `Task 7`).
 - Input includes:
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.md` (primary)
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md` (on-demand traceability evidence)
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md` (on-demand reconstruction evidence)
-  - `docs/plans/YYYY-MM-DD-<topic>-plan.review.md` (required readiness gate)
+  - `docs/plans/<topic>/plan.md` (primary)
+  - `docs/plans/<topic>/plan.trace.md` (on-demand traceability evidence)
+  - `docs/plans/<topic>/plan.compose.md` (on-demand reconstruction evidence)
+  - `docs/plans/<topic>/plan.review.md` (required readiness gate)
 
 ## Implement Mode Gate (Required before execution)
 
@@ -74,7 +74,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Updated At`
    - `Checkpoint Summary` has `Alignment Verdict: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
-   - Review report exists at `...-plan.review.md` (replace `-plan.md` with `-plan.review.md`) and has:
+   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has:
      - `Overall Verdict: PASS`
      - `Forward Fidelity: PASS`
      - `Reverse Fidelity: PASS`

@@ -58,7 +58,7 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 | Sub ID | File | Owned Boundary | Owns Requirements/AC |
 |--------|------|----------------|----------------------|
-| SUB-A | docs/plans/YYYY-MM-DD-<topic>-sub-a-design.md | [boundary] | [ID ranges or summary] |
+| SUB-A | docs/plans/<topic>/sub-a-design.md | [boundary] | [ID ranges or summary] |
 
 ### Root Coverage (required when root-sub)
 
@@ -101,7 +101,7 @@ Use stable IDs (`TEMPxx`). For each entry, point to the lifecycle record (`ADR` 
 
 | ID | Mechanism | Lifecycle Record | Status |
 |----|-----------|------------------|--------|
-| TEMP01 | [e.g., compatibility alias] | [0042](../adr/0042-temp-compat-alias.md) or local | active |
+| TEMP01 | [e.g., compatibility alias] | [temp-compat-alias](/docs/adr/<topic>/temp-compat-alias.md) or local | active |
 
 ### Sunset Closure Checklist
 
@@ -117,7 +117,7 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 
 | ADR | Decision | Status |
 |-----|----------|--------|
-| [NNNN](../adr/NNNN-title.md) | Brief description | Accepted |
+| [adopt-grpc-for-public-api](/docs/adr/<topic>/adopt-grpc-for-public-api.md) | Brief description | Accepted |
 
 ## Open Questions
 
@@ -137,9 +137,9 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 ## ADR Template
 
 ```markdown
-# NNNN: <Decision Title>
+# <Decision Title>
 
-- Status: Proposed | Accepted | Rejected | Deprecated | Superseded by [NNNN](NNNN-title.md)
+- Status: Proposed | Accepted | Rejected | Deprecated | Superseded by [<subject>](<subject>.md)
 - Date: YYYY-MM-DD
 - Deciders: [person/role, ...] <!-- optional -->
 - Technical Story: [ticket/issue URL] <!-- optional -->
@@ -198,9 +198,9 @@ Chosen option: "[option X]", because:
 
 ## Links
 
-- Related ADR: [NNNN](NNNN-title.md) <!-- optional -->
-- Supersedes: [NNNN](NNNN-title.md) <!-- optional -->
-- Superseded by: [NNNN](NNNN-title.md) <!-- optional -->
+- Related ADR: [<subject>](<subject>.md) <!-- optional -->
+- Supersedes: [<subject>](<subject>.md) <!-- optional -->
+- Superseded by: [<subject>](<subject>.md) <!-- optional -->
 - Related issue/PR/docs: [link] <!-- optional -->
 ```
 
@@ -214,7 +214,7 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 ## Sub-Doc Metadata
 
 - Sub ID: SUB-X
-- Root Design: `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Root Design: `docs/plans/<topic>/design.md`
 - Owned Boundary: [Explicit component/domain ownership]
 
 ## Local Goals
@@ -249,5 +249,5 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 | ADR | Decision | Status |
 |-----|----------|--------|
-| [NNNN](../adr/NNNN-title.md) | Brief description | Accepted |
+| [adopt-grpc-for-public-api](/docs/adr/<topic>/adopt-grpc-for-public-api.md) | Brief description | Accepted |
 ```

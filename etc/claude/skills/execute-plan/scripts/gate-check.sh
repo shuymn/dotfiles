@@ -3,7 +3,7 @@ set -euo pipefail
 
 # gate-check.sh — Verify review gate before downstream skill execution.
 # Usage: gate-check.sh <review-file> <source-file>
-#   review-file: path to the review artifact (e.g., ...-design.review.md)
+#   review-file: path to the review artifact (e.g., .../design.review.md)
 #   source-file: path to the source artifact that was reviewed
 # Exit 0 if all checks pass; exit 1 with reason on stdout otherwise.
 

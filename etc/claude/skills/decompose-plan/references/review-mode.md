@@ -12,7 +12,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 ## Input
 
-- Plan bundle path (`...-plan.md` + sidecars)
+- Plan bundle path (e.g., `docs/plans/<topic>/plan.md` + sidecars)
 - Source design doc path
 
 ## Procedure
@@ -23,7 +23,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 4. **Semantic Verification**: Load `references/review-criteria.md` and evaluate all 13 viewpoints against the plan bundle and source design.
 5. **Record Findings**: For each viewpoint, record PASS or FAIL with specific evidence.
 6. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL viewpoints are PASS. Any FAIL → `Overall Verdict: FAIL`.
-7. **Write Review Report**: Output to `...-plan.review.md` (derive path by replacing `-plan.md` with `-plan.review.md`).
+7. **Write Review Report**: Output to `.../plan.review.md` (derive path by replacing `plan.md` with `plan.review.md`).
 
 ## Output Format
 

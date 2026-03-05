@@ -7,9 +7,9 @@ Templates for `plan.md` output artifact.
 ```markdown
 # [Feature] Implementation Plan
 
-- **Source**: `docs/plans/YYYY-MM-DD-<topic>-design.md`
-- **Trace Pack**: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
-- **Compose Pack**: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
+- **Source**: `docs/plans/<topic>/design.md`
+- **Trace Pack**: `docs/plans/<topic>/plan.trace.md`
+- **Compose Pack**: `docs/plans/<topic>/plan.compose.md`
 - **Goal**: [One-sentence end state]
 - **Architecture**: [2-3 sentences]
 - **Tech Stack**: [Key technologies]
@@ -44,8 +44,8 @@ Project-wide checks that every task must pass at DoD.
 - Integration Coverage Guard: PASS | FAIL | N/A
 - Risk Classification Guard: PASS | FAIL | N/A (greenfield without Critical-domain changes)
 - TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
-- Trace Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
-- Compose Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
+- Trace Pack: `docs/plans/<topic>/plan.trace.md`
+- Compose Pack: `docs/plans/<topic>/plan.compose.md`
 - Updated At: `YYYY-MM-DD`
 ```
 

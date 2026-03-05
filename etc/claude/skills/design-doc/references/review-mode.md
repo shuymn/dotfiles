@@ -13,7 +13,7 @@ Independent verification of an approved design document. This mode runs as a sub
 
 ## Input
 
-- Path to an approved design doc (e.g., `docs/plans/YYYY-MM-DD-<topic>-design.md`)
+- Path to an approved design doc (e.g., `docs/plans/<topic>/design.md`)
 
 ## Procedure
 
@@ -23,7 +23,7 @@ Independent verification of an approved design document. This mode runs as a sub
    - Assess the design doc against the criterion definition and check method.
    - Record PASS, FAIL, or N/A with specific evidence (section, AC ID, or quote).
 4. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL 6 viewpoints are PASS (N/A counts as PASS). Any FAIL → `Overall Verdict: FAIL`.
-5. **Write Review Report**: Output to `...-design.review.md` (derive path by replacing `-design.md` with `-design.review.md`).
+5. **Write Review Report**: Output to `.../design.review.md` (derive path by replacing `design.md` with `design.review.md`).
 
 ## Output Format
 
