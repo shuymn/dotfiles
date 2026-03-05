@@ -1,6 +1,6 @@
 ---
 name: adversarial-verify
-description: "Adversarial verification of a completed task. Actively tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Mandatory for Critical-tier tasks, optional for others. Runs as independent sub-agent. Use after execute-plan dod-recheck PASS."
+description: "Adversarial verification of a completed task. Actively tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Mandatory for Critical and Sensitive tiers, optional for Standard. Runs as independent sub-agent. Use after execute-plan dod-recheck PASS."
 allowed-tools: [Read, Bash, Grep, Glob, Write]
 ---
 
@@ -18,13 +18,21 @@ Before starting adversarial verification, verify the dod-recheck gate:
 2. The dod-recheck file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `execute-plan dod-recheck` first.
 
+## Tier-Based Invocation Policy
+
+| Risk Tier | Invocation | Minimum Probes | Attack Scope |
+|-----------|------------|----------------|--------------|
+| Critical | Mandatory | 3 | All applicable categories |
+| Sensitive | Mandatory | 2 | Category 1 (Input Boundary) + most relevant 1 additional category |
+| Standard | Optional | — | User-selected |
+
 ## Input
 
 - Plan bundle path + task ID
 - Adversarial Verify Input block (from execute-plan implement mode's Step 3 output)
 - Implementation files listed in the input block
 
-For non-Critical tasks (optional invocation): the Adversarial Verify Input block is not auto-generated. The user must manually provide equivalent information (Task ID, Change Areas, Implementation Files, DoD Evidence).
+For Standard-tier tasks (optional invocation), the Adversarial Verify Input block is not auto-generated. The user must manually provide equivalent information (Task ID, Change Areas, Implementation Files, DoD Evidence).
 
 ## Procedure
 
@@ -36,6 +44,10 @@ For non-Critical tasks (optional invocation): the Adversarial Verify Input block
    - Create the test file (naming: `*_adversarial_test.*` or in a dedicated `adversarial/` directory).
    - Execute the test/probe.
    - Record: attack vector, test file, command, result (DEFENDED / VULNERABLE), evidence.
+   - Enforce tier minimums:
+     - Critical: execute at least 3 probes.
+     - Sensitive: execute at least 2 probes including Category 1 (Input Boundary) and the most relevant additional category.
+     - Standard (optional): no minimum probe count.
 5. **Compute Verdict**: `Overall Verdict: PASS` only when ALL attack probes result in DEFENDED. Any VULNERABLE → `Overall Verdict: FAIL`.
 6. **Write Report**: Output to `...-task-<N>.adversarial.md`.
 
@@ -43,7 +55,10 @@ For non-Critical tasks (optional invocation): the Adversarial Verify Input block
 
 - **Zero applicable attack categories**: If the Selection Guidance table yields no relevant categories for the change area, apply at minimum categories 1 (Input Boundary) and 2 (Error Handling) as a baseline. Record the rationale for limited applicability in the report.
 - **Missing test infrastructure**: If the project lacks a test framework or runtime needed to execute attack probes, stop as `BLOCKED` and request the user to set up the necessary infrastructure. Do not skip attacks because tooling is absent.
-- **Attack probe limit**: Target 3-8 attack probes per task. If the change area warrants more, cap at 15 and prioritize by risk severity. Document any pruning rationale.
+- **Attack probe budget**:
+  - Critical: minimum 3 probes, target 3-8, cap at 15.
+  - Sensitive: minimum 2 probes, target 2-4, cap at 8.
+  - Standard (optional): choose probe count by scope and document rationale.
 
 ## On FAIL
 
@@ -83,10 +98,12 @@ For non-Critical tasks (optional invocation): the Adversarial Verify Input block
 
 ## Task Completion Definition (with Adversarial Verification)
 
-For Critical-tier tasks, completion requires ALL three conditions:
+For Critical-tier and Sensitive-tier tasks, completion requires ALL three conditions:
 
 1. **Implement mode**: All RED/GREEN/REFACTOR/DoD steps pass.
 2. **DoD Recheck mode**: Independent sub-agent confirms all DoD items pass.
 3. **Adversarial Verify**: Independent sub-agent confirms all attack probes are defended.
 
 If `adversarial-verify` returns FAIL, the implement completion is revoked and the full chain must be re-executed.
+
+For Standard-tier tasks, adversarial verification remains optional unless explicitly required by the user or plan.

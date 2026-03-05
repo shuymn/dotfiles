@@ -166,12 +166,12 @@
 
 **Check Method**:
 - Verify each task's `Risk Tier` field matches the highest tier from the design doc's Risk Classification for its change targets.
-- Verify Critical tasks include `Adversarial verification required` in DoD.
+- Verify Critical tasks include `Adversarial verification required (minimum 3 probes).` in DoD.
 - Verify Sensitive tasks include `Heightened dod-recheck scrutiny applies` in DoD.
+- Verify Sensitive tasks include `Lightweight adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).` in DoD.
 
 **Severity**:
-- **Blocker**: Task touching a Critical-classified area but assigned Standard tier. Critical task missing adversarial verification DoD requirement.
-- **Warning**: Task touching a Sensitive-classified area but assigned Standard tier.
+- **Blocker**: Task touching a Critical-classified area but assigned Standard tier. Critical task missing adversarial verification DoD requirement. Task touching a Sensitive-classified area but assigned Standard tier. Sensitive task missing lightweight adversarial DoD requirement.
 
 ## Blocker Conditions Summary
 
@@ -186,3 +186,5 @@ The following conditions are always blockers (inherited from the former `analyze
 - Task implementing a documented non-goal
 - RED that is a compile/import error instead of an assertion failure
 - Critical-area task classified as Standard tier
+- Sensitive-area task classified as Standard tier
+- Sensitive task missing lightweight adversarial DoD requirement

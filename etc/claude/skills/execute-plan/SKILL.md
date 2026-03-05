@@ -88,7 +88,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Testability: PASS`
      - `Execution Readiness: PASS`
      - `Integration Coverage: PASS` (or `N/A (no cross-task deps)`)
-     - `Risk Classification: PASS` (or `N/A (greenfield / all-Standard)`)
+     - `Risk Classification: PASS` (or `N/A (greenfield without Critical-domain changes)`)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.
@@ -130,11 +130,13 @@ If expected results are not met, stop and follow Stop Conditions.
    - **Quality Gates**: [Resolved commands from `## Quality Gates`, if applicable]
    - **Risk Flags**: [Any deviations recorded during implementation]
    ```
-4. If the task's Risk Tier is Critical, output an Adversarial Verify Input block:
+4. If the task's Risk Tier is Sensitive or Critical, output an Adversarial Verify Input block:
    ```
    ## Adversarial Verify Input
    - **Task ID**: Task N
-   - **Risk Tier**: Critical
+   - **Risk Tier**: [Sensitive | Critical]
+   - **Minimum Probes**: [2 for Sensitive | 3 for Critical]
+   - **Required Scope**: [Sensitive: Category 1 + most relevant 1 category | Critical: all applicable categories]
    - **Change Areas**: [Areas from Risk Classification that this task touches]
    - **Change Rationale**: [From design doc Risk Classification]
    - **Implementation Files**: [Files created/modified in this task]

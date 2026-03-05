@@ -42,7 +42,7 @@ Project-wide checks that every task must pass at DoD.
 - Temporal Completeness Guard: PASS | FAIL
 - Quality Gate Guard: PASS | FAIL
 - Integration Coverage Guard: PASS | FAIL | N/A
-- Risk Classification Guard: PASS | FAIL | N/A (greenfield / all-Standard)
+- Risk Classification Guard: PASS | FAIL | N/A (greenfield without Critical-domain changes)
 - TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
 - Trace Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.trace.md`
 - Compose Pack: `docs/plans/YYYY-MM-DD-<topic>-plan.compose.md`
@@ -86,6 +86,9 @@ Use this structure for every task.
 - [Behavior/contract check tied to requirement IDs]
 - [Negative verification for replacement/removal/no-fallback/fail-closed requirements when applicable]
 - [Boundary-level verification command when scope crosses runtime boundaries]
+- If Risk Tier is Critical: `Adversarial verification required (minimum 3 probes).`
+- If Risk Tier is Sensitive: `Heightened dod-recheck scrutiny applies.`
+- If Risk Tier is Sensitive: `Lightweight adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
 - Run: `[exact verification command]`
 - Expected: `PASS`
 - Run: all commands in `## Quality Gates`

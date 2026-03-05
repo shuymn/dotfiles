@@ -184,7 +184,9 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - If no quality gates are found from any source, stop as `BLOCKED` and request the user to define quality gates (in `AGENTS.md`, `CLAUDE.md`, or a project config file) before proceeding.
 8. Read `## Risk Classification` from the design doc:
    - For each task's change targets, inherit the highest risk tier from matching areas in the classification table.
-   - If no `## Risk Classification` section exists, treat all areas as Standard.
+   - If no `## Risk Classification` section exists:
+     - If the design touches Critical domains (auth, billing, access control, encryption, PII), stop as `BLOCKED` and request a risk-classified design doc.
+     - Otherwise (greenfield with no Critical-domain changes), treat all areas as Standard.
 9. Run the design sufficiency gate:
    - If migration/breaking-change intent exists but `TEMPxx` lifecycle evidence is missing/incomplete, stop as `BLOCKED`.
 
@@ -205,8 +207,9 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
    - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
-   - If the task's inherited risk tier is Critical, append to DoD: `Adversarial verification required`.
+   - If the task's inherited risk tier is Critical, append to DoD: `Adversarial verification required (minimum 3 probes).`
    - If the task's inherited risk tier is Sensitive, append to DoD: `Heightened dod-recheck scrutiny applies`.
+   - If the task's inherited risk tier is Sensitive, append to DoD: `Lightweight adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
 6. Build a **Behavioral Lock Map** from design atoms:
    - Extract lock atoms: design wording, acceptance criteria, or constraint entries that express exclusivity, removal, replacement, or mandatory failure on a former path. Common keyword examples (not exhaustive): `only`, `remove`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`.
    - Map each lock atom to one or more task-level negative checks and one positive boundary check.
