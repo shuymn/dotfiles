@@ -8,6 +8,24 @@ I am the bone of my dotfiles.
 curl -fsSL https://raw.githubusercontent.com/shuymn/dotfiles/main/install.sh | bash
 ```
 
+## Claude and Skills setup
+
+For Claude-related setup, run **both** `link-claude` and `skills-sync`.
+
+```bash
+make link-claude
+make skills-sync
+```
+
+- `make link-claude`
+  - Symlinks `etc/claude/**` into `~/.claude/**` (excluding `etc/claude/skills/**`).
+- `make skills-sync`
+  - Manages skills from `etc/claude/skills/**` using `bunx --bun skills`.
+  - Reconciles stale managed skills while preserving external/manual skills.
+  - Syncs `_shared` into `~/.agents/skills/_shared`.
+  - Treats `~/.agents/skills` as canonical and prunes only duplicates from `~/.codex/skills`.
+  - Syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
+
 ## Install commands via Cargo
 
 ```bash

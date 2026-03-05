@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "source_root": "/Users/shuymn/.dotfiles/etc/claude/skills",
+  "skills": [
+    "adversarial-verify",
+    "audit-agents-md",
+    "commit",
+    "create-pr",
+    "decompose-plan",
+    "design-doc",
+    "execute-plan",
+    "handover",
+    "setup-ralph",
+    "triage-review"
+  ],
+  "shared_required": true
+}
