@@ -202,6 +202,8 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - If retirement is intentionally deferred, record waiver metadata in the trace (`reason`, `deadline`, `owner` optional for solo operation).
    - When a retiring task is identified, ensure its DoD in `plan.md` includes negative verification that the `TEMPxx` removal is complete (fallback/temporary path must fail or be absent).
 5. For each task, define `Allowed Files` as a list of glob patterns covering all files the task may Create or Modify. Patterns should be precise enough to detect unintended scope creep but broad enough to avoid false positives for expected paths.
+5.1. For each task, optionally define `Exception Files` when the task legitimately needs to modify files outside `Allowed Files` (e.g., shared configuration, generated files). Each exception must include a rationale. Exception Files exempt the file from `SCOPE_DEVIATION` in dod-recheck but do not add it to `Allowed Files`.
+5.5. For each AC with `Verification Command: TBD-at-plan` in the design doc, resolve the concrete command based on task context (test framework, verification approach). Record the resolved command in the task's RED or DoD. If a concrete command cannot be determined, stop as `BLOCKED`.
 6. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.

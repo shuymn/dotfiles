@@ -64,5 +64,53 @@ if [[ "$review_digest" != "$current_digest" ]]; then
   exit 1
 fi
 
+# 4. Sub-verdict verification (when present)
+# Extract sub-verdicts from two known formats:
+#   List format (decompose-plan review): "- Key: PASS|FAIL|N/A"
+#   Table format (design-doc review): "| # | Criterion | Verdict | Evidence |"
+fail_count=0
+fail_lines=""
+sub_count=0
+
+# List format: "- Key: PASS" or "- Key: FAIL" or "- Key: N/A (...)"
+while IFS= read -r line; do
+  sub_count=$((sub_count + 1))
+  verdict=$(echo "$line" | sed -E 's/^- [^:]+:[[:space:]]*//')
+  # Check first 3 chars for N/A
+  if [[ "${verdict:0:3}" == "N/A" ]]; then
+    continue
+  fi
+  if [[ "$verdict" == "PASS" ]]; then
+    continue
+  fi
+  fail_count=$((fail_count + 1))
+  fail_lines="${fail_lines}  ${line}"$'\n'
+done < <(grep -E '^- [A-Za-z][A-Za-z /()-]*:[[:space:]]*(PASS|FAIL|N/A)' "$review_file" | grep -v '^- \*\{0,2\}Overall Verdict' || true)
+
+# Table format: "| N | Criterion | PASS/FAIL/N/A | Evidence |"
+while IFS='|' read -r _ _num _criterion verdict _rest; do
+  verdict=$(echo "$verdict" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  # Skip header/separator rows
+  if [[ "$verdict" == "Verdict" || "$verdict" == "-"* || -z "$verdict" ]]; then
+    continue
+  fi
+  sub_count=$((sub_count + 1))
+  if [[ "${verdict:0:3}" == "N/A" ]]; then
+    continue
+  fi
+  if [[ "$verdict" == "PASS" ]]; then
+    continue
+  fi
+  fail_count=$((fail_count + 1))
+  _criterion=$(echo "$_criterion" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  fail_lines="${fail_lines}  ${_criterion}: ${verdict}"$'\n'
+done < <(grep -E '^\|[[:space:]]*[0-9]+[[:space:]]*\|.*\|(.*PASS|.*FAIL|.*N/A)' "$review_file" || true)
+
+if [[ $sub_count -gt 0 && $fail_count -gt 0 ]]; then
+  echo "FAIL: ${fail_count} sub-verdict(s) failed:"
+  printf '%s' "$fail_lines"
+  exit 1
+fi
+
 echo "PASS: All gate checks passed"
 exit 0

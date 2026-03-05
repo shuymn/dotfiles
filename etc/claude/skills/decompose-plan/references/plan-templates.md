@@ -70,6 +70,9 @@ Use this structure for every task.
 - `src/module/**/*.ts`
 - `tests/module/**/*.test.ts`
 
+**Exception Files** (optional, glob patterns with rationale):
+- `path/to/shared-config.ext` — [rationale: e.g., "shared config updated by design intent"]
+
 **RED**
 - [Failing test intent]
 - If referenced implementation symbols/files do not exist yet, add minimal scaffolding so the test compiles and runs.

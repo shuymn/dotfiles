@@ -125,13 +125,14 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 
 ## Acceptance Criteria
 
-| AC ID | EARS Type | Requirement Sentence | Verification Intent |
-|-------|-----------|---------------------|---------------------|
-| AC01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [EARS-formatted requirement sentence] | [EARS rationale: why this type was chosen] [Concrete verification method with expected outcome] |
+| AC ID | EARS Type | Requirement Sentence | Verification Intent | Verification Command |
+|-------|-----------|---------------------|---------------------|----------------------|
+| AC01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [EARS-formatted requirement sentence] | [EARS rationale: why this type was chosen] [Concrete verification method with expected outcome] | `<exact command>` or `TBD-at-plan` |
 
 <!-- See ears-types.md for EARS type definitions, syntax templates, and selection guidance. -->
 <!-- For replacement/removal/fail-closed intent, include both prohibited-path and allowed-path rows. -->
 <!-- Keep this as the pass/fail bar; reference Verification Plan only as supporting evidence. -->
+<!-- Verification Command: exact executable command that produces deterministic PASS/FAIL. Use TBD-at-plan when the command is unknown at design time; decompose-plan must resolve it. -->
 ```
 
 ## ADR Template
@@ -241,9 +242,9 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 ## Local Acceptance Criteria
 
-| AC ID | EARS Type | Requirement Sentence | Verification Intent |
-|-------|-----------|---------------------|---------------------|
-| AC-SUB-X-01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [EARS-formatted requirement sentence] | [EARS rationale] [Verification method] |
+| AC ID | EARS Type | Requirement Sentence | Verification Intent | Verification Command |
+|-------|-----------|---------------------|---------------------|----------------------|
+| AC-SUB-X-01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [EARS-formatted requirement sentence] | [EARS rationale] [Verification method] | `<exact command>` or `TBD-at-plan` |
 
 ## Decision Log
 

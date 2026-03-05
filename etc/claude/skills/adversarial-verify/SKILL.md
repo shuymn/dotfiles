@@ -46,7 +46,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
    - Design a concrete test or probe targeting the implementation.
    - Create the test file (naming: `*_adversarial_test.*` or in a dedicated `adversarial/` directory).
    - Execute the test/probe.
-   - Record: attack vector, test file, command, result (DEFENDED / VULNERABLE), evidence.
+   - Record: attack vector, test file, command executed, exit code, result (DEFENDED / VULNERABLE), evidence.
    - Enforce tier minimums:
      - Critical: execute at least 3 probes.
      - Sensitive: execute at least 2 probes including Category 1 (Input Boundary) and the most relevant additional category.
@@ -89,9 +89,9 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 
 ## Attack Summary
 
-| # | Category | Attack Vector | Required? | Test File | Result | Evidence |
-|---|----------|--------------|-----------|-----------|--------|----------|
-| 1 | [category] | [vector] | yes/no | [file] | DEFENDED/VULNERABLE | [brief evidence] |
+| # | Category | Attack Vector | Required? | Test File | Command | Exit Code | Result | Evidence |
+|---|----------|--------------|-----------|-----------|---------|-----------|--------|----------|
+| 1 | [category] | [vector] | yes/no | [file] | `[command]` | [code] | DEFENDED/VULNERABLE | [brief evidence] |
 
 ## Vulnerabilities Found
 

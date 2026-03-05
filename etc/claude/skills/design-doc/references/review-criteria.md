@@ -40,10 +40,13 @@ Fixed 7-point evaluation framework for `design-doc(review)` mode.
   - The verification can be performed by someone with no design context (self-contained).
 - Flag ACs whose verification cannot produce a deterministic PASS/FAIL without subjective interpretation. Look for qualitative judgments, undefined thresholds, relative terms, and vague verbs regardless of language.
   - Common examples (not exhaustive): `appropriate`, `reasonable`, `adequate`, `sufficient`, `timely`, `properly`, `correctly`, `as needed`, `if possible`, `適切な`, `十分な`, `適宜`, `必要に応じて`, `正しく`, `それなりの`, `しかるべき`.
+- Verify each AC has a `Verification Command` that is either a concrete command or `TBD-at-plan`.
+- If a concrete command is provided, verify the first token is a plausible executable.
 
 **Severity**:
 - **Blocker**: An AC whose verification cannot produce a deterministic PASS/FAIL.
 - **Warning**: An AC that is testable but requires clarification of boundary values or thresholds.
+- **Warning**: AC with `TBD-at-plan` Verification Command — acceptable at design stage but must be resolved at plan stage.
 
 ## 4. Inter-AC Contradictions
 

@@ -74,7 +74,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Updated At`
    - `Checkpoint Summary` has `Alignment Verdict: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
-   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has:
+   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has (`gate-check.sh` validates all sub-verdicts programmatically when present):
      - `Overall Verdict: PASS`
      - `Forward Fidelity: PASS`
      - `Reverse Fidelity: PASS`
