@@ -106,9 +106,12 @@ Classify change areas by defect-impact severity. Risk tiers are **defined by hum
 | Standard | A defect would be caught by normal testing or cause a visible, locally-contained failure with straightforward rollback. Common examples (not exhaustive): feature components, tests, documentation, configuration. | Normal DoD verification. |
 
 - Record classifications in `## Risk Classification` section of the design doc.
+- `## Risk Classification` is mandatory when either condition is true:
+  - Design is non-greenfield.
+  - Design is greenfield but touches Critical domains (auth, billing, access control, encryption, PII).
 - Critical and Sensitive areas must include Change Rationale (why the change is necessary + impact of a defect).
 - Standard areas must include semantic justification in the Change Rationale column using the format: `Not Critical: [reason] / Not Sensitive: [reason]`.
-- **Confidence gate**: If a Standard area's justification cannot be written (i.e., the reasons are unclear or unconvincing), that area must be escalated to Sensitive or higher. Standard is not a default — it must be earned with explicit justification.
+- **Confidence gate**: If a Standard area's justification cannot be written, is generic, or is circular (e.g., "not critical because not important"), that area must be escalated to Sensitive or higher. Standard is not a default — it must be earned with explicit justification.
 - Classifications propagate downstream: `design-doc` → `decompose-plan` (task-level tier inheritance) → `execute-plan` (verification intensity).
 
 ## Scale-Appropriate Depth
@@ -126,7 +129,7 @@ Default to the **Core Profile**. Add sections only when triggered.
 | `Compatibility & Sunset` | Breaking change or staged migration (see Lifecycle Contract for required `TEMPxx` details) |
 | `Operational Considerations` | 2+ teams impacted, or monitoring/rollout changes required |
 | `root-sub` decomposition | Meets Decomposition Strategy Contract conditions |
-| `Risk Classification` | Design modifies existing behavior (non-greenfield) |
+| `Risk Classification` | Design is non-greenfield, or greenfield touching Critical domains (auth, billing, access control, encryption, PII) |
 
 `Verification Plan`, `Alternatives Considered`, and `Risks & Mitigations` are optional — include when they add value; omit otherwise.
 
@@ -174,6 +177,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
 5. For breaking-change designs, treat missing `TEMPxx` checklist row or missing retirement trigger/verification/removal scope for any `TEMPxx` as `blocked`.
 6. For non-greenfield changes, treat unresolved high-impact constraints (existing test/runtime assumptions that can change scope) as `blocked`.
    - If `## Risk Classification` is empty or missing for a non-greenfield design, add it as a clarification item (`blocked` until the user defines risk tiers).
+   - If the design is greenfield but touches Critical domains (auth, billing, access control, encryption, PII), treat missing `## Risk Classification` as `blocked`.
 7. Record outcomes in the design doc under `## Clarifications` with:
    - Question
    - Answer or assumption
@@ -288,7 +292,7 @@ When a significant design decision is made, record it as an ADR.
     - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
     - Verification guidance covers both newly added behavior and impacted existing behavior.
 11. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
-12. If the design is non-greenfield, verify `## Risk Classification` exists with at least one row, every Critical/Sensitive entry has a non-empty Change Rationale, and every Standard entry has a semantic justification in the format `Not Critical: [reason] / Not Sensitive: [reason]`. Any Standard entry missing this justification must be escalated to Sensitive or higher. (Greenfield designs — those with no `## Risk Classification` section — are exempt from this step.)
+12. If the design is non-greenfield OR greenfield touching Critical domains (auth, billing, access control, encryption, PII), verify `## Risk Classification` exists with at least one row, every Critical/Sensitive entry has a non-empty Change Rationale, and every Standard entry has a semantic justification in the format `Not Critical: [reason] / Not Sensitive: [reason]`. Any Standard entry with missing, generic, or circular justification must be escalated to Sensitive or higher.
 
 ## Design Doc Template
 

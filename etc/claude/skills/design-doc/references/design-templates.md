@@ -44,6 +44,7 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 | [e.g., API response schema] | Sensitive | [Why + impact of defect] |
 | [e.g., Dashboard component] | Standard | Not Critical: [reason] / Not Sensitive: [reason] |
 
+<!-- Required when design is non-greenfield, or when greenfield touches Critical domains (auth, billing, access control, encryption, PII). -->
 <!-- Critical/Sensitive require Change Rationale. Standard requires semantic justification: "Not Critical: [reason] / Not Sensitive: [reason]". If justification cannot be written, escalate to Sensitive or higher (confidence gate). -->
 <!-- Tier semantics: Critical = irreversible damage, security breach, data loss, financial harm, compliance violation. Sensitive = silent state corruption, contractual interface breakage, coordinated rollback required. Standard = visible, locally-contained failure with straightforward rollback. Exact areas depend on product/domain context. -->
 

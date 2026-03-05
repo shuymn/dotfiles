@@ -79,13 +79,14 @@ Fixed 6-point evaluation framework for `design-doc(review)` mode.
 **Definition**: Risk tier is consistent with the actual change scope of the design, and Standard entries have a credible semantic justification.
 
 **Check Method**:
+- If the design touches Critical domains (auth, billing, access control, encryption, PII), verify `## Risk Classification` exists even when the design is greenfield.
 - For each Standard row in `## Risk Classification`, verify the Change Rationale contains the format `Not Critical: [reason] / Not Sensitive: [reason]`.
 - Verify the justification is consistent with the design content (Detailed Design, Existing Codebase Constraints, Acceptance Criteria) — flag any direct contradiction.
 - Check whether areas touching external interfaces, state management, or failure-sensitive paths are under-classified as Standard.
 - ACs that include prohibited-path/allowed-path semantics, data integrity requirements, or error-handling for coordinated rollback scenarios are evidence of Sensitive or higher tier — flag Standard classification in those areas.
+- Flag circular or content-free Standard justifications (e.g., "Not Critical because not important").
 
 **Severity**:
-- **Blocker**: Justification absent from a Standard entry / design content directly contradicts the Standard justification.
-- **Warning**: Justification is generic (repeats tier definition verbatim without area-specific reasoning) / borderline area lacks explicit rationale. To distinguish: a generic justification restates the tier definition with no area-specific detail (e.g., "Not Critical: defect would not cause irreversible damage / Not Sensitive: defect would not silently corrupt state" — this says nothing specific about the area). An acceptable justification names concrete characteristics of the area (e.g., "Not Critical: read-only display component with no write paths or auth logic / Not Sensitive: UI-only change, no state management or API contract involved").
+- **Blocker**: Design touches Critical domains but omits `## Risk Classification`. Justification absent from a Standard entry. Design content directly contradicts the Standard justification. Justification is generic/circular (repeats tier definition without area-specific reasoning, or "not critical because not important").
 
-**N/A Condition**: Greenfield design (no `## Risk Classification` section present).
+**N/A Condition**: Greenfield design that does not touch Critical domains (auth, billing, access control, encryption, PII).
