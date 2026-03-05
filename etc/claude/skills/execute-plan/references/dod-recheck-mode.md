@@ -24,7 +24,9 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
 3. **Re-execute Quality Gate Commands**: If Quality Gates are listed in the Recheck Input:
    - Run each quality gate command.
    - Record: command, exit code, PASS/FAIL.
-4. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL DoD commands AND all Quality Gate commands PASS. Any failure → `Overall Verdict: FAIL`.
+4. **Compute Overall Verdict**:
+   - Base condition: `Overall Verdict: PASS` only when ALL DoD commands AND all Quality Gate commands PASS.
+   - Heightened scrutiny override: if any finding has severity `critical` or `high`, set `Overall Verdict: FAIL` even when DoD/Quality Gate commands pass.
 5. **Write Recheck Report**: Output to `...-task-<N>.dod-recheck.md` (where N is the task number).
 
 ## Heightened Scrutiny (Sensitive/Critical)
@@ -42,16 +44,20 @@ When the Recheck Input indicates Risk Tier is Sensitive or Critical, perform add
 
 | # | File | Line(s) | Category | Finding | Severity |
 |---|------|---------|----------|---------|----------|
-| 1 | [path] | [lines] | [category] | [description] | warning |
+| 1 | [path] | [lines] | [category] | [description] | critical/high/warning |
 
-- Heightened scrutiny findings are **warnings only** and do not affect the Overall Verdict.
+- Severity policy:
+  - `critical`: directly exploitable by an attacker (e.g., unauthenticated path, credentials exposure). Forces `Overall Verdict: FAIL`.
+  - `high`: high likelihood of causing production outage or state corruption (e.g., swallowed errors leading to inconsistent state). Forces `Overall Verdict: FAIL`.
+  - `warning`: best-practice violation with limited immediate impact. Advisory only.
+- Allowed severity values are exactly: `critical`, `high`, `warning`.
 - For Critical-tier tasks, note that `adversarial-verify` is required separately after dod-recheck PASS.
 
 ## On FAIL
 
 - Task completion is revoked — the task is not considered done.
 - Progression to the next task is prohibited.
-- Report the specific failing DoD items with evidence.
+- Report the specific failing DoD/Quality Gate items and any `critical`/`high` heightened scrutiny findings with evidence.
 
 ## Output Format
 
@@ -74,6 +80,12 @@ When the Recheck Input indicates Risk Tier is Sensitive or Critical, perform add
 | # | Command | Exit Code | Verdict |
 |---|---------|-----------|---------|
 | 1 | [command] | [code] | PASS/FAIL |
+
+## Heightened Scrutiny Findings
+
+| # | File | Line(s) | Category | Finding | Severity |
+|---|------|---------|----------|---------|----------|
+| 1 | [path] | [lines] | [category] | [description] | critical/high/warning |
 
 ## Decision
 
