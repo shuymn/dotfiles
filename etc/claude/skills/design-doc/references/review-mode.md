@@ -18,11 +18,11 @@ Independent verification of an approved design document. This mode runs as a sub
 ## Procedure
 
 1. **Generate Header**: Run `scripts/digest-stamp.sh design-review <design-file>` to produce the review metadata header.
-2. **Load Review Criteria**: Read `references/review-criteria.md` for the 5 evaluation viewpoints.
-3. **Evaluate Each Viewpoint**: For each of the 5 criteria:
+2. **Load Review Criteria**: Read `references/review-criteria.md` for the 6 evaluation viewpoints.
+3. **Evaluate Each Viewpoint**: For each of the 6 criteria:
    - Assess the design doc against the criterion definition and check method.
-   - Record PASS or FAIL with specific evidence (section, AC ID, or quote).
-4. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL 5 viewpoints are PASS. Any FAIL → `Overall Verdict: FAIL`.
+   - Record PASS, FAIL, or N/A with specific evidence (section, AC ID, or quote).
+4. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL 6 viewpoints are PASS (N/A counts as PASS). Any FAIL → `Overall Verdict: FAIL`.
 5. **Write Review Report**: Output to `...-design.review.md` (derive path by replacing `-design.md` with `-design.review.md`).
 
 ## Output Format
@@ -44,6 +44,7 @@ Independent verification of an approved design document. This mode runs as a sub
 | 3 | AC Testability | PASS/FAIL | [specific evidence] |
 | 4 | Inter-AC Contradictions | PASS/FAIL | [specific evidence] |
 | 5 | Boundary Gaps | PASS/FAIL | [specific evidence] |
+| 6 | Risk Classification Coverage | PASS/FAIL/N/A | [specific evidence] |
 
 ## Blocking Issues
 

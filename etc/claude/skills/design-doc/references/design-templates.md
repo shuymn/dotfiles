@@ -42,9 +42,9 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 |------|-----------|-----------------|
 | [e.g., Auth token validation] | Critical | [Why + impact of defect] |
 | [e.g., API response schema] | Sensitive | [Why + impact of defect] |
-| [e.g., Dashboard component] | Standard | — |
+| [e.g., Dashboard component] | Standard | Not Critical: [reason] / Not Sensitive: [reason] |
 
-<!-- Critical/Sensitive require Change Rationale. Standard may omit it. -->
+<!-- Critical/Sensitive require Change Rationale. Standard requires semantic justification: "Not Critical: [reason] / Not Sensitive: [reason]". If justification cannot be written, escalate to Sensitive or higher (confidence gate). -->
 <!-- Tier semantics: Critical = irreversible damage, security breach, data loss, financial harm, compliance violation. Sensitive = silent state corruption, contractual interface breakage, coordinated rollback required. Standard = visible, locally-contained failure with straightforward rollback. Exact areas depend on product/domain context. -->
 
 ## Decomposition Strategy

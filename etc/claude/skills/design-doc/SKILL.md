@@ -107,7 +107,8 @@ Classify change areas by defect-impact severity. Risk tiers are **defined by hum
 
 - Record classifications in `## Risk Classification` section of the design doc.
 - Critical and Sensitive areas must include Change Rationale (why the change is necessary + impact of a defect).
-- Standard areas may omit Change Rationale.
+- Standard areas must include semantic justification in the Change Rationale column using the format: `Not Critical: [reason] / Not Sensitive: [reason]`.
+- **Confidence gate**: If a Standard area's justification cannot be written (i.e., the reasons are unclear or unconvincing), that area must be escalated to Sensitive or higher. Standard is not a default — it must be earned with explicit justification.
 - Classifications propagate downstream: `design-doc` → `decompose-plan` (task-level tier inheritance) → `execute-plan` (verification intensity).
 
 ## Scale-Appropriate Depth
@@ -287,7 +288,7 @@ When a significant design decision is made, record it as an ADR.
     - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
     - Verification guidance covers both newly added behavior and impacted existing behavior.
 11. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
-12. For non-greenfield designs, verify `## Risk Classification` exists with at least one row, and every Critical/Sensitive entry has a non-empty Change Rationale.
+12. If the design is non-greenfield, verify `## Risk Classification` exists with at least one row, every Critical/Sensitive entry has a non-empty Change Rationale, and every Standard entry has a semantic justification in the format `Not Critical: [reason] / Not Sensitive: [reason]`. Any Standard entry missing this justification must be escalated to Sensitive or higher. (Greenfield designs — those with no `## Risk Classification` section — are exempt from this step.)
 
 ## Design Doc Template
 
