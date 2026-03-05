@@ -8,7 +8,7 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 
 Determine the execution mode from `$ARGUMENTS`:
 
-- If `$ARGUMENTS` contains `review`, `--review`, or `mode=review` → **Review Mode**: read [references/review-mode.md](references/review-mode.md) and follow its instructions.
+- If `$ARGUMENTS` includes a standalone token `review`, `--review`, or `mode=review` → **Review Mode**: read [references/review-mode.md](references/review-mode.md) and follow its instructions.
 - Otherwise → **Create Mode** (default; continue to `# Design Doc Creation`)
 
 # Design Doc Creation

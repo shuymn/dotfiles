@@ -26,12 +26,16 @@ if [[ ! -f "$source_file" ]]; then
   exit 1
 fi
 
-# 2. Overall Verdict: PASS
-# Accept both plain and markdown-bold forms, e.g.:
-# - Overall Verdict: PASS
-# - **Overall Verdict**: PASS
-if ! grep -Eq 'Overall Verdict(\*\*)?:[[:space:]]*PASS([[:space:]]|$)' "$review_file"; then
-  echo "FAIL: Review file does not contain an Overall Verdict PASS entry"
+# 2. Overall Verdict: PASS (strict)
+# Accept both plain and markdown-bold forms, but require EXACT value PASS.
+# Rejected examples: "PASS | FAIL", "PASS (tentative)"
+verdict_value=$(sed -En 's/^[[:space:]-]*\*{0,2}Overall Verdict\*{0,2}:[[:space:]]*(.*)[[:space:]]*$/\1/p' "$review_file" | head -1 || true)
+if [[ -z "$verdict_value" ]]; then
+  echo "FAIL: Could not find Overall Verdict in review file"
+  exit 1
+fi
+if [[ "$verdict_value" != "PASS" ]]; then
+  echo "FAIL: Overall Verdict is not PASS (found: $verdict_value)"
   exit 1
 fi
 

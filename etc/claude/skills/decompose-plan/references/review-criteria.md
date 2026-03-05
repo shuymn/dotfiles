@@ -1,6 +1,6 @@
 # Plan Review Criteria
 
-10+1 evaluation viewpoints for `decompose-plan(review)` mode. Absorbs the former `analyze-plan` audit function.
+12 evaluation viewpoints for `decompose-plan(review)` mode. Absorbs the former `analyze-plan` audit function.
 
 ## 1. Forward Fidelity
 
@@ -146,6 +146,19 @@
 **Severity**:
 - **Blocker**: Verification command referencing unknown tool or missing file. Quality Gate inconsistency (reference without `## Quality Gates`, or vice versa).
 - **Warning**: Command that is valid but could be more specific.
+
+## 12. Integration Coverage
+
+**Definition**: Cross-task dependency boundaries are validated by at least one boundary-level test (integration/contract/e2e).
+
+**Check Method**:
+- Identify cross-task boundaries where a task depends on another task (`**Dependencies**` references).
+- For each boundary, verify at least one spanning task includes boundary-level verification in RED or DoD.
+- If no dependency edges exist, mark this viewpoint as `N/A` with explanation.
+
+**Severity**:
+- **Blocker**: Any cross-task boundary with no boundary-level test coverage.
+- **Info**: N/A when no dependency edges exist.
 
 ## Blocker Conditions Summary
 

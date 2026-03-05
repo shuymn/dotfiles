@@ -8,7 +8,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 
 Determine the execution mode from `$ARGUMENTS`:
 
-- If `$ARGUMENTS` contains `dod-recheck`, `--dod-recheck`, or `mode=dod-recheck` → **DoD Recheck Mode**: read [references/dod-recheck-mode.md](references/dod-recheck-mode.md) and follow its instructions.
+- If `$ARGUMENTS` includes a standalone token `dod-recheck`, `--dod-recheck`, or `mode=dod-recheck` → **DoD Recheck Mode**: read [references/dod-recheck-mode.md](references/dod-recheck-mode.md) and follow its instructions.
 - Otherwise → **Implement Mode** (default; continue to `# Plan Execution`)
 
 # Plan Execution
@@ -86,6 +86,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Scope: PASS`
      - `Testability: PASS`
      - `Execution Readiness: PASS`
+     - `Integration Coverage: PASS` (or `N/A (no cross-task deps)`)
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.
