@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source_root": "/Users/shuymn/.dotfiles/etc/claude/skills",
+  "source_root": ".",
   "skills": [
     "adversarial-verify",
     "audit-agents-md",

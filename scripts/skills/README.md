@@ -6,6 +6,7 @@ Helper scripts for the `make skills-*` workflow.
 
 - `skills_manifest_refresh.py`
   - Scans `etc/claude/skills` and updates the managed manifest.
+  - Writes `source_root` as a manifest-relative path (machine-independent).
   - Output: `etc/claude/skills/.dotfiles-managed-skills.json`.
 - `skills_mark_managed.py`
   - Writes `.dotfiles-managed` markers to installed managed skills.

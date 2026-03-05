@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 
@@ -38,7 +39,13 @@ def discover_skills(source_root: Path) -> list[str]:
     return sorted(set(names))
 
 
-def build_manifest(source_root: Path, skills: list[str]) -> dict[str, object]:
+def format_source_root_for_manifest(source_root: Path, manifest_path: Path) -> str:
+    """Return a machine-independent source_root string for manifest output."""
+    relative = Path(os.path.relpath(source_root, manifest_path.parent))
+    return "." if str(relative) == "." else relative.as_posix()
+
+
+def build_manifest(source_root: str, skills: list[str]) -> dict[str, object]:
     return {
         "version": MANIFEST_VERSION,
         "source_root": str(source_root),
@@ -76,7 +83,8 @@ def main() -> int:
     )
 
     skills = discover_skills(source_root)
-    manifest = build_manifest(source_root, skills)
+    manifest_source_root = format_source_root_for_manifest(source_root, manifest_path)
+    manifest = build_manifest(manifest_source_root, skills)
 
     if args.print_only:
         print(json.dumps(manifest, indent=2))
