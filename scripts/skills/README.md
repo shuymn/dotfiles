@@ -36,3 +36,4 @@ Use Make targets instead of calling scripts directly:
 
 - `uv` for Python execution
 - `bun` and `bunx` for `skills` CLI execution
+- `SKILLS_CMD` (`bunx --bun skills`) runs the latest published version of the `skills` CLI without a version pin. Behavior may change on upstream releases.

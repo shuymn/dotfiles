@@ -50,7 +50,6 @@ def build_manifest(source_root: str, skills: list[str]) -> dict[str, object]:
         "version": MANIFEST_VERSION,
         "source_root": str(source_root),
         "skills": skills,
-        "shared_required": True,
     }
 
 

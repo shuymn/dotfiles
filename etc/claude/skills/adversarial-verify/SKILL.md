@@ -1,6 +1,6 @@
 ---
 name: adversarial-verify
-description: "Adversarial verification of a completed task. Actively tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Mandatory for Critical and Sensitive tiers, conditionally mandatory for Standard with implementation files, optional otherwise. Runs as independent sub-agent. Use after execute-plan dod-recheck PASS."
+description: "Adversarial verification of a completed task — tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Required for Critical/Sensitive tiers (conditionally for Standard with impl files). Use after execute-plan dod-recheck PASS."
 allowed-tools: [Read, Bash, Grep, Glob, Write]
 ---
 
@@ -52,7 +52,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
      - Sensitive: execute at least 2 probes including Category 1 (Input Boundary) and the most relevant additional category.
      - Standard (impl): execute at least 1 probe using the most relevant category.
      - Standard (non-impl): no minimum probe count.
-   - `[required]` vector coverage — `[required]` marks minimum-coverage vectors; non-required vectors remain applicable and should be probed when relevant — the tag does not grant skip permission.
+   - `[required]` vector coverage — this step defines coverage obligations; `attack-vectors.md` provides the tags. `[required]` marks minimum-coverage vectors; non-required vectors remain applicable and should be probed when relevant — the tag does not grant skip permission.
      - Critical / Sensitive: cover **all** `[required]` vectors within selected categories. For each: (a) execute a probe, or (b) document why it is non-applicable. Uncovered `[required]` vectors without documented rationale → `Overall Verdict: FAIL`.
      - Standard (impl): cover the **single most relevant** `[required]` vector in the selected category.
      - Standard (non-impl): no `[required]` coverage obligation.
@@ -61,7 +61,11 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 
 ## Edge Cases
 
-- **Zero applicable attack categories**: If the Selection Guidance table yields no relevant categories for the change area, apply at minimum categories 1 (Input Boundary) and 2 (Error Handling) as a baseline. Record the rationale for limited applicability in the report.
+- **Zero applicable attack categories**: If the Selection Guidance table yields no relevant categories for the change area, apply tier-based fallbacks:
+  - Critical / Sensitive: categories 1 (Input Boundary) and 2 (Error Handling) as baseline.
+  - Standard (impl): category 1 (Input Boundary) only (1 probe minimum).
+  - Standard (non-impl): user judgment (optional invocation).
+  Record the rationale for limited applicability in the report.
 - **Standard (impl) invocation**: The Adversarial Verify Input block is auto-generated (same as Sensitive/Critical). Tier minimums and `[required]` coverage rules are defined in Step 4.
 - **Missing test infrastructure**: If the project lacks a test framework or runtime needed to execute attack probes, stop as `BLOCKED` and request the user to set up the necessary infrastructure. Do not skip attacks because tooling is absent.
 - **Attack probe budget**:

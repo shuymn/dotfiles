@@ -60,11 +60,12 @@ def main() -> int:
     codex_skills = Path(args.codex_skills).expanduser().resolve()
 
     managed = load_manifest(manifest_path)
-    codex_entries = list_skill_entries(codex_skills)
 
     if not codex_skills.exists():
         log(f"codex_dir_missing={codex_skills}")
         return 0
+
+    codex_entries = list_skill_entries(codex_skills)
 
     if not codex_entries:
         log(f"codex_dir_empty={codex_skills}")

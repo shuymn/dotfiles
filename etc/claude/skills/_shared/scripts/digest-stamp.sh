@@ -92,12 +92,11 @@ if [[ ! -f "$source_file" ]]; then
     "FIX_SOURCE_FILE_PATH"
 fi
 
-abs_path="$(cd "$(dirname "$source_file")" && pwd)/$(basename "$source_file")"
 digest=$(shasum -a 256 "$source_file" | cut -d' ' -f1)
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 echo "- **Mode**: $mode"
-echo "- **Source Artifact**: $abs_path"
+echo "- **Source Artifact**: $source_file"
 echo "- **Source Digest**: $digest"
 echo "- **Reviewed At**: $timestamp"
 echo "- **Isolation**: sub-agent (fork_context=false)"

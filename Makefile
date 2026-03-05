@@ -20,7 +20,6 @@ CODEX_SKILLS_HOME := $(HOME)/.codex/skills
 
 CODEX_AGENTS_SOURCE := $(CLAUDE_BASE)/CLAUDE.md
 CODEX_AGENTS_TARGET := $(HOME)/.codex/AGENTS.md
-DOTFILES_MANAGED_MIRROR := $(HOME)/.agents/.dotfiles-managed-skills.json
 
 .DEFAULT_GOAL := help
 
@@ -119,8 +118,6 @@ skills-sync: skills-manifest-refresh skills-install skills-reconcile skills-sync
 	@printf '\n[skills-sync] step=codex-agents-md start\n'
 	@mkdir -p $(dir $(CODEX_AGENTS_TARGET))
 	@cp -fv $(abspath $(CODEX_AGENTS_SOURCE)) $(CODEX_AGENTS_TARGET)
-	@mkdir -p $(dir $(DOTFILES_MANAGED_MIRROR))
-	@cp -fv "$(SKILLS_MANIFEST)" "$(DOTFILES_MANAGED_MIRROR)"
 	@printf '[skills-sync] step=codex-agents-md done\n'
 	@printf '\n[skills-sync] result=success\n'
 

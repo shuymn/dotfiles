@@ -12,6 +12,5 @@
     "handover",
     "setup-ralph",
     "triage-review"
-  ],
-  "shared_required": true
+  ]
 }
