@@ -57,10 +57,9 @@ fi
 
 current_digest=$(shasum -a 256 "$source_file" | cut -d' ' -f1)
 if [[ "$review_digest" != "$current_digest" ]]; then
-  echo "FAIL: Source Digest mismatch"
-  echo "  Review digest:  $review_digest"
-  echo "  Current digest: $current_digest"
-  echo "  Source file may have been modified after review"
+  echo "FAIL: Source Digest mismatch — source file may have been modified after review"
+  echo "  Review digest:  $review_digest" >&2
+  echo "  Current digest: $current_digest" >&2
   exit 1
 fi
 

@@ -74,21 +74,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Updated At`
    - `Checkpoint Summary` has `Alignment Verdict: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
-   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has (`gate-check.sh` validates all sub-verdicts programmatically when present):
-     - `Overall Verdict: PASS`
-     - `Forward Fidelity: PASS`
-     - `Reverse Fidelity: PASS`
-     - `Round-trip: PASS`
-     - `Behavioral Lock: PASS`
-     - `Negative Path: PASS`
-     - `Granularity: PASS`
-     - `Temporal: PASS`
-     - `Traceability: PASS`
-     - `Scope: PASS`
-     - `Testability: PASS`
-     - `Execution Readiness: PASS`
-     - `Integration Coverage: PASS` (or `N/A (no cross-task deps)`)
-     - `Risk Classification: PASS` (or `N/A (greenfield without Critical-domain changes)`)
+   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has `Overall Verdict: PASS`. All sub-verdicts are validated programmatically by `gate-check.sh`.
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.

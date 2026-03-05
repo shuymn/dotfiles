@@ -4,7 +4,8 @@ set -euo pipefail
 # structural-check.sh — Structural integrity checks on a plan bundle.
 # Usage: structural-check.sh <design-file> <plan-file>
 # Performs 5 checks: ID duplicates, dependency cycles, AC coverage, DoD existence, Quality Gate executability.
-# Outputs markdown results to stdout.
+# stdout: single summary line (for LLM context)
+# stderr: detailed markdown report
 # Exit 0 if all PASS; exit 1 if any FAIL.
 
 if [[ $# -ne 2 ]]; then
@@ -26,26 +27,28 @@ if [[ ! -f "$plan_file" ]]; then
 fi
 
 has_failure=false
+failed_checks=""
 
-echo "## Structural Check Results"
-echo ""
+echo "## Structural Check Results" >&2
+echo "" >&2
 
 # --- Check 1: Task ID duplicates ---
-echo "### 1. Task ID Uniqueness"
+echo "### 1. Task ID Uniqueness" >&2
 duplicates=$(grep -oE '### Task [0-9]+' "$plan_file" | sort | uniq -d || true)
 if [[ -z "$duplicates" ]]; then
-  echo "- **Verdict**: PASS"
-  echo "- No duplicate task IDs found."
+  echo "- **Verdict**: PASS" >&2
+  echo "- No duplicate task IDs found." >&2
 else
-  echo "- **Verdict**: FAIL"
-  echo "- Duplicate task IDs:"
-  echo "$duplicates" | while read -r line; do echo "  - $line"; done
+  echo "- **Verdict**: FAIL" >&2
+  echo "- Duplicate task IDs:" >&2
+  echo "$duplicates" | while read -r line; do echo "  - $line"; done >&2
   has_failure=true
+  failed_checks="${failed_checks:+${failed_checks}, }ID-Uniqueness"
 fi
-echo ""
+echo "" >&2
 
 # --- Check 2: Dependency cycle detection ---
-echo "### 2. Dependency Cycle Detection"
+echo "### 2. Dependency Cycle Detection" >&2
 # Extract edges: Task N depends on T1, T2 -> "1 N", "2 N"
 edges_file=$(mktemp)
 trap 'rm -f "$edges_file"' EXIT
@@ -68,52 +71,54 @@ while IFS= read -r line; do
 done <"$plan_file" >"$edges_file"
 
 if [[ ! -s "$edges_file" ]]; then
-  echo "- **Verdict**: PASS"
-  echo "- No dependencies found (or all tasks are independent)."
+  echo "- **Verdict**: PASS" >&2
+  echo "- No dependencies found (or all tasks are independent)." >&2
 else
   # Note: On some platforms (e.g., macOS), tsort may emit cycle errors but still exit 0.
   # Treat any "tsort:" diagnostic output as FAIL.
   tsort_output=$(tsort "$edges_file" 2>&1 || true)
   if echo "$tsort_output" | grep -q '^tsort:'; then
-    echo "- **Verdict**: FAIL"
-    echo "- Dependency graph validation failed:"
-    echo "  \`\`\`"
-    echo "  $tsort_output"
-    echo "  \`\`\`"
+    echo "- **Verdict**: FAIL" >&2
+    echo "- Dependency graph validation failed:" >&2
+    echo "  \`\`\`" >&2
+    echo "  $tsort_output" >&2
+    echo "  \`\`\`" >&2
     has_failure=true
+    failed_checks="${failed_checks:+${failed_checks}, }Dep-Cycle"
   else
-    echo "- **Verdict**: PASS"
-    echo "- No dependency cycles detected."
+    echo "- **Verdict**: PASS" >&2
+    echo "- No dependency cycles detected." >&2
   fi
 fi
-echo ""
+echo "" >&2
 
 # --- Check 3: AC coverage ---
-echo "### 3. AC Coverage (Design -> Plan)"
+echo "### 3. AC Coverage (Design -> Plan)" >&2
 # Extract AC IDs from design
 design_acs=$(grep -oE 'AC[A-Za-z0-9_-]*[0-9]+' "$design_file" | sort -u || true)
 # Extract AC references from plan
 plan_acs=$(grep -oE 'AC[A-Za-z0-9_-]*[0-9]+' "$plan_file" | sort -u || true)
 
 if [[ -z "$design_acs" ]]; then
-  echo "- **Verdict**: PASS"
-  echo "- No AC IDs found in design (non-standard format or no ACs defined)."
+  echo "- **Verdict**: PASS" >&2
+  echo "- No AC IDs found in design (non-standard format or no ACs defined)." >&2
 else
   missing_acs=$(comm -23 <(echo "$design_acs") <(echo "$plan_acs") || true)
   if [[ -z "$missing_acs" ]]; then
-    echo "- **Verdict**: PASS"
-    echo "- All design ACs are referenced in the plan."
+    echo "- **Verdict**: PASS" >&2
+    echo "- All design ACs are referenced in the plan." >&2
   else
-    echo "- **Verdict**: FAIL"
-    echo "- ACs in design but not referenced in plan:"
-    echo "$missing_acs" | while read -r ac; do echo "  - $ac"; done
+    echo "- **Verdict**: FAIL" >&2
+    echo "- ACs in design but not referenced in plan:" >&2
+    echo "$missing_acs" | while read -r ac; do echo "  - $ac"; done >&2
     has_failure=true
+    failed_checks="${failed_checks:+${failed_checks}, }AC-Coverage"
   fi
 fi
-echo ""
+echo "" >&2
 
 # --- Check 4: DoD existence per task ---
-echo "### 4. DoD Existence"
+echo "### 4. DoD Existence" >&2
 tasks_without_dod=""
 while IFS= read -r task_header; do
   task_id=$(echo "$task_header" | grep -oE 'Task [0-9]+')
@@ -130,23 +135,24 @@ while IFS= read -r task_header; do
 done < <(grep -E '^### Task [0-9]+' "$plan_file")
 
 if [[ -z "$tasks_without_dod" ]]; then
-  echo "- **Verdict**: PASS"
-  echo "- All tasks have DoD defined."
+  echo "- **Verdict**: PASS" >&2
+  echo "- All tasks have DoD defined." >&2
 else
-  echo "- **Verdict**: FAIL"
-  echo "- Tasks missing **DoD**:"
-  printf '%b' "$tasks_without_dod"
+  echo "- **Verdict**: FAIL" >&2
+  echo "- Tasks missing **DoD**:" >&2
+  printf '%b' "$tasks_without_dod" >&2
   has_failure=true
+  failed_checks="${failed_checks:+${failed_checks}, }DoD-Existence"
 fi
-echo ""
+echo "" >&2
 
 # --- Check 5: Quality Gate Executability ---
-echo "### 5. Quality Gate Executability"
+echo "### 5. Quality Gate Executability" >&2
 # Extract commands from ## Quality Gates table in plan file
 quality_gates_section=$(sed -n '/^## Quality Gates/,/^## /p' "$plan_file" | sed '$d' || true)
 if [[ -z "$quality_gates_section" ]]; then
-  echo "- **Verdict**: PASS"
-  echo "- No \`## Quality Gates\` section found (detection is Step 1.7's responsibility)."
+  echo "- **Verdict**: PASS" >&2
+  echo "- No \`## Quality Gates\` section found (detection is Step 1.7's responsibility)." >&2
 else
   missing_cmds=""
   # Extract commands from table rows: parse pipe-delimited Command column (2nd column),
@@ -159,23 +165,26 @@ else
   done < <(echo "$quality_gates_section" | grep '^|' | grep -v '^|[[:space:]]*-' | tail -n +2 | cut -d'|' -f3 | grep -oE "\`[^\`]+\`" | tr -d '`' || true)
 
   if [[ -z "$missing_cmds" ]]; then
-    echo "- **Verdict**: PASS"
-    echo "- All Quality Gate commands are executable."
+    echo "- **Verdict**: PASS" >&2
+    echo "- All Quality Gate commands are executable." >&2
   else
-    echo "- **Verdict**: FAIL"
-    echo "- Commands not found:"
-    printf '%b' "$missing_cmds"
+    echo "- **Verdict**: FAIL" >&2
+    echo "- Commands not found:" >&2
+    printf '%b' "$missing_cmds" >&2
     has_failure=true
+    failed_checks="${failed_checks:+${failed_checks}, }QGate-Exec"
   fi
 fi
-echo ""
+echo "" >&2
 
 # --- Final verdict ---
-echo "---"
+echo "---" >&2
 if [[ "$has_failure" == "true" ]]; then
-  echo "**Overall Structural Check: FAIL**"
+  echo "**Overall Structural Check: FAIL**" >&2
+  echo "FAIL: ${failed_checks} (see stderr for details)"
   exit 1
 else
-  echo "**Overall Structural Check: PASS**"
+  echo "**Overall Structural Check: PASS**" >&2
+  echo "PASS: All 5 structural checks passed"
   exit 0
 fi
