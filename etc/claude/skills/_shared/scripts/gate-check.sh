@@ -5,6 +5,7 @@ set -euo pipefail
 # Usage: gate-check.sh <review-file> <source-file>
 #   review-file: path to the review artifact (e.g., .../design.review.md)
 #   source-file: path to the source artifact that was reviewed
+# Performs 5 checks: file existence, overall verdict, source digest, sub-verdicts, exit code verification (dod-recheck only).
 # Output:
 #   - LLM_CHECK_V2 (default compact mode, minimal token usage)
 #   - Set LLM_CHECK_MODE=full for verbose diagnostics
@@ -17,7 +18,7 @@ source "${SCRIPT_DIR}/llm-check-output.sh"
 
 readonly TOOL_NAME="gate-check"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"
-readonly TOTAL_CHECKS=4
+readonly TOTAL_CHECKS=5
 
 output_mode="$(llm_check_resolve_mode)"
 readonly OUTPUT_MODE="$output_mode"
@@ -310,7 +311,7 @@ while IFS='|' read -r _ _num _criterion verdict _rest; do
   fail_count=$((fail_count + 1))
   _criterion=$(echo "$_criterion" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   fail_lines+=("${_criterion}: ${verdict}")
-done < <(grep -E '^\|[[:space:]]*[0-9]+[[:space:]]*\|.*\|(.*PASS|.*FAIL|.*N/A)' "$review_file" || true)
+done < <(awk '/^## DoD Verification/{skip=1;next} /^## Quality Gate Verification/{skip=1;next} /^## /{skip=0} !skip' "$review_file" | grep -E '^\|[[:space:]]*[0-9]+[[:space:]]*\|.*\|(.*PASS|.*FAIL|.*N/A)' || true)
 
 if [[ $sub_count -gt 0 && $fail_count -gt 0 ]]; then
   reset_output_context
@@ -323,6 +324,43 @@ if [[ $sub_count -gt 0 && $fail_count -gt 0 ]]; then
   add_repair "Locate each failed sub-verdict in the review report and resolve the underlying issue."
   add_repair "Regenerate the review report so all sub-verdicts are PASS (N/A allowed when justified)."
   emit_result "FAIL" "SUB_VERDICT_FAILURES" "${fail_count} sub-verdict(s) failed." 1
+fi
+
+# 5. Exit code re-verification (dod-recheck reports only)
+if grep -q '^## DoD Verification' "$review_file"; then
+  nonzero_cmds=()
+
+  # DoD Verification table: | # | Command | Exit Code | Expected | Actual | Verdict |
+  dod_section=$(sed -n '/^## DoD Verification/,/^## /p' "$review_file" | sed '$d' || true)
+  while IFS='|' read -r _ _num _cmd exit_code _rest; do
+    exit_code=$(echo "$exit_code" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    if [[ "$exit_code" =~ ^[0-9]+$ ]] && [[ "$exit_code" != "0" ]]; then
+      _cmd=$(echo "$_cmd" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+      nonzero_cmds+=("DoD:${_cmd}:exit=${exit_code}")
+    fi
+  done < <(echo "$dod_section" | grep -E '^\|[[:space:]]*[0-9]+[[:space:]]*\|' || true)
+
+  # Quality Gate Verification table: | # | Command | Exit Code | Verdict |
+  qgate_section=$(sed -n '/^## Quality Gate Verification/,/^## /p' "$review_file" | sed '$d' || true)
+  while IFS='|' read -r _ _num _cmd exit_code _rest; do
+    exit_code=$(echo "$exit_code" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    if [[ "$exit_code" =~ ^[0-9]+$ ]] && [[ "$exit_code" != "0" ]]; then
+      _cmd=$(echo "$_cmd" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+      nonzero_cmds+=("QGate:${_cmd}:exit=${exit_code}")
+    fi
+  done < <(echo "$qgate_section" | grep -E '^\|[[:space:]]*[0-9]+[[:space:]]*\|' || true)
+
+  if [[ ${#nonzero_cmds[@]} -gt 0 ]]; then
+    reset_output_context
+    add_compact_fail "nonzero_exit_codes=${#nonzero_cmds[@]}"
+    add_fix_code "FIX_RESOLVE_NONZERO_EXIT_CODES"
+    add_fix_code "FIX_REGENERATE_REVIEW"
+    add_detail "nonzero_count" "${#nonzero_cmds[@]}"
+    add_detail "nonzero_details" "$(join_by '; ' "${nonzero_cmds[@]}")"
+    add_repair "Fix all DoD/Quality Gate commands to exit with code 0."
+    add_repair "Re-run dod-recheck after fixing underlying issues."
+    emit_result "FAIL" "NONZERO_EXIT_CODES" "${#nonzero_cmds[@]} command(s) recorded non-zero exit codes." 1
+  fi
 fi
 
 reset_output_context

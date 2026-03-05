@@ -12,7 +12,7 @@ Target: Input validation, parsing, and type handling.
 - **Boundary values**: Integer overflow/underflow, max-length strings, deeply nested structures.
 - **Type coercion**: Pass wrong types (string where number expected, object where array expected).
 - **Unicode edge cases**: Zero-width characters, RTL override, homoglyph substitution, emoji in identifiers.
-- **Injection** [required]: SQL injection, command injection, path traversal sequences, template injection, header injection.
+- **Injection** [required]: SQL injection, command injection, path traversal sequences, template injection, header injection. Tools: semgrep, sqlmap.
 
 ## 2. Error Handling Attacks
 
@@ -36,7 +36,7 @@ Target: Authentication, authorization, and data protection.
 
 Target: Parallel execution, shared state, and timing.
 
-- **TOCTOU (Time-of-Check-Time-of-Use)** [required]: Race between validation and use of a resource.
+- **TOCTOU (Time-of-Check-Time-of-Use)** [required]: Race between validation and use of a resource. Tools: ThreadSanitizer, go test -race.
 - **Double submission**: Duplicate requests within a short window (idempotency violations).
 - **Deadlock provocation**: Acquire locks in reversed order, hold locks across async boundaries.
 - **Optimistic locking violations**: Concurrent updates to the same resource without conflict detection.
@@ -45,7 +45,7 @@ Target: Parallel execution, shared state, and timing.
 
 Target: Data consistency, persistence, and caching.
 
-- **Partial failure** [required]: Crash or error midway through a multi-step operation (atomicity violations).
+- **Partial failure** [required]: Crash or error midway through a multi-step operation (atomicity violations). Tools: toxiproxy, kill -9 during operation.
 - **Data corruption**: Malformed data in storage, truncated writes, encoding mismatches.
 - **Migration safety**: Data created before migration vs. after — schema compatibility, rollback safety.
 - **Cache poisoning**: Stale cache entries, cache key collisions, inconsistent cache invalidation.
@@ -58,6 +58,20 @@ Target: Feature flags, configuration changes, and graceful degradation.
 - **Configuration changes**: Invalid config values, missing required config, config hot-reload race conditions.
 - **Dependency failures**: Downstream service unavailable, upstream API version mismatch, certificate expiry.
 - **Graceful degradation** [required]: Verify fallback paths work when primary path fails, ensure degradation is observable.
+
+## Recommended Tools
+
+When automated tools are available in the project, use them alongside manual probes to increase coverage depth. Tool availability is checked via `command -v`; skip unavailable tools without blocking.
+
+| Category | Tool / Framework | When to Use |
+|----------|-----------------|-------------|
+| 1. Input Boundary | Hypothesis (Python), fast-check (JS/TS) | Property-based testing for input validation |
+| 1. Input Boundary | sqlmap, semgrep | Injection detection (SQL, command, template) |
+| 2. Error Handling | toxiproxy, Chaos Monkey | Network failure simulation and resilience testing |
+| 3. Security Boundary | OWASP ZAP, semgrep | Automated security scanning and static analysis |
+| 4. Concurrency | ThreadSanitizer (C/C++/Go), `go test -race` | Race condition and data race detection |
+| 5. State & Data Integrity | schema-diff, pg_dump diff | Migration safety and data consistency verification |
+| 6. Rollback & Recovery | Feature flag SDKs with audit logging | Toggle state tracking and rollback verification |
 
 ## Selection Guidance
 

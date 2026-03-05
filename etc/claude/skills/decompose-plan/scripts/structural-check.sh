@@ -3,7 +3,7 @@ set -euo pipefail
 
 # structural-check.sh — Structural integrity checks on a plan bundle.
 # Usage: structural-check.sh <design-file> <plan-file>
-# Performs 5 checks: ID duplicates, dependency cycles, AC coverage, DoD existence, Quality Gate executability.
+# Performs 8 checks: ID duplicates, dependency cycles, AC/REQ/GOAL/DEC coverage, DoD existence, Quality Gate executability.
 # Output:
 #   - LLM_CHECK_V2 (default compact mode, minimal token usage)
 #   - Set LLM_CHECK_MODE=full for verbose diagnostics
@@ -16,7 +16,7 @@ source "${SCRIPT_DIR}/../../_shared/scripts/llm-check-output.sh"
 
 readonly TOOL_NAME="structural-check"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"
-readonly TOTAL_CHECKS=5
+readonly TOTAL_CHECKS=8
 readonly LIST_DELIMITER=$'\x1f'
 
 output_mode="$(llm_check_resolve_mode)"
@@ -66,6 +66,15 @@ fix_code_for_check() {
     ;;
   "QGate-Exec")
     printf '%s' "FIX_INSTALL_OR_UPDATE_QGATE_COMMANDS"
+    ;;
+  "REQ-Coverage")
+    printf '%s' "FIX_ADD_MISSING_REQ_REFERENCES"
+    ;;
+  "GOAL-Coverage")
+    printf '%s' "FIX_ADD_MISSING_GOAL_REFERENCES"
+    ;;
+  "DEC-Coverage")
+    printf '%s' "FIX_ADD_MISSING_DEC_REFERENCES"
     ;;
   *)
     printf '%s' "FIX_RERUN_AFTER_CORRECTION"
@@ -356,7 +365,82 @@ else
   fi
 fi
 
-# --- Check 4: DoD existence per task ---
+# --- Check 4: REQ-Coverage ---
+design_reqs=$(grep -oE 'REQ[A-Za-z0-9_-]*[0-9]+' "$design_file" | sort -u || true)
+plan_reqs=$(grep -oE 'REQ[A-Za-z0-9_-]*[0-9]+' "$plan_file" | sort -u || true)
+
+if [[ -z "$design_reqs" ]]; then
+  append_check "REQ-Coverage" "PASS" "No REQ IDs found in design." ""
+else
+  missing=$(comm -23 <(echo "$design_reqs") <(echo "$plan_reqs") || true)
+  if [[ -z "$missing" ]]; then
+    append_check "REQ-Coverage" "PASS" "All design REQs are referenced in the plan." ""
+  else
+    missing_items=()
+    while IFS= read -r item; do
+      [[ -z "$item" ]] && continue
+      missing_items+=("$item")
+    done <<<"$missing"
+    append_check \
+      "REQ-Coverage" "FAIL" \
+      "Some design REQs are missing from plan references." \
+      "$(join_by '; ' "${missing_items[@]}")" \
+      "Add missing REQ references to task Design Anchors or Satisfied Requirements." \
+      "Verify each REQ maps to at least one task."
+  fi
+fi
+
+# --- Check 5: GOAL-Coverage ---
+design_goals=$(grep -oE 'GOAL[A-Za-z0-9_-]*[0-9]+' "$design_file" | sort -u || true)
+plan_goals=$(grep -oE 'GOAL[A-Za-z0-9_-]*[0-9]+' "$plan_file" | sort -u || true)
+
+if [[ -z "$design_goals" ]]; then
+  append_check "GOAL-Coverage" "PASS" "No GOAL IDs found in design." ""
+else
+  missing=$(comm -23 <(echo "$design_goals") <(echo "$plan_goals") || true)
+  if [[ -z "$missing" ]]; then
+    append_check "GOAL-Coverage" "PASS" "All design GOALs are referenced in the plan." ""
+  else
+    missing_items=()
+    while IFS= read -r item; do
+      [[ -z "$item" ]] && continue
+      missing_items+=("$item")
+    done <<<"$missing"
+    append_check \
+      "GOAL-Coverage" "FAIL" \
+      "Some design GOALs are missing from plan references." \
+      "$(join_by '; ' "${missing_items[@]}")" \
+      "Add missing GOAL references to task Design Anchors or Satisfied Requirements." \
+      "Verify each GOAL maps to at least one task."
+  fi
+fi
+
+# --- Check 6: DEC-Coverage ---
+design_decs=$(grep -oE 'DEC[A-Za-z0-9_-]*[0-9]+' "$design_file" | sort -u || true)
+plan_decs=$(grep -oE 'DEC[A-Za-z0-9_-]*[0-9]+' "$plan_file" | sort -u || true)
+
+if [[ -z "$design_decs" ]]; then
+  append_check "DEC-Coverage" "PASS" "No DEC IDs found in design." ""
+else
+  missing=$(comm -23 <(echo "$design_decs") <(echo "$plan_decs") || true)
+  if [[ -z "$missing" ]]; then
+    append_check "DEC-Coverage" "PASS" "All design DECs are referenced in the plan." ""
+  else
+    missing_items=()
+    while IFS= read -r item; do
+      [[ -z "$item" ]] && continue
+      missing_items+=("$item")
+    done <<<"$missing"
+    append_check \
+      "DEC-Coverage" "FAIL" \
+      "Some design DECs are missing from plan references." \
+      "$(join_by '; ' "${missing_items[@]}")" \
+      "Add missing DEC references to task Design Anchors or Satisfied Requirements." \
+      "Verify each DEC maps to at least one task."
+  fi
+fi
+
+# --- Check 7: DoD existence per task ---
 tasks_without_dod=()
 current_task=""
 current_task_has_dod="false"
@@ -391,7 +475,7 @@ else
     "Ensure DoD items are executable and verifiable commands or checks."
 fi
 
-# --- Check 5: Quality Gate Executability ---
+# --- Check 8: Quality Gate Executability ---
 # Extract commands from ## Quality Gates table in plan file
 quality_gates_section=$(sed -n '/^## Quality Gates/,/^## /p' "$plan_file" | sed '$d' || true)
 if [[ -z "$quality_gates_section" ]]; then

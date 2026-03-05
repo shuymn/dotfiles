@@ -36,14 +36,12 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
      |---|------|----------------|--------|
      | 1 | [path] | [pattern or EXCEPTION(pattern) or NONE] | OK / OK (exception) / SCOPE_DEVIATION |
 
-   - **Tier-based scope deviation policy**:
-     - Critical / Sensitive: Any `SCOPE_DEVIATION` forces `Overall Verdict: FAIL`.
-     - Standard: Advisory only — output escalation marker: `- **Scope Deviation**: N file(s) outside Allowed Files`.
+   - **Scope deviation policy**: Any `SCOPE_DEVIATION` forces `Overall Verdict: FAIL`, regardless of risk tier.
    - If Heightened Scrutiny is also performed, include scope deviation findings in that section as well.
 
 4. **Compute Overall Verdict**:
    - Base condition: `Overall Verdict: PASS` only when ALL DoD commands AND all Quality Gate commands PASS.
-   - Scope deviation override (Critical/Sensitive only): if any `SCOPE_DEVIATION` exists and Risk Tier is Critical or Sensitive, set `Overall Verdict: FAIL`.
+   - Scope deviation override: if any `SCOPE_DEVIATION` exists, set `Overall Verdict: FAIL`.
    - Heightened scrutiny override: if any finding has severity `critical` or `high`, set `Overall Verdict: FAIL` even when DoD/Quality Gate commands pass.
 5. **Write Recheck Report**: Output to `...-task-<N>.dod-recheck.md` (where N is the task number).
 

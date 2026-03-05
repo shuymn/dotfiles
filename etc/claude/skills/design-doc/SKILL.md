@@ -192,6 +192,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
    - If non-greenfield, include `## Existing Codebase Constraints` and map constraints to design choices.
    - Encode replacement/removal/fail-closed intent as explicit design requirements and acceptance criteria, not prose-only goals.
    - When writing Acceptance Criteria, consult [ears-types.md](references/ears-types.md) for EARS type definitions and selection guidance. Choose the most specific EARS type; avoid defaulting to Ubiquitous.
+   - Classify each AC by Contract Type: `schema` (data shape validation), `api-contract` (API interface compliance), `cli-contract` (CLI behavior compliance), `behavioral` (logic/state behavior), `none` (no specific contract). Default to `behavioral` when uncertain.
    - When the design spans multiple components or has cross-component data flows, distinguish acceptance criteria by level:
      - **Component-level AC**: each component's individual behavior in isolation.
      - **Integration-level AC**: observable behavior when components are combined (e.g., end-to-end data flow, API contract, lifecycle correctness across boundaries).

@@ -15,6 +15,7 @@
 - Prefer the most elegant solution that stays in scope: for non-trivial changes with material trade-offs, compare up to 2 alternatives and choose the lowest-risk option.
 - If new findings invalidate the current plan, stop execution, update the plan, then continue.
 - Bad: User asks "Create a login function" → you add 2FA unrequested. Good: you ask about auth method, session management, and existing libraries first.
+- Requirement Notation: Uses EARS (Easy Approach to Requirements Syntax) instead of BDD Given/When/Then for acceptance criteria. EARS is more context-efficient for LLM-driven workflows in a single-developer environment where non-technical stakeholder readability is unnecessary.
 
 ## Skill Usage Guide
 
