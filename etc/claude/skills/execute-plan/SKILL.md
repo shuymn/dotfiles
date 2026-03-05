@@ -130,13 +130,13 @@ If expected results are not met, stop and follow Stop Conditions.
    - **Quality Gates**: [Resolved commands from `## Quality Gates`, if applicable]
    - **Risk Flags**: [Any deviations recorded during implementation]
    ```
-4. If the task's Risk Tier is Sensitive or Critical, output an Adversarial Verify Input block:
+4. If the task's Risk Tier is Sensitive or Critical, or if the task's Risk Tier is Standard and its Files contain implementation files (paths not matching `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`), output an Adversarial Verify Input block:
    ```
    ## Adversarial Verify Input
    - **Task ID**: Task N
-   - **Risk Tier**: [Sensitive | Critical]
-   - **Minimum Probes**: [2 for Sensitive | 3 for Critical]
-   - **Required Scope**: [Sensitive: Category 1 + most relevant 1 category | Critical: all applicable categories]
+   - **Risk Tier**: [Standard (impl) | Sensitive | Critical]
+   - **Minimum Probes**: [1 for Standard (impl) | 2 for Sensitive | 3 for Critical]
+   - **Required Scope**: [Standard (impl): most relevant 1 category | Sensitive: Category 1 + most relevant 1 category | Critical: all applicable categories]
    - **Change Areas**: [Areas from Risk Classification that this task touches]
    - **Change Rationale**: [From design doc Risk Classification]
    - **Implementation Files**: [Files created/modified in this task]

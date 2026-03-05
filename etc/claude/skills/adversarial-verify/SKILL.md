@@ -1,6 +1,6 @@
 ---
 name: adversarial-verify
-description: "Adversarial verification of a completed task. Actively tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Mandatory for Critical and Sensitive tiers, optional for Standard. Runs as independent sub-agent. Use after execute-plan dod-recheck PASS."
+description: "Adversarial verification of a completed task. Actively tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Mandatory for Critical and Sensitive tiers, conditionally mandatory for Standard with implementation files, optional otherwise. Runs as independent sub-agent. Use after execute-plan dod-recheck PASS."
 allowed-tools: [Read, Bash, Grep, Glob, Write]
 ---
 
@@ -24,7 +24,10 @@ Before starting adversarial verification, verify the dod-recheck gate:
 |-----------|------------|----------------|--------------|
 | Critical | Mandatory | 3 | All applicable categories |
 | Sensitive | Mandatory | 2 | Category 1 (Input Boundary) + most relevant 1 additional category |
-| Standard | Optional | — | User-selected |
+| Standard (impl) | Conditional Mandatory | 1 | Most relevant 1 category |
+| Standard (non-impl) | Optional | — | User-selected |
+
+**Implementation file definition**: Same as `dod-recheck-mode.md` Standard Inspection — Files in Create/Modify entries whose paths do NOT match any of: `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`. Standard (impl) applies when the task's Files block contains at least one implementation file.
 
 ## Input
 
@@ -32,13 +35,13 @@ Before starting adversarial verification, verify the dod-recheck gate:
 - Adversarial Verify Input block (from execute-plan implement mode's Step 3 output)
 - Implementation files listed in the input block
 
-For Standard-tier tasks (optional invocation), the Adversarial Verify Input block is not auto-generated. The user must manually provide equivalent information (Task ID, Change Areas, Implementation Files, DoD Evidence).
+For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Input block is not auto-generated. The user must manually provide equivalent information (Task ID, Change Areas, Implementation Files, DoD Evidence).
 
 ## Procedure
 
 1. **Generate Header**: Run `scripts/digest-stamp.sh adversarial-verify <plan-file>` to produce the verification metadata header.
-2. **Load Context**: Read the Adversarial Verify Input block, all implementation files listed, and `references/attack-vectors.md`.
-3. **Select Attack Categories**: Based on the Change Areas and Change Rationale, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change.
+2. **Load Context**: Read the Adversarial Verify Input block, all implementation files listed, and `references/attack-vectors.md` (including the `## Project-Specific Vectors` section).
+3. **Select Attack Categories**: Based on the Change Areas and Change Rationale, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change. If `## Project-Specific Vectors` contains vectors matching the change characteristics, include them as additional probe targets regardless of the selected categories.
 4. **Execute Attacks**: For each selected attack vector:
    - Design a concrete test or probe targeting the implementation.
    - Create the test file (naming: `*_adversarial_test.*` or in a dedicated `adversarial/` directory).
@@ -47,24 +50,32 @@ For Standard-tier tasks (optional invocation), the Adversarial Verify Input bloc
    - Enforce tier minimums:
      - Critical: execute at least 3 probes.
      - Sensitive: execute at least 2 probes including Category 1 (Input Boundary) and the most relevant additional category.
-     - Standard (optional): no minimum probe count.
+     - Standard (impl): execute at least 1 probe using the most relevant category.
+     - Standard (non-impl): no minimum probe count.
+   - `[required]` vector coverage — `[required]` marks minimum-coverage vectors; non-required vectors remain applicable and should be probed when relevant — the tag does not grant skip permission.
+     - Critical / Sensitive: cover **all** `[required]` vectors within selected categories. For each: (a) execute a probe, or (b) document why it is non-applicable. Uncovered `[required]` vectors without documented rationale → `Overall Verdict: FAIL`.
+     - Standard (impl): cover the **single most relevant** `[required]` vector in the selected category.
+     - Standard (non-impl): no `[required]` coverage obligation.
 5. **Compute Verdict**: `Overall Verdict: PASS` only when ALL attack probes result in DEFENDED. Any VULNERABLE → `Overall Verdict: FAIL`.
 6. **Write Report**: Output to `...-task-<N>.adversarial.md`.
 
 ## Edge Cases
 
 - **Zero applicable attack categories**: If the Selection Guidance table yields no relevant categories for the change area, apply at minimum categories 1 (Input Boundary) and 2 (Error Handling) as a baseline. Record the rationale for limited applicability in the report.
+- **Standard (impl) invocation**: The Adversarial Verify Input block is auto-generated (same as Sensitive/Critical). Tier minimums and `[required]` coverage rules are defined in Step 4.
 - **Missing test infrastructure**: If the project lacks a test framework or runtime needed to execute attack probes, stop as `BLOCKED` and request the user to set up the necessary infrastructure. Do not skip attacks because tooling is absent.
 - **Attack probe budget**:
   - Critical: minimum 3 probes, target 3-8, cap at 15.
   - Sensitive: minimum 2 probes, target 2-4, cap at 8.
-  - Standard (optional): choose probe count by scope and document rationale.
+  - Standard (impl): minimum 1 probe, target 1-2, cap at 4.
+  - Standard (non-impl): choose probe count by scope and document rationale.
 
 ## On FAIL
 
 - Task completion is revoked — the task is not considered done.
 - The full chain must be re-executed: `execute-plan(implement)` → `execute-plan(dod-recheck)` → `adversarial-verify`.
 - Report specific vulnerabilities with reproduction steps.
+- After the FAIL→fix→re-execute chain completes with PASS, append each discovered vulnerability to `references/attack-vectors.md` under `## Project-Specific Vectors`. Format: `- **[Category]: [Vector Name]**: [Description and attack method]. Source: Task N, YYYY-MM-DD.`
 
 ## Output Format
 
@@ -78,9 +89,9 @@ For Standard-tier tasks (optional invocation), the Adversarial Verify Input bloc
 
 ## Attack Summary
 
-| # | Category | Attack Vector | Test File | Result | Evidence |
-|---|----------|--------------|-----------|--------|----------|
-| 1 | [category] | [vector] | [file] | DEFENDED/VULNERABLE | [brief evidence] |
+| # | Category | Attack Vector | Required? | Test File | Result | Evidence |
+|---|----------|--------------|-----------|-----------|--------|----------|
+| 1 | [category] | [vector] | yes/no | [file] | DEFENDED/VULNERABLE | [brief evidence] |
 
 ## Vulnerabilities Found
 
@@ -106,4 +117,4 @@ For Critical-tier and Sensitive-tier tasks, completion requires ALL three condit
 
 If `adversarial-verify` returns FAIL, the implement completion is revoked and the full chain must be re-executed.
 
-For Standard-tier tasks, adversarial verification remains optional unless explicitly required by the user or plan.
+For Standard (non-impl) tasks, adversarial verification remains optional unless explicitly required by the user or plan. For Standard (impl) tasks, adversarial verification (1 probe) is conditionally mandatory.

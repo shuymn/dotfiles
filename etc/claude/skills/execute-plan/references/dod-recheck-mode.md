@@ -24,6 +24,19 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
 3. **Re-execute Quality Gate Commands**: If Quality Gates are listed in the Recheck Input:
    - Run each quality gate command.
    - Record: command, exit code, PASS/FAIL.
+3.5. **File Scope Verification**:
+   - Read the task's `Allowed Files` glob patterns from the plan.
+   - Compare the implementation files (from the task's `Files:` block or Recheck Input) against the `Allowed Files` patterns.
+   - Any file not matching any `Allowed Files` pattern is flagged as `SCOPE_DEVIATION`.
+   - Record in `## File Scope Findings` table:
+
+     | # | File | Matched Pattern | Status |
+     |---|------|----------------|--------|
+     | 1 | [path] | [pattern or NONE] | OK / SCOPE_DEVIATION |
+
+   - Scope deviation does NOT force FAIL — output an escalation marker: `- **Scope Deviation**: N file(s) outside Allowed Files`.
+   - If Heightened Scrutiny is also performed, include scope deviation findings in that section as well.
+
 4. **Compute Overall Verdict**:
    - Base condition: `Overall Verdict: PASS` only when ALL DoD commands AND all Quality Gate commands PASS.
    - Heightened scrutiny override: if any finding has severity `critical` or `high`, set `Overall Verdict: FAIL` even when DoD/Quality Gate commands pass.
@@ -53,6 +66,25 @@ When the Recheck Input indicates Risk Tier is Sensitive or Critical, perform add
 - Allowed severity values are exactly: `critical`, `high`, `warning`.
 - For Critical-tier tasks, note that `adversarial-verify` is required separately after dod-recheck PASS.
 
+## Standard Inspection (Standard with Implementation Files)
+
+When the Recheck Input indicates Risk Tier is Standard and the task's Files block contains Create/Modify entries for implementation files, perform a standard code inspection.
+
+**Implementation file definition**: Files in the Create/Modify entries whose paths do NOT match any of: `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`.
+
+**Inspection items** (subset of Heightened Scrutiny):
+- Hardcoded values (secrets, credentials, magic numbers)
+- Silent failures (swallowed exceptions, ignored error return values)
+
+Record findings in `## Standard Inspection Findings` table:
+
+| # | File | Line(s) | Category | Finding | Severity |
+|---|------|---------|----------|---------|----------|
+| 1 | [path] | [lines] | [category] | [description] | warning |
+
+- All findings are severity `warning` (advisory only, no FAIL override).
+- This inspection does NOT apply when Risk Tier is Sensitive or Critical (Heightened Scrutiny covers those).
+
 ## On FAIL
 
 - Task completion is revoked — the task is not considered done.
@@ -81,11 +113,29 @@ When the Recheck Input indicates Risk Tier is Sensitive or Critical, perform add
 |---|---------|-----------|---------|
 | 1 | [command] | [code] | PASS/FAIL |
 
+## File Scope Findings
+
+<!-- Present when Allowed Files are defined for the task -->
+
+| # | File | Matched Pattern | Status |
+|---|------|----------------|--------|
+| 1 | [path] | [pattern or NONE] | OK / SCOPE_DEVIATION |
+
 ## Heightened Scrutiny Findings
+
+<!-- Present when Risk Tier is Sensitive or Critical -->
 
 | # | File | Line(s) | Category | Finding | Severity |
 |---|------|---------|----------|---------|----------|
 | 1 | [path] | [lines] | [category] | [description] | critical/high/warning |
+
+## Standard Inspection Findings
+
+<!-- Present when Risk Tier is Standard and Files contain implementation files -->
+
+| # | File | Line(s) | Category | Finding | Severity |
+|---|------|---------|----------|---------|----------|
+| 1 | [path] | [lines] | [category] | [description] | warning |
 
 ## Decision
 

@@ -142,9 +142,10 @@
 - Verify each task's verification commands reference specific files, modules, or endpoints.
 - Flag missing/unclear commands, unknown tools, or undocumented environment assumptions.
 - Verify Quality Gate references are present in every task DoD.
+- Verify each task has `Allowed Files` defined with at least one glob pattern.
 
 **Severity**:
-- **Blocker**: Verification command referencing unknown tool or missing file. Quality Gate reference missing in any task DoD.
+- **Blocker**: Verification command referencing unknown tool or missing file. Quality Gate reference missing in any task DoD. `Allowed Files` missing in any task.
 - **Warning**: Command that is valid but could be more specific.
 
 ## 12. Integration Coverage
@@ -168,10 +169,11 @@
 - Verify each task's `Risk Tier` field matches the highest tier from the design doc's Risk Classification for its change targets.
 - Verify Critical tasks include `Adversarial verification required (minimum 3 probes).` in DoD.
 - Verify Sensitive tasks include `Heightened dod-recheck scrutiny applies` in DoD.
-- Verify Sensitive tasks include `Lightweight adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).` in DoD.
+- Verify Sensitive tasks include `Adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).` in DoD.
+- Verify Standard tasks with implementation files (paths not matching `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`) include `Adversarial verification required (1 probe: most relevant category).` in DoD.
 
 **Severity**:
-- **Blocker**: Task touching a Critical-classified area but assigned Standard tier. Critical task missing adversarial verification DoD requirement. Task touching a Sensitive-classified area but assigned Standard tier. Sensitive task missing lightweight adversarial DoD requirement.
+- **Blocker**: Task touching a Critical-classified area but assigned Standard tier. Critical task missing adversarial verification DoD requirement. Task touching a Sensitive-classified area but assigned Standard tier. Sensitive task missing adversarial DoD requirement.
 
 ## Blocker Conditions Summary
 
@@ -187,4 +189,5 @@ The following conditions are always blockers (inherited from the former `analyze
 - RED that is a compile/import error instead of an assertion failure
 - Critical-area task classified as Standard tier
 - Sensitive-area task classified as Standard tier
-- Sensitive task missing lightweight adversarial DoD requirement
+- Sensitive task missing adversarial DoD requirement
+- Standard (impl) task missing adversarial DoD requirement

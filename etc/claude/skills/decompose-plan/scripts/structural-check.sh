@@ -3,7 +3,7 @@ set -euo pipefail
 
 # structural-check.sh — Structural integrity checks on a plan bundle.
 # Usage: structural-check.sh <design-file> <plan-file>
-# Performs 4 checks: ID duplicates, dependency cycles, AC coverage, DoD existence.
+# Performs 5 checks: ID duplicates, dependency cycles, AC coverage, DoD existence, Quality Gate executability.
 # Outputs markdown results to stdout.
 # Exit 0 if all PASS; exit 1 if any FAIL.
 
@@ -137,6 +137,36 @@ else
   echo "- Tasks missing **DoD**:"
   printf '%b' "$tasks_without_dod"
   has_failure=true
+fi
+echo ""
+
+# --- Check 5: Quality Gate Executability ---
+echo "### 5. Quality Gate Executability"
+# Extract commands from ## Quality Gates table in plan file
+quality_gates_section=$(sed -n '/^## Quality Gates/,/^## /p' "$plan_file" | sed '$d' || true)
+if [[ -z "$quality_gates_section" ]]; then
+  echo "- **Verdict**: PASS"
+  echo "- No \`## Quality Gates\` section found (detection is Step 1.7's responsibility)."
+else
+  missing_cmds=""
+  # Extract commands from table rows: parse pipe-delimited Command column (2nd column),
+  # then extract backtick-wrapped content and take the first token.
+  while IFS= read -r cmd; do
+    first_token=$(echo "$cmd" | awk '{print $1}')
+    if [[ -n "$first_token" ]] && ! command -v "$first_token" >/dev/null 2>&1; then
+      missing_cmds="${missing_cmds}  - \`${first_token}\`\n"
+    fi
+  done < <(echo "$quality_gates_section" | grep '^|' | grep -v '^|[[:space:]]*-' | tail -n +2 | awk -F'|' '{print $3}' | grep -oE '`[^`]+`' | sed 's/^`//;s/`$//' || true)
+
+  if [[ -z "$missing_cmds" ]]; then
+    echo "- **Verdict**: PASS"
+    echo "- All Quality Gate commands are executable."
+  else
+    echo "- **Verdict**: FAIL"
+    echo "- Commands not found:"
+    printf '%b' "$missing_cmds"
+    has_failure=true
+  fi
 fi
 echo ""
 

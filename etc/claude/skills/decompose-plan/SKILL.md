@@ -182,6 +182,7 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - Classify each gate by category: `test`, `lint`, `format`, `typecheck`, `other`.
    - Record the exact executable command for each gate.
    - If no quality gates are found from any source, stop as `BLOCKED` and request the user to define quality gates (in `AGENTS.md`, `CLAUDE.md`, or a project config file) before proceeding.
+   - For each gate command, verify the first token (space-delimited) is resolvable via `command -v`. If any command is not found, stop as `BLOCKED` and report the missing command(s).
 8. Read `## Risk Classification` from the design doc:
    - For each task's change targets, inherit the highest risk tier from matching areas in the classification table.
    - If no `## Risk Classification` section exists:
@@ -200,7 +201,8 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - Do not create `TEMPxx`-only tasks or add `TEMPxx` fields to `plan.md` task blocks.
    - If retirement is intentionally deferred, record waiver metadata in the trace (`reason`, `deadline`, `owner` optional for solo operation).
    - When a retiring task is identified, ensure its DoD in `plan.md` includes negative verification that the `TEMPxx` removal is complete (fallback/temporary path must fail or be absent).
-5. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
+5. For each task, define `Allowed Files` as a list of glob patterns covering all files the task may Create or Modify. Patterns should be precise enough to detect unintended scope creep but broad enough to avoid false positives for expected paths.
+6. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
    - If direct unit-level RED is technically difficult, require the nearest executable boundary test (integration/contract/e2e) while keeping fail-first.
@@ -209,27 +211,28 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
    - If the task's inherited risk tier is Critical, append to DoD: `Adversarial verification required (minimum 3 probes).`
    - If the task's inherited risk tier is Sensitive, append to DoD: `Heightened dod-recheck scrutiny applies`.
-   - If the task's inherited risk tier is Sensitive, append to DoD: `Lightweight adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
-6. Build a **Behavioral Lock Map** from design atoms:
+   - If the task's inherited risk tier is Sensitive, append to DoD: `Adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
+   - If the task's inherited risk tier is Standard and its Files contain implementation files (paths not matching `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`), append to DoD: `Adversarial verification required (1 probe: most relevant category).`
+7. Build a **Behavioral Lock Map** from design atoms:
    - Extract lock atoms: design wording, acceptance criteria, or constraint entries that express exclusivity, removal, replacement, or mandatory failure on a former path. Common keyword examples (not exhaustive): `only`, `remove`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`.
    - Map each lock atom to one or more task-level negative checks and one positive boundary check.
    - If a lock atom cannot be mapped to executable checks, stop as `BLOCKED`.
-7. Assign `Design Anchors` for each task:
+8. Assign `Design Anchors` for each task:
    - Each task must map to at least one `REQxx` or `ACxx`.
    - If a task enforces a design decision, include `DECxx` in anchors.
    - `TEMPxx` IDs are not valid `Design Anchors` for `plan.md`; keep TEMP mapping in `plan.trace.md`.
    - Raw ADR IDs are not valid task anchors; always anchor via `DECxx`.
    - No task may exist without traceable design anchors.
-8. **AC Ownership Assignment**:
+9. **AC Ownership Assignment**:
    - For each `ACxx`, assign exactly one Owner Task (the task whose RED validates this AC) and zero or more Contributor Tasks.
    - The Owner Task must include RED for the AC.
    - Record in the `AC Ownership Map` (see Trace Pack required sections).
-9. **Negative Path Coverage**:
+10. **Negative Path Coverage**:
    - For ACs with EARS Type=Unwanted or lock requirements (expressing exclusivity, removal, replacement, or mandatory failure on a former path), require at least one negative test in the Owner Task's RED or DoD.
-10. **High-Risk Auto-Detection**:
+11. **High-Risk Auto-Detection**:
     - ACs with EARS Type=Unwanted or lock requirements are automatically classified as high-risk.
     - Manual override of high-risk classification requires documented reason in the task.
-11. Validate granularity quality:
+12. Validate granularity quality:
    - Require all hard-gate properties to pass (single objective, single verification flow, clear rollback boundary).
    - Count split signals; if 2 or more, split by default.
    - If not splitting despite 2+ signals, record waiver metadata (`reason`, `added risk`, `rollback plan`).

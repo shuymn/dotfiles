@@ -1,6 +1,6 @@
 # Design Doc Review Criteria
 
-Fixed 6-point evaluation framework for `design-doc(review)` mode.
+Fixed 7-point evaluation framework for `design-doc(review)` mode.
 
 ## 1. Missing Failure Modes
 
@@ -82,11 +82,23 @@ Fixed 6-point evaluation framework for `design-doc(review)` mode.
 - If the design touches Critical domains (auth, billing, access control, encryption, PII), verify `## Risk Classification` exists even when the design is greenfield.
 - For each Standard row in `## Risk Classification`, verify the Change Rationale contains the format `Not Critical: [reason] / Not Sensitive: [reason]`.
 - Verify the justification is consistent with the design content (Detailed Design, Existing Codebase Constraints, Acceptance Criteria) — flag any direct contradiction.
+- For each Critical/Sensitive row, verify the Change Rationale follows the structured format `Defect Impact: [...] / Blast Radius: [...]`. Flag unstructured or missing Change Rationale.
 - Check whether areas touching external interfaces, state management, or failure-sensitive paths are under-classified as Standard.
 - ACs that include prohibited-path/allowed-path semantics, data integrity requirements, or error-handling for coordinated rollback scenarios are evidence of Sensitive or higher tier — flag Standard classification in those areas.
 - Flag circular or content-free Standard justifications (e.g., "Not Critical because not important").
 
 **Severity**:
-- **Blocker**: Design touches Critical domains but omits `## Risk Classification`. Justification absent from a Standard entry. Design content directly contradicts the Standard justification. Justification is generic/circular (repeats tier definition without area-specific reasoning, or "not critical because not important").
+- **Blocker**: Design touches Critical domains but omits `## Risk Classification`. Justification absent from a Standard entry. Design content directly contradicts the Standard justification. Justification is generic/circular (repeats tier definition without area-specific reasoning, or "not critical because not important"). Critical/Sensitive Change Rationale missing structured format (`Defect Impact: [...] / Blast Radius: [...]`).
 
 **N/A Condition**: Greenfield design that does not touch Critical domains (auth, billing, access control, encryption, PII).
+
+## 7. Goal-AC Coverage
+
+**Definition**: Every goal in the `Goals` section is validated by at least one Acceptance Criterion.
+
+**Check Method**:
+- For each goal listed in the `Goals` section, verify at least one `ACxx` in `Acceptance Criteria` has a Requirement Sentence that validates the realization of that goal.
+- A goal is considered covered if at least one AC's verification, when passed, would confirm the goal is achieved.
+
+**Severity**:
+- **Blocker**: Any goal with zero AC coverage (no ACxx validates its realization).

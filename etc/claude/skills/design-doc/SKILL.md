@@ -109,7 +109,7 @@ Classify change areas by defect-impact severity. Risk tiers are **defined by hum
 - `## Risk Classification` is mandatory when either condition is true:
   - Design is non-greenfield.
   - Design is greenfield but touches Critical domains (auth, billing, access control, encryption, PII).
-- Critical and Sensitive areas must include Change Rationale (why the change is necessary + impact of a defect).
+- Critical and Sensitive areas must include Change Rationale in the structured format: `Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact]`.
 - Standard areas must include semantic justification in the Change Rationale column using the format: `Not Critical: [reason] / Not Sensitive: [reason]`.
 - **Confidence gate**: If a Standard area's justification cannot be written, is generic, or is circular (e.g., "not critical because not important"), that area must be escalated to Sensitive or higher. Standard is not a default — it must be earned with explicit justification.
 - Classifications propagate downstream: `design-doc` → `decompose-plan` (task-level tier inheritance) → `execute-plan` (verification intensity).
@@ -283,13 +283,14 @@ When a significant design decision is made, record it as an ADR.
    - Common examples (not exhaustive): `appropriate`, `reasonable`, `adequate`, `sufficient`, `timely`, `properly`, `correctly`, `as needed`, `if possible`, `適切な`, `十分な`, `適宜`, `必要に応じて`, `正しく`, `それなりの`, `しかるべき`.
    - If any ambiguous expression is found and has NOT been replaced with a concrete, measurable expression, mark the design as `BLOCKED` and request the user to revise the AC before approval.
    - If the ambiguous expression has been explicitly replaced with an objectively measurable criterion in the same AC, it is permitted.
-9. Suggest running `design-doc review` (independent sub-agent verification) before proceeding to the `decompose-plan` skill
-10. For non-greenfield designs, verify:
+9. **Goal-AC Coverage Check (Required)**: For each item in the `Goals` section, verify that at least one `ACxx` in `Acceptance Criteria` has a Requirement Sentence that validates the realization of that goal. If any goal has zero AC coverage, mark the design as `BLOCKED` and request the user to add missing ACs.
+10. Suggest running `design-doc review` (independent sub-agent verification) before proceeding to the `decompose-plan` skill
+11. For non-greenfield designs, verify:
     - Every high-impact constraint has at least one linked requirement or acceptance criterion.
     - Every replacement/removal/fail-closed intent has explicit prohibited-path and allowed-path acceptance wording.
     - Verification guidance covers both newly added behavior and impacted existing behavior.
-11. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
-12. If the design is non-greenfield OR greenfield touching Critical domains (auth, billing, access control, encryption, PII), verify `## Risk Classification` exists with at least one row, every Critical/Sensitive entry has a non-empty Change Rationale, and every Standard entry has a semantic justification in the format `Not Critical: [reason] / Not Sensitive: [reason]`. Any Standard entry with missing, generic, or circular justification must be escalated to Sensitive or higher.
+12. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
+13. If the design is non-greenfield OR greenfield touching Critical domains (auth, billing, access control, encryption, PII), verify `## Risk Classification` exists with at least one row, every Critical/Sensitive entry has a Change Rationale in the structured format `Defect Impact: [...] / Blast Radius: [...]`, and every Standard entry has a semantic justification in the format `Not Critical: [reason] / Not Sensitive: [reason]`. Any Standard entry with missing, generic, or circular justification must be escalated to Sensitive or higher.
 
 ## Design Doc Template
 

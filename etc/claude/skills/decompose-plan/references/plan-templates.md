@@ -66,6 +66,10 @@ Use this structure for every task.
 - Create: `path/from/project/root.ext` (purpose)
 - Modify: `path/from/project/root.ext` (purpose)
 
+**Allowed Files** (glob patterns):
+- `src/module/**/*.ts`
+- `tests/module/**/*.test.ts`
+
 **RED**
 - [Failing test intent]
 - If referenced implementation symbols/files do not exist yet, add minimal scaffolding so the test compiles and runs.
@@ -88,7 +92,8 @@ Use this structure for every task.
 - [Boundary-level verification command when scope crosses runtime boundaries]
 - If Risk Tier is Critical: `Adversarial verification required (minimum 3 probes).`
 - If Risk Tier is Sensitive: `Heightened dod-recheck scrutiny applies.`
-- If Risk Tier is Sensitive: `Lightweight adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
+- If Risk Tier is Sensitive: `Adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
+- If Risk Tier is Standard and Files contain implementation files: `Adversarial verification required (1 probe: most relevant category).`
 - Run: `[exact verification command]`
 - Expected: `PASS`
 - Run: all commands in `## Quality Gates`
