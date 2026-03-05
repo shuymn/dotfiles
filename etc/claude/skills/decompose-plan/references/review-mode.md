@@ -49,7 +49,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 - Testability: PASS | FAIL
 - Execution Readiness: PASS | FAIL
 - Integration Coverage: PASS | FAIL | N/A (no cross-task deps)
-- Risk Classification: PASS | FAIL | N/A (greenfield / all-Standard)
+- Risk Classification: PASS | FAIL | N/A (greenfield without Critical-domain changes)
 - Updated At: YYYY-MM-DD HH:MM TZ
 
 ## Findings
@@ -70,4 +70,8 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 - Proceed to `execute-plan`: yes/no
 - Reason: [rationale]
+
+Note: This review validates design and plan artifacts only.
+Implementation correctness is verified by dod-recheck (L4) and adversarial-verify (L5).
+Plan PASS does not imply implementation PASS.
 ```
