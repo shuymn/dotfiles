@@ -18,5 +18,6 @@ func main() {
 	app.Register(cmd.DepGraphGen())
 	app.Register(cmd.TempLifecycleCheck())
 	app.Register(cmd.RiskDodCheck())
+	app.Register(cmd.TraceComposeCheck())
 	os.Exit(app.Run(os.Args))
 }
