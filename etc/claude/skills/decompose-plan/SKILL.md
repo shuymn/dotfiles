@@ -156,6 +156,15 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - In create mode, do not score granularity or assign a granularity verdict.
 - Ensure each task exposes the structural facts needed for review-mode scoring: one stated `Goal`, one main `RED` verification flow, explicit `Dependencies`, and a rollback boundary implied by `Files`/`Allowed Files`.
 
+### Granularity Self-Check (Create Mode Only)
+
+Use these non-scoring axes to shape tasks before presenting `plan.md`. Re-slice overloaded tasks, but do not assign cards, totals, thresholds, PASS/FAIL, or any granularity verdict in create mode; `decompose-plan review` remains the authoritative granularity gate.
+
+- `Objective`: Keep each task to one stated objective. If a task contains multiple independently releasable outcomes, split them.
+- `Surface`: Separate unrelated boundaries or top-level path families into different tasks.
+- `Verification`: Keep one main verification flow in `RED`/`DoD`; move independent checks into follow-up tasks.
+- `Rollback`: Separate reversible preparation from irreversible cutover or removal so rollback remains clear.
+
 ### Behavioral Lock Rules (Required)
 
 For design atoms expressing hard behavioral constraints — restricting behavior to a single path, removing or replacing an existing capability, or mandating failure when a former path is attempted. Common keyword examples (not exhaustive): `only`, `must not`, `remove`, `retire`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`:
@@ -250,6 +259,7 @@ For design atoms expressing hard behavioral constraints — restricting behavior
     - Manual override of high-risk classification requires documented reason in the task.
 12. Prepare task structure for granularity review:
    - Require every task to present a single stated objective, one main verification flow, and an explicit rollback boundary.
+   - Apply the create-mode `Objective` / `Surface` / `Verification` / `Rollback` self-check to re-slice overloaded tasks before presentation.
    - If task structure is ambiguous enough that review mode would need extra inference, rewrite the task before presenting the plan.
    - Do not assign granularity scores, totals, or PASS/FAIL in create mode; review mode is the authoritative granularity gate.
 
