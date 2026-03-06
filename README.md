@@ -10,34 +10,23 @@ curl -fsSL https://raw.githubusercontent.com/shuymn/dotfiles/main/install.sh | b
 
 ## Claude and Skills setup
 
-For Claude-related setup, run **both** `link-claude` and `skills-sync`.
+For Claude-related setup, run **both** `link-claude` and `sync-skills`.
 
 ```bash
 make link-claude
-make skills-sync
+make sync-skills
 ```
 
 - `make link-claude`
   - Symlinks `etc/claude/**` into `~/.claude/**` (excluding `etc/claude/skills/**`).
-- `make skills-build`
-  - Delegates to `skills/Makefile`.
-  - Builds the committed artifact tree at `etc/claude/skills/**` from editable sources in `skills/src/**`.
-- `make skills-test`
-  - Delegates to `skills/Makefile`.
-  - Runs pytest from the standalone `skills/` project (`skills/pyproject.toml`).
-- `make skills-fmt`
-  - Delegates to `skills/Makefile`.
-  - Runs `ruff format` for Python files under `skills/src/**`, `skills/tests/**`, and `skills/scripts/**`.
-- `make skills-lint`
-  - Delegates to `skills/Makefile`.
-  - Runs `ruff check` for Python files under `skills/src/**`, `skills/tests/**`, and `skills/scripts/**`.
-- `make skills-sync`
+- `make sync-skills`
   - Delegates to `skills/Makefile`.
   - Rebuilds `etc/claude/skills/**` from `skills/src/**` before installation.
   - Manages skills from `etc/claude/skills/**` using `bunx --bun skills`.
   - Reconciles stale managed skills while preserving external/manual skills.
   - Treats `~/.agents/skills` as canonical and prunes only duplicates from `~/.codex/skills`.
   - Syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
+- For local skills development commands such as build/test/fmt/lint, use `make -C skills ...`.
 
 ## Install commands via Cargo
 

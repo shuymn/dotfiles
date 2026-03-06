@@ -51,40 +51,8 @@ link-claude: ## Create symlinks to the claude directory (excluding skills)
 		ln -sfnv $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
 	@echo 'Finish linking claude files'
 
-.PHONY: skills-build
-skills-build: ## Build standalone skills artifacts into etc/claude/skills
-	@$(MAKE) -C "$(SKILLS_PROJECT)" build
-
-.PHONY: skills-test
-skills-test: ## Run pytest against skills source and build validations
-	@$(MAKE) -C "$(SKILLS_PROJECT)" test
-
-.PHONY: skills-fmt
-skills-fmt: ## Format Python files in the standalone skills project
-	@$(MAKE) -C "$(SKILLS_PROJECT)" fmt
-
-.PHONY: skills-lint
-skills-lint: ## Lint Python files in the standalone skills project
-	@$(MAKE) -C "$(SKILLS_PROJECT)" lint
-
-.PHONY: skills-install
-skills-install: ## Install built managed skills via skills CLI
-	@$(MAKE) -C "$(SKILLS_PROJECT)" install
-
-.PHONY: skills-reconcile
-skills-reconcile: ## Remove stale managed skills while preserving external skills
-	@$(MAKE) -C "$(SKILLS_PROJECT)" reconcile
-
-.PHONY: skills-list-managed
-skills-list-managed: ## Print the generated skills manifest
-	@$(MAKE) -C "$(SKILLS_PROJECT)" list-managed
-
-.PHONY: skills-audit-codex
-skills-audit-codex: ## Audit ~/.codex/skills and prune duplicates found in ~/.agents/skills
-	@$(MAKE) -C "$(SKILLS_PROJECT)" audit-codex
-
-.PHONY: skills-sync
-skills-sync: ## Build, sync, prune codex duplicates, and sync Codex AGENTS.md
+.PHONY: sync-skills
+sync-skills: ## Build, sync, prune codex duplicates, and sync Codex AGENTS.md
 	@$(MAKE) -C "$(SKILLS_PROJECT)" sync
 
 .PHONY: clean-claude
