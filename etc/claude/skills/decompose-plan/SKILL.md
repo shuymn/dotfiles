@@ -277,9 +277,10 @@ The review agent writes `plan.review.draft.md`, and a finalizer script produces 
 1. Present the compact `plan.md` first.
 2. Mention that detailed traceability is in `plan.trace.md` and reconstruction evidence is in `plan.compose.md`.
 3. Apply feedback and update all impacted files.
-4. Re-run Structural Self-Check after each meaningful change.
-5. Repeat until the user explicitly approves.
-6. After approval, suggest running `decompose-plan review` (independent sub-agent verification) before `execute-plan`.
+4. If feedback splits, merges, reorders, removes, renames, or adds tasks, treat dependency updates as whole-plan impact analysis: update the Task Dependency Graph, the changed tasks, and every other task whose `Dependencies`, ordering, or prerequisite assumptions reference the changed task IDs or boundaries (for example, if `T3` is split, also update each downstream `T<N>` that depended on `T3`). Do not limit the fix to the changed task itself.
+5. Re-run Structural Self-Check after each meaningful change.
+6. Repeat until the user explicitly approves.
+7. After approval, suggest running `decompose-plan review` (independent sub-agent verification) before `execute-plan`.
 
 ## Key Principles
 
