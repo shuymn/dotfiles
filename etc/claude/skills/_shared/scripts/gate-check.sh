@@ -15,6 +15,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=llm-check-output.sh
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/llm-check-output.sh"
+# shellcheck source=path-display.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/path-display.sh"
 
 readonly TOOL_NAME="gate-check"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"
@@ -25,6 +28,8 @@ readonly OUTPUT_MODE="$output_mode"
 
 review_file="${1-}"
 source_file="${2-}"
+display_review_file="$(llm_display_path "$review_file")"
+display_source_file="$(llm_display_path "$source_file")"
 detail_lines=()
 repair_lines=()
 compact_fails=()
@@ -128,8 +133,8 @@ emit_full_result() {
 
   llm_check_emit_header "$OUTPUT_SCHEMA" "$TOOL_NAME" "$OUTPUT_MODE" "$status" "$code" "$summary"
   emit_line "checks.total" "$TOTAL_CHECKS"
-  emit_line "input.review_file" "$review_file"
-  emit_line "input.source_file" "$source_file"
+  emit_line "input.review_file" "$display_review_file"
+  emit_line "input.source_file" "$display_source_file"
 
   for line in "${detail_lines[@]}"; do
     key="${line%%|*}"
@@ -187,7 +192,7 @@ if [[ ! -f "$review_file" ]]; then
   reset_output_context
   add_compact_fail "review_file_missing"
   add_fix_code "FIX_REVIEW_FILE_PATH"
-  add_detail "missing_path" "$review_file"
+  add_detail "missing_path" "$display_review_file"
   add_repair "Confirm <review-file> path exists and is readable."
   add_repair "Use the latest review artifact (e.g., design.review.md or plan.review.md)."
   emit_result "FAIL" "REVIEW_FILE_NOT_FOUND" "Review file was not found." 1
@@ -197,7 +202,7 @@ if [[ ! -f "$source_file" ]]; then
   reset_output_context
   add_compact_fail "source_file_missing"
   add_fix_code "FIX_SOURCE_FILE_PATH"
-  add_detail "missing_path" "$source_file"
+  add_detail "missing_path" "$display_source_file"
   add_repair "Confirm <source-file> path exists and is readable."
   add_repair "Point to the exact source markdown that was reviewed."
   emit_result "FAIL" "SOURCE_FILE_NOT_FOUND" "Source file was not found." 1

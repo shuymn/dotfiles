@@ -12,6 +12,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=llm-check-output.sh
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/llm-check-output.sh"
+# shellcheck source=path-display.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/path-display.sh"
 
 readonly TOOL_NAME="digest-stamp"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"
@@ -44,7 +47,7 @@ emit_error() {
 
   llm_check_emit_header "$OUTPUT_SCHEMA" "$TOOL_NAME" "$OUTPUT_MODE" "FAIL" "$code" "$summary"
   llm_check_emit_line "input.mode" "${mode-}"
-  llm_check_emit_line "input.source_file" "${source_file-}"
+  llm_check_emit_line "input.source_file" "${display_source_file-}"
   if [[ $# -eq 0 ]]; then
     llm_check_emit_line "repair.1" "Apply correction and rerun digest-stamp.sh."
   else
@@ -68,6 +71,7 @@ fi
 
 mode="$1"
 source_file="$2"
+display_source_file="$(llm_display_path "$source_file")"
 
 valid_modes=("design-review" "plan-review" "dod-recheck" "adversarial-verify")
 mode_valid=false
@@ -96,7 +100,7 @@ digest=$(shasum -a 256 "$source_file" | cut -d' ' -f1)
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 echo "- **Mode**: $mode"
-echo "- **Source Artifact**: $source_file"
+echo "- **Source Artifact**: $display_source_file"
 echo "- **Source Digest**: $digest"
 echo "- **Reviewed At**: $timestamp"
 echo "- **Isolation**: sub-agent (fork_context=false)"

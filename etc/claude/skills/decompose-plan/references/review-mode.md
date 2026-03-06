@@ -12,6 +12,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 - Write only the review draft report; the final gate artifact is produced by a script.
 - Do NOT read `scripts/review_finalize.py` or inspect its constants.
 - Do NOT compute granularity totals, thresholds, PASS/FAIL, or `Overall Verdict` yourself.
+- When writing paths or commands into the draft, use repository-relative project paths. If you mention a skill helper, render it as `scripts/<name>.sh`, never an absolute filesystem path.
 
 ## Input
 

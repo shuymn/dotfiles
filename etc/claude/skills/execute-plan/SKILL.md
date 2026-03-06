@@ -127,6 +127,7 @@ If expected results are not met, stop and follow Stop Conditions.
    - **Implementation Files**: [Files created/modified in this task]
    - **DoD Evidence**: [Summary of verification results]
    ```
+   Use repository-relative paths in both handoff blocks; do not emit absolute filesystem paths.
 5. Explicitly stop after this task.
 6. If the user wants another task, ask them to specify the next task ID.
 

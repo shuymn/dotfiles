@@ -58,6 +58,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
      - Standard (non-impl): no `[required]` coverage obligation.
 5. **Compute Verdict**: `Overall Verdict: PASS` only when ALL attack probes result in DEFENDED. Any VULNERABLE → `Overall Verdict: FAIL`.
 6. **Write Report**: Output to `...-task-<N>.adversarial.md`.
+7. Write file paths in repository-relative form. If you mention a skill helper command, render it as `scripts/<name>.sh`, never an absolute filesystem path.
 
 ## Edge Cases
 

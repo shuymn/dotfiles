@@ -1,6 +1,7 @@
 # Trace & Check Templates
 
 Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
+When embedding commands or artifact paths in these files, use repository-relative project paths and `scripts/<name>.sh` helper names, never absolute filesystem paths.
 
 ## Trace Matrix Templates (for `plan.trace.md`)
 

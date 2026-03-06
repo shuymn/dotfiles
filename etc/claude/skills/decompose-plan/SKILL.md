@@ -260,7 +260,8 @@ Perform structural checks before presenting the plan. Semantic verification is d
 2. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
 3. Do NOT present the plan to the user if structural checks are failing.
 4. Record structural check results in `plan.trace.md`.
-5. Update `Checkpoint Summary` in `plan.md`.
+5. When writing commands or file paths into `plan.trace.md`, use repository-relative project paths and `scripts/<name>.sh` helper names, never absolute filesystem paths.
+6. Update `Checkpoint Summary` in `plan.md`.
 
 **Note**: The deep semantic checks (forward/reverse fidelity, behavioral lock guard, granularity scoring, temporal completeness, etc.) are now performed by `decompose-plan review` mode, which runs as an independent sub-agent.
 The review agent writes `plan.review.draft.md`, and a finalizer script produces the gate artifact `plan.review.md`.

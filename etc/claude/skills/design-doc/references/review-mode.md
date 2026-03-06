@@ -10,6 +10,7 @@ Independent verification of an approved design document. This mode runs as a sub
 - Do NOT propose architectural changes or scope modifications.
 - Do NOT modify the design doc or any other artifact.
 - Write only the review report.
+- When writing paths or commands into the report, use repository-relative project paths. If you mention a skill helper, render it as `scripts/<name>.sh`, never an absolute filesystem path.
 
 ## Input
 

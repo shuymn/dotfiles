@@ -44,6 +44,7 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
    - Scope deviation override: if any `SCOPE_DEVIATION` exists, set `Overall Verdict: FAIL`.
    - Heightened scrutiny override: if any finding has severity `critical` or `high`, set `Overall Verdict: FAIL` even when DoD/Quality Gate commands pass.
 5. **Write Recheck Report**: Output to `...-task-<N>.dod-recheck.md` (where N is the task number).
+6. Write file paths in repository-relative form. If you mention a skill helper command, render it as `scripts/<name>.sh`, never an absolute filesystem path.
 
 ## Heightened Scrutiny (Sensitive/Critical)
 

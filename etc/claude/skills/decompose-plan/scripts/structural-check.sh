@@ -13,6 +13,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../_shared/scripts/llm-check-output.sh
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../../_shared/scripts/llm-check-output.sh"
+# shellcheck source=../../_shared/scripts/path-display.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/../../_shared/scripts/path-display.sh"
 
 readonly TOOL_NAME="structural-check"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"
@@ -24,6 +27,8 @@ readonly OUTPUT_MODE="$output_mode"
 
 design_file="${1-}"
 plan_file="${2-}"
+display_design_file="$(llm_display_path "$design_file")"
+display_plan_file="$(llm_display_path "$plan_file")"
 
 check_ids=()
 check_statuses=()
@@ -141,8 +146,8 @@ emit_early_fail() {
   llm_check_emit_header "$OUTPUT_SCHEMA" "$TOOL_NAME" "$OUTPUT_MODE" "FAIL" "$code" "$summary"
   emit_line "checks.total" "$TOTAL_CHECKS"
   emit_line "checks.completed" "0"
-  emit_line "input.design_file" "$design_file"
-  emit_line "input.plan_file" "$plan_file"
+  emit_line "input.design_file" "$display_design_file"
+  emit_line "input.plan_file" "$display_plan_file"
   local idx=1
   local step=""
   for step in "$@"; do
@@ -210,8 +215,8 @@ emit_result() {
   llm_check_emit_header "$OUTPUT_SCHEMA" "$TOOL_NAME" "$OUTPUT_MODE" "$status" "$code" "$summary"
   emit_line "checks.total" "$TOTAL_CHECKS"
   emit_line "checks.completed" "${#check_ids[@]}"
-  emit_line "input.design_file" "$design_file"
-  emit_line "input.plan_file" "$plan_file"
+  emit_line "input.design_file" "$display_design_file"
+  emit_line "input.plan_file" "$display_plan_file"
 
   for i in "${!check_ids[@]}"; do
     emit_line "check.$((i + 1)).id" "${check_ids[$i]}"
