@@ -10,7 +10,6 @@ allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
 
 - Comments from human reviewers — this skill processes AI-generated suggestions only.
 - Evaluating overall PR quality or proposing improvements beyond what AI reviewers raised.
-- Applying suggestions that cannot be verified through web search.
 
 ## Input Mode Detection
 
@@ -76,7 +75,7 @@ Extract all suggestions from these reviewers. If multiple bots commented, proces
 
 ### 2. Verify Each AI Suggestion
 
-For each AI comment, perform fact-checking:
+For each AI comment, perform fact-checking. Choose the lightest verification path that can prove or disprove the suggestion:
 
 a) **Extract Technical Claims**
    - API usage recommendations
@@ -84,8 +83,23 @@ a) **Extract Technical Claims**
    - Performance optimization suggestions
    - Best practice recommendations
 
-b) **Verify Using Web Search**
-   Use available Web Search tool(s) with the SAME query to cross-verify:
+b) **Choose Verification Path**
+
+   - **Local verification**: Use repo-local evidence when the suggestion is about current implementation behavior, file paths, symbol existence, config shape, dependency usage, test expectations, or contract mismatches that can be confirmed from the checked-out codebase.
+   - **Web verification**: Use available Web Search tool(s) when the suggestion depends on external facts such as official API behavior, version compatibility, CVEs, benchmark claims, or ecosystem best practices.
+   - **Hybrid verification**: Use both local and web evidence when the suggestion spans repo behavior and external facts, such as framework misuse in this codebase, outdated API usage, or a security claim tied to a library version in the repo.
+
+c) **Run Verification**
+
+   - **Local verification process**:
+     - Read the referenced files and nearby code paths before changing anything
+     - Confirm symbol existence, imports, configuration keys, and call sites
+     - Check dependency and version declarations when relevant
+     - Use existing tests, reproducible commands, or contract/diff evidence when available
+     - Treat direct local contradiction as evidence against the suggestion
+
+   - **Web verification process**:
+     Use available Web Search tool(s) with the SAME query to cross-verify:
 
    - **Search Strategy**:
      1. Send identical queries to all available web search tools
@@ -100,25 +114,28 @@ b) **Verify Using Web Search**
      - Best practices: Search "[technology] official best practices"
 
    - **Decision Criteria**:
-     - ✅ Apply if: Multiple reliable sources confirm, or the suggestion is directionally correct even if not the absolute best option (e.g., "use bcrypt instead of MD5" is valid even if Argon2id is now preferred)
-     - ⚠️ Review carefully if: Results differ between sources, OR the claim is a contested style preference / best practice with reasonable community support (e.g., adopted by major ESLint configs or style guides)
-     - ❌ Skip only if: The claim is **factually wrong** — an API that no longer exists, a false CVE, a non-existent method, or a verifiably incorrect technical statement. Style preferences and debatable best practices belong in ⚠️, not ❌.
+     - ✅ Apply if: local evidence confirms the issue, web evidence confirms the claim, or hybrid evidence shows the suggestion is materially correct for this repo. Directionally correct suggestions may still qualify with a note.
+     - ⚠️ Review carefully if: results differ between local and external evidence, sources disagree, or the claim is a context-dependent style or best-practice recommendation with reasonable support.
+     - ❌ Skip only if: the suggestion is contradicted by strong local evidence, disproven by reliable external evidence, or is a factually incorrect technical statement. Lack of web evidence alone is not enough to reject a repo-local claim.
 
 ### 3. Categorize Verified Suggestions
 
 **✅ Verified & Apply**:
+- Confirmed by repo-local evidence
 - Confirmed security vulnerabilities
 - Documented API misuse
 - Proven performance issues
 - Official best practices (including suggestions that are directionally correct even if a newer alternative exists — add a note rather than downgrading the verdict)
 
 **⚠️ Partially Verified**:
+- Repo evidence is incomplete or points to a context-dependent fix
 - Mixed opinions in community
 - Context-dependent improvements
 - Style preferences with reasonable backing (major style guides, popular linting configs)
 - Suggestions that are valid but not the newest best-in-class option
 
 **❌ Incorrect/Unverified**:
+- Repo-local evidence directly contradicts the claim
 - APIs or methods that genuinely no longer exist in the target version
 - False CVE/security claims that cannot be verified
 - Factually incorrect technical statements (e.g., "this function was removed" when it wasn't)
@@ -131,9 +148,9 @@ For each verified suggestion, document before applying:
 File: [filename]
 Line: [line number or range]
 Issue: [Brief description]
-Verification: [What was confirmed via search]
+Verification: [What local evidence and/or external evidence confirmed]
 Fix: [Exact change to apply]
-Source: [Documentation/CVE/Benchmark URL]
+Source: [file path, test/command output, and/or documentation/CVE/Benchmark URL]
 ```
 
 ### 5. Implementation Process
@@ -150,17 +167,17 @@ Source: [Documentation/CVE/Benchmark URL]
 
 ### Verified & Applied
 1. **[File]**: [What was fixed]
-   - Evidence: [Verification source/URL]
+   - Evidence: [Local evidence and/or verification source/URL]
    - Change: [Brief description]
 
 ### Partially Verified
 1. **[File]**: [What was conditionally fixed]
-   - Findings: [Mixed findings]
+   - Findings: [Local evidence and/or mixed external findings]
    - Rationale: [Why applied or not]
 
 ### Incorrect / Not Applied
 1. **[Suggestion]**: [Why it was incorrect]
-   - Findings: [What search revealed]
+   - Findings: [What local evidence and/or search revealed]
 
 ### Summary
 - Total AI suggestions: X
@@ -169,8 +186,9 @@ Source: [Documentation/CVE/Benchmark URL]
 ```
 
 ## Important Notes
+- Prefer the strongest available evidence for the claim: direct repo-local reproduction or contradiction beats speculation, and official external documentation beats secondary summaries.
 - Prioritize official documentation over blog posts; check publication dates to avoid outdated advice
-- If a claim cannot be verified but is also not contradicted by any source, mark as ⚠️ rather than ❌ — absence of evidence is not evidence of incorrectness. Reserve ❌ for claims that are actively disproven.
+- If a claim cannot be verified but is also not contradicted by strong local or external evidence, mark as ⚠️ rather than ❌ — absence of web evidence is not enough to reject a repo-local claim.
 - **Use AskUserQuestionTool** when you need clarification on:
   - Whether to apply a partially verified suggestion
   - How to prioritize conflicting recommendations

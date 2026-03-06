@@ -152,10 +152,15 @@ If any criterion is WARN or FAIL:
    - Remove generic tool mandates unless backed by repository constraints
    - Replace broad codebase overviews with only non-obvious navigation hints
 2. Show a diff summary: what was removed, what was added, what was reworded
-3. Present to the user via AskUserQuestionTool with options:
-   - Apply the full rewrite
-   - Apply selectively (user picks which changes)
-   - Keep current version
+3. Present the rewrite options to the user:
+   - If AskUserQuestionTool is available, present options for:
+     - Apply the full rewrite
+     - Apply selectively (user picks which changes)
+     - Keep current version
+   - If AskUserQuestionTool is unavailable, ask in a single message using QID labels and require one of:
+     - `Q1: APPLY_FULL`
+     - `Q1: APPLY_SELECTIVE(<concise selection>)`
+     - `Q1: KEEP_CURRENT`
 
 If all criteria PASS: report the audit results and confirm no changes needed.
 
