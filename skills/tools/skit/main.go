@@ -13,5 +13,6 @@ func main() {
 	app.Register(cmd.ArtifactFormatCheck())
 	app.Register(cmd.RiskFormatCheck())
 	app.Register(cmd.VerificationCmdCheck())
+	app.Register(cmd.BundleValidateCheck())
 	os.Exit(app.Run(os.Args))
 }
