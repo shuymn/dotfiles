@@ -1,6 +1,6 @@
 # DoD Recheck Mode
 
-> All paths in this file (e.g., `scripts/`) are relative to the skill root directory, not to this file's location.
+> `<skill-root>` means the directory containing the parent `SKILL.md`. Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not to this file's location.
 
 Independent verification of a completed task's DoD. This mode runs as a sub-agent (`fork_context=false`) in a separate session because the implementing agent cannot reliably catch its own blind spots — confirmation bias makes self-verification unreliable.
 
@@ -17,7 +17,7 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
 
 ## Procedure
 
-1. **Generate Header**: Run `scripts/digest-stamp.sh dod-recheck <plan-file>` to produce the recheck metadata header.
+1. **Generate Header**: Run `<skill-root>/scripts/digest-stamp.sh dod-recheck <plan-file>` to produce the recheck metadata header.
 2. **Re-execute DoD Commands**: For each DoD command from the Recheck Input:
    - Run the command fresh.
    - Record: command, exit code, actual output, expected outcome, PASS/FAIL.

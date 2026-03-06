@@ -143,7 +143,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - Prefer stable IDs (`REQxx`, `ACxx`, `DECxx`) over repeated natural-language restatement.
 - Put exhaustive mapping and diagnostics into sidecars.
 - Keep each task minimal but executable; avoid narrative that does not change implementation behavior.
-- If `plan.md` stops being a thin execution artifact because boundary-local explanations, repeated verification flows, or task narratives are spilling out of sidecars, re-run `uv run python scripts/split_check.py <design-file>` and revisit the design split before finalizing.
+- If `plan.md` stops being a thin execution artifact because boundary-local explanations, repeated verification flows, or task narratives are spilling out of sidecars, re-run `uv run python <skill-root>/scripts/split_check.py <design-file>` and revisit the design split before finalizing.
 
 ### Strict Scope Rules
 

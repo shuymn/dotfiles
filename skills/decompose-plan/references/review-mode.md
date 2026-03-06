@@ -1,16 +1,16 @@
 # Plan Review Mode
 
-> All paths in this file (e.g., `scripts/`, `references/`) are relative to the skill root directory, not to this file's location.
+> `<skill-root>` means the directory containing the parent `SKILL.md`. Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not to this file's location.
 
 Independent verification of an approved plan bundle. This mode runs as a sub-agent (`fork_context=false`) in a separate session because the planning agent cannot reliably catch its own blind spots — confirmation bias makes self-verification unreliable.
 
 ## Constraints
 
 - The reviewing agent must NOT have created the plan being reviewed.
-- Do NOT modify the plan, design doc, or `scripts/review_finalize.py`.
+- Do NOT modify the plan, design doc, or `<skill-root>/scripts/review_finalize.py`.
 - Do NOT edit the final review artifact by hand; let the finalizer generate it.
 - Write only the review draft report; the final gate artifact is produced by a script.
-- Do NOT read `scripts/review_finalize.py` or inspect its constants.
+- Do NOT read `<skill-root>/scripts/review_finalize.py` or inspect its constants.
 - Do NOT compute granularity totals, thresholds, PASS/FAIL, or `Overall Verdict` yourself.
 - When writing paths or commands into the draft, use repository-relative project paths. If you mention a skill helper, render it as `scripts/<name>.sh`, never an absolute filesystem path.
 
@@ -21,11 +21,11 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 ## Procedure
 
-1. **Design Review Gate Re-check**: Run `scripts/gate-check.sh <design.review.md> <design.md>` to confirm the design review is still valid. If FAIL, stop immediately.
-2. **Structural Check**: Run `scripts/structural-check.sh <design-file> <plan-file>` and keep the result for evidence. The finalizer will re-run it and make it authoritative.
-3. **Semantic Verification**: Load `references/review-criteria.md` and `references/granularity-poker.md`.
+1. **Design Review Gate Re-check**: Run `<skill-root>/scripts/gate-check.sh <design.review.md> <design.md>` to confirm the design review is still valid. If FAIL, stop immediately.
+2. **Structural Check**: Run `<skill-root>/scripts/structural-check.sh <design-file> <plan-file>` and keep the result for evidence. The finalizer will re-run it and make it authoritative.
+3. **Semantic Verification**: Load `<skill-root>/references/review-criteria.md` and `<skill-root>/references/granularity-poker.md`.
 4. **Write Draft Review**: Output reviewer findings to `.../plan.review.draft.md` (derive path by replacing `plan.md` with `plan.review.draft.md`).
-5. **Finalize Review**: Run `uv run python scripts/review_finalize.py <plan-file> <draft-file> <final-file>` where `<final-file>` is `.../plan.review.md`.
+5. **Finalize Review**: Run `uv run python <skill-root>/scripts/review_finalize.py <plan-file> <draft-file> <final-file>` where `<final-file>` is `.../plan.review.md`.
 6. **Use Only Final Artifact for Gates**: Downstream skills and gate checks must consume `plan.review.md`, never `plan.review.draft.md`.
 
 ## Draft Output Format

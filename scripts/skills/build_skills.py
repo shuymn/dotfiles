@@ -35,6 +35,16 @@ TEXT_SUFFIXES = {".md", ".py", ".sh", ".txt", ".json"}
 IGNORED_NAMES = {"__pycache__", ".pytest_cache", "tests", SKILL_CONFIG_NAME}
 IGNORED_SUFFIXES = {".pyc", ".pyo"}
 FORBIDDEN_PATTERNS = ("../_shared", "../../_shared", "../common", "../../common")
+EXPLICIT_SKILL_ROOT_PATTERNS = (
+    (
+        re.compile(r"(?i)\b(?:re-)?run `(?:uv run python |bash )?scripts/"),
+        "use <skill-root>/scripts/... for executed helper commands",
+    ),
+    (
+        re.compile(r"(?i)\b(?:read|load|modify|edit|inspect|use) `(?:scripts|references)/"),
+        "use <skill-root>/scripts/... or <skill-root>/references/... for skill-relative paths",
+    ),
+)
 
 
 class BuildError(RuntimeError):
@@ -202,6 +212,21 @@ def validate_no_forbidden_paths(skill_root: Path) -> None:
         )
 
 
+def validate_explicit_skill_root_paths(skill_root: Path) -> None:
+    violations: list[str] = []
+    for path in sorted(skill_root.rglob("*.md")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for pattern, hint in EXPLICIT_SKILL_ROOT_PATTERNS:
+                if pattern.search(line):
+                    relative = path.relative_to(skill_root).as_posix()
+                    violations.append(f"{relative}:{lineno} ({hint})")
+                    break
+    if violations:
+        raise BuildError(
+            f"{skill_root.name}: bare skill-relative path references remain: {', '.join(violations)}"
+        )
+
+
 def validate_artifact_root(artifact_root: Path) -> None:
     leaked_paths = [
         str(path.relative_to(artifact_root))
@@ -216,6 +241,7 @@ def validate_artifact_root(artifact_root: Path) -> None:
     for skill_root in iter_skill_dirs(artifact_root):
         validate_referenced_scripts(skill_root)
         validate_no_forbidden_paths(skill_root)
+        validate_explicit_skill_root_paths(skill_root)
 
 
 def copy_common_scripts(
@@ -270,6 +296,7 @@ def build_skills(source_root: Path, artifact_root: Path) -> None:
         )
         validate_referenced_scripts(source_skill_root, resolved_common_scripts)
         validate_no_forbidden_paths(source_skill_root)
+        validate_explicit_skill_root_paths(source_skill_root)
 
     clean_artifact_root(artifact_root)
 

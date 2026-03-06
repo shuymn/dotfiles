@@ -10,7 +10,7 @@ Review-only scoring rubric for `decompose-plan review`.
 - Do not total the cards.
 - Do not assign PASS/FAIL.
 - Do not mention thresholds.
-- Do not read `scripts/review_finalize.py` or inspect its constants.
+- Do not read `<skill-root>/scripts/review_finalize.py` or inspect its constants.
 - If uncertain between two cards, choose the smaller plausible card and note the ambiguity in `Evidence`.
 
 ## Output Table

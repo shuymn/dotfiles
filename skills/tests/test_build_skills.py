@@ -51,6 +51,13 @@ def test_source_skills_have_no_parent_traversal_helper_refs() -> None:
     assert not list(SOURCE_ROOT.rglob("scripts/lib"))
 
 
+def test_source_markdown_uses_explicit_skill_root_for_runtime_refs() -> None:
+    for skill_root in sorted(SOURCE_ROOT.iterdir()):
+        if skill_root.name in {"common", "tests"} or not skill_root.is_dir():
+            continue
+        MODULE.validate_explicit_skill_root_paths(skill_root)
+
+
 def test_build_outputs_standalone_artifacts() -> None:
     artifact_root = build_to_temp_dir()
 
