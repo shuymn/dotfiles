@@ -42,7 +42,13 @@ def test_source_skills_have_no_parent_traversal_helper_refs() -> None:
             continue
         assert not list(skill_root.rglob("scripts/lib"))
         for path in sorted(skill_root.rglob("*")):
-            if not path.is_file() or path.suffix not in {".md", ".py", ".sh", ".txt"}:
+            if not path.is_file() or path.suffix not in {
+                ".md",
+                ".py",
+                ".sh",
+                ".txt",
+                ".j2",
+            }:
                 continue
             contents = path.read_text(encoding="utf-8")
             assert "../../common/scripts/" not in contents, path.as_posix()
@@ -52,6 +58,7 @@ def test_source_skills_have_no_parent_traversal_helper_refs() -> None:
         SOURCE_ROOT / "common" / "scripts" / "lib" / "llm-check-output.sh"
     ).is_file()
     assert (SOURCE_ROOT / "common" / "scripts" / "lib" / "path-display.sh").is_file()
+    assert (SOURCE_ROOT / "common" / "scripts" / "lib" / "skills_models.py").is_file()
 
 
 def test_source_markdown_uses_explicit_skill_root_for_runtime_refs() -> None:
@@ -68,6 +75,8 @@ def test_build_outputs_standalone_artifacts() -> None:
     assert not (artifact_root / "_shared").exists()
     assert not list(artifact_root.rglob("tests"))
     assert not list(artifact_root.rglob("__pycache__"))
+    assert not list(artifact_root.rglob("*.md.j2"))
+    assert not list(artifact_root.rglob("*.fragments.json"))
     assert (artifact_root / "design-doc" / "scripts" / "split_check.py").is_file()
     assert not (artifact_root / "design-doc" / "scripts" / "split-check.sh").exists()
     assert (artifact_root / "setup-ralph" / "scripts" / "gate-check.sh").is_file()
@@ -81,7 +90,18 @@ def test_build_outputs_standalone_artifacts() -> None:
     assert (
         artifact_root / "design-doc" / "scripts" / "lib" / "path-display.sh"
     ).is_file()
+    assert (
+        artifact_root / "design-doc" / "scripts" / "lib" / "skills_models.py"
+    ).is_file()
     assert not (artifact_root / "design-doc" / "skill.json").exists()
+    rendered_template = (
+        artifact_root / "design-doc" / "references" / "design-templates.md"
+    )
+    assert rendered_template.is_file()
+    rendered_text = rendered_template.read_text(encoding="utf-8")
+    assert "{{ render_fragment" not in rendered_text
+    assert "## Clarifications" in rendered_text
+    assert "| Question" in rendered_text
 
 
 def test_build_is_idempotent() -> None:
@@ -127,7 +147,11 @@ def test_build_entrypoint_runs_from_artifact() -> None:
 
     completed = subprocess.run(
         [
-            sys.executable,
+            "uv",
+            "run",
+            "--with",
+            "pydantic",
+            "python",
             str(artifact_root / "design-doc" / "scripts" / "split_check.py"),
             str(design_path),
         ],

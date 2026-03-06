@@ -7,7 +7,15 @@ import argparse
 import json
 import os
 import re
+import sys
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+COMMON_LIB_DIR = SCRIPT_DIR.parent / "src" / "common" / "scripts" / "lib"
+if str(COMMON_LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(COMMON_LIB_DIR))
+
+from skills_models import ManagedSkillsManifestModel  # noqa: E402
 
 MANIFEST_VERSION = 1
 DEFAULT_MANIFEST_NAME = ".dotfiles-managed-skills.json"
@@ -46,11 +54,11 @@ def format_source_root_for_manifest(source_root: Path, manifest_path: Path) -> s
 
 
 def build_manifest(source_root: str, skills: list[str]) -> dict[str, object]:
-    return {
-        "version": MANIFEST_VERSION,
-        "source_root": str(source_root),
-        "skills": skills,
-    }
+    return ManagedSkillsManifestModel(
+        version=MANIFEST_VERSION,
+        source_root=str(source_root),
+        skills=skills,
+    ).model_dump(mode="json")
 
 
 def parse_args() -> argparse.Namespace:

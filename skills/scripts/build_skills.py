@@ -14,6 +14,20 @@ from collections import deque
 from pathlib import Path, PurePosixPath
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+COMMON_LIB_DIR = SCRIPT_DIR.parent / "src" / "common" / "scripts" / "lib"
+if str(COMMON_LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(COMMON_LIB_DIR))
+
+from skills_models import (  # noqa: E402
+    CommonDependencyGraphModel,
+    SkillConfigModel,
+)
+from structured_templates import (  # noqa: E402
+    TemplateRenderError,
+    render_structured_template,
+)
 
 COMMON_DIR_NAME = "common"
 COMMON_DEPENDENCIES_NAME = "dependencies.json"
@@ -22,15 +36,19 @@ SKILL_CONFIG_NAME = "skill.json"
 MANIFEST_NAME = ".dotfiles-managed-skills.json"
 LOG_PREFIX = "[skills:build]"
 SCRIPT_REFERENCE_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_./-])(scripts/(?:[A-Za-z0-9][A-Za-z0-9_.-]*/)*[A-Za-z0-9][A-Za-z0-9_.-]*\.[A-Za-z0-9][A-Za-z0-9_.-]*)"
+    r"(?<![A-Za-z0-9_.-])(?:<skill-root>/)?(scripts/(?:[A-Za-z0-9][A-Za-z0-9_.-]*/)*[A-Za-z0-9][A-Za-z0-9_.-]*\.[A-Za-z0-9][A-Za-z0-9_.-]*)"
 )
 TEXT_SUFFIXES = {".md", ".py", ".sh", ".txt", ".json"}
+STRUCTURED_TEMPLATE_SUFFIX = ".md.j2"
+FRAGMENTS_SUFFIX = ".fragments.json"
 IGNORED_NAMES = {"__pycache__", ".pytest_cache", "tests", SKILL_CONFIG_NAME}
 IGNORED_SUFFIXES = {".pyc", ".pyo"}
 FORBIDDEN_PATTERNS = ("../_shared", "../../_shared", "../common", "../../common")
 EXPLICIT_SKILL_ROOT_PATTERNS = (
     (
-        re.compile(r"(?i)\b(?:re-)?run `(?:uv run python |bash )?scripts/"),
+        re.compile(
+            r"(?i)\b(?:re-)?run `(?:uv run(?: --with [A-Za-z0-9._-]+)* python |bash )?scripts/"
+        ),
         "use <skill-root>/scripts/... for executed helper commands",
     ),
     (
@@ -105,7 +123,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def should_ignore(name: str) -> bool:
-    return name in IGNORED_NAMES or Path(name).suffix in IGNORED_SUFFIXES
+    if name in IGNORED_NAMES or Path(name).suffix in IGNORED_SUFFIXES:
+        return True
+    return name.endswith(STRUCTURED_TEMPLATE_SUFFIX) or name.endswith(FRAGMENTS_SUFFIX)
 
 
 def ignore_source_entries(_dir: str, names: list[str]) -> set[str]:
@@ -142,7 +162,11 @@ def iter_text_files(root: Path) -> list[Path]:
         path
         for path in sorted(root.rglob("*"))
         if path.is_file()
-        and (path.suffix in TEXT_SUFFIXES or path.name == SKILL_FILE_NAME)
+        and (
+            path.suffix in TEXT_SUFFIXES
+            or path.name == SKILL_FILE_NAME
+            or path.name.endswith(STRUCTURED_TEMPLATE_SUFFIX)
+        )
     ]
 
 
@@ -151,31 +175,19 @@ def load_common_dependency_graph(source_root: Path) -> dict[str, CommonScriptSpe
     if not path.is_file():
         raise BuildError(f"common dependency config not found: {path}")
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise BuildError("common dependency config must be an object")
+    try:
+        payload = CommonDependencyGraphModel.model_validate_json(
+            path.read_text(encoding="utf-8")
+        ).root
+    except Exception as exc:
+        raise BuildError(f"invalid common dependency config: {path}: {exc}") from exc
 
     graph: dict[str, CommonScriptSpec] = {}
     common_root = source_root / COMMON_DIR_NAME
     seen_install_paths: set[PurePosixPath] = set()
     for script_name, config in payload.items():
-        if not isinstance(script_name, str) or not isinstance(config, dict):
-            raise BuildError(
-                "common dependency config entries must map strings to objects"
-            )
-        dependencies = config.get("dependencies")
-        install_path_raw = config.get("install_path")
-        if not isinstance(dependencies, list) or not isinstance(install_path_raw, str):
-            raise BuildError(
-                "common dependency config entries must include dependencies[] and install_path"
-            )
-        dependency_names = tuple(
-            dependency for dependency in dependencies if isinstance(dependency, str)
-        )
-        if len(dependency_names) != len(dependencies):
-            raise BuildError(
-                f"common dependency config dependencies must contain only strings: {script_name}"
-            )
+        dependency_names = tuple(config.dependencies)
+        install_path_raw = config.install_path
         install_path = PurePosixPath(install_path_raw)
         if (
             install_path.is_absolute()
@@ -219,19 +231,13 @@ def load_skill_common_scripts(skill_root: Path) -> tuple[str, ...]:
     if not config_path.is_file():
         return ()
 
-    payload = json.loads(config_path.read_text(encoding="utf-8"))
-    scripts = payload.get("common_scripts")
-    if not isinstance(scripts, list):
-        raise BuildError(
-            f"{skill_root.name}: skill.json common_scripts must be an array"
+    try:
+        payload = SkillConfigModel.model_validate_json(
+            config_path.read_text(encoding="utf-8")
         )
-
-    result = [item for item in scripts if isinstance(item, str)]
-    if len(result) != len(scripts):
-        raise BuildError(
-            f"{skill_root.name}: skill.json common_scripts must contain only strings"
-        )
-    return tuple(result)
+    except Exception as exc:
+        raise BuildError(f"{skill_root.name}: invalid skill.json: {exc}") from exc
+    return tuple(payload.common_scripts)
 
 
 def resolve_common_scripts(
@@ -315,7 +321,11 @@ def validate_no_forbidden_paths(skill_root: Path) -> None:
 
 def validate_explicit_skill_root_paths(skill_root: Path) -> None:
     violations: list[str] = []
-    for path in sorted(skill_root.rglob("*.md")):
+    for path in sorted(skill_root.rglob("*")):
+        if not path.is_file():
+            continue
+        if not (path.suffix == ".md" or path.name.endswith(STRUCTURED_TEMPLATE_SUFFIX)):
+            continue
         for lineno, line in enumerate(
             path.read_text(encoding="utf-8").splitlines(), start=1
         ):
@@ -334,11 +344,25 @@ def validate_artifact_root(artifact_root: Path) -> None:
     leaked_paths = [
         str(path.relative_to(artifact_root))
         for path in sorted(artifact_root.rglob("*"))
-        if path.name in IGNORED_NAMES or path.suffix in IGNORED_SUFFIXES
+        if path.name in IGNORED_NAMES
+        or path.suffix in IGNORED_SUFFIXES
+        or path.name.endswith(STRUCTURED_TEMPLATE_SUFFIX)
+        or path.name.endswith(FRAGMENTS_SUFFIX)
     ]
     if leaked_paths:
         raise BuildError(
             "artifact tree contains source-only files: " + ", ".join(leaked_paths)
+        )
+
+    leaked_template_tokens: list[str] = []
+    for path in sorted(artifact_root.rglob("*.md")):
+        contents = path.read_text(encoding="utf-8")
+        if "{{" in contents or "{%" in contents or "}}" in contents or "%}" in contents:
+            leaked_template_tokens.append(path.relative_to(artifact_root).as_posix())
+    if leaked_template_tokens:
+        raise BuildError(
+            "artifact tree contains unresolved template tokens: "
+            + ", ".join(leaked_template_tokens)
         )
 
     for skill_root in iter_skill_dirs(artifact_root):
@@ -364,6 +388,26 @@ def copy_common_scripts(
         shutil.copy2(source_path, artifact_path)
 
 
+def iter_structured_templates(skill_root: Path) -> list[Path]:
+    return sorted(path for path in skill_root.rglob(f"*{STRUCTURED_TEMPLATE_SUFFIX}"))
+
+
+def render_structured_templates(
+    source_skill_root: Path, artifact_skill_root: Path
+) -> None:
+    for template_path in iter_structured_templates(source_skill_root):
+        try:
+            rendered = render_structured_template(template_path)
+        except TemplateRenderError as exc:
+            raise BuildError(f"{source_skill_root.name}: {exc}") from exc
+        relative = template_path.relative_to(source_skill_root)
+        artifact_path = artifact_skill_root / relative.with_name(
+            relative.name.removesuffix(".j2")
+        )
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        artifact_path.write_text(rendered, encoding="utf-8")
+
+
 def copy_skill(
     source_root: Path,
     source_skill_root: Path,
@@ -381,6 +425,7 @@ def copy_skill(
     resolved_common_scripts = resolve_common_scripts(
         common_graph, requested_common_scripts, source_skill_root.name
     )
+    render_structured_templates(source_skill_root, artifact_skill_root)
     copy_common_scripts(
         source_root, artifact_skill_root, common_graph, resolved_common_scripts
     )

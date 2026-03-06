@@ -4,8 +4,15 @@
 from __future__ import annotations
 
 import argparse
-import json
+import sys
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+COMMON_LIB_DIR = SCRIPT_DIR.parent / "src" / "common" / "scripts" / "lib"
+if str(COMMON_LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(COMMON_LIB_DIR))
+
+from skills_models import ManagedSkillsManifestModel  # noqa: E402
 
 LOG_PREFIX = "[skills:mark]"
 
@@ -32,18 +39,14 @@ def load_manifest(path: Path) -> list[str]:
     if not path.is_file():
         raise SystemExit(f"Manifest file not found: {path}")
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    skills = payload.get("skills")
+    try:
+        payload = ManagedSkillsManifestModel.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
+    except Exception as exc:
+        raise SystemExit(f"Manifest format error: {exc}") from exc
 
-    if not isinstance(skills, list):
-        raise SystemExit("Manifest format error: skills must be an array")
-
-    result: list[str] = []
-    for item in skills:
-        if isinstance(item, str):
-            result.append(item)
-
-    return result
+    return payload.skills
 
 
 def main() -> int:

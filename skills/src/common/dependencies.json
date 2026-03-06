@@ -21,8 +21,14 @@
     "dependencies": [],
     "install_path": "scripts/lib/path-display.sh"
   },
-  "split_check.py": {
+  "skills_models.py": {
     "dependencies": [],
+    "install_path": "scripts/lib/skills_models.py"
+  },
+  "split_check.py": {
+    "dependencies": [
+      "skills_models.py"
+    ],
     "install_path": "scripts/split_check.py"
   }
 }
