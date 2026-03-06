@@ -40,11 +40,5 @@
       "llm_check.py"
     ],
     "install_path": "scripts/temp_lifecycle_check.py"
-  },
-  "artifact_format_check.py": {
-    "dependencies": [
-      "llm_check.py"
-    ],
-    "install_path": "scripts/artifact_format_check.py"
   }
 }

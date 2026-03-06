@@ -1,6 +1,5 @@
 {
   "common_scripts": [
-    "artifact_format_check.py",
     "digest-stamp.sh",
     "gate-check.sh",
     "llm-check-output.sh",
