@@ -336,7 +336,7 @@ def recommendation_for_unknown_task() -> str:
 
 def compute_machine_rows(
     task_ids: list[str],
-    granularity_rows: list[GranularityPokerRowModel],
+    granularity_rows: list[GranularityPokerRowModel | dict[str, str]],
     parse_errors: list[str],
 ) -> tuple[list[MachineRow], list[str]]:
     rows_by_task: dict[str, GranularityPokerRowModel] = {}
@@ -345,6 +345,15 @@ def compute_machine_rows(
     global_issues = list(parse_errors)
 
     for row in granularity_rows:
+        if isinstance(row, dict):
+            try:
+                row = GranularityPokerRowModel.model_validate(row)
+            except ValidationError as exc:
+                global_issues.extend(
+                    f"Granularity Poker row validation failed: {error['msg']}."
+                    for error in exc.errors()
+                )
+                continue
         task = row.task
         if task not in task_issues:
             extra_rows.append(
