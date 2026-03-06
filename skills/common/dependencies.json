@@ -1,14 +1,28 @@
 {
-  "digest-stamp.sh": [
-    "llm-check-output.sh",
-    "path-display.sh"
-  ],
-  "gate-check.sh": [
-    "llm-check-output.sh",
-    "path-display.sh"
-  ],
-  "llm-check-output.sh": [],
-  "path-display.sh": [],
-  "split_check.py": []
+  "digest-stamp.sh": {
+    "dependencies": [
+      "llm-check-output.sh",
+      "path-display.sh"
+    ],
+    "install_path": "scripts/digest-stamp.sh"
+  },
+  "gate-check.sh": {
+    "dependencies": [
+      "llm-check-output.sh",
+      "path-display.sh"
+    ],
+    "install_path": "scripts/gate-check.sh"
+  },
+  "llm-check-output.sh": {
+    "dependencies": [],
+    "install_path": "scripts/lib/llm-check-output.sh"
+  },
+  "path-display.sh": {
+    "dependencies": [],
+    "install_path": "scripts/lib/path-display.sh"
+  },
+  "split_check.py": {
+    "dependencies": [],
+    "install_path": "scripts/split_check.py"
+  }
 }
-

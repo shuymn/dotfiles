@@ -6,7 +6,8 @@ Helper scripts for the `make skills-*` workflow.
 
 - `build_skills.py`
   - Builds standalone artifacts from `skills/**` into `etc/claude/skills/**`.
-  - Reads per-skill `skill.json` declarations to resolve common script dependencies.
+  - Reads per-skill `skill.json` declarations and common install-path metadata to resolve common script dependencies.
+  - Installs public helper entrypoints in `scripts/` and internal shared helpers in `scripts/lib/`.
   - Excludes `tests/`, `__pycache__/`, and other source-only files from artifacts.
   - Validates `SKILL.md` script references and forbids parent-traversal helper paths.
 - `skills_manifest_refresh.py`

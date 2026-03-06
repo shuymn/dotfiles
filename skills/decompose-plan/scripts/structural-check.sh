@@ -10,12 +10,12 @@ set -euo pipefail
 # Exit 0 if all PASS; exit 1 if any FAIL.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=llm-check-output.sh
+# shellcheck source=lib/llm-check-output.sh
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/llm-check-output.sh"
-# shellcheck source=path-display.sh
+source "${SCRIPT_DIR}/lib/llm-check-output.sh"
+# shellcheck source=lib/path-display.sh
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/path-display.sh"
+source "${SCRIPT_DIR}/lib/path-display.sh"
 
 readonly TOOL_NAME="structural-check"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"

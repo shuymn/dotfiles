@@ -10,7 +10,7 @@ import re
 import shutil
 import sys
 from collections import deque
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -49,6 +49,22 @@ EXPLICIT_SKILL_ROOT_PATTERNS = (
 
 class BuildError(RuntimeError):
     """Raised when the generated artifact tree is invalid."""
+
+
+class CommonScriptSpec:
+    """Source/build metadata for a common script dependency."""
+
+    def __init__(self, dependencies: tuple[str, ...], install_path: PurePosixPath) -> None:
+        self.dependencies = dependencies
+        self.install_path = install_path
+
+    @property
+    def is_public(self) -> bool:
+        return len(self.install_path.parts) == 2 and self.install_path.parts[0] == "scripts"
+
+    @property
+    def relative_path(self) -> Path:
+        return Path(*self.install_path.parts)
 
 
 def log(message: str) -> None:
@@ -103,7 +119,7 @@ def iter_text_files(root: Path) -> list[Path]:
     ]
 
 
-def load_common_dependency_graph(source_root: Path) -> dict[str, tuple[str, ...]]:
+def load_common_dependency_graph(source_root: Path) -> dict[str, CommonScriptSpec]:
     path = source_root / COMMON_DIR_NAME / COMMON_DEPENDENCIES_NAME
     if not path.is_file():
         raise BuildError(f"common dependency config not found: {path}")
@@ -112,20 +128,47 @@ def load_common_dependency_graph(source_root: Path) -> dict[str, tuple[str, ...]
     if not isinstance(payload, dict):
         raise BuildError("common dependency config must be an object")
 
-    graph: dict[str, tuple[str, ...]] = {}
-    common_scripts_root = source_root / COMMON_DIR_NAME / "scripts"
-    for script_name, dependencies in payload.items():
-        if not isinstance(script_name, str) or not isinstance(dependencies, list):
-            raise BuildError("common dependency config entries must map strings to arrays")
-        script_path = common_scripts_root / script_name
+    graph: dict[str, CommonScriptSpec] = {}
+    common_root = source_root / COMMON_DIR_NAME
+    seen_install_paths: set[PurePosixPath] = set()
+    for script_name, config in payload.items():
+        if not isinstance(script_name, str) or not isinstance(config, dict):
+            raise BuildError("common dependency config entries must map strings to objects")
+        dependencies = config.get("dependencies")
+        install_path_raw = config.get("install_path")
+        if not isinstance(dependencies, list) or not isinstance(install_path_raw, str):
+            raise BuildError(
+                "common dependency config entries must include dependencies[] and install_path"
+            )
+        dependency_names = tuple(
+            dependency for dependency in dependencies if isinstance(dependency, str)
+        )
+        if len(dependency_names) != len(dependencies):
+            raise BuildError(
+                f"common dependency config dependencies must contain only strings: {script_name}"
+            )
+        install_path = PurePosixPath(install_path_raw)
+        if install_path.is_absolute() or not install_path.parts or install_path.parts[0] != "scripts":
+            raise BuildError(
+                f"common dependency install_path must stay under scripts/: {install_path_raw}"
+            )
+        if install_path.name != script_name:
+            raise BuildError(
+                f"common dependency install_path basename must match key: {script_name} -> {install_path_raw}"
+            )
+        if install_path in seen_install_paths:
+            raise BuildError(f"duplicate common dependency install_path: {install_path_raw}")
+        seen_install_paths.add(install_path)
+        script_path = common_root / Path(*install_path.parts)
         if not script_path.is_file():
             raise BuildError(f"common dependency config references missing script: {script_path}")
-        graph[script_name] = tuple(
-            dependency for dependency in dependencies if isinstance(dependency, str)
+        graph[script_name] = CommonScriptSpec(
+            dependencies=dependency_names,
+            install_path=install_path,
         )
 
     for script_name, dependencies in graph.items():
-        for dependency in dependencies:
+        for dependency in dependencies.dependencies:
             if dependency not in graph:
                 raise BuildError(
                     f"common dependency config references unknown dependency: {script_name} -> {dependency}"
@@ -151,7 +194,7 @@ def load_skill_common_scripts(skill_root: Path) -> tuple[str, ...]:
 
 
 def resolve_common_scripts(
-    common_graph: dict[str, tuple[str, ...]], requested_scripts: tuple[str, ...], skill_name: str
+    common_graph: dict[str, CommonScriptSpec], requested_scripts: tuple[str, ...], skill_name: str
 ) -> tuple[str, ...]:
     resolved: list[str] = []
     seen: set[str] = set()
@@ -165,24 +208,37 @@ def resolve_common_scripts(
             raise BuildError(f"{skill_name}: unknown common script dependency `{script_name}`")
         seen.add(script_name)
         resolved.append(script_name)
-        queue.extend(common_graph[script_name])
+        queue.extend(common_graph[script_name].dependencies)
 
     return tuple(sorted(resolved))
 
 
-def validate_referenced_scripts(skill_root: Path, available_common_scripts: tuple[str, ...] = ()) -> None:
+def public_common_reference_paths(
+    common_graph: dict[str, CommonScriptSpec], resolved_common_scripts: tuple[str, ...]
+) -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            common_graph[script_name].install_path.as_posix()
+            for script_name in resolved_common_scripts
+            if common_graph[script_name].is_public
+        )
+    )
+
+
+def validate_referenced_scripts(
+    skill_root: Path, available_common_references: tuple[str, ...] = ()
+) -> None:
     skill_md = skill_root / SKILL_FILE_NAME
     contents = skill_md.read_text(encoding="utf-8")
     referenced = sorted(set(SCRIPT_REFERENCE_PATTERN.findall(contents)))
     missing: list[str] = []
     not_executable: list[str] = []
-    common_script_names = set(available_common_scripts)
+    common_reference_paths = set(available_common_references)
 
     for reference in referenced:
         script_path = skill_root / reference
-        if not script_path.is_file() and Path(reference).parent.as_posix() == "scripts":
-            if Path(reference).name in common_script_names:
-                continue
+        if not script_path.is_file() and reference in common_reference_paths:
+            continue
         if not script_path.is_file():
             missing.append(reference)
             continue
@@ -245,16 +301,20 @@ def validate_artifact_root(artifact_root: Path) -> None:
 
 
 def copy_common_scripts(
-    source_root: Path, artifact_skill_root: Path, resolved_common_scripts: tuple[str, ...]
+    source_root: Path,
+    artifact_skill_root: Path,
+    common_graph: dict[str, CommonScriptSpec],
+    resolved_common_scripts: tuple[str, ...],
 ) -> None:
     if not resolved_common_scripts:
         return
 
-    scripts_root = artifact_skill_root / "scripts"
-    scripts_root.mkdir(parents=True, exist_ok=True)
-    common_scripts_root = source_root / COMMON_DIR_NAME / "scripts"
     for script_name in resolved_common_scripts:
-        shutil.copy2(common_scripts_root / script_name, scripts_root / script_name)
+        spec = common_graph[script_name]
+        source_path = source_root / COMMON_DIR_NAME / spec.relative_path
+        artifact_path = artifact_skill_root / spec.relative_path
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, artifact_path)
 
 
 def copy_skill(
@@ -274,7 +334,7 @@ def copy_skill(
     resolved_common_scripts = resolve_common_scripts(
         common_graph, requested_common_scripts, source_skill_root.name
     )
-    copy_common_scripts(source_root, artifact_skill_root, resolved_common_scripts)
+    copy_common_scripts(source_root, artifact_skill_root, common_graph, resolved_common_scripts)
 
 
 def build_skills(source_root: Path, artifact_root: Path) -> None:
@@ -294,7 +354,10 @@ def build_skills(source_root: Path, artifact_root: Path) -> None:
         resolved_common_scripts = resolve_common_scripts(
             common_graph, requested_common_scripts, source_skill_root.name
         )
-        validate_referenced_scripts(source_skill_root, resolved_common_scripts)
+        validate_referenced_scripts(
+            source_skill_root,
+            public_common_reference_paths(common_graph, resolved_common_scripts),
+        )
         validate_no_forbidden_paths(source_skill_root)
         validate_explicit_skill_root_paths(source_skill_root)
 

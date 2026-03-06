@@ -41,6 +41,7 @@ def test_source_skills_have_no_parent_traversal_helper_refs() -> None:
     for skill_root in sorted(SOURCE_ROOT.iterdir()):
         if skill_root.name in {"common", "tests"} or not skill_root.is_dir():
             continue
+        assert not list(skill_root.rglob("scripts/lib"))
         for path in sorted(skill_root.rglob("*")):
             if not path.is_file() or path.suffix not in {".md", ".py", ".sh", ".txt"}:
                 continue
@@ -48,7 +49,8 @@ def test_source_skills_have_no_parent_traversal_helper_refs() -> None:
             assert "../../common/scripts/" not in contents, path.as_posix()
             assert "../_shared" not in contents, path.as_posix()
             assert "../../_shared" not in contents, path.as_posix()
-    assert not list(SOURCE_ROOT.rglob("scripts/lib"))
+    assert (SOURCE_ROOT / "common" / "scripts" / "lib" / "llm-check-output.sh").is_file()
+    assert (SOURCE_ROOT / "common" / "scripts" / "lib" / "path-display.sh").is_file()
 
 
 def test_source_markdown_uses_explicit_skill_root_for_runtime_refs() -> None:
@@ -63,12 +65,15 @@ def test_build_outputs_standalone_artifacts() -> None:
 
     assert (artifact_root / ".dotfiles-managed-skills.json").is_file()
     assert not (artifact_root / "_shared").exists()
-    assert not list(artifact_root.rglob("lib"))
     assert not list(artifact_root.rglob("tests"))
     assert not list(artifact_root.rglob("__pycache__"))
     assert (artifact_root / "design-doc" / "scripts" / "split_check.py").is_file()
     assert not (artifact_root / "design-doc" / "scripts" / "split-check.sh").exists()
     assert (artifact_root / "setup-ralph" / "scripts" / "gate-check.sh").is_file()
+    assert not (artifact_root / "design-doc" / "scripts" / "llm-check-output.sh").exists()
+    assert not (artifact_root / "design-doc" / "scripts" / "path-display.sh").exists()
+    assert (artifact_root / "design-doc" / "scripts" / "lib" / "llm-check-output.sh").is_file()
+    assert (artifact_root / "design-doc" / "scripts" / "lib" / "path-display.sh").is_file()
     assert not (artifact_root / "design-doc" / "skill.json").exists()
 
 
