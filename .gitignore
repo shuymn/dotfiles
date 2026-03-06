@@ -1,5 +1,6 @@
 .DS_Store
 .vscode/
+.venv/
 .pytest_cache/
 __pycache__/
 
