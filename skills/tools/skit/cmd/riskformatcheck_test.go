@@ -110,13 +110,13 @@ func TestCheckRiskRow_UnknownTierSkipped(t *testing.T) {
 	}
 }
 
-// --- Unit tests: parseRiskTable ---
+// --- Unit tests: parseGenericTable (risk table rows) ---
 
 func TestParseRiskTable_ValidTable(t *testing.T) {
 	section := "| Area | Risk Tier | Change Rationale |\n" +
 		"|------|-----------|------------------|\n" +
 		"| Auth | Critical  | Defect Impact: breach / Blast Radius: all |\n"
-	rows := parseRiskTable(section)
+	rows := parseGenericTable(section)
 	if len(rows) != 1 {
 		t.Fatalf("expected 1 row, got %d", len(rows))
 	}
@@ -127,7 +127,7 @@ func TestParseRiskTable_ValidTable(t *testing.T) {
 
 func TestParseRiskTable_NoSeparator(t *testing.T) {
 	section := "| Area | Risk Tier |\n| Auth | Critical  |\n"
-	rows := parseRiskTable(section)
+	rows := parseGenericTable(section)
 	if len(rows) != 0 {
 		t.Errorf("expected 0 rows when separator missing, got %d", len(rows))
 	}
@@ -135,17 +135,17 @@ func TestParseRiskTable_NoSeparator(t *testing.T) {
 
 func TestParseRiskTable_TooFewLines(t *testing.T) {
 	section := "| Area | Risk Tier |\n"
-	rows := parseRiskTable(section)
+	rows := parseGenericTable(section)
 	if len(rows) != 0 {
 		t.Errorf("expected 0 rows for single-line table, got %d", len(rows))
 	}
 }
 
-// --- Unit tests: extractRiskSection ---
+// --- Unit tests: extractSection (Risk Classification) ---
 
 func TestExtractRiskSection_Present(t *testing.T) {
 	text := "# Design\n\n## Risk Classification\n\nSome content here.\n"
-	got := extractRiskSection(text)
+	got := extractSection(text, "Risk Classification")
 	if !strings.Contains(got, "Some content here") {
 		t.Errorf("expected section content, got %q", got)
 	}
@@ -153,7 +153,7 @@ func TestExtractRiskSection_Present(t *testing.T) {
 
 func TestExtractRiskSection_Absent(t *testing.T) {
 	text := "# Design\n\nNo risk section.\n"
-	got := extractRiskSection(text)
+	got := extractSection(text, "Risk Classification")
 	if got != "" {
 		t.Errorf("expected empty string, got %q", got)
 	}
@@ -161,7 +161,7 @@ func TestExtractRiskSection_Absent(t *testing.T) {
 
 func TestExtractRiskSection_StopsAtNextSection(t *testing.T) {
 	text := "## Risk Classification\n\nrisk content\n\n## Next Section\n\nnext content\n"
-	got := extractRiskSection(text)
+	got := extractSection(text, "Risk Classification")
 	if strings.Contains(got, "next content") {
 		t.Errorf("section should not include content from next section, got %q", got)
 	}
