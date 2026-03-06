@@ -285,7 +285,7 @@ Perform structural checks before presenting the plan. Semantic verification is d
 
 1. Run `<skill-root>/scripts/structural-check.sh <design-file> <plan-file>`.
 2. Run `uv run python <skill-root>/scripts/trace_compose_check.py <design-file> <plan-trace-file>`.
-3. Run `uv run --with pydantic python <skill-root>/scripts/risk_dod_check.py <plan-file> <design-file>`. If it reports `FAIL`, add missing DoD annotations to affected tasks.
+3. Run `skit risk-dod-check <plan-file> <design-file>`. If it reports `FAIL`, add missing DoD annotations to affected tasks.
 4. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
 5. Do NOT present the plan to the user if structural checks are failing.
 6. Record structural check results in `plan.trace.md`.
