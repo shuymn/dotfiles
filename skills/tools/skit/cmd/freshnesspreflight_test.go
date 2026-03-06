@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,11 +9,6 @@ import (
 	"strings"
 	"testing"
 )
-
-func sha256Hex(content []byte) string {
-	sum := sha256.Sum256(content)
-	return fmt.Sprintf("%x", sum)
-}
 
 func makeReviewArtifact(sourceArtifact, sourceDigest string) string {
 	return fmt.Sprintf(
@@ -44,7 +38,7 @@ func TestFreshArtifactPass(t *testing.T) {
 	if err := os.WriteFile(srcPath, content, 0644); err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256Hex(content)
+	digest := sha256Bytes(content)
 
 	reviewPath := filepath.Join(tmp, "design.review.md")
 	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", digest)), 0644); err != nil {
@@ -66,7 +60,7 @@ func TestStaleArtifactStale(t *testing.T) {
 	if err := os.WriteFile(srcPath, []byte("# Design v1\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	staleDigest := sha256Hex([]byte("# Design old\n"))
+	staleDigest := sha256Bytes([]byte("# Design old\n"))
 
 	reviewPath := filepath.Join(tmp, "design.review.md")
 	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", staleDigest)), 0644); err != nil {
@@ -134,7 +128,7 @@ func TestAllFreshPass(t *testing.T) {
 	if err := os.WriteFile(srcPath, content, 0644); err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256Hex(content)
+	digest := sha256Bytes(content)
 
 	reviewPath := filepath.Join(tmp, "design.review.md")
 	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", digest)), 0644); err != nil {
@@ -159,7 +153,7 @@ func TestStaleArtifactFail(t *testing.T) {
 	if err := os.WriteFile(srcPath, []byte("# Current content\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	staleDigest := sha256Hex([]byte("# Old content\n"))
+	staleDigest := sha256Bytes([]byte("# Old content\n"))
 
 	reviewPath := filepath.Join(tmp, "design.review.md")
 	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", staleDigest)), 0644); err != nil {

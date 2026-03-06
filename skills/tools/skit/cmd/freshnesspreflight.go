@@ -28,12 +28,7 @@ var (
 	artifactRe = regexp.MustCompile(`(?im)Source Artifact\*{0,2}\s*:\s*(.+?)\s*$`)
 )
 
-type staleEntry struct {
-	Name  string `json:"name"`
-	Issue string `json:"issue"`
-}
-
-type skipEntry struct {
+type checkEntry struct {
 	Name  string `json:"name"`
 	Issue string `json:"issue"`
 }
@@ -101,17 +96,17 @@ func runFreshnessPreflight(w io.Writer, args []string) int {
 		return 0
 	}
 
-	var staleList []staleEntry
-	var skipList []skipEntry
+	var staleList []checkEntry
+	var skipList []checkEntry
 	passed := 0
 
 	for _, af := range artifactFiles {
 		status, name, issue := checkArtifact(af, resolvedBase)
 		switch status {
 		case "STALE":
-			staleList = append(staleList, staleEntry{Name: name, Issue: issue})
+			staleList = append(staleList, checkEntry{Name: name, Issue: issue})
 		case "SKIP":
-			skipList = append(skipList, skipEntry{Name: name, Issue: issue})
+			skipList = append(skipList, checkEntry{Name: name, Issue: issue})
 		default:
 			passed++
 		}
@@ -154,7 +149,7 @@ func runFreshnessPreflight(w io.Writer, args []string) int {
 		Summary: summary,
 	}, attrs...)
 
-	if overall == "FAIL" {
+	if len(staleList) > 0 {
 		return 1
 	}
 	return 0
@@ -182,13 +177,17 @@ func extractMetadata(text string) (digest, artifactPath string) {
 	return
 }
 
+func sha256Bytes(data []byte) string {
+	sum := sha256.Sum256(data)
+	return fmt.Sprintf("%x", sum)
+}
+
 func sha256File(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(data)
-	return fmt.Sprintf("%x", sum), nil
+	return sha256Bytes(data), nil
 }
 
 func checkArtifact(artifactPath, baseDir string) (status, name, issue string) {
