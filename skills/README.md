@@ -7,13 +7,14 @@ Standalone project for skill source, build tooling, and validation.
 - `src/`
   - Source of truth for editable skills.
   - `src/<skill>/` contains each skill's `SKILL.md`, `references/`, `scripts/`, and optional `tests/`.
+  - Structured reference sections may use `*.md.j2` + adjacent `*.fragments.json`; build renders them back to plain Markdown artifacts.
   - `src/common/` contains shared source-only helpers vendored into built artifacts.
 - `scripts/`
   - Build/install/reconcile helpers used by `Makefile`.
 - `tests/`
   - Cross-skill tests for the build pipeline and artifact validation.
 - `pyproject.toml`
-  - Local Python project config for `uv` and `pytest`.
+  - Local Python project config for `uv`, `pytest`, `pydantic`, and `Jinja2`.
 - `Makefile`
   - Entrypoints for build, test, install, reconcile, audit, and sync.
 

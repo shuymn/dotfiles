@@ -7,6 +7,7 @@ Helper scripts for the local `skills/Makefile` workflow.
 - `build_skills.py`
   - Builds standalone artifacts from `src/**` into `../etc/claude/skills/**`.
   - Reads per-skill `skill.json` declarations and common install-path metadata to resolve common script dependencies.
+  - Renders `*.md.j2` + `*.fragments.json` source pairs into plain Markdown with `Pydantic + Jinja2`.
   - Installs public helper entrypoints in `scripts/` and internal shared helpers in `scripts/lib/`.
   - Excludes `tests/`, `__pycache__/`, and other source-only files from artifacts.
   - Validates `SKILL.md` script references and forbids parent-traversal helper paths.

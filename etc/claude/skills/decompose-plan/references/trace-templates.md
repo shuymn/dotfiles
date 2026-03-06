@@ -25,8 +25,8 @@ When embedding commands or artifact paths in these files, use repository-relativ
 
 ## AC Ownership Map
 | AC ID | Owner Task | Contributors | Has RED for AC |
-|-------|-----------|-------------|----------------|
-| AC01  | Task 2    | Task 4      | Yes            |
+|-------|------------|--------------|----------------|
+| AC01  | Task 2     | Task 4       | Yes            |
 
 ## Behavioral Lock Map
 - LOCK01 (`REQxx`, `ACyy`): intent="gateway only path / no fallback", negative_checks=[Task C DoD-2], positive_boundary_checks=[Task C DoD-3]

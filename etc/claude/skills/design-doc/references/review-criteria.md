@@ -112,7 +112,7 @@ Fixed 8-point evaluation framework for `design-doc(review)` mode.
 
 **Check Method**:
 - Verify `## Decomposition Strategy` includes `### Boundary Inventory` with the required fixed columns.
-- Run `uv run python <skill-root>/scripts/split_check.py <design-file>` and use its blocker/advisory output as authoritative signal evidence.
+- Run `uv run --with pydantic python <skill-root>/scripts/split_check.py <design-file>` and use its blocker/advisory output as authoritative signal evidence.
 - For `Split Decision: single`, confirm the Boundary Inventory does not expose multiple owned boundaries plus conflicting verification/TEMP/parallel-stream signals.
 - For `Split Decision: root-sub`, confirm boundary-owned rows map 1:1 to `Sub-Doc Index` `Owned Boundary`, and the referenced sub docs each carry boundary-local requirements and ACs.
 - Treat split-check advisories as improvement notes, not failures, unless the command itself reports `FAIL`.

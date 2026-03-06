@@ -19,7 +19,7 @@ Independent verification of an approved design document. This mode runs as a sub
 ## Procedure
 
 1. **Generate Header**: Run `<skill-root>/scripts/digest-stamp.sh design-review <design-file>` to produce the review metadata header.
-2. **Run Split Checker**: Run `uv run python <skill-root>/scripts/split_check.py <design-file>` and keep both blockers and advisories for evidence.
+2. **Run Split Checker**: Run `uv run --with pydantic python <skill-root>/scripts/split_check.py <design-file>` and keep both blockers and advisories for evidence.
 3. **Load Review Criteria**: Read `<skill-root>/references/review-criteria.md` for the 8 evaluation viewpoints.
 4. **Evaluate Each Viewpoint**: For each of the 8 criteria:
    - Assess the design doc against the criterion definition and check method.

@@ -291,7 +291,7 @@ When a significant design decision is made, record it as an ADR.
      - Every sub ID referenced in `Root Coverage` exists in `Sub-Doc Index`.
      - Boundary ownership text is explicit and non-overlapping.
    - If `Split Decision: single`, verify no unnecessary root/sub scaffolding remains.
-   - Run `uv run python <skill-root>/scripts/split_check.py <design-file>` before finalizing. If it reports `FAIL`, mark the design as `BLOCKED`; if it reports advisories, tighten `Decision Basis` or boundary ownership before approval.
+   - Run `uv run --with pydantic python <skill-root>/scripts/split_check.py <design-file>` before finalizing. If it reports `FAIL`, mark the design as `BLOCKED`; if it reports advisories, tighten `Decision Basis` or boundary ownership before approval.
 6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, validation, links).
 7. Verify supersession links are coherent (`Supersedes`/`Superseded by` are reciprocal where applicable).
 8. **Ambiguity Check (Required)**:

@@ -26,23 +26,23 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ## Clarifications
 
-| Question | Answer / Assumption | Impact | Status |
-|----------|----------------------|--------|--------|
+| Question                    | Answer / Assumption                   | Impact                     | Status             |
+|-----------------------------|---------------------------------------|----------------------------|--------------------|
 | [What needed clarification] | [Final answer or explicit assumption] | [How design/scope changes] | resolved / assumed |
 
 ## Existing Codebase Constraints (Required for non-greenfield)
 
-| Constraint ID | Source (file/test) | Constraint | Impact on Design | Required Verification |
-|---------------|--------------------|------------|------------------|-----------------------|
-| CONS-01 | [path/to/file or test] | [Existing assumption or coupling] | [How this limits or shapes design] | [How regression/contract will be checked] |
+| Constraint ID | Source (file/test)     | Constraint                        | Impact on Design                   | Required Verification                     |
+|---------------|------------------------|-----------------------------------|------------------------------------|-------------------------------------------|
+| CONS-01       | [path/to/file or test] | [Existing assumption or coupling] | [How this limits or shapes design] | [How regression/contract will be checked] |
 
 ## Risk Classification
 
-| Area | Risk Tier | Change Rationale |
-|------|-----------|-----------------|
-| [e.g., Auth token validation] | Critical | Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact] |
-| [e.g., API response schema] | Sensitive | Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact] |
-| [e.g., Dashboard component] | Standard | Not Critical: [reason] / Not Sensitive: [reason] |
+| Area                          | Risk Tier | Change Rationale                                                         |
+|-------------------------------|-----------|--------------------------------------------------------------------------|
+| [e.g., Auth token validation] | Critical  | Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact] |
+| [e.g., API response schema]   | Sensitive | Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact] |
+| [e.g., Dashboard component]   | Standard  | Not Critical: [reason] / Not Sensitive: [reason]                         |
 
 <!-- Required when design is non-greenfield, or when greenfield touches Critical domains (auth, billing, access control, encryption, PII). -->
 <!-- Critical/Sensitive require structured Change Rationale: "Defect Impact: [...] / Blast Radius: [...]". Standard requires semantic justification: "Not Critical: [reason] / Not Sensitive: [reason]". If justification cannot be written, escalate to Sensitive or higher (confidence gate). -->
@@ -56,9 +56,9 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ### Boundary Inventory
 
-| Boundary | Owns Requirements/AC | Primary Verification Surface | TEMP Lifecycle Group | Parallel Stream | Depends On |
-|----------|----------------------|------------------------------|----------------------|-----------------|------------|
-| [Boundary name] | [REQ/AC IDs or summary, or `Integration-only`] | [primary test or verification surface] | [shared TEMP group or `none`] | yes | [Boundary names or `none`] |
+| Boundary        | Owns Requirements/AC                           | Primary Verification Surface           | TEMP Lifecycle Group          | Parallel Stream | Depends On                 |
+|-----------------|------------------------------------------------|----------------------------------------|-------------------------------|-----------------|----------------------------|
+| [Boundary name] | [REQ/AC IDs or summary, or `Integration-only`] | [primary test or verification surface] | [shared TEMP group or `none`] | yes             | [Boundary names or `none`] |
 
 <!-- Required for both `single` and `root-sub`. -->
 <!-- Use `Integration-only` for root-only integration rows. -->
@@ -67,15 +67,15 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ### Sub-Doc Index (required when root-sub)
 
-| Sub ID | File | Owned Boundary | Owns Requirements/AC |
-|--------|------|----------------|----------------------|
-| SUB-A | docs/plans/<topic>/sub-a-design.md | [boundary] | [ID ranges or summary] |
+| Sub ID | File                               | Owned Boundary | Owns Requirements/AC   |
+|--------|------------------------------------|----------------|------------------------|
+| SUB-A  | docs/plans/<topic>/sub-a-design.md | [boundary]     | [ID ranges or summary] |
 
 ### Root Coverage (required when root-sub)
 
-| Root Requirement/AC | Covered By (Sub ID or Integration) | Notes |
-|---------------------|------------------------------------|-------|
-| [ROOT-REQ/ROOT-AC] | [SUB-A / Integration] | [mapping rationale] |
+| Root Requirement/AC | Covered By (Sub ID or Integration) | Notes               |
+|---------------------|------------------------------------|---------------------|
+| [ROOT-REQ/ROOT-AC]  | [SUB-A / Integration]              | [mapping rationale] |
 
 ## Proposed Solution
 
@@ -110,24 +110,24 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 Use stable IDs (`TEMPxx`). For each entry, point to the lifecycle record (`ADR` preferred; local ledger acceptable for small/local mechanics).
 
-| ID | Mechanism | Lifecycle Record | Status |
-|----|-----------|------------------|--------|
+| ID     | Mechanism                   | Lifecycle Record                                                     | Status |
+|--------|-----------------------------|----------------------------------------------------------------------|--------|
 | TEMP01 | [e.g., compatibility alias] | [temp-compat-alias](/docs/adr/<topic>/temp-compat-alias.md) or local | active |
 
 ### Sunset Closure Checklist
 
 Required for every `TEMPxx`, even when details are captured in ADR.
 
-| ID | Introduced For | Retirement Trigger | Retirement Verification | Removal Scope |
-|----|----------------|--------------------|-------------------------|---------------|
-| TEMP01 | [reason] | [objective condition] | [verification command/test] | [what is deleted/disabled] |
+| ID     | Introduced For | Retirement Trigger    | Retirement Verification     | Removal Scope              |
+|--------|----------------|-----------------------|-----------------------------|----------------------------|
+| TEMP01 | [reason]       | [objective condition] | [verification command/test] | [what is deleted/disabled] |
 
 If coordination or handoff risk exists, add optional `Owner` and `Target` columns.
 
 ## Decision Log
 
-| ADR | Decision | Status |
-|-----|----------|--------|
+| ADR                                                                         | Decision          | Status   |
+|-----------------------------------------------------------------------------|-------------------|----------|
 | [adopt-grpc-for-public-api](/docs/adr/<topic>/adopt-grpc-for-public-api.md) | Brief description | Accepted |
 
 ## Open Questions
@@ -136,9 +136,9 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 
 ## Acceptance Criteria
 
-| AC ID | EARS Type | Contract Type | Requirement Sentence | Verification Intent | Verification Command |
-|-------|-----------|---------------|---------------------|---------------------|----------------------|
-| AC01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [behavioral/schema/api-contract/cli-contract/none] | [EARS-formatted requirement sentence] | [EARS rationale: why this type was chosen] [Concrete verification method with expected outcome] | `<exact command>` or `TBD-at-plan` |
+| AC ID | EARS Type                                                | Contract Type                                      | Requirement Sentence                  | Verification Intent                                                                             | Verification Command               |
+|-------|----------------------------------------------------------|----------------------------------------------------|---------------------------------------|-------------------------------------------------------------------------------------------------|------------------------------------|
+| AC01  | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [behavioral/schema/api-contract/cli-contract/none] | [EARS-formatted requirement sentence] | [EARS rationale: why this type was chosen] [Concrete verification method with expected outcome] | `<exact command>` or `TBD-at-plan` |
 
 <!-- See ears-types.md for EARS type definitions, syntax templates, and selection guidance. -->
 <!-- Contract Type: schema (data shape validation), api-contract (API interface compliance), cli-contract (CLI behavior compliance), behavioral (logic/state behavior), none (no specific contract). Default: behavioral. -->
@@ -254,13 +254,7 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 ## Local Acceptance Criteria
 
-| AC ID | EARS Type | Contract Type | Requirement Sentence | Verification Intent | Verification Command |
-|-------|-----------|---------------|---------------------|---------------------|----------------------|
+| AC ID       | EARS Type                                                | Contract Type                                      | Requirement Sentence                  | Verification Intent                    | Verification Command               |
+|-------------|----------------------------------------------------------|----------------------------------------------------|---------------------------------------|----------------------------------------|------------------------------------|
 | AC-SUB-X-01 | [Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional] | [behavioral/schema/api-contract/cli-contract/none] | [EARS-formatted requirement sentence] | [EARS rationale] [Verification method] | `<exact command>` or `TBD-at-plan` |
-
-## Decision Log
-
-| ADR | Decision | Status |
-|-----|----------|--------|
-| [adopt-grpc-for-public-api](/docs/adr/<topic>/adopt-grpc-for-public-api.md) | Brief description | Accepted |
 ```
