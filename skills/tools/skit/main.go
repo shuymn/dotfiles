@@ -12,5 +12,6 @@ func main() {
 	app.Register(cmd.FreshnessPreflight())
 	app.Register(cmd.ArtifactFormatCheck())
 	app.Register(cmd.RiskFormatCheck())
+	app.Register(cmd.VerificationCmdCheck())
 	os.Exit(app.Run(os.Args))
 }
