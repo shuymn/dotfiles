@@ -312,7 +312,7 @@ When a significant design decision is made, record it as an ADR.
     - Verification guidance covers both newly added behavior and impacted existing behavior.
 13. For designs spanning multiple components, verify at least one integration-level acceptance criterion exists that can only be verified by exercising multiple components together (not by mocking one side).
 14. If the design is non-greenfield OR greenfield touching Critical domains (auth, billing, access control, encryption, PII):
-    - Run `uv run --with pydantic python <skill-root>/scripts/risk_format_check.py <design-file>`.
+    - Run `skit risk-format-check <design-file>`.
       - `SKIP`: no Risk Classification section — only acceptable for greenfield without Critical domains; otherwise mark as `BLOCKED`.
       - `FAIL`: format violations found — mark as `BLOCKED` and fix.
     - Then verify semantically: any Standard entry with generic or circular justification must be escalated to Sensitive or higher.
