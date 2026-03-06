@@ -59,6 +59,14 @@ skills-build: ## Build standalone skills artifacts into etc/claude/skills
 skills-test: ## Run pytest against skills source and build validations
 	@$(MAKE) -C "$(SKILLS_PROJECT)" test
 
+.PHONY: skills-fmt
+skills-fmt: ## Format Python files in the standalone skills project
+	@$(MAKE) -C "$(SKILLS_PROJECT)" fmt
+
+.PHONY: skills-lint
+skills-lint: ## Lint Python files in the standalone skills project
+	@$(MAKE) -C "$(SKILLS_PROJECT)" lint
+
 .PHONY: skills-install
 skills-install: ## Install built managed skills via skills CLI
 	@$(MAKE) -C "$(SKILLS_PROJECT)" install

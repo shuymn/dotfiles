@@ -25,6 +25,12 @@ make skills-sync
 - `make skills-test`
   - Delegates to `skills/Makefile`.
   - Runs pytest from the standalone `skills/` project (`skills/pyproject.toml`).
+- `make skills-fmt`
+  - Delegates to `skills/Makefile`.
+  - Runs `ruff format` for Python files under `skills/src/**`, `skills/tests/**`, and `skills/scripts/**`.
+- `make skills-lint`
+  - Delegates to `skills/Makefile`.
+  - Runs `ruff check` for Python files under `skills/src/**`, `skills/tests/**`, and `skills/scripts/**`.
 - `make skills-sync`
   - Delegates to `skills/Makefile`.
   - Rebuilds `etc/claude/skills/**` from `skills/src/**` before installation.

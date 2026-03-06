@@ -18,9 +18,15 @@ def log(message: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Reconcile managed skills")
-    parser.add_argument("--manifest", required=True, help="Path to managed skills manifest")
-    parser.add_argument("--agents-skills", required=True, help="Path to ~/.agents/skills")
-    parser.add_argument("--marker", default=".dotfiles-managed", help="Managed marker filename")
+    parser.add_argument(
+        "--manifest", required=True, help="Path to managed skills manifest"
+    )
+    parser.add_argument(
+        "--agents-skills", required=True, help="Path to ~/.agents/skills"
+    )
+    parser.add_argument(
+        "--marker", default=".dotfiles-managed", help="Managed marker filename"
+    )
     parser.add_argument(
         "--skills-cmd",
         required=True,
@@ -88,7 +94,9 @@ def main() -> int:
     managed_installed = discover_managed_installed(agents_skills, args.marker)
     to_remove = sorted(managed_installed - desired)
 
-    log(f"desired={len(desired)} installed={len(managed_installed)} remove={len(to_remove)}")
+    log(
+        f"desired={len(desired)} installed={len(managed_installed)} remove={len(to_remove)}"
+    )
 
     if not to_remove:
         log("result=no_stale_managed_skills")

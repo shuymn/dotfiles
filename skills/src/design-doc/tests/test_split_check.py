@@ -6,7 +6,6 @@ import textwrap
 import unittest
 from pathlib import Path
 
-
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "build_skills.py"
 BUILD_SPEC = importlib.util.spec_from_file_location("build_skills", BUILD_MODULE_PATH)
@@ -24,6 +23,7 @@ assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
+
 
 class SplitCheckTests(unittest.TestCase):
     maxDiff = None
@@ -266,9 +266,13 @@ class SplitCheckTests(unittest.TestCase):
         }
         return design, subdocs
 
-    def materialize(self, design_text: str, subdocs: dict[str, str] | None = None) -> Path:
+    def materialize(
+        self, design_text: str, subdocs: dict[str, str] | None = None
+    ) -> Path:
         temp_dir = Path(tempfile.mkdtemp())
-        design_path = self.write_file(temp_dir, "docs/plans/topic/design.md", design_text)
+        design_path = self.write_file(
+            temp_dir, "docs/plans/topic/design.md", design_text
+        )
         for relative_path, content in (subdocs or {}).items():
             self.write_file(temp_dir, relative_path, content)
         return design_path
@@ -287,7 +291,9 @@ class SplitCheckTests(unittest.TestCase):
     def test_single_blocks_when_root_sub_is_required(self):
         result = self.run_check(self.single_but_should_split())
         self.assertEqual(result.status, "FAIL")
-        self.assertTrue(any("Split Decision: single" in blocker for blocker in result.blockers))
+        self.assertTrue(
+            any("Split Decision: single" in blocker for blocker in result.blockers)
+        )
 
     def test_valid_root_sub_passes(self):
         design, subdocs = self.root_sub_design()
@@ -300,14 +306,21 @@ class SplitCheckTests(unittest.TestCase):
         design, subdocs = self.root_sub_with_one_effective_subdoc()
         result = self.run_check(design, subdocs)
         self.assertEqual(result.status, "FAIL")
-        self.assertTrue(any("effective sub-docs" in blocker for blocker in result.blockers))
+        self.assertTrue(
+            any("effective sub-docs" in blocker for blocker in result.blockers)
+        )
 
     def test_root_sub_can_emit_advisories_without_failing(self):
         design, subdocs = self.advisory_root_sub_design()
         result = self.run_check(design, subdocs)
         self.assertEqual(result.status, "PASS")
         self.assertGreaterEqual(len(result.advisories), 2)
-        self.assertTrue(any("Root integration AC count" in advisory for advisory in result.advisories))
+        self.assertTrue(
+            any(
+                "Root integration AC count" in advisory
+                for advisory in result.advisories
+            )
+        )
 
     def test_design_doc_wrapper_returns_pass_with_advisories(self):
         design, subdocs = self.advisory_root_sub_design()

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -13,14 +14,6 @@ from collections import deque
 from pathlib import Path, PurePosixPath
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
-from skills_manifest_refresh import (
-    build_manifest,
-    discover_skills,
-    format_source_root_for_manifest,
-)
 
 COMMON_DIR_NAME = "common"
 COMMON_DEPENDENCIES_NAME = "dependencies.json"
@@ -41,7 +34,9 @@ EXPLICIT_SKILL_ROOT_PATTERNS = (
         "use <skill-root>/scripts/... for executed helper commands",
     ),
     (
-        re.compile(r"(?i)\b(?:read|load|modify|edit|inspect|use) `(?:scripts|references)/"),
+        re.compile(
+            r"(?i)\b(?:read|load|modify|edit|inspect|use) `(?:scripts|references)/"
+        ),
         "use <skill-root>/scripts/... or <skill-root>/references/... for skill-relative paths",
     ),
 )
@@ -54,17 +49,44 @@ class BuildError(RuntimeError):
 class CommonScriptSpec:
     """Source/build metadata for a common script dependency."""
 
-    def __init__(self, dependencies: tuple[str, ...], install_path: PurePosixPath) -> None:
+    def __init__(
+        self, dependencies: tuple[str, ...], install_path: PurePosixPath
+    ) -> None:
         self.dependencies = dependencies
         self.install_path = install_path
 
     @property
     def is_public(self) -> bool:
-        return len(self.install_path.parts) == 2 and self.install_path.parts[0] == "scripts"
+        return (
+            len(self.install_path.parts) == 2
+            and self.install_path.parts[0] == "scripts"
+        )
 
     @property
     def relative_path(self) -> Path:
         return Path(*self.install_path.parts)
+
+
+def load_manifest_helpers() -> tuple[object, object, object]:
+    module_path = SCRIPT_DIR / "skills_manifest_refresh.py"
+    spec = importlib.util.spec_from_file_location(
+        "skills_manifest_refresh", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise BuildError(f"failed to load skills_manifest_refresh: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return (
+        module.build_manifest,
+        module.discover_skills,
+        module.format_source_root_for_manifest,
+    )
+
+
+build_manifest, discover_skills, format_source_root_for_manifest = (
+    load_manifest_helpers()
+)
 
 
 def log(message: str) -> None:
@@ -73,8 +95,12 @@ def log(message: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build standalone skill artifacts")
-    parser.add_argument("--source", required=True, help="Path to the source skills root")
-    parser.add_argument("--artifact", required=True, help="Path to the artifact skills root")
+    parser.add_argument(
+        "--source", required=True, help="Path to the source skills root"
+    )
+    parser.add_argument(
+        "--artifact", required=True, help="Path to the artifact skills root"
+    )
     return parser.parse_args()
 
 
@@ -115,7 +141,8 @@ def iter_text_files(root: Path) -> list[Path]:
     return [
         path
         for path in sorted(root.rglob("*"))
-        if path.is_file() and (path.suffix in TEXT_SUFFIXES or path.name == SKILL_FILE_NAME)
+        if path.is_file()
+        and (path.suffix in TEXT_SUFFIXES or path.name == SKILL_FILE_NAME)
     ]
 
 
@@ -133,7 +160,9 @@ def load_common_dependency_graph(source_root: Path) -> dict[str, CommonScriptSpe
     seen_install_paths: set[PurePosixPath] = set()
     for script_name, config in payload.items():
         if not isinstance(script_name, str) or not isinstance(config, dict):
-            raise BuildError("common dependency config entries must map strings to objects")
+            raise BuildError(
+                "common dependency config entries must map strings to objects"
+            )
         dependencies = config.get("dependencies")
         install_path_raw = config.get("install_path")
         if not isinstance(dependencies, list) or not isinstance(install_path_raw, str):
@@ -148,7 +177,11 @@ def load_common_dependency_graph(source_root: Path) -> dict[str, CommonScriptSpe
                 f"common dependency config dependencies must contain only strings: {script_name}"
             )
         install_path = PurePosixPath(install_path_raw)
-        if install_path.is_absolute() or not install_path.parts or install_path.parts[0] != "scripts":
+        if (
+            install_path.is_absolute()
+            or not install_path.parts
+            or install_path.parts[0] != "scripts"
+        ):
             raise BuildError(
                 f"common dependency install_path must stay under scripts/: {install_path_raw}"
             )
@@ -157,11 +190,15 @@ def load_common_dependency_graph(source_root: Path) -> dict[str, CommonScriptSpe
                 f"common dependency install_path basename must match key: {script_name} -> {install_path_raw}"
             )
         if install_path in seen_install_paths:
-            raise BuildError(f"duplicate common dependency install_path: {install_path_raw}")
+            raise BuildError(
+                f"duplicate common dependency install_path: {install_path_raw}"
+            )
         seen_install_paths.add(install_path)
         script_path = common_root / Path(*install_path.parts)
         if not script_path.is_file():
-            raise BuildError(f"common dependency config references missing script: {script_path}")
+            raise BuildError(
+                f"common dependency config references missing script: {script_path}"
+            )
         graph[script_name] = CommonScriptSpec(
             dependencies=dependency_names,
             install_path=install_path,
@@ -185,16 +222,22 @@ def load_skill_common_scripts(skill_root: Path) -> tuple[str, ...]:
     payload = json.loads(config_path.read_text(encoding="utf-8"))
     scripts = payload.get("common_scripts")
     if not isinstance(scripts, list):
-        raise BuildError(f"{skill_root.name}: skill.json common_scripts must be an array")
+        raise BuildError(
+            f"{skill_root.name}: skill.json common_scripts must be an array"
+        )
 
     result = [item for item in scripts if isinstance(item, str)]
     if len(result) != len(scripts):
-        raise BuildError(f"{skill_root.name}: skill.json common_scripts must contain only strings")
+        raise BuildError(
+            f"{skill_root.name}: skill.json common_scripts must contain only strings"
+        )
     return tuple(result)
 
 
 def resolve_common_scripts(
-    common_graph: dict[str, CommonScriptSpec], requested_scripts: tuple[str, ...], skill_name: str
+    common_graph: dict[str, CommonScriptSpec],
+    requested_scripts: tuple[str, ...],
+    skill_name: str,
 ) -> tuple[str, ...]:
     resolved: list[str] = []
     seen: set[str] = set()
@@ -205,7 +248,9 @@ def resolve_common_scripts(
         if script_name in seen:
             continue
         if script_name not in common_graph:
-            raise BuildError(f"{skill_name}: unknown common script dependency `{script_name}`")
+            raise BuildError(
+                f"{skill_name}: unknown common script dependency `{script_name}`"
+            )
         seen.add(script_name)
         resolved.append(script_name)
         queue.extend(common_graph[script_name].dependencies)
@@ -271,7 +316,9 @@ def validate_no_forbidden_paths(skill_root: Path) -> None:
 def validate_explicit_skill_root_paths(skill_root: Path) -> None:
     violations: list[str] = []
     for path in sorted(skill_root.rglob("*.md")):
-        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        for lineno, line in enumerate(
+            path.read_text(encoding="utf-8").splitlines(), start=1
+        ):
             for pattern, hint in EXPLICIT_SKILL_ROOT_PATTERNS:
                 if pattern.search(line):
                     relative = path.relative_to(skill_root).as_posix()
@@ -334,7 +381,9 @@ def copy_skill(
     resolved_common_scripts = resolve_common_scripts(
         common_graph, requested_common_scripts, source_skill_root.name
     )
-    copy_common_scripts(source_root, artifact_skill_root, common_graph, resolved_common_scripts)
+    copy_common_scripts(
+        source_root, artifact_skill_root, common_graph, resolved_common_scripts
+    )
 
 
 def build_skills(source_root: Path, artifact_root: Path) -> None:
@@ -346,7 +395,9 @@ def build_skills(source_root: Path, artifact_root: Path) -> None:
     if not source_root.is_dir():
         raise BuildError(f"source skills directory does not exist: {source_root}")
     if not (source_root / COMMON_DIR_NAME / "scripts").is_dir():
-        raise BuildError(f"common scripts directory does not exist: {source_root / COMMON_DIR_NAME / 'scripts'}")
+        raise BuildError(
+            f"common scripts directory does not exist: {source_root / COMMON_DIR_NAME / 'scripts'}"
+        )
     common_graph = load_common_dependency_graph(source_root)
 
     for source_skill_root in iter_skill_dirs(source_root):

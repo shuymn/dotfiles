@@ -54,8 +54,12 @@ def build_manifest(source_root: str, skills: list[str]) -> dict[str, object]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Refresh dotfiles-managed skills manifest")
-    parser.add_argument("--source", required=True, help="Path to the local skills source root")
+    parser = argparse.ArgumentParser(
+        description="Refresh dotfiles-managed skills manifest"
+    )
+    parser.add_argument(
+        "--source", required=True, help="Path to the local skills source root"
+    )
     parser.add_argument(
         "--manifest",
         help="Manifest output path (default: <source>/.dotfiles-managed-skills.json)",

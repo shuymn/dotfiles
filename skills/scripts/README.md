@@ -29,6 +29,8 @@ Use Make targets instead of calling scripts directly:
 
 - `make -C skills build`
 - `make -C skills test`
+- `make -C skills fmt`
+- `make -C skills lint`
 - `make -C skills install`
 - `make -C skills reconcile`
 - `make -C skills audit-codex`
@@ -37,6 +39,7 @@ Use Make targets instead of calling scripts directly:
 ## Runtime requirements
 
 - `uv` for Python execution
+- `ruff` via `uv run --group dev ruff` for Python format/lint
 - `pytest` via `uv run --group dev pytest` for skills validation
 - `bun` and `bunx` for `skills` CLI execution
 - `SKILLS_CMD` (`bunx --bun skills`) runs the latest published version of the `skills` CLI without a version pin. Behavior may change on upstream releases.

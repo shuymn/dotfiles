@@ -3,7 +3,6 @@ import sys
 import unittest
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "review_finalize.py"
 SPEC = importlib.util.spec_from_file_location("review_finalize", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None

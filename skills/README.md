@@ -23,6 +23,10 @@ Standalone project for skill source, build tooling, and validation.
   - Build `../etc/claude/skills/**` from `src/**`.
 - `make -C skills test`
   - Run pytest for `src/**` and `tests/**`.
+- `make -C skills fmt`
+  - Run `ruff format` for Python files in `src/**`, `tests/**`, and `scripts/**`.
+- `make -C skills lint`
+  - Run `ruff check` for Python files in `src/**`, `tests/**`, and `scripts/**`.
 - `make -C skills sync`
   - Build artifacts, install managed skills, reconcile stale managed skills, audit Codex duplicates, and sync `AGENTS.md`.
 

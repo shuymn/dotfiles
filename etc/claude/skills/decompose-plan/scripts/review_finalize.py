@@ -47,7 +47,9 @@ AXIS_RECOMMENDATIONS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Finalize decompose-plan review output")
+    parser = argparse.ArgumentParser(
+        description="Finalize decompose-plan review output"
+    )
     parser.add_argument("plan_file", help="Path to plan.md")
     parser.add_argument("draft_file", help="Path to plan.review.draft.md")
     parser.add_argument("final_file", help="Path to plan.review.md")
@@ -109,7 +111,10 @@ def parse_summary(summary_body: str) -> tuple[dict[str, str], list[str]]:
 
 
 def parse_plan_tasks(plan_text: str) -> list[str]:
-    return [f"Task {match.group(1)}" for match in re.finditer(r"^### Task (\d+):", plan_text, re.MULTILINE)]
+    return [
+        f"Task {match.group(1)}"
+        for match in re.finditer(r"^### Task (\d+):", plan_text, re.MULTILINE)
+    ]
 
 
 def parse_plan_title(plan_text: str, plan_path: Path) -> str:
@@ -173,19 +178,27 @@ def run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def get_digest_stamp(script_dir: Path, plan_file: Path) -> str:
-    result = run_command([str(script_dir / "digest-stamp.sh"), "plan-review", str(plan_file)])
+    result = run_command(
+        [str(script_dir / "digest-stamp.sh"), "plan-review", str(plan_file)]
+    )
     if result.returncode != 0:
-        raise SystemExit(result.stderr.strip() or result.stdout.strip() or "digest-stamp.sh failed")
+        raise SystemExit(
+            result.stderr.strip() or result.stdout.strip() or "digest-stamp.sh failed"
+        )
     return result.stdout.strip()
 
 
-def run_structural_check(script_dir: Path, design_file: Path, plan_file: Path) -> tuple[bool, str]:
+def run_structural_check(
+    script_dir: Path, design_file: Path, plan_file: Path
+) -> tuple[bool, str]:
     result = run_command(
         [str(script_dir / "structural-check.sh"), str(design_file), str(plan_file)]
     )
     if result.returncode == 0:
         return (True, result.stdout.strip())
-    evidence = result.stdout.strip() or result.stderr.strip() or "structural-check failed"
+    evidence = (
+        result.stdout.strip() or result.stderr.strip() or "structural-check failed"
+    )
     return (False, evidence)
 
 
@@ -197,7 +210,9 @@ def invalid_card_recommendation(invalid_axes: list[str]) -> str:
     )
 
 
-def aggregate_recommendation(axis_scores: dict[str, int], excluded_axes: set[str]) -> str | None:
+def aggregate_recommendation(
+    axis_scores: dict[str, int], excluded_axes: set[str]
+) -> str | None:
     drivers = [
         axis
         for axis, _score in sorted(
@@ -239,10 +254,14 @@ def build_recommendation(
             )
             continue
         if issue.startswith("invalid ") and " card `" in issue:
-            invalid_axes.append(issue.removeprefix("invalid ").split(" card `", 1)[0].title())
+            invalid_axes.append(
+                issue.removeprefix("invalid ").split(" card `", 1)[0].title()
+            )
 
     if invalid_axes:
-        recommendations.append(invalid_card_recommendation(sorted(set(invalid_axes), key=AXES.index)))
+        recommendations.append(
+            invalid_card_recommendation(sorted(set(invalid_axes), key=AXES.index))
+        )
 
     for axis in high_axes or []:
         recommendations.append(AXIS_RECOMMENDATIONS[axis])
@@ -338,7 +357,9 @@ def compute_machine_rows(
             total = sum(cards)
             if high_axes:
                 trigger_parts.append(
-                    "axis ceiling exceeded (" + ", ".join(axis.lower() for axis in high_axes) + ")"
+                    "axis ceiling exceeded ("
+                    + ", ".join(axis.lower() for axis in high_axes)
+                    + ")"
                 )
             if total > 11:
                 trigger_parts.append("aggregate score exceeded machine limit")
@@ -357,7 +378,9 @@ def compute_machine_rows(
                 task=task_id,
                 total=total_text,
                 verdict=verdict,
-                trigger="; ".join(trigger_parts) if trigger_parts else "within machine limit",
+                trigger="; ".join(trigger_parts)
+                if trigger_parts
+                else "within machine limit",
                 recommendation=build_recommendation(
                     issues=issues,
                     axis_scores=axis_scores,
@@ -376,7 +399,9 @@ def normalize_markdown_section(body: str, fallback: str) -> str:
     return body.strip() if body.strip() else fallback
 
 
-def build_blocking_issues_section(reviewer_body: str, machine_blockers: list[str]) -> str:
+def build_blocking_issues_section(
+    reviewer_body: str, machine_blockers: list[str]
+) -> str:
     parts: list[str] = []
     if reviewer_body.strip():
         parts.append(reviewer_body.strip())
@@ -390,7 +415,9 @@ def build_blocking_issues_section(reviewer_body: str, machine_blockers: list[str
 def make_decision_reason(
     structural_ok: bool, summary_map: dict[str, str], machine_rows: list[MachineRow]
 ) -> tuple[str, str]:
-    failing_summary = [field for field, verdict in summary_map.items() if verdict == "FAIL"]
+    failing_summary = [
+        field for field, verdict in summary_map.items() if verdict == "FAIL"
+    ]
     failing_tasks = [row.task for row in machine_rows if row.verdict == "FAIL"]
 
     if structural_ok and not failing_summary and not failing_tasks:
@@ -423,7 +450,9 @@ def render_final_report(
     reason: str,
 ) -> str:
     updated_at = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
-    granularity_verdict = "PASS" if all(row.verdict == "PASS" for row in machine_rows) else "FAIL"
+    granularity_verdict = (
+        "PASS" if all(row.verdict == "PASS" for row in machine_rows) else "FAIL"
+    )
     overall_verdict = "PASS"
     if not structural_ok:
         overall_verdict = "FAIL"
@@ -527,11 +556,15 @@ def main() -> int:
     if not task_ids:
         raise SystemExit("Plan file does not contain any task headings.")
 
-    summary_body = extract_section(draft_text, "Summary") or extract_section(draft_text, "Reviewer Summary")
+    summary_body = extract_section(draft_text, "Summary") or extract_section(
+        draft_text, "Reviewer Summary"
+    )
     summary_map, summary_errors = parse_summary(summary_body)
 
     granularity_body = extract_section(draft_text, "Granularity Poker")
-    granularity_rows, granularity_parse_errors = parse_granularity_table(granularity_body)
+    granularity_rows, granularity_parse_errors = parse_granularity_table(
+        granularity_body
+    )
     machine_rows, machine_blockers = compute_machine_rows(
         task_ids, granularity_rows, summary_errors + granularity_parse_errors
     )
@@ -556,9 +589,13 @@ def main() -> int:
     )
 
     design_file = parse_design_path(plan_text, plan_file)
-    structural_ok, structural_evidence = run_structural_check(script_dir, design_file, plan_file)
+    structural_ok, structural_evidence = run_structural_check(
+        script_dir, design_file, plan_file
+    )
     if not structural_ok:
-        machine_blockers.append("Resolve structural-check failures before rerunning review finalization.")
+        machine_blockers.append(
+            "Resolve structural-check failures before rerunning review finalization."
+        )
         blocking_body = build_blocking_issues_section(
             extract_section(draft_text, "Blocking Issues"),
             machine_blockers,

@@ -17,10 +17,16 @@ def log(message: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Audit Codex legacy skills directory")
-    parser.add_argument("--manifest", required=True, help="Path to managed skills manifest")
-    parser.add_argument("--agents-skills", required=True, help="Path to ~/.agents/skills")
+    parser.add_argument(
+        "--manifest", required=True, help="Path to managed skills manifest"
+    )
+    parser.add_argument(
+        "--agents-skills", required=True, help="Path to ~/.agents/skills"
+    )
     parser.add_argument("--codex-skills", required=True, help="Path to ~/.codex/skills")
-    parser.add_argument("--marker", default=".dotfiles-managed", help="Managed marker filename")
+    parser.add_argument(
+        "--marker", default=".dotfiles-managed", help="Managed marker filename"
+    )
     parser.add_argument(
         "--prune-duplicates",
         action="store_true",

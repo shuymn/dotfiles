@@ -32,6 +32,19 @@ test: ## Run pytest against src/ and tests/
 	@uv run --group dev pytest
 	@printf '[skills-sync] step=test done\n'
 
+.PHONY: fmt
+fmt: ## Format Python files under src/, tests/, and scripts/
+	@printf '\n[skills-sync] step=fmt start\n'
+	@uv run --group dev ruff check --select I --fix src tests scripts
+	@uv run --group dev ruff format src tests scripts
+	@printf '[skills-sync] step=fmt done\n'
+
+.PHONY: lint
+lint: ## Lint Python files under src/, tests/, and scripts/
+	@printf '\n[skills-sync] step=lint start\n'
+	@uv run --group dev ruff check src tests scripts
+	@printf '[skills-sync] step=lint done\n'
+
 .PHONY: install
 install: ## Install built managed skills via skills CLI
 	@printf '\n[skills-sync] step=install start\n'

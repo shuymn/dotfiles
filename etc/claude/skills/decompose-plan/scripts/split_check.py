@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-import re
 
 OUTPUT_SCHEMA = "LLM_CHECK_V2"
 TOOL_NAME = "split-check"
@@ -229,11 +229,15 @@ def parse_subdoc(path: Path) -> SubDocInfo:
     text = path.read_text(encoding="utf-8")
     metadata = parse_key_value_bullets(extract_section(text, "Sub-Doc Metadata"))
     local_requirements = count_bullet_items(extract_section(text, "Local Requirements"))
-    _headers, local_ac_rows = parse_markdown_table(extract_section(text, "Local Acceptance Criteria"))
+    _headers, local_ac_rows = parse_markdown_table(
+        extract_section(text, "Local Acceptance Criteria")
+    )
     errors: list[str] = []
     owned_boundary = metadata.get("Owned Boundary", "")
     if not owned_boundary:
-        errors.append(f"Sub-doc `{path.as_posix()}` is missing `Owned Boundary` metadata.")
+        errors.append(
+            f"Sub-doc `{path.as_posix()}` is missing `Owned Boundary` metadata."
+        )
     return SubDocInfo(
         path=path,
         owned_boundary=owned_boundary,
@@ -257,9 +261,13 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
     if data.split_decision not in {"single", "root-sub"}:
         data.errors.append("`Split Decision` must be `single` or `root-sub`.")
 
-    boundary_section = extract_section(decomposition_section, "Boundary Inventory", level=3)
+    boundary_section = extract_section(
+        decomposition_section, "Boundary Inventory", level=3
+    )
     if not boundary_section:
-        data.errors.append("`## Decomposition Strategy` must include `### Boundary Inventory`.")
+        data.errors.append(
+            "`## Decomposition Strategy` must include `### Boundary Inventory`."
+        )
     else:
         headers, rows = parse_markdown_table(boundary_section)
         if headers != REQUIRED_BOUNDARY_COLUMNS:
@@ -272,7 +280,9 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
         for row in rows:
             boundary = row.get("Boundary", "").strip()
             if not boundary:
-                data.errors.append("Boundary Inventory contains a row with an empty `Boundary` value.")
+                data.errors.append(
+                    "Boundary Inventory contains a row with an empty `Boundary` value."
+                )
                 continue
             normalized_boundary = normalize_token(boundary)
             if normalized_boundary in seen_boundaries:
@@ -286,14 +296,18 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
                 BoundaryRow(
                     boundary=boundary,
                     owns_requirements=row.get("Owns Requirements/AC", "").strip(),
-                    verification_surface=row.get("Primary Verification Surface", "").strip(),
+                    verification_surface=row.get(
+                        "Primary Verification Surface", ""
+                    ).strip(),
                     temp_lifecycle_group=row.get("TEMP Lifecycle Group", "").strip(),
                     parallel_stream=row.get("Parallel Stream", "").strip(),
                     depends_on=parse_dependencies(row.get("Depends On", "")),
                 )
             )
 
-    _headers, acceptance_rows = parse_markdown_table(extract_section(text, "Acceptance Criteria"))
+    _headers, acceptance_rows = parse_markdown_table(
+        extract_section(text, "Acceptance Criteria")
+    )
     data.root_acceptance_count = len(acceptance_rows)
 
     if data.split_decision != "root-sub":
@@ -319,7 +333,9 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
         owned_boundary = row.get("Owned Boundary", "").strip()
         owns_requirements = row.get("Owns Requirements/AC", "").strip()
         if not sub_id or not file_value or not owned_boundary:
-            data.errors.append("Sub-Doc Index rows must populate `Sub ID`, `File`, and `Owned Boundary`.")
+            data.errors.append(
+                "Sub-Doc Index rows must populate `Sub ID`, `File`, and `Owned Boundary`."
+            )
             continue
         normalized_boundary = normalize_token(owned_boundary)
         if normalized_boundary in seen_subdoc_boundaries:
@@ -340,7 +356,10 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
         subdoc = parse_subdoc(subdoc_path)
         if subdoc.errors:
             data.errors.extend(subdoc.errors)
-        if subdoc.owned_boundary and subdoc.normalized_boundary != row_data.normalized_boundary:
+        if (
+            subdoc.owned_boundary
+            and subdoc.normalized_boundary != row_data.normalized_boundary
+        ):
             data.errors.append(
                 f"Sub-doc `{file_value}` declares owned boundary `{subdoc.owned_boundary}`, "
                 f"but Sub-Doc Index maps it to `{owned_boundary}`."
@@ -380,13 +399,17 @@ def build_signals(data: DesignDocData) -> dict[str, str]:
         "owned_boundary_count": str(len(owned_boundaries)),
         "verification_surface_count": str(len(verification_surfaces)),
         "temp_lifecycle_group_count": str(len(temp_groups)),
-        "parallelizable_boundary_count": str(sum(1 for row in owned_boundaries if row.is_parallel)),
+        "parallelizable_boundary_count": str(
+            sum(1 for row in owned_boundaries if row.is_parallel)
+        ),
         "dependency_edge_count": str(len(dependency_edges)),
         "effective_subdoc_count": str(len(effective_subdocs)),
         "root_integration_ac_count": str(data.root_acceptance_count),
         "local_ac_total": str(sum(local_ac_distribution.values())),
     }
-    for boundary, count in sorted(local_ac_distribution.items(), key=lambda item: slugify(item[0])):
+    for boundary, count in sorted(
+        local_ac_distribution.items(), key=lambda item: slugify(item[0])
+    ):
         signals[f"local_ac.{slugify(boundary)}"] = str(count)
     return signals
 
@@ -406,7 +429,9 @@ def analyze_design_doc(data: DesignDocData) -> CheckResult:
     local_ac_total = int(signals["local_ac_total"])
 
     if owned_boundary_count == 0:
-        blockers.append("Boundary Inventory must include at least one boundary that owns requirements/AC.")
+        blockers.append(
+            "Boundary Inventory must include at least one boundary that owns requirements/AC."
+        )
 
     if data.split_decision == "single":
         triggers: list[str] = []
@@ -419,15 +444,20 @@ def analyze_design_doc(data: DesignDocData) -> CheckResult:
         if owned_boundary_count >= 2 and triggers:
             blockers.append(
                 "`Split Decision: single` is inconsistent with Boundary Inventory: "
-                f"{owned_boundary_count} owned boundaries and " + ", ".join(triggers) + "."
+                f"{owned_boundary_count} owned boundaries and "
+                + ", ".join(triggers)
+                + "."
             )
 
     if data.split_decision == "root-sub":
         inventory_boundaries = {
-            row.normalized_boundary: row.boundary for row in data.boundary_rows if row.is_owned
+            row.normalized_boundary: row.boundary
+            for row in data.boundary_rows
+            if row.is_owned
         }
         index_boundaries = {
-            row.normalized_boundary: row.owned_boundary for row in data.subdoc_index_rows
+            row.normalized_boundary: row.owned_boundary
+            for row in data.subdoc_index_rows
         }
         missing_in_index = [
             boundary
@@ -444,12 +474,16 @@ def analyze_design_doc(data: DesignDocData) -> CheckResult:
             if missing_in_index:
                 messages.append(
                     "missing in Sub-Doc Index: "
-                    + ", ".join(f"`{inventory_boundaries[item]}`" for item in missing_in_index)
+                    + ", ".join(
+                        f"`{inventory_boundaries[item]}`" for item in missing_in_index
+                    )
                 )
             if extra_in_index:
                 messages.append(
                     "extra in Sub-Doc Index: "
-                    + ", ".join(f"`{index_boundaries[item]}`" for item in extra_in_index)
+                    + ", ".join(
+                        f"`{index_boundaries[item]}`" for item in extra_in_index
+                    )
                 )
             blockers.append(
                 "Boundary Inventory and Sub-Doc Index must match 1:1 for sub-owned boundaries ("
@@ -466,11 +500,16 @@ def analyze_design_doc(data: DesignDocData) -> CheckResult:
             distribution = [
                 (boundary, count)
                 for boundary, count in (
-                    (subdoc.owned_boundary or row.owned_boundary or row.sub_id, subdoc.local_ac_count)
+                    (
+                        subdoc.owned_boundary or row.owned_boundary or row.sub_id,
+                        subdoc.local_ac_count,
+                    )
                     for row, subdoc in zip(data.subdoc_index_rows, data.subdocs)
                 )
             ]
-            largest_boundary, largest_count = max(distribution, key=lambda item: item[1], default=("", 0))
+            largest_boundary, largest_count = max(
+                distribution, key=lambda item: item[1], default=("", 0)
+            )
             if largest_count / local_ac_total > 0.70:
                 advisories.append(
                     f"Local ACs are concentrated in `{largest_boundary}` ({largest_count}/{local_ac_total}); "
@@ -559,11 +598,15 @@ def main(argv: list[str]) -> int:
         mode = "compact"
 
     if len(argv) != 2:
-        return emit_cli_error(mode, "INVALID_ARGUMENT_COUNT", "Usage: split_check.py <design-file>.")
+        return emit_cli_error(
+            mode, "INVALID_ARGUMENT_COUNT", "Usage: split_check.py <design-file>."
+        )
 
     design_file = Path(argv[1]).resolve()
     if not design_file.exists():
-        return emit_cli_error(mode, "DESIGN_FILE_NOT_FOUND", f"Design file not found: `{design_file}`.")
+        return emit_cli_error(
+            mode, "DESIGN_FILE_NOT_FOUND", f"Design file not found: `{design_file}`."
+        )
 
     data = parse_design_doc(design_file)
     result = analyze_design_doc(data)

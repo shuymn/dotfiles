@@ -7,7 +7,6 @@ import tempfile
 import textwrap
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = PROJECT_ROOT / "scripts" / "build_skills.py"
 SPEC = importlib.util.spec_from_file_location("build_skills", MODULE_PATH)
@@ -49,7 +48,9 @@ def test_source_skills_have_no_parent_traversal_helper_refs() -> None:
             assert "../../common/scripts/" not in contents, path.as_posix()
             assert "../_shared" not in contents, path.as_posix()
             assert "../../_shared" not in contents, path.as_posix()
-    assert (SOURCE_ROOT / "common" / "scripts" / "lib" / "llm-check-output.sh").is_file()
+    assert (
+        SOURCE_ROOT / "common" / "scripts" / "lib" / "llm-check-output.sh"
+    ).is_file()
     assert (SOURCE_ROOT / "common" / "scripts" / "lib" / "path-display.sh").is_file()
 
 
@@ -70,10 +71,16 @@ def test_build_outputs_standalone_artifacts() -> None:
     assert (artifact_root / "design-doc" / "scripts" / "split_check.py").is_file()
     assert not (artifact_root / "design-doc" / "scripts" / "split-check.sh").exists()
     assert (artifact_root / "setup-ralph" / "scripts" / "gate-check.sh").is_file()
-    assert not (artifact_root / "design-doc" / "scripts" / "llm-check-output.sh").exists()
+    assert not (
+        artifact_root / "design-doc" / "scripts" / "llm-check-output.sh"
+    ).exists()
     assert not (artifact_root / "design-doc" / "scripts" / "path-display.sh").exists()
-    assert (artifact_root / "design-doc" / "scripts" / "lib" / "llm-check-output.sh").is_file()
-    assert (artifact_root / "design-doc" / "scripts" / "lib" / "path-display.sh").is_file()
+    assert (
+        artifact_root / "design-doc" / "scripts" / "lib" / "llm-check-output.sh"
+    ).is_file()
+    assert (
+        artifact_root / "design-doc" / "scripts" / "lib" / "path-display.sh"
+    ).is_file()
     assert not (artifact_root / "design-doc" / "skill.json").exists()
 
 
@@ -119,7 +126,11 @@ def test_build_entrypoint_runs_from_artifact() -> None:
     )
 
     completed = subprocess.run(
-        [sys.executable, str(artifact_root / "design-doc" / "scripts" / "split_check.py"), str(design_path)],
+        [
+            sys.executable,
+            str(artifact_root / "design-doc" / "scripts" / "split_check.py"),
+            str(design_path),
+        ],
         capture_output=True,
         text=True,
         check=False,

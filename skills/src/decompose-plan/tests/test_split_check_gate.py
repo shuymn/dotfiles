@@ -6,7 +6,6 @@ import textwrap
 import unittest
 from pathlib import Path
 
-
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "build_skills.py"
 BUILD_SPEC = importlib.util.spec_from_file_location("build_skills", BUILD_MODULE_PATH)
@@ -29,7 +28,9 @@ class SplitCheckGateTests(unittest.TestCase):
 
     def run_wrapper(self, design_content: str) -> subprocess.CompletedProcess[str]:
         temp_dir = Path(tempfile.mkdtemp())
-        design_path = self.write_file(temp_dir, "docs/plans/topic/design.md", design_content)
+        design_path = self.write_file(
+            temp_dir, "docs/plans/topic/design.md", design_content
+        )
         return subprocess.run(
             [sys.executable, str(CLI_PATH), str(design_path)],
             capture_output=True,
