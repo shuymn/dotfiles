@@ -26,9 +26,9 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ## Clarifications
 
-| Question                    | Answer / Assumption                   | Impact                     | Status             |
-|-----------------------------|---------------------------------------|----------------------------|--------------------|
-| [What needed clarification] | [Final answer or explicit assumption] | [How design/scope changes] | resolved / assumed |
+| Question                    | Answer / Assumption                   | Impact                     | Status   |
+|-----------------------------|---------------------------------------|----------------------------|----------|
+| [What needed clarification] | [Final answer or explicit assumption] | [How design/scope changes] | resolved |
 
 ## Existing Codebase Constraints (Required for non-greenfield)
 
@@ -56,9 +56,9 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ### Boundary Inventory
 
-| Boundary        | Owns Requirements/AC                           | Primary Verification Surface           | TEMP Lifecycle Group          | Parallel Stream | Depends On                 |
-|-----------------|------------------------------------------------|----------------------------------------|-------------------------------|-----------------|----------------------------|
-| [Boundary name] | [REQ/AC IDs or summary, or `Integration-only`] | [primary test or verification surface] | [shared TEMP group or `none`] | yes             | [Boundary names or `none`] |
+| Boundary        | Owns Requirements/AC                           | Primary Verification Surface           | TEMP Lifecycle Group          | Parallel Stream | Depends On       |
+|-----------------|------------------------------------------------|----------------------------------------|-------------------------------|-----------------|------------------|
+| [Boundary name] | [REQ/AC IDs or summary, or `Integration-only`] | [primary test or verification surface] | [shared TEMP group or `none`] | yes             | [Boundary names] |
 
 <!-- Required for both `single` and `root-sub`. -->
 <!-- Use `Integration-only` for root-only integration rows. -->

@@ -1,209 +1,107 @@
 {
-  "clarifications": {
-    "kind": "table",
-    "headers": [
-      "Question",
-      "Answer / Assumption",
-      "Impact",
-      "Status"
-    ],
-    "rows": [
-      [
-        "[What needed clarification]",
-        "[Final answer or explicit assumption]",
-        "[How design/scope changes]",
-        "resolved / assumed"
+  "clarifications": [
+    {
+      "question": "[What needed clarification]",
+      "answer_or_assumption": "[Final answer or explicit assumption]",
+      "impact": "[How design/scope changes]",
+      "status": "resolved"
+    }
+  ],
+  "existing_codebase_constraints": [
+    {
+      "constraint_id": "CONS-01",
+      "source": "[path/to/file or test]",
+      "constraint": "[Existing assumption or coupling]",
+      "impact_on_design": "[How this limits or shapes design]",
+      "required_verification": "[How regression/contract will be checked]"
+    }
+  ],
+  "risk_classification": [
+    {
+      "area": "[e.g., Auth token validation]",
+      "risk_tier": "Critical",
+      "change_rationale": "Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact]"
+    },
+    {
+      "area": "[e.g., API response schema]",
+      "risk_tier": "Sensitive",
+      "change_rationale": "Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact]"
+    },
+    {
+      "area": "[e.g., Dashboard component]",
+      "risk_tier": "Standard",
+      "change_rationale": "Not Critical: [reason] / Not Sensitive: [reason]"
+    }
+  ],
+  "boundary_inventory": [
+    {
+      "boundary": "[Boundary name]",
+      "owns_requirements_ac": "[REQ/AC IDs or summary, or `Integration-only`]",
+      "primary_verification_surface": "[primary test or verification surface]",
+      "temp_lifecycle_group": "[shared TEMP group or `none`]",
+      "parallel_stream": "yes",
+      "depends_on": [
+        "[Boundary names]"
       ]
-    ]
-  },
-  "existing_codebase_constraints": {
-    "kind": "table",
-    "headers": [
-      "Constraint ID",
-      "Source (file/test)",
-      "Constraint",
-      "Impact on Design",
-      "Required Verification"
-    ],
-    "rows": [
-      [
-        "CONS-01",
-        "[path/to/file or test]",
-        "[Existing assumption or coupling]",
-        "[How this limits or shapes design]",
-        "[How regression/contract will be checked]"
-      ]
-    ]
-  },
-  "risk_classification": {
-    "kind": "table",
-    "headers": [
-      "Area",
-      "Risk Tier",
-      "Change Rationale"
-    ],
-    "rows": [
-      [
-        "[e.g., Auth token validation]",
-        "Critical",
-        "Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact]"
-      ],
-      [
-        "[e.g., API response schema]",
-        "Sensitive",
-        "Defect Impact: [what breaks on defect] / Blast Radius: [scope of impact]"
-      ],
-      [
-        "[e.g., Dashboard component]",
-        "Standard",
-        "Not Critical: [reason] / Not Sensitive: [reason]"
-      ]
-    ]
-  },
-  "boundary_inventory": {
-    "kind": "table",
-    "headers": [
-      "Boundary",
-      "Owns Requirements/AC",
-      "Primary Verification Surface",
-      "TEMP Lifecycle Group",
-      "Parallel Stream",
-      "Depends On"
-    ],
-    "rows": [
-      [
-        "[Boundary name]",
-        "[REQ/AC IDs or summary, or `Integration-only`]",
-        "[primary test or verification surface]",
-        "[shared TEMP group or `none`]",
-        "yes",
-        "[Boundary names or `none`]"
-      ]
-    ]
-  },
-  "sub_doc_index": {
-    "kind": "table",
-    "headers": [
-      "Sub ID",
-      "File",
-      "Owned Boundary",
-      "Owns Requirements/AC"
-    ],
-    "rows": [
-      [
-        "SUB-A",
-        "docs/plans/<topic>/sub-a-design.md",
-        "[boundary]",
-        "[ID ranges or summary]"
-      ]
-    ]
-  },
-  "root_coverage": {
-    "kind": "table",
-    "headers": [
-      "Root Requirement/AC",
-      "Covered By (Sub ID or Integration)",
-      "Notes"
-    ],
-    "rows": [
-      [
-        "[ROOT-REQ/ROOT-AC]",
-        "[SUB-A / Integration]",
-        "[mapping rationale]"
-      ]
-    ]
-  },
-  "temporary_mechanism_index": {
-    "kind": "table",
-    "headers": [
-      "ID",
-      "Mechanism",
-      "Lifecycle Record",
-      "Status"
-    ],
-    "rows": [
-      [
-        "TEMP01",
-        "[e.g., compatibility alias]",
-        "[temp-compat-alias](/docs/adr/<topic>/temp-compat-alias.md) or local",
-        "active"
-      ]
-    ]
-  },
-  "sunset_closure_checklist": {
-    "kind": "table",
-    "headers": [
-      "ID",
-      "Introduced For",
-      "Retirement Trigger",
-      "Retirement Verification",
-      "Removal Scope"
-    ],
-    "rows": [
-      [
-        "TEMP01",
-        "[reason]",
-        "[objective condition]",
-        "[verification command/test]",
-        "[what is deleted/disabled]"
-      ]
-    ]
-  },
-  "decision_log": {
-    "kind": "table",
-    "headers": [
-      "ADR",
-      "Decision",
-      "Status"
-    ],
-    "rows": [
-      [
-        "[adopt-grpc-for-public-api](/docs/adr/<topic>/adopt-grpc-for-public-api.md)",
-        "Brief description",
-        "Accepted"
-      ]
-    ]
-  },
-  "acceptance_criteria": {
-    "kind": "table",
-    "headers": [
-      "AC ID",
-      "EARS Type",
-      "Contract Type",
-      "Requirement Sentence",
-      "Verification Intent",
-      "Verification Command"
-    ],
-    "rows": [
-      [
-        "AC01",
-        "[Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional]",
-        "[behavioral/schema/api-contract/cli-contract/none]",
-        "[EARS-formatted requirement sentence]",
-        "[EARS rationale: why this type was chosen] [Concrete verification method with expected outcome]",
-        "`<exact command>` or `TBD-at-plan`"
-      ]
-    ]
-  },
-  "sub_local_acceptance_criteria": {
-    "kind": "table",
-    "headers": [
-      "AC ID",
-      "EARS Type",
-      "Contract Type",
-      "Requirement Sentence",
-      "Verification Intent",
-      "Verification Command"
-    ],
-    "rows": [
-      [
-        "AC-SUB-X-01",
-        "[Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional]",
-        "[behavioral/schema/api-contract/cli-contract/none]",
-        "[EARS-formatted requirement sentence]",
-        "[EARS rationale] [Verification method]",
-        "`<exact command>` or `TBD-at-plan`"
-      ]
-    ]
-  }
+    }
+  ],
+  "sub_doc_index": [
+    {
+      "sub_id": "SUB-A",
+      "file": "docs/plans/<topic>/sub-a-design.md",
+      "owned_boundary": "[boundary]",
+      "owns_requirements_ac": "[ID ranges or summary]"
+    }
+  ],
+  "root_coverage": [
+    {
+      "root_requirement_ac": "[ROOT-REQ/ROOT-AC]",
+      "covered_by": "[SUB-A / Integration]",
+      "notes": "[mapping rationale]"
+    }
+  ],
+  "temporary_mechanism_index": [
+    {
+      "id": "TEMP01",
+      "mechanism": "[e.g., compatibility alias]",
+      "lifecycle_record": "[temp-compat-alias](/docs/adr/<topic>/temp-compat-alias.md) or local",
+      "status": "active"
+    }
+  ],
+  "sunset_closure_checklist": [
+    {
+      "id": "TEMP01",
+      "introduced_for": "[reason]",
+      "retirement_trigger": "[objective condition]",
+      "retirement_verification": "[verification command/test]",
+      "removal_scope": "[what is deleted/disabled]"
+    }
+  ],
+  "decision_log": [
+    {
+      "adr": "[adopt-grpc-for-public-api](/docs/adr/<topic>/adopt-grpc-for-public-api.md)",
+      "decision": "Brief description",
+      "status": "Accepted"
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "ac_id": "AC01",
+      "ears_type": "[Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional]",
+      "contract_type": "[behavioral/schema/api-contract/cli-contract/none]",
+      "requirement_sentence": "[EARS-formatted requirement sentence]",
+      "verification_intent": "[EARS rationale: why this type was chosen] [Concrete verification method with expected outcome]",
+      "verification_command": "`<exact command>` or `TBD-at-plan`"
+    }
+  ],
+  "sub_local_acceptance_criteria": [
+    {
+      "ac_id": "AC-SUB-X-01",
+      "ears_type": "[Ubiquitous/Event-Driven/Unwanted/State-Driven/Optional]",
+      "contract_type": "[behavioral/schema/api-contract/cli-contract/none]",
+      "requirement_sentence": "[EARS-formatted requirement sentence]",
+      "verification_intent": "[EARS rationale] [Verification method]",
+      "verification_command": "`<exact command>` or `TBD-at-plan`"
+    }
+  ]
 }

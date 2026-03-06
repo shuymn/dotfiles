@@ -1,45 +1,35 @@
 {
-  "quality_gates": {
-    "kind": "table",
-    "headers": [
-      "Category",
-      "Command"
-    ],
-    "rows": [
-      [
-        "[test]",
-        "`[exact test command]`"
-      ],
-      [
-        "[lint]",
-        "`[exact lint command]`"
-      ],
-      [
-        "[format]",
-        "`[exact format command]`"
-      ],
-      [
-        "[typecheck]",
-        "`[exact typecheck command]`"
-      ]
-    ]
-  },
+  "quality_gates": [
+    {
+      "category": "[test]",
+      "command": "`[exact test command]`"
+    },
+    {
+      "category": "[lint]",
+      "command": "`[exact lint command]`"
+    },
+    {
+      "category": "[format]",
+      "command": "`[exact format command]`"
+    },
+    {
+      "category": "[typecheck]",
+      "command": "`[exact typecheck command]`"
+    }
+  ],
   "checkpoint_summary": {
-    "kind": "bullets",
-    "items": [
-      "Alignment Verdict: PASS | FAIL",
-      "Forward Fidelity: PASS | FAIL",
-      "Reverse Fidelity: PASS | FAIL",
-      "Non-Goal Guard: PASS | FAIL",
-      "Behavioral Lock Guard: PASS | FAIL",
-      "Temporal Completeness Guard: PASS | FAIL",
-      "Quality Gate Guard: PASS | FAIL",
-      "Integration Coverage Guard: PASS | FAIL | N/A",
-      "Risk Classification Guard: PASS | FAIL | N/A (greenfield without Critical-domain changes)",
-      "TEMP Summary: introduced=X, retired=Y, open=Z, waived=W",
-      "Trace Pack: `docs/plans/<topic>/plan.trace.md`",
-      "Compose Pack: `docs/plans/<topic>/plan.compose.md`",
-      "Updated At: `YYYY-MM-DD`"
-    ]
+    "alignment_verdict": "PASS | FAIL",
+    "forward_fidelity": "PASS | FAIL",
+    "reverse_fidelity": "PASS | FAIL",
+    "non_goal_guard": "PASS | FAIL",
+    "behavioral_lock_guard": "PASS | FAIL",
+    "temporal_completeness_guard": "PASS | FAIL",
+    "quality_gate_guard": "PASS | FAIL",
+    "integration_coverage_guard": "PASS | FAIL | N/A",
+    "risk_classification_guard": "PASS | FAIL | N/A (greenfield without Critical-domain changes)",
+    "temp_summary": "introduced=X, retired=Y, open=Z, waived=W",
+    "trace_pack": "docs/plans/<topic>/plan.trace.md",
+    "compose_pack": "docs/plans/<topic>/plan.compose.md",
+    "updated_at": "YYYY-MM-DD"
   }
 }

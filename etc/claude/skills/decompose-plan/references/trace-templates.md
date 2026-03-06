@@ -21,7 +21,7 @@ When embedding commands or artifact paths in these files, use repository-relativ
 - Task B: REQyy, DECzz
 
 ## Temporary Mechanism Trace
-- TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[...], retirement_verification=[...], removal_scope=[...], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived
+- TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[objective condition], retirement_verification=[verification command/test], removal_scope=[what is deleted/disabled], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived
 
 ## AC Ownership Map
 | AC ID | Owner Task | Contributors | Has RED for AC |
@@ -30,7 +30,7 @@ When embedding commands or artifact paths in these files, use repository-relativ
 
 ## Behavioral Lock Map
 - LOCK01 (`REQxx`, `ACyy`): intent="gateway only path / no fallback", negative_checks=[Task C DoD-2], positive_boundary_checks=[Task C DoD-3]
-- LOCK02 (`REQzz`): intent="legacy key removal", negative_checks=[Task A RED-1, DoD-2], positive_boundary_checks=[Task A DoD-3]
+- LOCK02 (`REQzz`): intent="legacy key removal", negative_checks=[Task A RED-1, Task A DoD-2], positive_boundary_checks=[Task A DoD-3]
 ```
 
 ## Cross Self-Check Template (for `plan.trace.md`)
@@ -39,8 +39,8 @@ When embedding commands or artifact paths in these files, use repository-relativ
 ## Cross Self-Check
 
 ### Forward Fidelity (Design -> Tasks)
-- Coverage ratio (`REQ+AC covered / total REQ+AC`): `X/Y`
-- Coverage ratio (`DEC covered / total DEC`): `X/Y`
+- Coverage ratio (`REQ+AC covered / total REQ+AC`): `X / Y`
+- Coverage ratio (`DEC covered / total DEC`): `X / Y`
 - Invalid DEC-to-ADR mappings: [if any]
 - Missing design atoms: [if any]
 
