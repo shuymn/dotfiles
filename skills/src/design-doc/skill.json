@@ -1,8 +1,13 @@
 {
   "common_scripts": [
+    "artifact_format_check.py",
     "digest-stamp.sh",
+    "freshness_preflight.py",
     "gate-check.sh",
-    "split_check.py"
+    "llm_check.py",
+    "skills_models.py",
+    "split_check.py",
+    "temp_lifecycle_check.py"
   ]
 }
 
