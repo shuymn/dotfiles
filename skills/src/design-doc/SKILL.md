@@ -301,7 +301,7 @@ When a significant design decision is made, record it as an ADR.
    - If any ambiguous expression is found and has NOT been replaced with a concrete, measurable expression, mark the design as `BLOCKED` and request the user to revise the AC before approval.
    - If the ambiguous expression has been explicitly replaced with an objectively measurable criterion in the same AC, it is permitted.
 9. **Goal-AC Coverage Check (Required)**: For each item in the `Goals` section, verify that at least one `ACxx` in `Acceptance Criteria` has a Requirement Sentence that validates the realization of that goal. If any goal has zero AC coverage, mark the design as `BLOCKED` and request the user to add missing ACs.
-10. **Verification Command Check (Required)**: Run `uv run --with pydantic python <skill-root>/scripts/verification_cmd_check.py <design-file>`.
+10. **Verification Command Check (Required)**: Run `skit verification-cmd-check <design-file>`.
     - `SKIP`: no AC table found — proceed.
     - `PASS` (with advisories): all commands valid; TBD-at-plan entries are advisory — `decompose-plan` resolves them.
     - `FAIL`: one or more ACs have an empty or unresolvable command — mark as `BLOCKED` and fix before approval.
