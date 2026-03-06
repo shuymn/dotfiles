@@ -19,12 +19,15 @@ Independent verification of an approved design document. This mode runs as a sub
 ## Procedure
 
 1. **Generate Header**: Run `scripts/digest-stamp.sh design-review <design-file>` to produce the review metadata header.
-2. **Load Review Criteria**: Read `references/review-criteria.md` for the 7 evaluation viewpoints.
-3. **Evaluate Each Viewpoint**: For each of the 7 criteria:
+2. **Run Split Checker**: Run `scripts/split-check.sh <design-file>` and keep both blockers and advisories for evidence.
+3. **Load Review Criteria**: Read `references/review-criteria.md` for the 8 evaluation viewpoints.
+4. **Evaluate Each Viewpoint**: For each of the 8 criteria:
    - Assess the design doc against the criterion definition and check method.
    - Record PASS, FAIL, or N/A with specific evidence (section, AC ID, or quote).
-4. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL 7 viewpoints are PASS (N/A counts as PASS). Any FAIL → `Overall Verdict: FAIL`.
-5. **Write Review Report**: Output to `.../design.review.md` (derive path by replacing `design.md` with `design.review.md`).
+   - For `Decomposition Fit`, use `scripts/split-check.sh` output as the authoritative blocker signal.
+   - If the split checker reports advisories but no blockers, keep `Decomposition Fit` as `PASS` and move the advisories into `## Improvement Notes`.
+5. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL 8 viewpoints are PASS (N/A counts as PASS). Any FAIL → `Overall Verdict: FAIL`.
+6. **Write Review Report**: Output to `.../design.review.md` (derive path by replacing `design.md` with `design.review.md`).
 
 ## Output Format
 
@@ -47,10 +50,15 @@ Independent verification of an approved design document. This mode runs as a sub
 | 5 | Boundary Gaps | PASS/FAIL | [specific evidence] |
 | 6 | Risk Classification Coverage | PASS/FAIL/N/A | [specific evidence] |
 | 7 | Goal-AC Coverage | PASS/FAIL | [specific evidence] |
+| 8 | Decomposition Fit | PASS/FAIL | [specific evidence, including `scripts/split-check.sh` when relevant] |
 
 ## Blocking Issues
 
 - [ ] [Issues that must be fixed — only if Overall Verdict is FAIL]
+
+## Improvement Notes
+
+- [Split-check advisories or non-blocking review notes]
 
 ## Decision
 

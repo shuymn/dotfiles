@@ -46,6 +46,14 @@ Before starting decomposition in create mode, verify the design review gate:
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current design file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `design-doc review` first.
 
+## Split Fitness Gate
+
+Before loading design atoms in create mode, verify that the source design's `single` / `root-sub` decision still holds:
+
+1. Run `<skill-root>/scripts/split-check.sh <design.md>`.
+2. If the split check reports `FAIL`, stop as `BLOCKED` and request design updates before decomposition.
+3. If the split check reports advisories only, continue, but keep `plan.md` compact and avoid compensating for a weak split with duplicated boundary-local narrative.
+
 ## Design Sufficiency Gate
 
 Do not infer migration lifecycle details that are absent from the design doc.
@@ -135,6 +143,7 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - Prefer stable IDs (`REQxx`, `ACxx`, `DECxx`) over repeated natural-language restatement.
 - Put exhaustive mapping and diagnostics into sidecars.
 - Keep each task minimal but executable; avoid narrative that does not change implementation behavior.
+- If `plan.md` stops being a thin execution artifact because boundary-local explanations, repeated verification flows, or task narratives are spilling out of sidecars, re-run `scripts/split-check.sh <design-file>` and revisit the design split before finalizing.
 
 ### Strict Scope Rules
 

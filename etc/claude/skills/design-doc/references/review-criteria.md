@@ -1,6 +1,6 @@
 # Design Doc Review Criteria
 
-Fixed 7-point evaluation framework for `design-doc(review)` mode.
+Fixed 8-point evaluation framework for `design-doc(review)` mode.
 
 ## 1. Missing Failure Modes
 
@@ -105,3 +105,18 @@ Fixed 7-point evaluation framework for `design-doc(review)` mode.
 
 **Severity**:
 - **Blocker**: Any goal with zero AC coverage (no ACxx validates its realization).
+
+## 8. Decomposition Fit
+
+**Definition**: `Split Decision: single | root-sub` is supported by structured boundary signals and, when split, by coherent root/sub ownership.
+
+**Check Method**:
+- Verify `## Decomposition Strategy` includes `### Boundary Inventory` with the required fixed columns.
+- Run `scripts/split-check.sh <design-file>` and use its blocker/advisory output as authoritative signal evidence.
+- For `Split Decision: single`, confirm the Boundary Inventory does not expose multiple owned boundaries plus conflicting verification/TEMP/parallel-stream signals.
+- For `Split Decision: root-sub`, confirm boundary-owned rows map 1:1 to `Sub-Doc Index` `Owned Boundary`, and the referenced sub docs each carry boundary-local requirements and ACs.
+- Treat split-check advisories as improvement notes, not failures, unless the command itself reports `FAIL`.
+
+**Severity**:
+- **Blocker**: Missing `### Boundary Inventory`. `scripts/split-check.sh` reports `FAIL`. A root/sub design cannot be reconciled 1:1 between Boundary Inventory and Sub-Doc Index.
+- **Warning**: `scripts/split-check.sh` reports advisories only.

@@ -68,6 +68,10 @@ Default to a single design doc. Use root/sub split only when structural conditio
 - Default: `Split Decision: single`
 - Do not split only because the document is long.
 - Record the decision in the design doc under `## Decomposition Strategy`.
+- Add `### Boundary Inventory` for every design, even when `Split Decision: single`.
+- `### Boundary Inventory` must use exactly these columns: `Boundary`, `Owns Requirements/AC`, `Primary Verification Surface`, `TEMP Lifecycle Group`, `Parallel Stream`, `Depends On`.
+- Use `Owns Requirements/AC` to record the owned ID range/summary for boundary-owned rows; use `Integration-only` for root-only integration rows.
+- Use `Parallel Stream` values `yes` or `no`; use `Depends On` as comma-separated boundary names or `none`; use `TEMP Lifecycle Group` as a shared lifecycle label or `none`.
 
 Split is required if any of these are true:
 
@@ -88,6 +92,7 @@ If `Split Decision: root-sub`, require:
 - One sub design doc per boundary with local requirements and acceptance criteria.
 - Explicit boundary ownership (what each sub owns, and what remains integration-only).
 - Root-level coverage table mapping root requirements/acceptance criteria to sub-doc owners or integration tasks.
+- Every boundary-owned row in `### Boundary Inventory` must map 1:1 to `Sub-Doc Index` `Owned Boundary`.
 
 ## Codebase Constraint Contract (Required for Non-Greenfield)
 
@@ -159,7 +164,7 @@ Before writing anything, understand the landscape:
 4. Identify related components, APIs, or systems that the design will interact with
 5. Create a TodoWrite checklist to track the design process phases
 6. Determine whether the request includes a breaking change or staged migration; if yes, enumerate candidate temporary mechanisms as `TEMPxx` and choose lifecycle record mode (ADR or in-doc ledger).
-7. Determine decomposition strategy (`single` or `root-sub`) using the Decomposition Strategy Contract.
+7. Determine decomposition strategy (`single` or `root-sub`) using the Decomposition Strategy Contract, and draft the `### Boundary Inventory` that justifies the choice.
 8. Build a preliminary **Constraint Register** from existing code/tests:
    - Read affected implementation files and nearest existing tests.
    - Record implicit contracts (data shape, helper behavior, path assumptions, legacy compatibility assumptions).
@@ -195,6 +200,7 @@ Before drafting the design, remove requirement ambiguity explicitly.
 
 1. Create the initial design doc draft
    - Start with the Core Profile sections; add optional sections only when triggered.
+   - Populate `## Decomposition Strategy` with `Decision Basis` grounded in `### Boundary Inventory` signals, and keep boundary naming consistent across root/sub artifacts.
    - If non-greenfield, include `## Existing Codebase Constraints` and map constraints to design choices.
    - Encode replacement/removal/fail-closed intent as explicit design requirements and acceptance criteria, not prose-only goals.
    - When writing Acceptance Criteria, consult [ears-types.md](references/ears-types.md) for EARS type definitions and selection guidance. Choose the most specific EARS type; avoid defaulting to Ubiquitous.
@@ -277,12 +283,15 @@ When a significant design decision is made, record it as an ADR.
    - a lifecycle record (ADR or in-doc ledger), and
    - a `Sunset Closure Checklist` row with retirement trigger, retirement verification, and removal scope.
 5. Verify `## Decomposition Strategy` is complete and consistent with produced design files:
+   - `### Boundary Inventory` exists and uses the required fixed columns.
    - If `Split Decision: root-sub`, verify:
+     - Every boundary-owned `### Boundary Inventory` row appears exactly once in `Sub-Doc Index` `Owned Boundary`, and vice versa.
      - Every `Sub-Doc Index` file path exists.
      - Every `Root Coverage` entry references a valid sub ID or `Integration`.
      - Every sub ID referenced in `Root Coverage` exists in `Sub-Doc Index`.
      - Boundary ownership text is explicit and non-overlapping.
    - If `Split Decision: single`, verify no unnecessary root/sub scaffolding remains.
+   - Run `scripts/split-check.sh <design-file>` before finalizing. If it reports `FAIL`, mark the design as `BLOCKED`; if it reports advisories, tighten `Decision Basis` or boundary ownership before approval.
 6. Verify each ADR meets the quality bar (metadata, context/problem, decision outcome, consequences, validation, links).
 7. Verify supersession links are coherent (`Supersedes`/`Superseded by` are reciprocal where applicable).
 8. **Ambiguity Check (Required)**:

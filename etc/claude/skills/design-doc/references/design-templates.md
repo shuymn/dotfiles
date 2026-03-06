@@ -51,8 +51,19 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 ## Decomposition Strategy
 
 - Split Decision: single | root-sub
-- Decision Basis: [Which contract conditions triggered this decision]
+- Decision Basis: [Which Boundary Inventory signals and contract conditions triggered this decision]
 - Root Scope: [Global responsibilities and integration-only responsibilities]
+
+### Boundary Inventory
+
+| Boundary | Owns Requirements/AC | Primary Verification Surface | TEMP Lifecycle Group | Parallel Stream | Depends On |
+|----------|----------------------|------------------------------|----------------------|-----------------|------------|
+| [Boundary name] | [REQ/AC IDs or summary, or `Integration-only`] | [primary test or verification surface] | [shared TEMP group or `none`] | yes | [Boundary names or `none`] |
+
+<!-- Required for both `single` and `root-sub`. -->
+<!-- Use `Integration-only` for root-only integration rows. -->
+<!-- `Parallel Stream` must be `yes` or `no`. -->
+<!-- `Depends On` is a comma-separated list of Boundary names or `none`. -->
 
 ### Sub-Doc Index (required when root-sub)
 
@@ -217,7 +228,7 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 - Sub ID: SUB-X
 - Root Design: `docs/plans/<topic>/design.md`
-- Owned Boundary: [Explicit component/domain ownership]
+- Owned Boundary: [Explicit component/domain ownership; must exactly match the root `Boundary Inventory` `Boundary` value]
 
 ## Local Goals
 
