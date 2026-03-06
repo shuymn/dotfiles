@@ -81,7 +81,7 @@ def run_remove_command(skills_cmd: str, to_remove: list[str]) -> None:
     except subprocess.CalledProcessError as e:
         raise SystemExit(
             f"Skills removal failed (exit {e.returncode}): {' '.join(shlex.quote(p) for p in cmd)}"
-        )
+        ) from e
 
 
 def main() -> int:

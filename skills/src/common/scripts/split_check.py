@@ -167,7 +167,7 @@ def parse_markdown_table(text: str) -> tuple[list[str], list[dict[str, str]]]:
         parts = split_markdown_row(line)
         if len(parts) != len(headers):
             continue
-        rows.append(dict(zip(headers, parts)))
+        rows.append(dict(zip(headers, parts, strict=True)))
     return headers, rows
 
 
@@ -391,7 +391,7 @@ def build_signals(data: DesignDocData) -> dict[str, str]:
     }
     effective_subdocs = [subdoc for subdoc in data.subdocs if subdoc.is_effective]
     local_ac_distribution: dict[str, int] = {}
-    for row, subdoc in zip(data.subdoc_index_rows, data.subdocs):
+    for row, subdoc in zip(data.subdoc_index_rows, data.subdocs, strict=True):
         boundary_name = subdoc.owned_boundary or row.owned_boundary or row.sub_id
         local_ac_distribution[boundary_name] = subdoc.local_ac_count
 
@@ -504,7 +504,9 @@ def analyze_design_doc(data: DesignDocData) -> CheckResult:
                         subdoc.owned_boundary or row.owned_boundary or row.sub_id,
                         subdoc.local_ac_count,
                     )
-                    for row, subdoc in zip(data.subdoc_index_rows, data.subdocs)
+                    for row, subdoc in zip(
+                        data.subdoc_index_rows, data.subdocs, strict=True
+                    )
                 )
             ]
             largest_boundary, largest_count = max(

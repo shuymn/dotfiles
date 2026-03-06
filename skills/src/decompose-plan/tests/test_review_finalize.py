@@ -127,7 +127,7 @@ class RenderFinalReportTests(unittest.TestCase):
         report = MODULE.render_final_report(
             title="Topic - Plan Review",
             digest_stamp="- **Source Digest**: `abc`",
-            summary_map={field: "PASS" for field in MODULE.SUMMARY_FIELDS},
+            summary_map=dict.fromkeys(MODULE.SUMMARY_FIELDS, "PASS"),
             structural_ok=True,
             structural_evidence="ok",
             machine_rows=[

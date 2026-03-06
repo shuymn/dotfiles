@@ -14,7 +14,12 @@ target-version = "py313"
 
 [tool.ruff.lint]
 extend-select = [
+  "B",
+  "C4",
   "I",
+  "RUF",
+  "SIM",
+  "UP",
 ]
 
 [tool.pytest.ini_options]
