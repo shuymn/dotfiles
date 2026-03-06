@@ -20,5 +20,6 @@ func main() {
 	app.Register(cmd.RiskDodCheck())
 	app.Register(cmd.TraceComposeCheck())
 	app.Register(cmd.AdversarialCoverageCheck())
+	app.Register(cmd.SplitCheck())
 	os.Exit(app.Run(os.Args))
 }
