@@ -78,4 +78,5 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 - The finalizer script generates `plan.review.md`.
 - `plan.review.md` includes `## Review Metadata`, `## Summary`, `## Granularity Gate (Machine)`, and `## Decision`.
+- The machine granularity table in `plan.review.md` includes `Recommendation` guidance for each machine FAIL row; draft reviewers still provide only axis cards and evidence.
 - `Granularity` and `Overall Verdict` are machine-computed from the draft content; do not write them into the draft.

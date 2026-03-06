@@ -35,6 +35,15 @@ class MachineRow:
     total: str
     verdict: str
     trigger: str
+    recommendation: str
+
+
+AXIS_RECOMMENDATIONS = {
+    "Objective": "Split independently releasable outcomes so this task owns one objective.",
+    "Surface": "Separate unrelated boundaries or top-level path families into different tasks.",
+    "Verification": "Reduce the task to one main verification flow and move independent checks into follow-up tasks.",
+    "Rollback": "Separate reversible preparation from irreversible cutover or removal so rollback stays clean.",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -180,6 +189,83 @@ def run_structural_check(script_dir: Path, design_file: Path, plan_file: Path) -
     return (False, evidence)
 
 
+def invalid_card_recommendation(invalid_axes: list[str]) -> str:
+    axes_text = ", ".join(axis.lower() for axis in invalid_axes)
+    return (
+        f"Replace invalid {axes_text} card values with allowed cards (1, 2, 3, 5, 8) "
+        "and keep one evidence sentence."
+    )
+
+
+def aggregate_recommendation(axis_scores: dict[str, int], excluded_axes: set[str]) -> str | None:
+    drivers = [
+        axis
+        for axis, _score in sorted(
+            axis_scores.items(),
+            key=lambda item: (-item[1], AXES.index(item[0])),
+        )
+        if axis not in excluded_axes
+    ]
+    if not drivers:
+        return "Re-slice this task into smaller changes before re-scoring its granularity row."
+
+    selected = drivers[:2]
+    return " ".join(AXIS_RECOMMENDATIONS[axis] for axis in selected)
+
+
+def build_recommendation(
+    *,
+    issues: list[str],
+    axis_scores: dict[str, int] | None = None,
+    high_axes: list[str] | None = None,
+    aggregate_exceeded: bool = False,
+) -> str:
+    if not issues and not high_axes and not aggregate_exceeded:
+        return "-"
+
+    recommendations: list[str] = []
+    invalid_axes: list[str] = []
+    seen: set[str] = set()
+
+    for issue in issues:
+        if issue == "missing draft row":
+            recommendations.append(
+                "Add one granularity poker row for this task with all four axis cards and one evidence sentence."
+            )
+            continue
+        if issue == "duplicate draft row":
+            recommendations.append(
+                "Keep exactly one granularity poker row for this task and merge duplicate evidence into that row."
+            )
+            continue
+        if issue.startswith("invalid ") and " card `" in issue:
+            invalid_axes.append(issue.removeprefix("invalid ").split(" card `", 1)[0].title())
+
+    if invalid_axes:
+        recommendations.append(invalid_card_recommendation(sorted(set(invalid_axes), key=AXES.index)))
+
+    for axis in high_axes or []:
+        recommendations.append(AXIS_RECOMMENDATIONS[axis])
+
+    if aggregate_exceeded:
+        recommendations.append(
+            aggregate_recommendation(axis_scores or {}, set(high_axes or []))
+            or "Re-slice this task into smaller changes before re-scoring its granularity row."
+        )
+
+    ordered_recommendations: list[str] = []
+    for recommendation in recommendations:
+        if recommendation not in seen:
+            seen.add(recommendation)
+            ordered_recommendations.append(recommendation)
+
+    return " ".join(ordered_recommendations) if ordered_recommendations else "-"
+
+
+def recommendation_for_unknown_task() -> str:
+    return "Delete this row or rename it to an existing Task ID from plan.md."
+
+
 def compute_machine_rows(
     task_ids: list[str], granularity_rows: list[dict[str, str]], parse_errors: list[str]
 ) -> tuple[list[MachineRow], list[str]]:
@@ -197,6 +283,7 @@ def compute_machine_rows(
                     total="n/a",
                     verdict="FAIL",
                     trigger="unknown task in draft",
+                    recommendation=recommendation_for_unknown_task(),
                 )
             )
             global_issues.append(f"Granularity Poker references unknown task `{task}`.")
@@ -217,12 +304,19 @@ def compute_machine_rows(
         if row is None:
             issues.append("missing draft row")
             machine_rows.append(
-                MachineRow(task=task_id, total="n/a", verdict="FAIL", trigger="missing draft row")
+                MachineRow(
+                    task=task_id,
+                    total="n/a",
+                    verdict="FAIL",
+                    trigger="missing draft row",
+                    recommendation=build_recommendation(issues=issues),
+                )
             )
             blockers.append(f"Add one granularity poker row for `{task_id}`.")
             continue
 
         cards: list[int] = []
+        axis_scores: dict[str, int] = {}
         for axis in AXES:
             raw_value = row[axis]
             try:
@@ -234,10 +328,13 @@ def compute_machine_rows(
                 issues.append(f"invalid {axis.lower()} card `{raw_value}`")
                 continue
             cards.append(card)
+            axis_scores[axis] = card
 
         trigger_parts = list(issues)
+        high_axes: list[str] = []
+        aggregate_exceeded = False
         if len(cards) == len(AXES):
-            high_axes = [axis for axis in AXES if int(row[axis]) == 8]
+            high_axes = [axis for axis in AXES if axis_scores[axis] == 8]
             total = sum(cards)
             if high_axes:
                 trigger_parts.append(
@@ -245,6 +342,7 @@ def compute_machine_rows(
                 )
             if total > 11:
                 trigger_parts.append("aggregate score exceeded machine limit")
+                aggregate_exceeded = True
             verdict = "FAIL" if trigger_parts else "PASS"
             total_text = str(total)
         else:
@@ -260,6 +358,12 @@ def compute_machine_rows(
                 total=total_text,
                 verdict=verdict,
                 trigger="; ".join(trigger_parts) if trigger_parts else "within machine limit",
+                recommendation=build_recommendation(
+                    issues=issues,
+                    axis_scores=axis_scores,
+                    high_axes=high_axes,
+                    aggregate_exceeded=aggregate_exceeded,
+                ),
             )
         )
 
@@ -346,7 +450,8 @@ def render_final_report(
     ]
 
     machine_table = "\n".join(
-        f"| {row.task} | {row.total} | {row.verdict} | {row.trigger} |" for row in machine_rows
+        f"| {row.task} | {row.total} | {row.verdict} | {row.trigger} | {row.recommendation} |"
+        for row in machine_rows
     )
 
     return "\n".join(
@@ -367,8 +472,8 @@ def render_final_report(
             f"- **Structural Check**: {'PASS' if structural_ok else 'FAIL'}",
             f"- **Structural Evidence**: {structural_evidence or 'not captured'}",
             "",
-            "| Task | Total | Verdict | Trigger |",
-            "|------|-------|---------|---------|",
+            "| Task | Total | Verdict | Trigger | Recommendation |",
+            "|------|-------|---------|---------|----------------|",
             machine_table,
             "",
             "## Findings",
