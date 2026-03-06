@@ -88,6 +88,12 @@ codex-agents-md: ## Sync ../etc/claude/CLAUDE.md to ~/.codex/AGENTS.md
 	@cp -fv "$(CODEX_AGENTS_SOURCE)" "$(CODEX_AGENTS_TARGET)"
 	@printf '[skills-sync] step=codex-agents-md done\n'
 
+.PHONY: build-skit
+build-skit: ## Build skit Go binary into tools/skit/
+	@printf '\n[skills-sync] step=build-skit start\n'
+	@cd $(PROJECT_ROOT)/tools/skit && go build -o skit .
+	@printf '[skills-sync] step=build-skit done\n'
+
 .PHONY: sync
 sync: build install reconcile audit-codex codex-agents-md ## Build and install skills plus Codex sync
 	@printf '\n[skills-sync] result=success\n'
