@@ -4,6 +4,12 @@ description: Creates meaningful git commits by analyzing changes and committing 
 allowed-tools: [Bash, Read, Grep, Glob]
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 # Commit in Meaningful Units
 
 ## Not in Scope

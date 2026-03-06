@@ -4,6 +4,12 @@ description: "Adversarial verification of a completed task — tries to break th
 allowed-tools: [Read, Bash, Grep, Glob, Write]
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 ## Constraints
 
 - The adversarial agent must NOT have implemented or DoD-rechecked the task — triple independence is required. Reason: the implementing and rechecking agents share context and assumptions; a third independent perspective is needed to find the blind spots that confirmation bias hides.
@@ -14,7 +20,7 @@ allowed-tools: [Read, Bash, Grep, Glob, Write]
 
 Before starting adversarial verification, verify the dod-recheck gate:
 
-1. Run `scripts/gate-check.sh <task-N.dod-recheck.md> <plan.md>`.
+1. Run `<skill-root>/scripts/gate-check.sh <task-N.dod-recheck.md> <plan.md>`.
 2. The dod-recheck file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `execute-plan dod-recheck` first.
 
@@ -39,7 +45,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 
 ## Procedure
 
-1. **Generate Header**: Run `scripts/digest-stamp.sh adversarial-verify <plan-file>` to produce the verification metadata header.
+1. **Generate Header**: Run `<skill-root>/scripts/digest-stamp.sh adversarial-verify <plan-file>` to produce the verification metadata header.
 2. **Load Context**: Read the Adversarial Verify Input block, all implementation files listed, and `references/attack-vectors.md` (including the `## Project-Specific Vectors` section).
 3. **Select Attack Categories**: Based on the Change Areas and Change Rationale, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change. If `## Project-Specific Vectors` contains vectors matching the change characteristics, include them as additional probe targets regardless of the selected categories.
 4. **Execute Attacks**: For each selected attack vector:

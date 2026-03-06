@@ -4,6 +4,12 @@ description: "Decomposes an approved design document into a TDD-based implementa
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 ## Mode Dispatch
 
 Determine the execution mode from `$ARGUMENTS`:
@@ -36,7 +42,7 @@ No exceptions. Not even "just to test one thing" or "the first task is trivial."
 
 Before starting decomposition in create mode, verify the design review gate:
 
-1. Run `scripts/gate-check.sh <design.review.md> <design.md>`.
+1. Run `<skill-root>/scripts/gate-check.sh <design.review.md> <design.md>`.
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current design file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `design-doc review` first.
 
@@ -256,7 +262,7 @@ For design atoms expressing hard behavioral constraints — restricting behavior
 
 Perform structural checks before presenting the plan. Semantic verification is delegated to review mode.
 
-1. Run `scripts/structural-check.sh <design-file> <plan-file>`.
+1. Run `<skill-root>/scripts/structural-check.sh <design-file> <plan-file>`.
 2. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
 3. Do NOT present the plan to the user if structural checks are failing.
 4. Record structural check results in `plan.trace.md`.

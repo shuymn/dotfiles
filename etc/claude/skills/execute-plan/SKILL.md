@@ -4,6 +4,12 @@ description: "Executes one user-selected task from an approved plan bundle using
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 ## Mode Dispatch
 
 Determine the execution mode from `$ARGUMENTS`:
@@ -31,7 +37,7 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 
 Before executing any task in implement mode, verify the plan review gate:
 
-1. Run `scripts/gate-check.sh <plan.review.md> <plan.md>`.
+1. Run `<skill-root>/scripts/gate-check.sh <plan.review.md> <plan.md>`.
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `decompose-plan review` first.
 

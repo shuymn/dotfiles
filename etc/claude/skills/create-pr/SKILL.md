@@ -4,6 +4,12 @@ description: Reviews committed changes and creates a pull request on GitHub. Use
 allowed-tools: [Bash, Read, Grep, Glob]
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 # Create Pull Request on GitHub from Committed Changes
 
 ## Context

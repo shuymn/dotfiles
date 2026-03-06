@@ -4,6 +4,12 @@ description: Prepares .ralph/ runtime state from an approved and reviewed plan b
 argument-hint: "[plan-path]"
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 # Setup Ralph
 
 Prepare `.ralph/` for the execution loop: fill `prd.json` from an approved plan bundle and update `prompt.run.md` with project-specific guidance.
@@ -56,7 +62,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
 6. Validate review report readiness:
    - Derive review path by replacing `plan.md` with `plan.review.md`.
    - The review file exists.
-   - Run gate check: `bash <skill-root>/_shared/scripts/gate-check.sh <plan.review.md> <plan.md>`. If exit code is non-zero, stop and ask the user to re-run `decompose-plan review`.
+   - Run gate check: `bash <skill-root>/../_shared/scripts/gate-check.sh <plan.review.md> <plan.md>`. If exit code is non-zero, stop and ask the user to re-run `decompose-plan review`.
    - The review report contains (Review Metadata + Summary):
      - `Overall Verdict: PASS` (in `## Review Metadata`)
      - `Forward Fidelity: PASS`

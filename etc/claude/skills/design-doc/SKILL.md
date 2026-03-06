@@ -4,6 +4,12 @@ description: "Creates or reviews a design document (mode=create|review). Create 
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`; shared helpers live under `<skill-root>/../_shared/...`.
+
 ## Mode Dispatch
 
 Determine the execution mode from `$ARGUMENTS`:
