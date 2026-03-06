@@ -9,6 +9,7 @@ import (
 
 func main() {
 	app := &cli.App{Name: "skit"}
+	app.Register(cmd.FileScopeCheck())
 	app.Register(cmd.FreshnessPreflight())
 	app.Register(cmd.ArtifactFormatCheck())
 	app.Register(cmd.RiskFormatCheck())

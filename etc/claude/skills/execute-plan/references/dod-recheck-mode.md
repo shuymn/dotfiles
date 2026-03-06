@@ -25,7 +25,7 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
    - Run each quality gate command.
    - Record: command, exit code, PASS/FAIL.
 3.5. **File Scope Verification**:
-   - Run: `git diff --name-only <base>..HEAD | uv run python <skill-root>/scripts/file_scope_check.py <plan-file> --task <N>`
+   - Run: `git diff --name-only <base>..HEAD | skit file-scope-check <plan-file> --task <N>`
    - The script reads the task's `Allowed Files` and `Exception Files` from the plan, matches changed files, and outputs a findings table.
    - If the script is unavailable, perform the check manually:
      - Read the task's `Allowed Files` glob patterns from the plan.
