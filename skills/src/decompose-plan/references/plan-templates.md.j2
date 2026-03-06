@@ -18,12 +18,7 @@ Templates for `plan.md` output artifact.
 
 Project-wide checks that every task must pass at DoD.
 
-| Category    | Command                     |
-|-------------|-----------------------------|
-| [test]      | `[exact test command]`      |
-| [lint]      | `[exact lint command]`      |
-| [format]    | `[exact format command]`    |
-| [typecheck] | `[exact typecheck command]` |
+{{ render_fragment("quality_gates") }}
 
 > Always required. Step 1.7 blocks if no quality gates detected.
 ```
@@ -33,19 +28,7 @@ Project-wide checks that every task must pass at DoD.
 ```markdown
 ## Checkpoint Summary
 
-- Alignment Verdict: PASS | FAIL
-- Forward Fidelity: PASS | FAIL
-- Reverse Fidelity: PASS | FAIL
-- Non-Goal Guard: PASS | FAIL
-- Behavioral Lock Guard: PASS | FAIL
-- Temporal Completeness Guard: PASS | FAIL
-- Quality Gate Guard: PASS | FAIL
-- Integration Coverage Guard: PASS | FAIL | N/A
-- Risk Classification Guard: PASS | FAIL | N/A (greenfield without Critical-domain changes)
-- TEMP Summary: introduced=X, retired=Y, open=Z, waived=W
-- Trace Pack: `docs/plans/<topic>/plan.trace.md`
-- Compose Pack: `docs/plans/<topic>/plan.compose.md`
-- Updated At: `YYYY-MM-DD`
+{{ render_fragment("checkpoint_summary") }}
 ```
 
 ## Task Template

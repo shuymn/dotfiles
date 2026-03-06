@@ -1,0 +1,135 @@
+{
+  "decision_trace": {
+    "kind": "bullets",
+    "items": [
+      "DEC01 -> ADR-0007",
+      "DEC02 -> ADR-0014"
+    ]
+  },
+  "design_task_trace_matrix": {
+    "kind": "bullets",
+    "items": [
+      "[REQxx]: Task A, Task B",
+      "[ACxx]: Task C",
+      "[GOALxx]: Task A, Task D",
+      "[DECxx (ADR-xxxx)]: Task E"
+    ]
+  },
+  "task_design_compose_matrix": {
+    "kind": "bullets",
+    "items": [
+      "Task A: REQxx, ACxx, GOALxx",
+      "Task B: REQyy, DECzz"
+    ]
+  },
+  "temporary_mechanism_trace": {
+    "kind": "bullets",
+    "items": [
+      "TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[...], retirement_verification=[...], removal_scope=[...], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived"
+    ]
+  },
+  "ac_ownership_map": {
+    "kind": "table",
+    "headers": [
+      "AC ID",
+      "Owner Task",
+      "Contributors",
+      "Has RED for AC"
+    ],
+    "rows": [
+      [
+        "AC01",
+        "Task 2",
+        "Task 4",
+        "Yes"
+      ]
+    ]
+  },
+  "behavioral_lock_map": {
+    "kind": "bullets",
+    "items": [
+      "LOCK01 (`REQxx`, `ACyy`): intent=\"gateway only path / no fallback\", negative_checks=[Task C DoD-2], positive_boundary_checks=[Task C DoD-3]",
+      "LOCK02 (`REQzz`): intent=\"legacy key removal\", negative_checks=[Task A RED-1, DoD-2], positive_boundary_checks=[Task A DoD-3]"
+    ]
+  },
+  "forward_fidelity": {
+    "kind": "bullets",
+    "items": [
+      "Coverage ratio (`REQ+AC covered / total REQ+AC`): `X/Y`",
+      "Coverage ratio (`DEC covered / total DEC`): `X/Y`",
+      "Invalid DEC-to-ADR mappings: [if any]",
+      "Missing design atoms: [if any]"
+    ]
+  },
+  "reverse_fidelity": {
+    "kind": "bullets",
+    "items": [
+      "Orphan tasks (no valid anchors): [if any]",
+      "Tasks missing `REQxx/ACxx` in `Satisfied Requirements`: [if any]",
+      "Alignment verdict: PASS | FAIL",
+      "Gaps and actions: [If FAIL, list fixes and update tasks]"
+    ]
+  },
+  "non_goal_guard": {
+    "kind": "bullets",
+    "items": [
+      "Violations against `NONGOALxx`: [if any]"
+    ]
+  },
+  "dod_semantics_guard": {
+    "kind": "bullets",
+    "items": [
+      "Tasks with OR-like DoD wording: [if any]",
+      "DoD items missing independent verification: [if any]"
+    ]
+  },
+  "behavioral_lock_guard": {
+    "kind": "bullets",
+    "items": [
+      "Lock atoms missing negative executable checks: [if any]",
+      "Runtime-boundary lock atoms missing boundary-level verification: [if any]",
+      "Verdict: PASS | FAIL"
+    ]
+  },
+  "temporal_completeness_guard": {
+    "kind": "bullets",
+    "items": [
+      "TEMP entries missing introducing tasks: [if any]",
+      "TEMP entries missing retiring tasks: [if any]",
+      "Retire tasks missing negative fallback-removal verification: [if any]",
+      "TEMP entries missing in-doc closure summary (checklist/ledger row): [if any]",
+      "TEMP entries missing closure tuple fields (trigger/verification/removal_scope): [if any]",
+      "Open TEMP entries without waiver metadata (`reason`, `deadline`, `owner?`): [if any]"
+    ]
+  },
+  "quality_gate_guard": {
+    "kind": "bullets",
+    "items": [
+      "Quality gates detected in Step 1.7: [count or `none`]",
+      "`## Quality Gates` present in plan.md: [yes/no]",
+      "Tasks missing quality gate DoD line: [if any]"
+    ]
+  },
+  "compose_reconstructed_design_summary": {
+    "kind": "bullets",
+    "items": [
+      "[3-7 bullets]"
+    ]
+  },
+  "compose_scope_diff": {
+    "kind": "bullets",
+    "items": [
+      "Missing from tasks: [if any]",
+      "Extra in tasks: [if any]",
+      "Ambiguous mappings: [if any]",
+      "Open temporary mechanisms (`TEMPxx`): [if any]"
+    ]
+  },
+  "compose_alignment_verdict": {
+    "kind": "bullets",
+    "items": [
+      "PASS | FAIL",
+      "Required fixes: [if FAIL]"
+    ]
+  }
+}

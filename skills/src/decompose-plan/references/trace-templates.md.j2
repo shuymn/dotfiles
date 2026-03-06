@@ -1,0 +1,68 @@
+# Trace & Check Templates
+
+Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
+When embedding commands or artifact paths in these files, use repository-relative project paths and `scripts/<name>.sh` helper names, never absolute filesystem paths.
+
+## Trace Matrix Templates (for `plan.trace.md`)
+
+```markdown
+## Decision Trace
+{{ render_fragment("decision_trace") }}
+
+## Design -> Task Trace Matrix
+{{ render_fragment("design_task_trace_matrix") }}
+
+## Task -> Design Compose Matrix
+{{ render_fragment("task_design_compose_matrix") }}
+
+## Temporary Mechanism Trace
+{{ render_fragment("temporary_mechanism_trace") }}
+
+## AC Ownership Map
+{{ render_fragment("ac_ownership_map") }}
+
+## Behavioral Lock Map
+{{ render_fragment("behavioral_lock_map") }}
+```
+
+## Cross Self-Check Template (for `plan.trace.md`)
+
+```markdown
+## Cross Self-Check
+
+### Forward Fidelity (Design -> Tasks)
+{{ render_fragment("forward_fidelity") }}
+
+### Reverse Fidelity (Tasks -> Design)
+{{ render_fragment("reverse_fidelity") }}
+
+### Non-Goal Guard
+{{ render_fragment("non_goal_guard") }}
+
+### DoD Semantics Guard
+{{ render_fragment("dod_semantics_guard") }}
+
+### Behavioral Lock Guard
+{{ render_fragment("behavioral_lock_guard") }}
+
+### Temporal Completeness Guard
+{{ render_fragment("temporal_completeness_guard") }}
+
+### Quality Gate Guard
+{{ render_fragment("quality_gate_guard") }}
+```
+
+## Compose Reconstruction Template (for `plan.compose.md`)
+
+```markdown
+## Compose Reconstruction
+
+### Reconstructed Design Summary
+{{ render_fragment("compose_reconstructed_design_summary") }}
+
+### Scope Diff
+{{ render_fragment("compose_scope_diff") }}
+
+### Alignment Verdict
+{{ render_fragment("compose_alignment_verdict") }}
+```
