@@ -3,7 +3,7 @@ set -euo pipefail
 
 # structural-check.sh — Structural integrity checks on a plan bundle.
 # Usage: structural-check.sh <design-file> <plan-file>
-# Performs 8 checks: ID duplicates, dependency cycles, AC/REQ/GOAL/DEC coverage, DoD existence, Quality Gate executability.
+# Performs 9 checks: ID duplicates, dependency cycles, AC/REQ/GOAL/DEC coverage, DoD existence, Quality Gate executability, DoD Run command executability.
 # Output:
 #   - LLM_CHECK_V2 (default compact mode, minimal token usage)
 #   - Set LLM_CHECK_MODE=full for verbose diagnostics
@@ -19,7 +19,7 @@ source "${SCRIPT_DIR}/lib/path-display.sh"
 
 readonly TOOL_NAME="structural-check"
 readonly OUTPUT_SCHEMA="LLM_CHECK_V2"
-readonly TOTAL_CHECKS=8
+readonly TOTAL_CHECKS=9
 readonly LIST_DELIMITER=$'\x1f'
 
 output_mode="$(llm_check_resolve_mode)"
@@ -71,6 +71,9 @@ fix_code_for_check() {
     ;;
   "QGate-Exec")
     printf '%s' "FIX_INSTALL_OR_UPDATE_QGATE_COMMANDS"
+    ;;
+  "DoD-Run-Exec")
+    printf '%s' "FIX_INSTALL_OR_UPDATE_DOD_RUN_COMMANDS"
     ;;
   "REQ-Coverage")
     printf '%s' "FIX_ADD_MISSING_REQ_REFERENCES"
@@ -508,6 +511,55 @@ else
       "Install missing commands or replace them with available executables." \
       "Update Quality Gates table commands so the first token resolves via command -v."
   fi
+fi
+
+# --- Check 9: DoD Run command executability ---
+# Extract `- Run: `command`` lines from task blocks, excluding ## Quality Gates section.
+quality_gates_start=$(grep -n '^## Quality Gates' "$plan_file" | head -n 1 | cut -d: -f1 || true)
+quality_gates_end=""
+if [[ -n "$quality_gates_start" ]]; then
+  quality_gates_end=$(tail -n +"$((quality_gates_start + 1))" "$plan_file" | grep -n '^## ' | head -n 1 | cut -d: -f1 || true)
+  if [[ -n "$quality_gates_end" ]]; then
+    quality_gates_end=$((quality_gates_start + quality_gates_end))
+  fi
+fi
+
+dod_missing_cmds=()
+line_num=0
+while IFS= read -r line; do
+  line_num=$((line_num + 1))
+  # Skip lines inside ## Quality Gates section
+  if [[ -n "$quality_gates_start" ]]; then
+    if [[ -n "$quality_gates_end" ]]; then
+      if [[ "$line_num" -ge "$quality_gates_start" && "$line_num" -lt "$quality_gates_end" ]]; then
+        continue
+      fi
+    else
+      if [[ "$line_num" -ge "$quality_gates_start" ]]; then
+        continue
+      fi
+    fi
+  fi
+  # Match DoD Run lines: - Run: `command`
+  if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+Run: ]]; then
+    cmd=$(echo "$line" | grep -oE "\`[^\`]+\`" | head -n 1 | tr -d '`')
+    first_token=$(echo "$cmd" | awk '{print $1}')
+    if [[ -n "$first_token" ]] && ! command -v "$first_token" >/dev/null 2>&1; then
+      dod_missing_cmds+=("$first_token")
+    fi
+  fi
+done <"$plan_file"
+
+if [[ ${#dod_missing_cmds[@]} -eq 0 ]]; then
+  append_check "DoD-Run-Exec" "PASS" "All DoD Run commands are executable." ""
+else
+  append_check \
+    "DoD-Run-Exec" \
+    "FAIL" \
+    "Some DoD Run commands are not executable in current environment." \
+    "$(join_by '; ' "${dod_missing_cmds[@]}")" \
+    "Install missing commands or replace them with available executables." \
+    "Update DoD Run command lines so the first token resolves via command -v."
 fi
 
 # --- Final verdict ---
