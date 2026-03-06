@@ -62,7 +62,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
    - If not explicitly specified, ask which task ID to execute and stop.
    - Never auto-select a task.
 4. Validate bundle consistency:
-   - Run `uv run python <skill-root>/scripts/bundle_validate_check.py <plan-file>`. If it reports `FAIL`, stop and request plan correction.
+   - Run `skit bundle-validate-check <plan-file>`. If it reports `FAIL`, stop and request plan correction.
    - `plan.md` exists and includes the selected task ID.
    - Referenced sidecars exist.
    - `Checkpoint Summary` exists and uses required keys:
