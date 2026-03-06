@@ -62,7 +62,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
      - Critical / Sensitive: cover **all** `[required]` vectors within selected categories. For each: (a) execute a probe, or (b) document why it is non-applicable. Uncovered `[required]` vectors without documented rationale → `Overall Verdict: FAIL`.
      - Standard (impl): cover the **single most relevant** `[required]` vector in the selected category.
      - Standard (non-impl): no `[required]` coverage obligation.
-5. **Coverage Gate**: Run `uv run python <skill-root>/scripts/adversarial_coverage_check.py <report-file> <skill-root>/references/attack-vectors.md --tier <tier>`.
+5. **Coverage Gate**: Run `skit adversarial-coverage-check <report-file> <skill-root>/references/attack-vectors.md --tier <tier>`.
    - `SKIP`: Standard tier (no [required] coverage obligation) — proceed.
    - `FAIL`: one or more [required] vectors are uncovered without documented N/A rationale → `Overall Verdict: FAIL`.
 6. **Compute Verdict**: `Overall Verdict: PASS` only when ALL attack probes result in DEFENDED and the Coverage Gate is PASS. Any VULNERABLE or coverage FAIL → `Overall Verdict: FAIL`.

@@ -1,8 +1,7 @@
 {
   "common_scripts": [
     "digest-stamp.sh",
-    "gate-check.sh",
-    "llm_check.py"
+    "gate-check.sh"
   ]
 }
 

@@ -19,5 +19,6 @@ func main() {
 	app.Register(cmd.TempLifecycleCheck())
 	app.Register(cmd.RiskDodCheck())
 	app.Register(cmd.TraceComposeCheck())
+	app.Register(cmd.AdversarialCoverageCheck())
 	os.Exit(app.Run(os.Args))
 }
