@@ -24,6 +24,7 @@ from skills_models import (  # noqa: E402
     AcOwnershipMapRowModel,
     BehavioralLockGuardSectionModel,
     BehavioralLockMapRowModel,
+    BoundaryInventoryRowModel,
     CheckpointSummaryTemplateModel,
     ClarificationRowModel,
     ComposeAlignmentVerdictSectionModel,
@@ -165,7 +166,7 @@ def render_risk_classification(rows: list[RiskClassificationRowModel]) -> str:
     )
 
 
-def render_boundary_inventory(rows: list[Any]) -> str:
+def render_boundary_inventory(rows: list[BoundaryInventoryRowModel]) -> str:
     return render_markdown_table(
         [
             "Boundary",
