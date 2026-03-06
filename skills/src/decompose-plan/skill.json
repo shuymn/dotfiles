@@ -3,6 +3,7 @@
     "digest-stamp.sh",
     "gate-check.sh",
     "llm-check-output.sh",
+    "llm_check.py",
     "path-display.sh",
     "skills_models.py",
     "split_check.py"

@@ -21,6 +21,10 @@
     "dependencies": [],
     "install_path": "scripts/lib/path-display.sh"
   },
+  "llm_check.py": {
+    "dependencies": [],
+    "install_path": "scripts/lib/llm_check.py"
+  },
   "skills_models.py": {
     "dependencies": [],
     "install_path": "scripts/lib/skills_models.py"
