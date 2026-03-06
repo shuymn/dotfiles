@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
-BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "skills" / "build_skills.py"
+BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "build_skills.py"
 BUILD_SPEC = importlib.util.spec_from_file_location("build_skills", BUILD_MODULE_PATH)
 assert BUILD_SPEC is not None and BUILD_SPEC.loader is not None
 BUILD_MODULE = importlib.util.module_from_spec(BUILD_SPEC)

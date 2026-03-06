@@ -8,15 +8,15 @@ import textwrap
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = REPO_ROOT / "scripts" / "skills" / "build_skills.py"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MODULE_PATH = PROJECT_ROOT / "scripts" / "build_skills.py"
 SPEC = importlib.util.spec_from_file_location("build_skills", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
-SOURCE_ROOT = REPO_ROOT / "skills"
+SOURCE_ROOT = PROJECT_ROOT / "src"
 
 
 def snapshot_tree(root: Path) -> dict[str, tuple[str, int]]:

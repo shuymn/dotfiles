@@ -10,6 +10,6 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = [
-  "skills",
+  "src",
+  "tests",
 ]
-
