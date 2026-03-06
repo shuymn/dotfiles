@@ -46,11 +46,5 @@
       "llm_check.py"
     ],
     "install_path": "scripts/artifact_format_check.py"
-  },
-  "freshness_preflight.py": {
-    "dependencies": [
-      "llm_check.py"
-    ],
-    "install_path": "scripts/freshness_preflight.py"
   }
 }

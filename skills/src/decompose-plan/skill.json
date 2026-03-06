@@ -2,7 +2,6 @@
   "common_scripts": [
     "artifact_format_check.py",
     "digest-stamp.sh",
-    "freshness_preflight.py",
     "gate-check.sh",
     "llm-check-output.sh",
     "llm_check.py",
