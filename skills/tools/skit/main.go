@@ -14,5 +14,6 @@ func main() {
 	app.Register(cmd.RiskFormatCheck())
 	app.Register(cmd.VerificationCmdCheck())
 	app.Register(cmd.BundleValidateCheck())
+	app.Register(cmd.DepGraphGen())
 	os.Exit(app.Run(os.Args))
 }
