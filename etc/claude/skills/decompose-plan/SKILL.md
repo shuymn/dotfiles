@@ -72,6 +72,7 @@ Do not infer migration lifecycle details that are absent from the design doc.
   - Closure fields must be sourced from the in-doc checklist/ledger row; ADR `Sunset Clause` is supplemental and not a substitute for in-doc closure summary.
   - If lifecycle record points to ADR, require linked ADR `Sunset Clause` for that `TEMPxx`.
   - If any required lifecycle evidence is missing, stop as `BLOCKED` and request design completion before decomposition.
+  - Run `uv run --with pydantic python <skill-root>/scripts/temp_lifecycle_check.py <design-file>`. If it reports `FAIL`, stop as `BLOCKED`.
 - Decomposition is allowed only when lifecycle closure is design-defined.
 
 ## Round-Trip Contract
@@ -284,9 +285,10 @@ Perform structural checks before presenting the plan. Semantic verification is d
 
 1. Run `<skill-root>/scripts/structural-check.sh <design-file> <plan-file>`.
 2. Run `uv run python <skill-root>/scripts/trace_compose_check.py <design-file> <plan-trace-file>`.
-3. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
-4. Do NOT present the plan to the user if structural checks are failing.
-4. Record structural check results in `plan.trace.md`.
+3. Run `uv run --with pydantic python <skill-root>/scripts/risk_dod_check.py <plan-file> <design-file>`. If it reports `FAIL`, add missing DoD annotations to affected tasks.
+4. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
+5. Do NOT present the plan to the user if structural checks are failing.
+6. Record structural check results in `plan.trace.md`.
 5. When writing commands or file paths into `plan.trace.md`, use repository-relative project paths and `scripts/<name>.sh` helper names, never absolute filesystem paths.
 6. Update `Checkpoint Summary` in `plan.md`.
 
