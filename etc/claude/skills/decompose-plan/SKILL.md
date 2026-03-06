@@ -72,7 +72,7 @@ Do not infer migration lifecycle details that are absent from the design doc.
   - Closure fields must be sourced from the in-doc checklist/ledger row; ADR `Sunset Clause` is supplemental and not a substitute for in-doc closure summary.
   - If lifecycle record points to ADR, require linked ADR `Sunset Clause` for that `TEMPxx`.
   - If any required lifecycle evidence is missing, stop as `BLOCKED` and request design completion before decomposition.
-  - Run `uv run --with pydantic python <skill-root>/scripts/temp_lifecycle_check.py <design-file>`. If it reports `FAIL`, stop as `BLOCKED`.
+  - Run `skit temp-lifecycle-check <design-file>`. If it reports `FAIL`, stop as `BLOCKED`.
 - Decomposition is allowed only when lifecycle closure is design-defined.
 
 ## Round-Trip Contract

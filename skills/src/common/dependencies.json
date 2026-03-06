@@ -34,11 +34,5 @@
       "skills_models.py"
     ],
     "install_path": "scripts/split_check.py"
-  },
-  "temp_lifecycle_check.py": {
-    "dependencies": [
-      "llm_check.py"
-    ],
-    "install_path": "scripts/temp_lifecycle_check.py"
   }
 }

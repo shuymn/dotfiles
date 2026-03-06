@@ -16,5 +16,6 @@ func main() {
 	app.Register(cmd.VerificationCmdCheck())
 	app.Register(cmd.BundleValidateCheck())
 	app.Register(cmd.DepGraphGen())
+	app.Register(cmd.TempLifecycleCheck())
 	os.Exit(app.Run(os.Args))
 }

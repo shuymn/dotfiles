@@ -4,8 +4,7 @@
     "gate-check.sh",
     "llm_check.py",
     "skills_models.py",
-    "split_check.py",
-    "temp_lifecycle_check.py"
+    "split_check.py"
   ]
 }
 
