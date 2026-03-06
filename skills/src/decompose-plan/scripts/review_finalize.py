@@ -6,9 +6,25 @@ from __future__ import annotations
 import argparse
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
+from pydantic import ValidationError
+
+ARTIFACT_LIB_DIR = Path(__file__).resolve().parent / "lib"
+SOURCE_LIB_DIR = Path(__file__).resolve().parents[2] / "common" / "scripts" / "lib"
+for candidate in (ARTIFACT_LIB_DIR, SOURCE_LIB_DIR):
+    if candidate.is_dir() and str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
+        break
+
+from skills_models import (  # noqa: E402
+    GranularityCardValuesModel,
+    GranularityPokerRowModel,
+    ReviewSummaryModel,
+)
 
 SUMMARY_FIELDS = [
     "Forward Fidelity",
@@ -80,7 +96,7 @@ def canonicalize_summary_value(field: str, raw: str | None) -> tuple[str, str | 
         return ("FAIL", None)
     if value.startswith("N/A"):
         if field in SUMMARY_NA_FIELDS:
-            return (value, None)
+            return ("N/A", None)
         return ("FAIL", f"`{field}` cannot be `N/A`.")
 
     return ("FAIL", f"`{field}` has an invalid verdict: `{value}`.")
@@ -106,6 +122,28 @@ def parse_summary(summary_body: str) -> tuple[dict[str, str], list[str]]:
         final_map[field] = verdict
         if error:
             errors.append(error)
+
+    try:
+        ReviewSummaryModel.model_validate(
+            {
+                "forward_fidelity": final_map["Forward Fidelity"],
+                "reverse_fidelity": final_map["Reverse Fidelity"],
+                "round_trip": final_map["Round-trip"],
+                "behavioral_lock": final_map["Behavioral Lock"],
+                "negative_path": final_map["Negative Path"],
+                "temporal": final_map["Temporal"],
+                "traceability": final_map["Traceability"],
+                "scope": final_map["Scope"],
+                "testability": final_map["Testability"],
+                "execution_readiness": final_map["Execution Readiness"],
+                "integration_coverage": final_map["Integration Coverage"],
+                "risk_classification": final_map["Risk Classification"],
+            }
+        )
+    except ValidationError as exc:
+        for error in exc.errors():
+            location = ".".join(str(part) for part in error["loc"])
+            errors.append(f"Summary validation failed: {location}: {error['msg']}.")
 
     return final_map, errors
 
@@ -136,8 +174,10 @@ def parse_design_path(plan_text: str, plan_path: Path) -> Path:
     return (plan_path.parent / "design.md").resolve()
 
 
-def parse_granularity_table(body: str) -> tuple[list[dict[str, str]], list[str]]:
-    rows: list[dict[str, str]] = []
+def parse_granularity_table(
+    body: str,
+) -> tuple[list[GranularityPokerRowModel], list[str]]:
+    rows: list[GranularityPokerRowModel] = []
     errors: list[str] = []
     found_header = False
 
@@ -156,16 +196,25 @@ def parse_granularity_table(body: str) -> tuple[list[dict[str, str]], list[str]]
         if len(cells) != 6:
             errors.append(f"Malformed granularity row: `{stripped}`.")
             continue
-        rows.append(
-            {
-                "task": cells[0],
-                "Objective": cells[1],
-                "Surface": cells[2],
-                "Verification": cells[3],
-                "Rollback": cells[4],
-                "Evidence": cells[5],
-            }
-        )
+        try:
+            rows.append(
+                GranularityPokerRowModel.model_validate(
+                    {
+                        "task": cells[0],
+                        "Objective": cells[1],
+                        "Surface": cells[2],
+                        "Verification": cells[3],
+                        "Rollback": cells[4],
+                        "Evidence": cells[5],
+                    }
+                )
+            )
+        except ValidationError as exc:
+            for error in exc.errors():
+                location = ".".join(str(part) for part in error["loc"])
+                errors.append(
+                    f"Malformed granularity row `{cells[0] or stripped}`: {location}: {error['msg']}."
+                )
 
     if not found_header:
         errors.append("Granularity Poker table header is missing.")
@@ -286,15 +335,26 @@ def recommendation_for_unknown_task() -> str:
 
 
 def compute_machine_rows(
-    task_ids: list[str], granularity_rows: list[dict[str, str]], parse_errors: list[str]
+    task_ids: list[str],
+    granularity_rows: list[GranularityPokerRowModel | dict[str, str]],
+    parse_errors: list[str],
 ) -> tuple[list[MachineRow], list[str]]:
-    rows_by_task: dict[str, dict[str, str]] = {}
+    rows_by_task: dict[str, GranularityPokerRowModel] = {}
     task_issues: dict[str, list[str]] = {task_id: [] for task_id in task_ids}
     extra_rows: list[MachineRow] = []
     global_issues = list(parse_errors)
 
     for row in granularity_rows:
-        task = row["task"]
+        if isinstance(row, dict):
+            try:
+                row = GranularityPokerRowModel.model_validate(row)
+            except ValidationError as exc:
+                global_issues.extend(
+                    f"Granularity Poker row validation failed: {error['msg']}."
+                    for error in exc.errors()
+                )
+                continue
+        task = row.task
         if task not in task_issues:
             extra_rows.append(
                 MachineRow(
@@ -336,18 +396,41 @@ def compute_machine_rows(
 
         cards: list[int] = []
         axis_scores: dict[str, int] = {}
-        for axis in AXES:
-            raw_value = row[axis]
+        raw_card_values = {
+            "objective": row.objective,
+            "surface": row.surface,
+            "verification": row.verification,
+            "rollback": row.rollback,
+        }
+        parsed_card_values: dict[str, int] = {}
+        for axis in ("objective", "surface", "verification", "rollback"):
+            raw_value = raw_card_values[axis]
             try:
-                card = int(raw_value)
+                parsed_card_values[axis] = int(raw_value)
             except ValueError:
-                issues.append(f"invalid {axis.lower()} card `{raw_value}`")
-                continue
-            if card not in ALLOWED_CARDS:
-                issues.append(f"invalid {axis.lower()} card `{raw_value}`")
-                continue
-            cards.append(card)
-            axis_scores[axis] = card
+                issues.append(f"invalid {axis} card `{raw_value}`")
+        if len(parsed_card_values) == len(raw_card_values):
+            try:
+                validated_cards = GranularityCardValuesModel.model_validate(
+                    parsed_card_values
+                )
+            except ValidationError as exc:
+                invalid_axes: set[str] = set()
+                for error in exc.errors():
+                    axis = str(error["loc"][0]).title()
+                    invalid_axes.add(axis)
+                for axis in AXES:
+                    raw_value = raw_card_values[axis.lower()]
+                    if axis in invalid_axes:
+                        issues.append(f"invalid {axis.lower()} card `{raw_value}`")
+            else:
+                axis_scores = {
+                    "Objective": validated_cards.objective,
+                    "Surface": validated_cards.surface,
+                    "Verification": validated_cards.verification,
+                    "Rollback": validated_cards.rollback,
+                }
+                cards = list(axis_scores.values())
 
         trigger_parts = list(issues)
         high_axes: list[str] = []

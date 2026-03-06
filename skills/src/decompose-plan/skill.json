@@ -4,7 +4,7 @@
     "gate-check.sh",
     "llm-check-output.sh",
     "path-display.sh",
+    "skills_models.py",
     "split_check.py"
   ]
 }
-

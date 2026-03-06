@@ -1,6 +1,5 @@
 import importlib.util
 import subprocess
-import sys
 import tempfile
 import textwrap
 import unittest
@@ -32,7 +31,15 @@ class SplitCheckGateTests(unittest.TestCase):
             temp_dir, "docs/plans/topic/design.md", design_content
         )
         return subprocess.run(
-            [sys.executable, str(CLI_PATH), str(design_path)],
+            [
+                "uv",
+                "run",
+                "--with",
+                "pydantic",
+                "python",
+                str(CLI_PATH),
+                str(design_path),
+            ],
             capture_output=True,
             text=True,
             check=False,

@@ -3,11 +3,30 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from pydantic import ValidationError
+
+LIB_DIR = Path(__file__).resolve().parent / "lib"
+
+
+def load_skills_models() -> tuple[type[object], type[object]]:
+    module_path = LIB_DIR / "skills_models.py"
+    spec = importlib.util.spec_from_file_location("skills_models", module_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"skills_models.py not found: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault(spec.name, module)
+    spec.loader.exec_module(module)
+    return (module.BoundaryInventoryRowModel, module.SubDocIndexRowModel)
+
+
+BoundaryInventoryRowModel, SubDocIndexRowModel = load_skills_models()
 
 OUTPUT_SCHEMA = "LLM_CHECK_V2"
 TOOL_NAME = "split-check"
@@ -27,43 +46,6 @@ REQUIRED_SUBDOC_INDEX_COLUMNS = [
     "Owns Requirements/AC",
 ]
 NONE_TOKENS = {"", "-", "none", "n/a", "na"}
-TRUE_TOKENS = {"yes", "true", "y"}
-INTEGRATION_ONLY_TOKEN = "integration-only"
-
-
-@dataclass(frozen=True)
-class BoundaryRow:
-    boundary: str
-    owns_requirements: str
-    verification_surface: str
-    temp_lifecycle_group: str
-    parallel_stream: str
-    depends_on: tuple[str, ...]
-
-    @property
-    def normalized_boundary(self) -> str:
-        return normalize_token(self.boundary)
-
-    @property
-    def is_owned(self) -> bool:
-        owns = normalize_token(self.owns_requirements)
-        return owns not in NONE_TOKENS and owns != INTEGRATION_ONLY_TOKEN
-
-    @property
-    def is_parallel(self) -> bool:
-        return normalize_token(self.parallel_stream) in TRUE_TOKENS
-
-
-@dataclass(frozen=True)
-class SubDocIndexRow:
-    sub_id: str
-    file: str
-    owned_boundary: str
-    owns_requirements: str
-
-    @property
-    def normalized_boundary(self) -> str:
-        return normalize_token(self.owned_boundary)
 
 
 @dataclass(frozen=True)
@@ -87,8 +69,8 @@ class SubDocInfo:
 class DesignDocData:
     design_file: Path
     split_decision: str = ""
-    boundary_rows: list[BoundaryRow] = field(default_factory=list)
-    subdoc_index_rows: list[SubDocIndexRow] = field(default_factory=list)
+    boundary_rows: list[BoundaryInventoryRowModel] = field(default_factory=list)
+    subdoc_index_rows: list[SubDocIndexRowModel] = field(default_factory=list)
     subdocs: list[SubDocInfo] = field(default_factory=list)
     root_acceptance_count: int = 0
     errors: list[str] = field(default_factory=list)
@@ -192,11 +174,12 @@ def count_bullet_items(text: str) -> int:
     return count
 
 
-def parse_dependencies(value: str) -> tuple[str, ...]:
-    if normalize_token(value) in NONE_TOKENS:
-        return ()
-    parts = [part.strip() for part in re.split(r"[;,]", value) if part.strip()]
-    return tuple(parts)
+def format_validation_error(prefix: str, exc: ValidationError) -> list[str]:
+    errors: list[str] = []
+    for error in exc.errors():
+        location = ".".join(str(part) for part in error["loc"])
+        errors.append(f"{prefix}: {location}: {error['msg']}.")
+    return errors
 
 
 def resolve_repo_relative_path(design_file: Path, relative_path: str) -> Path:
@@ -292,18 +275,31 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
                 )
                 continue
             seen_boundaries[normalized_boundary] = boundary
-            data.boundary_rows.append(
-                BoundaryRow(
-                    boundary=boundary,
-                    owns_requirements=row.get("Owns Requirements/AC", "").strip(),
-                    verification_surface=row.get(
-                        "Primary Verification Surface", ""
-                    ).strip(),
-                    temp_lifecycle_group=row.get("TEMP Lifecycle Group", "").strip(),
-                    parallel_stream=row.get("Parallel Stream", "").strip(),
-                    depends_on=parse_dependencies(row.get("Depends On", "")),
+            try:
+                data.boundary_rows.append(
+                    BoundaryInventoryRowModel.model_validate(
+                        {
+                            "boundary": boundary,
+                            "owns_requirements_ac": row.get(
+                                "Owns Requirements/AC", ""
+                            ).strip(),
+                            "primary_verification_surface": row.get(
+                                "Primary Verification Surface", ""
+                            ).strip(),
+                            "temp_lifecycle_group": row.get(
+                                "TEMP Lifecycle Group", ""
+                            ).strip(),
+                            "parallel_stream": row.get("Parallel Stream", "").strip(),
+                            "depends_on": row.get("Depends On", ""),
+                        }
+                    )
                 )
-            )
+            except ValidationError as exc:
+                data.errors.extend(
+                    format_validation_error(
+                        f"Boundary Inventory row `{boundary}` is invalid", exc
+                    )
+                )
 
     _headers, acceptance_rows = parse_markdown_table(
         extract_section(text, "Acceptance Criteria")
@@ -345,12 +341,23 @@ def parse_design_doc(design_file: Path) -> DesignDocData:
             )
         else:
             seen_subdoc_boundaries[normalized_boundary] = sub_id
-        row_data = SubDocIndexRow(
-            sub_id=sub_id,
-            file=file_value,
-            owned_boundary=owned_boundary,
-            owns_requirements=owns_requirements,
-        )
+        try:
+            row_data = SubDocIndexRowModel.model_validate(
+                {
+                    "sub_id": sub_id,
+                    "file": file_value,
+                    "owned_boundary": owned_boundary,
+                    "owns_requirements_ac": owns_requirements,
+                }
+            )
+        except ValidationError as exc:
+            data.errors.extend(
+                format_validation_error(
+                    f"Sub-Doc Index row `{sub_id or file_value or owned_boundary}` is invalid",
+                    exc,
+                )
+            )
+            continue
         data.subdoc_index_rows.append(row_data)
         subdoc_path = resolve_repo_relative_path(design_file, file_value)
         subdoc = parse_subdoc(subdoc_path)
@@ -373,9 +380,9 @@ def build_signals(data: DesignDocData) -> dict[str, str]:
     owned_boundaries = [row for row in data.boundary_rows if row.is_owned]
     known_boundaries = {row.normalized_boundary for row in data.boundary_rows}
     verification_surfaces = {
-        normalize_token(row.verification_surface)
+        normalize_token(row.primary_verification_surface)
         for row in owned_boundaries
-        if normalize_token(row.verification_surface) not in NONE_TOKENS
+        if normalize_token(row.primary_verification_surface) not in NONE_TOKENS
     }
     temp_groups = {
         normalize_token(row.temp_lifecycle_group)

@@ -1,9 +1,21 @@
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "review_finalize.py"
+SOURCE_ROOT = Path(__file__).resolve().parents[2]
+BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "build_skills.py"
+BUILD_SPEC = importlib.util.spec_from_file_location("build_skills", BUILD_MODULE_PATH)
+assert BUILD_SPEC is not None and BUILD_SPEC.loader is not None
+BUILD_MODULE = importlib.util.module_from_spec(BUILD_SPEC)
+sys.modules[BUILD_SPEC.name] = BUILD_MODULE
+BUILD_SPEC.loader.exec_module(BUILD_MODULE)
+
+ARTIFACT_ROOT = Path(tempfile.mkdtemp()) / "artifacts"
+BUILD_MODULE.build_skills(SOURCE_ROOT, ARTIFACT_ROOT)
+
+MODULE_PATH = ARTIFACT_ROOT / "decompose-plan" / "scripts" / "review_finalize.py"
 SPEC = importlib.util.spec_from_file_location("review_finalize", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)

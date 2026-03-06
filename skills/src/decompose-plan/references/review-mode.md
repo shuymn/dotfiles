@@ -25,7 +25,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 2. **Structural Check**: Run `<skill-root>/scripts/structural-check.sh <design-file> <plan-file>` and keep the result for evidence. The finalizer will re-run it and make it authoritative.
 3. **Semantic Verification**: Load `<skill-root>/references/review-criteria.md` and `<skill-root>/references/granularity-poker.md`.
 4. **Write Draft Review**: Output reviewer findings to `.../plan.review.draft.md` (derive path by replacing `plan.md` with `plan.review.draft.md`).
-5. **Finalize Review**: Run `uv run python <skill-root>/scripts/review_finalize.py <plan-file> <draft-file> <final-file>` where `<final-file>` is `.../plan.review.md`.
+5. **Finalize Review**: Run `uv run --with pydantic python <skill-root>/scripts/review_finalize.py <plan-file> <draft-file> <final-file>` where `<final-file>` is `.../plan.review.md`.
 6. **Use Only Final Artifact for Gates**: Downstream skills and gate checks must consume `plan.review.md`, never `plan.review.draft.md`.
 
 ## Draft Output Format
