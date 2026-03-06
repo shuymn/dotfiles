@@ -1,0 +1,7 @@
+{
+  "common_scripts": [
+    "digest-stamp.sh",
+    "gate-check.sh"
+  ]
+}
+

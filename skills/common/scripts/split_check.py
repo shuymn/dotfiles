@@ -559,7 +559,7 @@ def main(argv: list[str]) -> int:
         mode = "compact"
 
     if len(argv) != 2:
-        return emit_cli_error(mode, "INVALID_ARGUMENT_COUNT", "Usage: split-check.sh <design-file>.")
+        return emit_cli_error(mode, "INVALID_ARGUMENT_COUNT", "Usage: split_check.py <design-file>.")
 
     design_file = Path(argv[1]).resolve()
     if not design_file.exists():

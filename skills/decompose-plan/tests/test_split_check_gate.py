@@ -1,11 +1,23 @@
+import importlib.util
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
 
 
-WRAPPER_PATH = Path(__file__).resolve().parents[1] / "scripts" / "split-check.sh"
+SOURCE_ROOT = Path(__file__).resolve().parents[2]
+BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "skills" / "build_skills.py"
+BUILD_SPEC = importlib.util.spec_from_file_location("build_skills", BUILD_MODULE_PATH)
+assert BUILD_SPEC is not None and BUILD_SPEC.loader is not None
+BUILD_MODULE = importlib.util.module_from_spec(BUILD_SPEC)
+BUILD_SPEC.loader.exec_module(BUILD_MODULE)
+
+ARTIFACT_ROOT = Path(tempfile.mkdtemp()) / "artifacts"
+BUILD_MODULE.build_skills(SOURCE_ROOT, ARTIFACT_ROOT)
+
+CLI_PATH = ARTIFACT_ROOT / "decompose-plan" / "scripts" / "split_check.py"
 
 
 class SplitCheckGateTests(unittest.TestCase):
@@ -19,7 +31,7 @@ class SplitCheckGateTests(unittest.TestCase):
         temp_dir = Path(tempfile.mkdtemp())
         design_path = self.write_file(temp_dir, "docs/plans/topic/design.md", design_content)
         return subprocess.run(
-            [str(WRAPPER_PATH), str(design_path)],
+            [sys.executable, str(CLI_PATH), str(design_path)],
             capture_output=True,
             text=True,
             check=False,

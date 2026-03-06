@@ -1,0 +1,6 @@
+{
+  "common_scripts": [
+    "gate-check.sh"
+  ]
+}
+

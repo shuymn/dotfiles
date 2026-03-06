@@ -4,18 +4,19 @@ Helper scripts for the `make skills-*` workflow.
 
 ## Files
 
+- `build_skills.py`
+  - Builds standalone artifacts from `skills/**` into `etc/claude/skills/**`.
+  - Reads per-skill `skill.json` declarations to resolve common script dependencies.
+  - Excludes `tests/`, `__pycache__/`, and other source-only files from artifacts.
+  - Validates `SKILL.md` script references and forbids parent-traversal helper paths.
 - `skills_manifest_refresh.py`
-  - Scans `etc/claude/skills` and updates the managed manifest.
-  - Writes `source_root` as a manifest-relative path (machine-independent).
-  - Output: `etc/claude/skills/.dotfiles-managed-skills.json`.
+  - Shared helper used by `build_skills.py` to generate the managed manifest.
+  - Scans a skills artifact tree and writes a machine-independent manifest.
 - `skills_mark_managed.py`
   - Writes `.dotfiles-managed` markers to installed managed skills.
 - `skills_reconcile.py`
   - Removes stale managed skills only (`managed_installed - manifest.skills`).
   - External skills without marker are preserved.
-- `sync_shared.py`
-  - Syncs `_shared` assets into `~/.agents/skills/_shared`.
-  - Uses mirror mode (`--delete`) in `make skills-sync-shared`.
 - `audit_codex_skills.py`
   - Audits `~/.codex/skills` and detects entries duplicated in `~/.agents/skills`.
   - In `make skills-audit-codex`, duplicate entries are pruned from `~/.codex/skills`.
@@ -25,15 +26,16 @@ Helper scripts for the `make skills-*` workflow.
 
 Use Make targets instead of calling scripts directly:
 
-- `make skills-manifest-refresh`
+- `make skills-build`
+- `make skills-test`
 - `make skills-install`
 - `make skills-reconcile`
-- `make skills-sync-shared`
 - `make skills-audit-codex`
 - `make skills-sync`
 
 ## Runtime requirements
 
 - `uv` for Python execution
+- `pytest` via `uv run --group dev pytest` for skills validation
 - `bun` and `bunx` for `skills` CLI execution
 - `SKILLS_CMD` (`bunx --bun skills`) runs the latest published version of the `skills` CLI without a version pin. Behavior may change on upstream releases.

@@ -10,8 +10,9 @@ CLAUDE_CANDIDATES := $(shell find $(CLAUDE_BASE) -type f 2>/dev/null)
 CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
 CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 
-SKILLS_SOURCE := $(abspath $(CLAUDE_BASE)/skills)
-SKILLS_MANIFEST := $(SKILLS_SOURCE)/.dotfiles-managed-skills.json
+SKILLS_SOURCE := $(abspath skills)
+SKILLS_ARTIFACT := $(abspath $(CLAUDE_BASE)/skills)
+SKILLS_MANIFEST := $(SKILLS_ARTIFACT)/.dotfiles-managed-skills.json
 SKILLS_MARKER := .dotfiles-managed
 SKILLS_CMD := bunx --bun skills
 SKILLS_AGENTS := codex claude-code
@@ -60,19 +61,25 @@ link-claude: ## Create symlinks to the claude directory (excluding skills)
 		ln -sfnv $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
 	@echo 'Finish linking claude files'
 
-.PHONY: skills-manifest-refresh
-skills-manifest-refresh: ## Refresh the managed skills manifest in dotfiles
-	@printf '\n[skills-sync] step=manifest-refresh start\n'
-	@uv run python scripts/skills/skills_manifest_refresh.py \
+.PHONY: skills-build
+skills-build: ## Build standalone skills artifacts into etc/claude/skills
+	@printf '\n[skills-sync] step=build start\n'
+	@uv run python scripts/skills/build_skills.py \
 		--source "$(SKILLS_SOURCE)" \
-		--manifest "$(SKILLS_MANIFEST)"
-	@printf '[skills-sync] step=manifest-refresh done\n'
+		--artifact "$(SKILLS_ARTIFACT)"
+	@printf '[skills-sync] step=build done\n'
+
+.PHONY: skills-test
+skills-test: ## Run pytest against skills source and build validations
+	@printf '\n[skills-sync] step=test start\n'
+	@uv run --group dev pytest skills
+	@printf '[skills-sync] step=test done\n'
 
 .PHONY: skills-install
-skills-install: ## Install managed skills via skills CLI
+skills-install: ## Install built managed skills via skills CLI
 	@printf '\n[skills-sync] step=install start\n'
 	@printf '[skills-sync] note=bunx-skills-output-uncontrolled\n'
-	@$(SKILLS_CMD) add "$(SKILLS_SOURCE)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
+	@$(SKILLS_CMD) add "$(SKILLS_ARTIFACT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
 	@uv run python scripts/skills/skills_mark_managed.py \
 		--manifest "$(SKILLS_MANIFEST)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
@@ -89,17 +96,8 @@ skills-reconcile: ## Remove stale managed skills while preserving external skill
 		--skills-cmd "$(SKILLS_CMD)"
 	@printf '[skills-sync] step=reconcile done\n'
 
-.PHONY: skills-sync-shared
-skills-sync-shared: ## Sync shared skills assets to ~/.agents
-	@printf '\n[skills-sync] step=sync-shared start\n'
-	@uv run python scripts/skills/sync_shared.py \
-		--source "$(SKILLS_SOURCE)/_shared" \
-		--destination "$(AGENTS_SKILLS_HOME)/_shared" \
-		--delete
-	@printf '[skills-sync] step=sync-shared done\n'
-
 .PHONY: skills-list-managed
-skills-list-managed: ## Print the managed skills manifest
+skills-list-managed: ## Print the generated skills manifest
 	@cat "$(SKILLS_MANIFEST)"
 
 .PHONY: skills-audit-codex
@@ -114,7 +112,7 @@ skills-audit-codex: ## Audit ~/.codex/skills and prune duplicates found in ~/.ag
 	@printf '[skills-sync] step=codex-audit done\n'
 
 .PHONY: skills-sync
-skills-sync: skills-manifest-refresh skills-install skills-reconcile skills-sync-shared skills-audit-codex ## Sync managed skills, prune codex duplicates, and sync Codex AGENTS.md
+skills-sync: skills-build skills-install skills-reconcile skills-audit-codex ## Build, sync, prune codex duplicates, and sync Codex AGENTS.md
 	@printf '\n[skills-sync] step=codex-agents-md start\n'
 	@mkdir -p $(dir $(CODEX_AGENTS_TARGET))
 	@cp -fv $(abspath $(CODEX_AGENTS_SOURCE)) $(CODEX_AGENTS_TARGET)

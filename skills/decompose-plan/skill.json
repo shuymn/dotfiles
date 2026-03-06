@@ -1,0 +1,10 @@
+{
+  "common_scripts": [
+    "digest-stamp.sh",
+    "gate-check.sh",
+    "llm-check-output.sh",
+    "path-display.sh",
+    "split_check.py"
+  ]
+}
+

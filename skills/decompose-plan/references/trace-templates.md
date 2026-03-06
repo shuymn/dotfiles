@@ -1,0 +1,96 @@
+# Trace & Check Templates
+
+Templates for `plan.trace.md` and `plan.compose.md` output artifacts.
+When embedding commands or artifact paths in these files, use repository-relative project paths and `scripts/<name>.sh` helper names, never absolute filesystem paths.
+
+## Trace Matrix Templates (for `plan.trace.md`)
+
+```markdown
+## Decision Trace
+- DEC01 -> ADR-0007
+- DEC02 -> ADR-0014
+
+## Design -> Task Trace Matrix
+- [REQxx]: Task A, Task B
+- [ACxx]: Task C
+- [GOALxx]: Task A, Task D
+- [DECxx (ADR-xxxx)]: Task E
+
+## Task -> Design Compose Matrix
+- Task A: REQxx, ACxx, GOALxx
+- Task B: REQyy, DECzz
+
+## Temporary Mechanism Trace
+- TEMP01: introduced_by=[Task A], retired_by=[Task E], retirement_trigger=[...], retirement_verification=[...], removal_scope=[...], closure_source=checklist|ledger, record_source=adr|ledger, status=open|closed|waived
+
+## AC Ownership Map
+| AC ID | Owner Task | Contributors | Has RED for AC |
+|-------|-----------|-------------|----------------|
+| AC01  | Task 2    | Task 4      | Yes            |
+
+## Behavioral Lock Map
+- LOCK01 (`REQxx`, `ACyy`): intent="gateway only path / no fallback", negative_checks=[Task C DoD-2], positive_boundary_checks=[Task C DoD-3]
+- LOCK02 (`REQzz`): intent="legacy key removal", negative_checks=[Task A RED-1, DoD-2], positive_boundary_checks=[Task A DoD-3]
+```
+
+## Cross Self-Check Template (for `plan.trace.md`)
+
+```markdown
+## Cross Self-Check
+
+### Forward Fidelity (Design -> Tasks)
+- Coverage ratio (`REQ+AC covered / total REQ+AC`): `X/Y`
+- Coverage ratio (`DEC covered / total DEC`): `X/Y`
+- Invalid DEC-to-ADR mappings: [if any]
+- Missing design atoms: [if any]
+
+### Reverse Fidelity (Tasks -> Design)
+- Orphan tasks (no valid anchors): [if any]
+- Tasks missing `REQxx/ACxx` in `Satisfied Requirements`: [if any]
+- Alignment verdict: PASS | FAIL
+- Gaps and actions: [If FAIL, list fixes and update tasks]
+
+### Non-Goal Guard
+- Violations against `NONGOALxx`: [if any]
+
+### DoD Semantics Guard
+- Tasks with OR-like DoD wording: [if any]
+- DoD items missing independent verification: [if any]
+
+### Behavioral Lock Guard
+- Lock atoms missing negative executable checks: [if any]
+- Runtime-boundary lock atoms missing boundary-level verification: [if any]
+- Verdict: PASS | FAIL
+
+### Temporal Completeness Guard
+- TEMP entries missing introducing tasks: [if any]
+- TEMP entries missing retiring tasks: [if any]
+- Retire tasks missing negative fallback-removal verification: [if any]
+- TEMP entries missing in-doc closure summary (checklist/ledger row): [if any]
+- TEMP entries missing closure tuple fields (trigger/verification/removal_scope): [if any]
+- Open TEMP entries without waiver metadata (`reason`, `deadline`, `owner?`): [if any]
+
+### Quality Gate Guard
+- Quality gates detected in Step 1.7: [count or `none`]
+- `## Quality Gates` present in plan.md: [yes/no]
+- Tasks missing quality gate DoD line: [if any]
+```
+
+## Compose Reconstruction Template (for `plan.compose.md`)
+
+```markdown
+## Compose Reconstruction
+
+### Reconstructed Design Summary
+- [3-7 bullets]
+
+### Scope Diff
+- Missing from tasks: [if any]
+- Extra in tasks: [if any]
+- Ambiguous mappings: [if any]
+- Open temporary mechanisms (`TEMPxx`): [if any]
+
+### Alignment Verdict
+- PASS | FAIL
+- Required fixes: [if FAIL]
+```

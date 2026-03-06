@@ -7,15 +7,23 @@ import unittest
 from pathlib import Path
 
 
-MODULE_PATH = Path(__file__).resolve().parents[2] / "_shared" / "scripts" / "split_check.py"
+SOURCE_ROOT = Path(__file__).resolve().parents[2]
+BUILD_MODULE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "skills" / "build_skills.py"
+BUILD_SPEC = importlib.util.spec_from_file_location("build_skills", BUILD_MODULE_PATH)
+assert BUILD_SPEC is not None and BUILD_SPEC.loader is not None
+BUILD_MODULE = importlib.util.module_from_spec(BUILD_SPEC)
+sys.modules[BUILD_SPEC.name] = BUILD_MODULE
+BUILD_SPEC.loader.exec_module(BUILD_MODULE)
+
+ARTIFACT_ROOT = Path(tempfile.mkdtemp()) / "artifacts"
+BUILD_MODULE.build_skills(SOURCE_ROOT, ARTIFACT_ROOT)
+
+MODULE_PATH = ARTIFACT_ROOT / "design-doc" / "scripts" / "split_check.py"
 SPEC = importlib.util.spec_from_file_location("split_check", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
-
-WRAPPER_PATH = Path(__file__).resolve().parents[1] / "scripts" / "split-check.sh"
-
 
 class SplitCheckTests(unittest.TestCase):
     maxDiff = None
@@ -305,7 +313,7 @@ class SplitCheckTests(unittest.TestCase):
         design, subdocs = self.advisory_root_sub_design()
         design_path = self.materialize(design, subdocs)
         completed = subprocess.run(
-            [str(WRAPPER_PATH), str(design_path)],
+            [sys.executable, str(MODULE_PATH), str(design_path)],
             capture_output=True,
             text=True,
             check=False,

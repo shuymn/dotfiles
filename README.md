@@ -19,10 +19,14 @@ make skills-sync
 
 - `make link-claude`
   - Symlinks `etc/claude/**` into `~/.claude/**` (excluding `etc/claude/skills/**`).
+- `make skills-build`
+  - Builds the committed artifact tree at `etc/claude/skills/**` from editable sources in `skills/**`.
+- `make skills-test`
+  - Runs pytest against the `skills/**` source tree and artifact build validations.
 - `make skills-sync`
+  - Rebuilds `etc/claude/skills/**` from `skills/**` before installation.
   - Manages skills from `etc/claude/skills/**` using `bunx --bun skills`.
   - Reconciles stale managed skills while preserving external/manual skills.
-  - Syncs `_shared` into `~/.agents/skills/_shared`.
   - Treats `~/.agents/skills` as canonical and prunes only duplicates from `~/.codex/skills`.
   - Syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
 
