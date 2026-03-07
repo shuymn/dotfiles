@@ -1,0 +1,91 @@
+package managedskills
+
+import (
+	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
+)
+
+const markerContent = "managed-by-dotfiles\n"
+
+// RunMarkManaged marks installed managed skills and reports the outcome.
+func RunMarkManaged(manifestPath, agentsSkills, marker string, dryRun bool) Outcome {
+	resolvedManifest := pathutil.ExpandAndAbs(manifestPath)
+	resolvedAgentsSkills := pathutil.ExpandAndAbs(agentsSkills)
+
+	m, err := manifest.Load(resolvedManifest)
+	if err != nil {
+		return Outcome{
+			Result: log.Result{
+				Tool:    "mark-managed",
+				Status:  "FAIL",
+				Code:    "MANIFEST_ERROR",
+				Summary: fmt.Sprintf("Failed to load manifest: %v", err),
+			},
+			ExitCode: 1,
+		}
+	}
+
+	if len(m.Skills) == 0 {
+		return Outcome{
+			Result: log.Result{
+				Tool:    "mark-managed",
+				Status:  "PASS",
+				Code:    "NOTHING_TO_MARK",
+				Summary: "managed_skills=0 (nothing to mark)",
+			},
+		}
+	}
+
+	var missing []string
+	marked := 0
+
+	for _, skill := range m.Skills {
+		markerPath := filepath.Join(resolvedAgentsSkills, skill, marker)
+		if dryRun {
+			if info, err := os.Stat(filepath.Dir(markerPath)); err != nil || !info.IsDir() {
+				missing = append(missing, skill)
+				continue
+			}
+			marked++
+			continue
+		}
+		if err := os.WriteFile(markerPath, []byte(markerContent), 0644); err != nil {
+			missing = append(missing, skill)
+			continue
+		}
+		marked++
+	}
+
+	if len(missing) > 1 {
+		sort.Strings(missing)
+	}
+
+	attrs := []slog.Attr{
+		slog.Int("signal.marked", marked),
+		slog.Int("signal.missing", len(missing)),
+	}
+	if len(missing) > 0 {
+		attrs = append(attrs, slog.String("signal.missing_names", strings.Join(missing, ",")))
+	}
+	if dryRun {
+		attrs = append(attrs, slog.Bool("signal.dry_run", true))
+	}
+
+	return Outcome{
+		Result: log.Result{
+			Tool:    "mark-managed",
+			Status:  "PASS",
+			Code:    "MARK_COMPLETE",
+			Summary: fmt.Sprintf("marked=%d missing=%d", marked, len(missing)),
+		},
+		Attrs: attrs,
+	}
+}
