@@ -1,6 +1,5 @@
 {
   "common_scripts": [
-    "gate-check.sh",
-    "skills_models.py"
+    "gate-check.sh"
   ]
 }

@@ -13,9 +13,5 @@
   "path-display.sh": {
     "dependencies": [],
     "install_path": "scripts/lib/path-display.sh"
-  },
-  "skills_models.py": {
-    "dependencies": [],
-    "install_path": "scripts/lib/skills_models.py"
   }
 }
