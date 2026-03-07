@@ -21,7 +21,7 @@ Independent verification of an approved plan bundle. This mode runs as a sub-age
 
 ## Procedure
 
-1. **Design Review Gate Re-check**: Run `<skill-root>/scripts/gate-check.sh <design.review.md> <design.md>` to confirm the design review is still valid. If FAIL, stop immediately.
+1. **Design Review Gate Re-check**: Run `skit gate-check <design.review.md> <design.md>` to confirm the design review is still valid. If FAIL, stop immediately.
 2. **Structural Check**: Run `skit structural-check <design-file> <plan-file>` and keep the result for evidence. The finalizer will re-run it and make it authoritative.
 3. **Semantic Verification**: Load `<skill-root>/references/review-criteria.md` and `<skill-root>/references/granularity-poker.md`.
 4. **Write Draft Review**: Output reviewer findings to `.../plan.review.draft.md` (derive path by replacing `plan.md` with `plan.review.draft.md`).
