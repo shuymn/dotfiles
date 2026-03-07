@@ -17,7 +17,7 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
 
 ## Procedure
 
-1. **Generate Header**: Run `<skill-root>/scripts/digest-stamp.sh dod-recheck <plan-file>` to produce the recheck metadata header.
+1. **Generate Header**: Run `skit digest-stamp dod-recheck <plan-file>` to produce the recheck metadata header.
 2. **Re-execute DoD Commands**: For each DoD command from the Recheck Input:
    - Run the command fresh.
    - Record: command, exit code, actual output, expected outcome, PASS/FAIL.

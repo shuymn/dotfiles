@@ -18,7 +18,7 @@ Independent verification of an approved design document. This mode runs as a sub
 
 ## Procedure
 
-1. **Generate Header**: Run `<skill-root>/scripts/digest-stamp.sh design-review <design-file>` to produce the review metadata header.
+1. **Generate Header**: Run `skit digest-stamp design-review <design-file>` to produce the review metadata header.
 2. **Run Split Checker**: Run `skit split-check <design-file>` and keep both blockers and advisories for evidence.
 3. **Load Review Criteria**: Read `<skill-root>/references/review-criteria.md` for the 8 evaluation viewpoints.
 4. **Evaluate Each Viewpoint**: For each of the 8 criteria:

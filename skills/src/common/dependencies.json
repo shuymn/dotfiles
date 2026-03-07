@@ -1,11 +1,4 @@
 {
-  "digest-stamp.sh": {
-    "dependencies": [
-      "llm-check-output.sh",
-      "path-display.sh"
-    ],
-    "install_path": "scripts/digest-stamp.sh"
-  },
   "gate-check.sh": {
     "dependencies": [
       "llm-check-output.sh",
@@ -24,11 +17,5 @@
   "skills_models.py": {
     "dependencies": [],
     "install_path": "scripts/lib/skills_models.py"
-  },
-  "split_check.py": {
-    "dependencies": [
-      "skills_models.py"
-    ],
-    "install_path": "scripts/split_check.py"
   }
 }

@@ -1,9 +1,6 @@
 {
   "common_scripts": [
-    "digest-stamp.sh",
     "gate-check.sh",
-    "skills_models.py",
-    "split_check.py"
+    "skills_models.py"
   ]
 }
-

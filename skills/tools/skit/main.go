@@ -21,5 +21,8 @@ func main() {
 	app.Register(cmd.TraceComposeCheck())
 	app.Register(cmd.AdversarialCoverageCheck())
 	app.Register(cmd.SplitCheck())
+	app.Register(cmd.DigestStamp())
+	app.Register(cmd.StructuralCheck())
+	app.Register(cmd.ReviewFinalize())
 	os.Exit(app.Run(os.Args))
 }

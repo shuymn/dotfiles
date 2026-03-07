@@ -18,13 +18,13 @@ Independent verification of an approved design document. This mode runs as a sub
 
 ## Procedure
 
-1. **Generate Header**: Run `<skill-root>/scripts/digest-stamp.sh design-review <design-file>` to produce the review metadata header.
-2. **Run Split Checker**: Run `uv run --with pydantic python <skill-root>/scripts/split_check.py <design-file>` and keep both blockers and advisories for evidence.
+1. **Generate Header**: Run `skit digest-stamp design-review <design-file>` to produce the review metadata header.
+2. **Run Split Checker**: Run `skit split-check <design-file>` and keep both blockers and advisories for evidence.
 3. **Load Review Criteria**: Read `<skill-root>/references/review-criteria.md` for the 8 evaluation viewpoints.
 4. **Evaluate Each Viewpoint**: For each of the 8 criteria:
    - Assess the design doc against the criterion definition and check method.
    - Record PASS, FAIL, or N/A with specific evidence (section, AC ID, or quote).
-   - For `Decomposition Fit`, use `<skill-root>/scripts/split_check.py` output as the authoritative blocker signal.
+   - For `Decomposition Fit`, use `skit split-check` output as the authoritative blocker signal.
    - If the split checker reports advisories but no blockers, keep `Decomposition Fit` as `PASS` and move the advisories into `## Improvement Notes`.
 5. **Compute Overall Verdict**: `Overall Verdict: PASS` only when ALL 8 viewpoints are PASS (N/A counts as PASS). Any FAIL → `Overall Verdict: FAIL`.
 6. **Write Review Report**: Output to `.../design.review.md` (derive path by replacing `design.md` with `design.review.md`).
@@ -50,7 +50,7 @@ Independent verification of an approved design document. This mode runs as a sub
 | 5 | Boundary Gaps | PASS/FAIL | [specific evidence] |
 | 6 | Risk Classification Coverage | PASS/FAIL/N/A | [specific evidence] |
 | 7 | Goal-AC Coverage | PASS/FAIL | [specific evidence] |
-| 8 | Decomposition Fit | PASS/FAIL | [specific evidence, including `<skill-root>/scripts/split_check.py` when relevant] |
+| 8 | Decomposition Fit | PASS/FAIL | [specific evidence, including `skit split-check` when relevant] |
 
 ## Blocking Issues
 

@@ -283,7 +283,7 @@ For design atoms expressing hard behavioral constraints — restricting behavior
 
 Perform structural checks before presenting the plan. Semantic verification is delegated to review mode.
 
-1. Run `<skill-root>/scripts/structural-check.sh <design-file> <plan-file>`.
+1. Run `skit structural-check <design-file> <plan-file>`.
 2. Run `skit trace-compose-check <design-file> <plan-trace-file>`.
 3. Run `skit risk-dod-check <plan-file> <design-file>`. If it reports `FAIL`, add missing DoD annotations to affected tasks.
 4. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
