@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -28,62 +29,27 @@ type accVector struct {
 
 // AdversarialCoverageCheck returns the adversarial-coverage-check subcommand.
 func AdversarialCoverageCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "adversarial-coverage-check",
-		Description: "Check that all [required] attack vectors within selected categories are covered",
-		Run: func(args []string) int {
-			return runAdversarialCoverageCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("adversarial-coverage-check", "Check that all [required] attack vectors within selected categories are covered")
+	var tier string
+	c.StringVar(&tier, "tier", "", "", "risk tier (Critical|Sensitive|Standard) (required)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 2 {
+			return fmt.Errorf("usage: skit adversarial-coverage-check <report-file> <attack-vectors-file> --tier Critical|Sensitive|Standard")
+		}
+		if tier == "" {
+			return fmt.Errorf("--tier is required (Critical|Sensitive|Standard)")
+		}
+		switch tier {
+		case "Critical", "Sensitive", "Standard":
+		default:
+			return fmt.Errorf("invalid tier %q (must be Critical, Sensitive, or Standard)", tier)
+		}
+		return exitCode(runAdversarialCoverageCheck(os.Stdout, tier, s.Args[0], s.Args[1]))
 	}
+	return c
 }
 
-func runAdversarialCoverageCheck(w io.Writer, args []string) int {
-	var positional []string
-	tier := ""
-
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		switch {
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit adversarial-coverage-check <report-file> <attack-vectors-file> --tier Critical|Sensitive|Standard")
-			return 0
-		case arg == "--tier":
-			if i+1 >= len(args) {
-				fmt.Fprintln(os.Stderr, "error: --tier requires a value")
-				return 1
-			}
-			i++
-			tier = args[i]
-		case strings.HasPrefix(arg, "--tier="):
-			tier = strings.TrimPrefix(arg, "--tier=")
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: skit adversarial-coverage-check <report-file> <attack-vectors-file> --tier Critical|Sensitive|Standard")
-		return 1
-	}
-
-	if tier == "" {
-		fmt.Fprintln(os.Stderr, "error: --tier is required (Critical|Sensitive|Standard)")
-		return 1
-	}
-
-	switch tier {
-	case "Critical", "Sensitive", "Standard":
-	default:
-		fmt.Fprintf(os.Stderr, "error: invalid tier %q (must be Critical, Sensitive, or Standard)\n", tier)
-		return 1
-	}
-
-	reportPath := positional[0]
-	vectorsPath := positional[1]
-
+func runAdversarialCoverageCheck(w io.Writer, tier, reportPath, vectorsPath string) int {
 	reportData, err := os.ReadFile(reportPath)
 	if err != nil {
 		log.Emit(w, log.Result{

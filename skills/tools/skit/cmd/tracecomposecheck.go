@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -27,39 +28,17 @@ var (
 
 // TraceComposeCheck returns the trace-compose-check subcommand.
 func TraceComposeCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "trace-compose-check",
-		Description: "Cross-reference checks between design.md and plan.trace.md",
-		Run: func(args []string) int {
-			return runTraceComposeCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("trace-compose-check", "Cross-reference checks between design.md and plan.trace.md")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 2 {
+			return fmt.Errorf("usage: skit trace-compose-check <design-file> <plan-trace-file>")
+		}
+		return exitCode(runTraceComposeCheck(os.Stdout, s.Args[0], s.Args[1]))
 	}
+	return c
 }
 
-func runTraceComposeCheck(w io.Writer, args []string) int {
-	var positional []string
-
-	for _, arg := range args {
-		switch {
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit trace-compose-check <design-file> <plan-trace-file>")
-			return 0
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: skit trace-compose-check <design-file> <plan-trace-file>")
-		return 1
-	}
-
-	designPath := positional[0]
-	tracePath := positional[1]
-
+func runTraceComposeCheck(w io.Writer, designPath, tracePath string) int {
 	designData, err := os.ReadFile(designPath)
 	if err != nil {
 		log.Emit(w, log.Result{

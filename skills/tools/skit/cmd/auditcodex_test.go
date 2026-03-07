@@ -1,25 +1,18 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
 func runAuditCodexCmd(args ...string) (int, map[string]any) {
-	var buf bytes.Buffer
-	rc := runAuditCodex(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(AuditCodex(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 // TestAuditCodex_CodexDirMissing: codex-skills ディレクトリ不在 → PASS/CODEX_DIR_MISSING

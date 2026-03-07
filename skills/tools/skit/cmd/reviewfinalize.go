@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -690,7 +691,7 @@ func rfRenderFinalReport(
 
 // --- Main workflow ---
 
-func rfExecute(w io.Writer, planPath, draftPath, finalPath string) int {
+func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) int {
 	planFile, err := filepath.Abs(planPath)
 	if err != nil {
 		rfEmitFail(w, "INVALID_PATH", fmt.Sprintf("Cannot resolve plan path: %s.", planPath))
@@ -793,19 +794,21 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string) int {
 		reason,
 	)
 
-	dir := filepath.Dir(finalFile)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		rfEmitFail(w, "WRITE_FAILED", fmt.Sprintf("Cannot create directory: %s.", dir))
-		return 1
-	}
-	if err := os.WriteFile(finalFile, []byte(finalText), 0644); err != nil {
-		rfEmitFail(w, "WRITE_FAILED", fmt.Sprintf("Cannot write final file: %s.", finalFile))
-		return 1
-	}
+	if !dryRun {
+		dir := filepath.Dir(finalFile)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			rfEmitFail(w, "WRITE_FAILED", fmt.Sprintf("Cannot create directory: %s.", dir))
+			return 1
+		}
+		if err := os.WriteFile(finalFile, []byte(finalText), 0644); err != nil {
+			rfEmitFail(w, "WRITE_FAILED", fmt.Sprintf("Cannot write final file: %s.", finalFile))
+			return 1
+		}
 
-	// Delete draft (ignore if already gone).
-	if err := os.Remove(draftFile); err != nil && !os.IsNotExist(err) {
-		// Non-fatal, continue.
+		// Delete draft (ignore if already gone).
+		if err := os.Remove(draftFile); err != nil && !os.IsNotExist(err) {
+			// Non-fatal, continue.
+		}
 	}
 
 	status := "PASS"
@@ -826,6 +829,7 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string) int {
 		slog.String("proceed", proceed),
 		slog.String("reason", reason),
 		slog.String("final_file", finalFile),
+		slog.Bool("dry_run", dryRun),
 	)
 
 	return exitCode
@@ -859,30 +863,17 @@ func rfEmitFail(w io.Writer, code, summary string) {
 
 // ReviewFinalize returns the review-finalize subcommand.
 func ReviewFinalize() *cli.Command {
-	return &cli.Command{
-		Name:        "review-finalize",
-		Description: "Finalize a plan review draft into the gate artifact",
-		Run: func(args []string) int {
-			return runReviewFinalize(os.Stdout, args)
-		},
+	c := cli.NewCommand("review-finalize", "Finalize a plan review draft into the gate artifact")
+	c.EnableDryRun()
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) != 3 {
+			return fmt.Errorf("usage: skit review-finalize <plan-file> <draft-file> <final-file>")
+		}
+		return exitCode(runReviewFinalize(os.Stdout, s.Args[0], s.Args[1], s.Args[2], s.DryRun))
 	}
+	return c
 }
 
-func runReviewFinalize(w io.Writer, args []string) int {
-	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
-		fmt.Fprintln(os.Stderr, "usage: skit review-finalize <plan-file> <draft-file> <final-file>")
-		return 0
-	}
-
-	if len(args) != 3 {
-		log.Emit(w, log.Result{
-			Tool:    rfToolName,
-			Status:  "FAIL",
-			Code:    "INVALID_ARGUMENT_COUNT",
-			Summary: "Usage: skit review-finalize <plan-file> <draft-file> <final-file>.",
-		})
-		return 1
-	}
-
-	return rfExecute(w, args[0], args[1], args[2])
+func runReviewFinalize(w io.Writer, planFile, draftFile, finalFile string, dryRun bool) int {
+	return rfExecute(w, planFile, draftFile, finalFile, dryRun)
 }

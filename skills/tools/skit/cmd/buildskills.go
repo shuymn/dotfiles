@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -77,39 +77,29 @@ func buildErr(format string, args ...any) *BuildError {
 
 // BuildSkills returns the build-skills subcommand.
 func BuildSkills() *cli.Command {
-	return &cli.Command{
-		Name:        buildSkillsTool,
-		Description: "Build standalone skill artifacts from a source tree",
-		Run: func(args []string) int {
-			return runBuildSkills(os.Stdout, args)
-		},
+	c := cli.NewCommand(buildSkillsTool, "Build standalone skill artifacts from a source tree")
+	c.EnableDryRun()
+	var source, artifact string
+	c.StringVar(&source, "source", "", "", "Path to the source skills root (required)")
+	c.StringVar(&artifact, "artifact", "", "", "Path to the artifact skills root (required)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if source == "" || artifact == "" {
+			return fmt.Errorf("usage: skit build-skills --source <path> --artifact <path>")
+		}
+		return exitCode(runBuildSkills(os.Stdout, source, artifact, s.DryRun))
 	}
+	return c
 }
 
-func runBuildSkills(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet(buildSkillsTool, flag.ContinueOnError)
-	source := fs.String("source", "", "Path to the source skills root (required)")
-	artifact := fs.String("artifact", "", "Path to the artifact skills root (required)")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-	if *source == "" || *artifact == "" {
-		fmt.Fprintln(os.Stderr, "usage: skit build-skills --source <path> --artifact <path>")
-		return 1
-	}
-
-	if err := buildSkills(w, *source, *artifact); err != nil {
+func runBuildSkills(w io.Writer, source, artifact string, dryRun bool) int {
+	if err := buildSkills(w, source, artifact, dryRun); err != nil {
 		fmt.Fprintf(os.Stderr, "build-skills: %v\n", err)
 		return 1
 	}
 	return 0
 }
 
-func buildSkills(w io.Writer, sourceStr, artifactStr string) error {
+func buildSkills(w io.Writer, sourceStr, artifactStr string, dryRun bool) error {
 	sourceRoot, err := filepath.Abs(sourceStr)
 	if err != nil {
 		return err
@@ -121,6 +111,15 @@ func buildSkills(w io.Writer, sourceStr, artifactStr string) error {
 
 	if sourceRoot == artifactRoot {
 		return buildErr("source and artifact roots must be different")
+	}
+	displayArtifactRoot := artifactRoot
+	if dryRun {
+		tmpRoot, err := os.MkdirTemp("", "skit-build-skills-*")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpRoot)
+		artifactRoot = filepath.Join(tmpRoot, "artifact")
 	}
 	info, err := os.Stat(sourceRoot)
 	if err != nil || !info.IsDir() {
@@ -168,7 +167,10 @@ func buildSkills(w io.Writer, sourceStr, artifactStr string) error {
 	}
 
 	fmt.Fprintf(w, "%s source=%s\n", buildSkillsLogPrefix, sourceRoot)
-	fmt.Fprintf(w, "%s artifact=%s\n", buildSkillsLogPrefix, artifactRoot)
+	fmt.Fprintf(w, "%s artifact=%s\n", buildSkillsLogPrefix, displayArtifactRoot)
+	if dryRun {
+		fmt.Fprintf(w, "%s dry_run=true\n", buildSkillsLogPrefix)
+	}
 	fmt.Fprintf(w, "%s skills=%d\n", buildSkillsLogPrefix, len(artifactSkillDirs))
 	return nil
 }

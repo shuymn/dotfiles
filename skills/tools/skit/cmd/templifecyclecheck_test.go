@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,15 +9,11 @@ import (
 
 func runTempLifecycleCheckCmd(t *testing.T, args ...string) (int, map[string]any) {
 	t.Helper()
-	var buf bytes.Buffer
-	rc := runTempLifecycleCheck(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(TempLifecycleCheck(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 func writeTempDesignFile(t *testing.T, content string) string {

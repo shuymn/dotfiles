@@ -1,23 +1,17 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 )
 
 func runDepGraphGenCmd(args ...string) (int, map[string]any) {
-	var buf bytes.Buffer
-	rc := runDepGraphGen(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(DepGraphGen(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 // --- Unit tests: parseTasksWithDeps ---
@@ -219,8 +213,8 @@ func TestDepGraphGen_InvalidArgCount(t *testing.T) {
 	if rc != 1 {
 		t.Errorf("expected rc=1, got %d", rc)
 	}
-	if out["code"] != "INVALID_ARGUMENT_COUNT" {
-		t.Errorf("expected code=INVALID_ARGUMENT_COUNT, got %v", out["code"])
+	if out["code"] != "COMMAND_ERROR" {
+		t.Errorf("expected code=COMMAND_ERROR, got %v", out["code"])
 	}
 }
 

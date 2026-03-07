@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -31,34 +31,24 @@ var (
 
 // ManifestRefresh returns the manifest-refresh subcommand.
 func ManifestRefresh() *cli.Command {
-	return &cli.Command{
-		Name:        manifestRefreshTool,
-		Description: "Refresh the dotfiles-managed skills manifest from a local skills source",
-		Run: func(args []string) int {
-			return runManifestRefresh(os.Stdout, args)
-		},
+	c := cli.NewCommand(manifestRefreshTool, "Refresh the dotfiles-managed skills manifest from a local skills source")
+	c.EnableDryRun()
+	var source, manifestPath string
+	var printOnly bool
+	c.StringVar(&source, "source", "", "", "Path to the local skills source root (required)")
+	c.StringVar(&manifestPath, "manifest", "", "", "Manifest output path (default: <source>/.dotfiles-managed-skills.json)")
+	c.BoolVar(&printOnly, "print-only", "", false, "Print the generated manifest instead of writing it")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if source == "" {
+			return fmt.Errorf("usage: skit manifest-refresh --source <path> [--manifest <path>] [--print-only]")
+		}
+		return exitCode(runManifestRefresh(os.Stdout, source, manifestPath, printOnly, s.DryRun))
 	}
+	return c
 }
 
-func runManifestRefresh(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet(manifestRefreshTool, flag.ContinueOnError)
-	source := fs.String("source", "", "Path to the local skills source root (required)")
-	manifestPath := fs.String("manifest", "", "Manifest output path (default: <source>/.dotfiles-managed-skills.json)")
-	printOnly := fs.Bool("print-only", false, "Print the generated manifest instead of writing it")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if *source == "" {
-		fmt.Fprintln(os.Stderr, "usage: skit manifest-refresh --source <path> [--manifest <path>] [--print-only]")
-		return 1
-	}
-
-	sourceRoot := pathutil.ExpandAndAbs(*source)
+func runManifestRefresh(w io.Writer, source, manifestPath string, printOnly, dryRun bool) int {
+	sourceRoot := pathutil.ExpandAndAbs(source)
 
 	info, err := os.Stat(sourceRoot)
 	if err != nil || !info.IsDir() {
@@ -67,8 +57,8 @@ func runManifestRefresh(w io.Writer, args []string) int {
 	}
 
 	var outPath string
-	if *manifestPath != "" {
-		outPath = pathutil.ExpandAndAbs(*manifestPath)
+	if manifestPath != "" {
+		outPath = pathutil.ExpandAndAbs(manifestPath)
 	} else {
 		outPath = filepath.Join(sourceRoot, manifestRefreshDefaultName)
 	}
@@ -91,22 +81,27 @@ func runManifestRefresh(w io.Writer, args []string) int {
 		return 1
 	}
 
-	if *printOnly {
+	if printOnly {
 		fmt.Fprintf(w, "%s\n", data)
 		return 0
 	}
 
-	if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "manifest-refresh: failed to create manifest directory: %v\n", err)
-		return 1
-	}
-	if err := os.WriteFile(outPath, append(data, '\n'), 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "manifest-refresh: failed to write manifest: %v\n", err)
-		return 1
+	if !dryRun {
+		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "manifest-refresh: failed to create manifest directory: %v\n", err)
+			return 1
+		}
+		if err := os.WriteFile(outPath, append(data, '\n'), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "manifest-refresh: failed to write manifest: %v\n", err)
+			return 1
+		}
 	}
 
 	fmt.Fprintf(w, "%s manifest_path=%s\n", manifestRefreshLogPrefix, outPath)
 	fmt.Fprintf(w, "%s managed_skills=%d\n", manifestRefreshLogPrefix, len(skills))
+	if dryRun {
+		fmt.Fprintf(w, "%s dry_run=true\n", manifestRefreshLogPrefix)
+	}
 	return 0
 }
 

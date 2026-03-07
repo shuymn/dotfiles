@@ -59,12 +59,11 @@ func buildToTempDir(t *testing.T) string {
 	tmp := t.TempDir()
 	artifactRoot := filepath.Join(tmp, "artifacts")
 	var buf bytes.Buffer
-	if err := buildSkills(&buf, skillsSourceRoot(), artifactRoot); err != nil {
+	if err := buildSkills(&buf, skillsSourceRoot(), artifactRoot, false); err != nil {
 		t.Fatalf("buildSkills: %v", err)
 	}
 	return artifactRoot
 }
-
 
 func TestSourceMarkdownUsesExplicitSkillRootForRuntimeRefs(t *testing.T) {
 	srcRoot := skillsSourceRoot()
@@ -162,7 +161,7 @@ func TestBuildIsIdempotent(t *testing.T) {
 	first := snapshotTree(t, artifactRoot)
 
 	var buf bytes.Buffer
-	if err := buildSkills(&buf, skillsSourceRoot(), artifactRoot); err != nil {
+	if err := buildSkills(&buf, skillsSourceRoot(), artifactRoot, false); err != nil {
 		t.Fatalf("second buildSkills: %v", err)
 	}
 	second := snapshotTree(t, artifactRoot)
@@ -189,4 +188,3 @@ func TestBuildIsIdempotent(t *testing.T) {
 		}
 	}
 }
-

@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,15 +10,11 @@ import (
 )
 
 func runDigestStampCmd(args ...string) (int, map[string]any) {
-	var buf bytes.Buffer
-	rc := runDigestStamp(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(DigestStamp(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 func TestDigestStampSuccess(t *testing.T) {
@@ -91,8 +85,8 @@ func TestDigestStampInvalidArgCount(t *testing.T) {
 	if rc != 1 {
 		t.Fatalf("expected exit 1, got %d", rc)
 	}
-	if result["code"] != "INVALID_ARGUMENT_COUNT" {
-		t.Errorf("expected INVALID_ARGUMENT_COUNT, got %v", result["code"])
+	if result["code"] != "COMMAND_ERROR" {
+		t.Errorf("expected COMMAND_ERROR, got %v", result["code"])
 	}
 }
 

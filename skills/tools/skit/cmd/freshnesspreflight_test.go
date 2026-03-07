@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,15 +16,11 @@ func makeReviewArtifact(sourceArtifact, sourceDigest string) string {
 }
 
 func runCmd(args ...string) (int, map[string]any) {
-	var buf bytes.Buffer
-	rc := runFreshnessPreflight(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(FreshnessPreflight(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 // --- Unit tests: checkArtifact ---

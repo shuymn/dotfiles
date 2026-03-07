@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -19,11 +20,11 @@ const scToolName = "split-check"
 
 var (
 	scNoneTokens = map[string]bool{
-		"":    true,
-		"-":   true,
+		"":     true,
+		"-":    true,
 		"none": true,
-		"n/a": true,
-		"na":  true,
+		"n/a":  true,
+		"na":   true,
 	}
 
 	scRequiredBoundaryColumns = []string{
@@ -55,32 +56,17 @@ var (
 
 // SplitCheck returns the split-check subcommand.
 func SplitCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "split-check",
-		Description: "Validate single/root-sub split decisions from structured design signals",
-		Run: func(args []string) int {
-			return runSplitCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("split-check", "Validate single/root-sub split decisions from structured design signals")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) != 1 {
+			return fmt.Errorf("usage: skit split-check <design-file>")
+		}
+		return exitCode(runSplitCheck(os.Stdout, s.Args[0]))
 	}
+	return c
 }
 
-func runSplitCheck(w io.Writer, args []string) int {
-	if len(args) == 0 || args[0] == "--help" || args[0] == "-h" {
-		fmt.Fprintln(os.Stderr, "usage: skit split-check <design-file>")
-		return 0
-	}
-
-	if len(args) != 1 {
-		log.Emit(w, log.Result{
-			Tool:    scToolName,
-			Status:  "FAIL",
-			Code:    "INVALID_ARGUMENT_COUNT",
-			Summary: "Usage: skit split-check <design-file>.",
-		})
-		return 1
-	}
-
-	designFile := args[0]
+func runSplitCheck(w io.Writer, designFile string) int {
 	data, err := os.ReadFile(designFile)
 	if err != nil {
 		log.Emit(w, log.Result{

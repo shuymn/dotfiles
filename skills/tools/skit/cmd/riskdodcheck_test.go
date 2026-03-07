@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,15 +9,11 @@ import (
 
 func runRiskDodCheckCmd(t *testing.T, args ...string) (int, map[string]any) {
 	t.Helper()
-	var buf bytes.Buffer
-	rc := runRiskDodCheck(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(RiskDodCheck(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 func writeTempPlanAndDesign(t *testing.T, plan, design string) (planPath, designPath string) {

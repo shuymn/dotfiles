@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -27,31 +28,17 @@ var (
 
 // GateCheck returns the gate-check subcommand.
 func GateCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "gate-check",
-		Description: "Verify review gate before downstream skill execution",
-		Run: func(args []string) int {
-			return runGateCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("gate-check", "Verify review gate before downstream skill execution")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) != 2 {
+			return fmt.Errorf("usage: skit gate-check <review-file> <source-file>")
+		}
+		return exitCode(runGateCheck(os.Stdout, s.Args[0], s.Args[1]))
 	}
+	return c
 }
 
-func runGateCheck(w io.Writer, args []string) int {
-	if len(args) != 2 {
-		log.Emit(w, log.Result{
-			Tool:    gcToolName,
-			Status:  "FAIL",
-			Code:    "INVALID_ARGUMENT_COUNT",
-			Summary: "Expected exactly 2 arguments.",
-		},
-			slog.Int("signal.arg_count", len(args)),
-			slog.String("fix.1", "FIX_USE_TWO_ARGS"),
-		)
-		return 1
-	}
-
-	reviewFile := args[0]
-	sourceFile := args[1]
+func runGateCheck(w io.Writer, reviewFile, sourceFile string) int {
 	displayReviewFile := pathutil.DisplayPath(reviewFile)
 	displaySourceFile := pathutil.DisplayPath(sourceFile)
 

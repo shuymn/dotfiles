@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"os"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/cmd"
@@ -8,30 +10,36 @@ import (
 )
 
 func main() {
-	app := &cli.App{Name: "skit"}
-	app.Register(cmd.FileScopeCheck())
-	app.Register(cmd.FreshnessPreflight())
-	app.Register(cmd.ArtifactFormatCheck())
-	app.Register(cmd.RiskFormatCheck())
-	app.Register(cmd.VerificationCmdCheck())
-	app.Register(cmd.BundleValidateCheck())
-	app.Register(cmd.DepGraphGen())
-	app.Register(cmd.TempLifecycleCheck())
-	app.Register(cmd.RiskDodCheck())
-	app.Register(cmd.TraceComposeCheck())
-	app.Register(cmd.AdversarialCoverageCheck())
-	app.Register(cmd.SplitCheck())
-	app.Register(cmd.DigestStamp())
-	app.Register(cmd.StructuralCheck())
-	app.Register(cmd.ReviewFinalize())
-	app.Register(cmd.GateCheck())
+	app := cli.New("skit", "skill toolkit")
+	app.Root.Add(
+		cmd.FileScopeCheck(),
+		cmd.FreshnessPreflight(),
+		cmd.ArtifactFormatCheck(),
+		cmd.RiskFormatCheck(),
+		cmd.VerificationCmdCheck(),
+		cmd.BundleValidateCheck(),
+		cmd.DepGraphGen(),
+		cmd.TempLifecycleCheck(),
+		cmd.RiskDodCheck(),
+		cmd.TraceComposeCheck(),
+		cmd.AdversarialCoverageCheck(),
+		cmd.SplitCheck(),
+		cmd.DigestStamp(),
+		cmd.StructuralCheck(),
+		cmd.ReviewFinalize(),
+		cmd.GateCheck(),
+		cmd.BuildSkills(),
+		cmd.ManifestRefresh(),
+		cmd.MarkManaged(),
+		cmd.Reconcile(),
+		cmd.AuditCodex(),
+	)
 
-	// scripts
-	app.Register(cmd.BuildSkills())
-	app.Register(cmd.ManifestRefresh())
-	app.Register(cmd.MarkManaged())
-	app.Register(cmd.Reconcile())
-	app.Register(cmd.AuditCodex())
-
-	os.Exit(app.Run(os.Args))
+	if err := app.RunContext(context.Background(), os.Args[1:]); err != nil {
+		var exitErr cli.ExitError
+		if errors.As(err, &exitErr) {
+			os.Exit(int(exitErr))
+		}
+		os.Exit(1)
+	}
 }

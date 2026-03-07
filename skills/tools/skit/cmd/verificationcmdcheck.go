@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -19,12 +20,12 @@ var (
 	vcNextSectionRe = regexp.MustCompile(`(?m)^##\s`)
 
 	vcNoneTokens = map[string]bool{
-		"":    true,
-		"-":   true,
+		"":     true,
+		"-":    true,
 		"none": true,
-		"n/a": true,
-		"na":  true,
-		"tbd": true,
+		"n/a":  true,
+		"na":   true,
+		"tbd":  true,
 	}
 )
 
@@ -33,38 +34,17 @@ var lookPathFn = exec.LookPath
 
 // VerificationCmdCheck returns the verification-cmd-check subcommand.
 func VerificationCmdCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "verification-cmd-check",
-		Description: "Validate Verification Command column in Acceptance Criteria table of a design document",
-		Run: func(args []string) int {
-			return runVerificationCmdCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("verification-cmd-check", "Validate Verification Command column in Acceptance Criteria table of a design document")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 1 {
+			return fmt.Errorf("usage: skit verification-cmd-check <design.md>")
+		}
+		return exitCode(runVerificationCmdCheck(os.Stdout, s.Args[0]))
 	}
+	return c
 }
 
-func runVerificationCmdCheck(w io.Writer, args []string) int {
-	var positional []string
-
-	for _, arg := range args {
-		switch {
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit verification-cmd-check <design.md>")
-			return 0
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) < 1 {
-		fmt.Fprintln(os.Stderr, "usage: skit verification-cmd-check <design.md>")
-		return 1
-	}
-
-	designPath := positional[0]
-
+func runVerificationCmdCheck(w io.Writer, designPath string) int {
 	data, err := os.ReadFile(designPath)
 	if err != nil {
 		log.Emit(w, log.Result{

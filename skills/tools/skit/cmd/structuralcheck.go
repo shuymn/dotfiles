@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -451,34 +452,17 @@ func stcDedup(items []string) []string {
 
 // StructuralCheck returns the structural-check subcommand.
 func StructuralCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "structural-check",
-		Description: "Structural integrity checks on a plan bundle",
-		Run: func(args []string) int {
-			return runStructuralCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("structural-check", "Structural integrity checks on a plan bundle")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) != 2 {
+			return fmt.Errorf("usage: skit structural-check <design-file> <plan-file>")
+		}
+		return exitCode(runStructuralCheck(os.Stdout, s.Args[0], s.Args[1]))
 	}
+	return c
 }
 
-func runStructuralCheck(w io.Writer, args []string) int {
-	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
-		fmt.Fprintln(os.Stderr, "usage: skit structural-check <design-file> <plan-file>")
-		return 0
-	}
-
-	if len(args) != 2 {
-		log.Emit(w, log.Result{
-			Tool:    stcToolName,
-			Status:  "FAIL",
-			Code:    "INVALID_ARGUMENT_COUNT",
-			Summary: "Usage: skit structural-check <design-file> <plan-file>.",
-		})
-		return 1
-	}
-
-	designFile := args[0]
-	planFile := args[1]
-
+func runStructuralCheck(w io.Writer, designFile, planFile string) int {
 	if _, err := os.Stat(designFile); os.IsNotExist(err) {
 		log.Emit(w, log.Result{
 			Tool:    stcToolName,

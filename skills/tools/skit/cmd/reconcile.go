@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -24,38 +24,25 @@ var execCommandFn = exec.Command
 
 // Reconcile returns the reconcile subcommand.
 func Reconcile() *cli.Command {
-	return &cli.Command{
-		Name:        reconcileTool,
-		Description: "Remove stale managed skills while preserving external skills",
-		Run: func(args []string) int {
-			return runReconcile(os.Stdout, args)
-		},
+	c := cli.NewCommand(reconcileTool, "Remove stale managed skills while preserving external skills")
+	c.EnableDryRun()
+	var manifestPath, agentsSkills, marker, skillsCmd string
+	c.StringVar(&manifestPath, "manifest", "", "", "Path to managed skills manifest (required)")
+	c.StringVar(&agentsSkills, "agents-skills", "", "", "Path to ~/.agents/skills (required)")
+	c.StringVar(&marker, "marker", "", ".dotfiles-managed", "Managed marker filename")
+	c.StringVar(&skillsCmd, "skills-cmd", "", "", "Skills CLI command prefix, e.g. 'bunx --bun skills' (required)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if manifestPath == "" || agentsSkills == "" || skillsCmd == "" {
+			return fmt.Errorf("usage: skit reconcile --manifest <path> --agents-skills <path> --skills-cmd <cmd> [--marker <name>]")
+		}
+		return exitCode(runReconcile(os.Stdout, manifestPath, agentsSkills, marker, skillsCmd, s.DryRun))
 	}
+	return c
 }
 
-func runReconcile(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet(reconcileTool, flag.ContinueOnError)
-	manifestPath := fs.String("manifest", "", "Path to managed skills manifest (required)")
-	agentsSkills := fs.String("agents-skills", "", "Path to ~/.agents/skills (required)")
-	marker := fs.String("marker", ".dotfiles-managed", "Managed marker filename")
-	// strings.Fields splits by whitespace; sufficient for real values like "bunx --bun skills".
-	// Quoted tokens (e.g. paths with spaces) are not supported.
-	skillsCmd := fs.String("skills-cmd", "", "Skills CLI command prefix, e.g. 'bunx --bun skills' (required)")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if *manifestPath == "" || *agentsSkills == "" || *skillsCmd == "" {
-		fmt.Fprintln(os.Stderr, "usage: skit reconcile --manifest <path> --agents-skills <path> --skills-cmd <cmd> [--marker <name>]")
-		return 1
-	}
-
-	resolvedManifest := pathutil.ExpandAndAbs(*manifestPath)
-	resolvedAgentsSkills := pathutil.ExpandAndAbs(*agentsSkills)
+func runReconcile(w io.Writer, manifestPath, agentsSkills, marker, skillsCmd string, dryRun bool) int {
+	resolvedManifest := pathutil.ExpandAndAbs(manifestPath)
+	resolvedAgentsSkills := pathutil.ExpandAndAbs(agentsSkills)
 
 	m, err := manifest.Load(resolvedManifest)
 	if err != nil {
@@ -83,7 +70,7 @@ func runReconcile(w io.Writer, args []string) int {
 		desired[s] = true
 	}
 
-	installed, err := discoverManagedInstalled(resolvedAgentsSkills, *marker)
+	installed, err := discoverManagedInstalled(resolvedAgentsSkills, marker)
 	if err != nil {
 		log.Emit(w, log.Result{
 			Tool:    reconcileTool,
@@ -119,8 +106,18 @@ func runReconcile(w io.Writer, args []string) int {
 	}
 
 	attrs = append(attrs, slog.String("signal.removed_names", strings.Join(toRemove, ",")))
+	if dryRun {
+		attrs = append(attrs, slog.Bool("signal.dry_run", true))
+		log.Emit(w, log.Result{
+			Tool:    reconcileTool,
+			Status:  "PASS",
+			Code:    "RECONCILE_DRY_RUN",
+			Summary: fmt.Sprintf("desired=%d installed=%d removed=%d dry_run=true", len(desired), len(installed), len(toRemove)),
+		}, attrs...)
+		return 0
+	}
 
-	cmdParts := strings.Fields(*skillsCmd)
+	cmdParts := strings.Fields(skillsCmd)
 	cmdParts = append(cmdParts, "remove", "-g", "-y")
 	cmdParts = append(cmdParts, toRemove...)
 

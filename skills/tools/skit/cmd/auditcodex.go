@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -23,38 +23,28 @@ var removeAllFn = os.RemoveAll
 
 // AuditCodex returns the audit-codex subcommand.
 func AuditCodex() *cli.Command {
-	return &cli.Command{
-		Name:        auditCodexTool,
-		Description: "Audit ~/.codex/skills and prune duplicates found in ~/.agents/skills",
-		Run: func(args []string) int {
-			return runAuditCodex(os.Stdout, args)
-		},
+	c := cli.NewCommand(auditCodexTool, "Audit ~/.codex/skills and prune duplicates found in ~/.agents/skills")
+	c.EnableDryRun()
+	var manifestPath, agentsSkills, codexSkills, marker string
+	var pruneDuplicates bool
+	c.StringVar(&manifestPath, "manifest", "", "", "Path to managed skills manifest (required)")
+	c.StringVar(&agentsSkills, "agents-skills", "", "", "Path to ~/.agents/skills (required)")
+	c.StringVar(&codexSkills, "codex-skills", "", "", "Path to ~/.codex/skills (required)")
+	c.StringVar(&marker, "marker", "", ".dotfiles-managed", "Managed marker filename")
+	c.BoolVar(&pruneDuplicates, "prune-duplicates", "", false, "Remove entries from ~/.codex/skills when the same entry exists in ~/.agents/skills")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if manifestPath == "" || agentsSkills == "" || codexSkills == "" {
+			return fmt.Errorf("usage: skit audit-codex --manifest <path> --agents-skills <path> --codex-skills <path> [--marker <name>] [--prune-duplicates]")
+		}
+		return exitCode(runAuditCodex(os.Stdout, manifestPath, agentsSkills, codexSkills, marker, pruneDuplicates, s.DryRun))
 	}
+	return c
 }
 
-func runAuditCodex(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet(auditCodexTool, flag.ContinueOnError)
-	manifestPath := fs.String("manifest", "", "Path to managed skills manifest (required)")
-	agentsSkills := fs.String("agents-skills", "", "Path to ~/.agents/skills (required)")
-	codexSkills := fs.String("codex-skills", "", "Path to ~/.codex/skills (required)")
-	marker := fs.String("marker", ".dotfiles-managed", "Managed marker filename")
-	pruneDuplicates := fs.Bool("prune-duplicates", false, "Remove entries from ~/.codex/skills when the same entry exists in ~/.agents/skills")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if *manifestPath == "" || *agentsSkills == "" || *codexSkills == "" {
-		fmt.Fprintln(os.Stderr, "usage: skit audit-codex --manifest <path> --agents-skills <path> --codex-skills <path> [--marker <name>] [--prune-duplicates]")
-		return 1
-	}
-
-	resolvedManifest := pathutil.ExpandAndAbs(*manifestPath)
-	resolvedAgentsSkills := pathutil.ExpandAndAbs(*agentsSkills)
-	resolvedCodexSkills := pathutil.ExpandAndAbs(*codexSkills)
+func runAuditCodex(w io.Writer, manifestPath, agentsSkills, codexSkills, marker string, pruneDuplicates, dryRun bool) int {
+	resolvedManifest := pathutil.ExpandAndAbs(manifestPath)
+	resolvedAgentsSkills := pathutil.ExpandAndAbs(agentsSkills)
+	resolvedCodexSkills := pathutil.ExpandAndAbs(codexSkills)
 
 	m, err := manifest.Load(resolvedManifest)
 	if err != nil {
@@ -114,7 +104,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 
 		if existsInAgents {
 			duplicates = append(duplicates, name)
-			markerPath := filepath.Join(agentsSkillDir, *marker)
+			markerPath := filepath.Join(agentsSkillDir, marker)
 			_, markerErr := os.Stat(markerPath)
 			hasMarker := markerErr == nil
 			if managed[name] || hasMarker {
@@ -143,7 +133,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 	}
 
 	pruned := 0
-	if *pruneDuplicates && len(duplicates) > 0 {
+	if pruneDuplicates && len(duplicates) > 0 && !dryRun {
 		for _, name := range duplicates {
 			target := filepath.Join(resolvedCodexSkills, name)
 			if err := removeAllFn(target); err != nil {
@@ -161,11 +151,14 @@ func runAuditCodex(w io.Writer, args []string) int {
 	}
 
 	attrs = append(attrs, slog.Int("signal.pruned", pruned))
+	if dryRun {
+		attrs = append(attrs, slog.Bool("signal.dry_run", true))
+	}
 
 	log.Emit(w, log.Result{
-		Tool:    auditCodexTool,
-		Status:  "PASS",
-		Code:    "AUDIT_COMPLETE",
+		Tool:   auditCodexTool,
+		Status: "PASS",
+		Code:   "AUDIT_COMPLETE",
 		Summary: fmt.Sprintf("codex=%d duplicates=%d managed_duplicates=%d external_duplicates=%d codex_only=%d pruned=%d",
 			len(codexEntries), len(duplicates), len(managedDuplicates), len(externalDuplicates), len(codexOnly), pruned),
 	}, attrs...)

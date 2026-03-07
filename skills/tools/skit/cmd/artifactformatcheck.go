@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -35,11 +36,11 @@ var requiresOverallVerdict = map[string]bool{
 }
 
 var (
-	sectionRe       = regexp.MustCompile(`(?m)^(#{1,3})\s+(.+)$`)
+	sectionRe        = regexp.MustCompile(`(?m)^(#{1,3})\s+(.+)$`)
 	overallVerdictRe = regexp.MustCompile(`(?m)^[- ]*\*{0,2}Overall Verdict\*{0,2}\s*:\s*(\w+)`)
-	sepCellRe       = regexp.MustCompile(`^:?-{2,}:?$`)
-	idColumnRe      = regexp.MustCompile(`(?i)^(?:AC\s*ID|GOAL\s*ID|REQ\s*ID|DEC\s*ID|TEMP\s*ID|id)$`)
-	invalidIDRe     = regexp.MustCompile(`^[A-Z]{2,}[0-9]$`)
+	sepCellRe        = regexp.MustCompile(`^:?-{2,}:?$`)
+	idColumnRe       = regexp.MustCompile(`(?i)^(?:AC\s*ID|GOAL\s*ID|REQ\s*ID|DEC\s*ID|TEMP\s*ID|id)$`)
+	invalidIDRe      = regexp.MustCompile(`^[A-Z]{2,}[0-9]$`)
 )
 
 type tableRow struct {
@@ -49,67 +50,34 @@ type tableRow struct {
 
 // ArtifactFormatCheck returns the artifact-format-check subcommand.
 func ArtifactFormatCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "artifact-format-check",
-		Description: "Validate structural format of skill workflow artifacts",
-		Run: func(args []string) int {
-			return runArtifactFormatCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("artifact-format-check", "Validate structural format of skill workflow artifacts")
+	var artifactType string
+	c.StringVar(&artifactType, "type", "", "", "artifact type (design|plan|trace|compose|review|dod-recheck|adversarial) (required)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 1 {
+			return fmt.Errorf("usage: skit artifact-format-check <artifact.md> --type <type>")
+		}
+		if artifactType == "" {
+			return fmt.Errorf("--type is required")
+		}
+
+		validType := false
+		for _, t := range validArtifactTypes {
+			if artifactType == t {
+				validType = true
+				break
+			}
+		}
+		if !validType {
+			return fmt.Errorf("invalid --type %q; must be one of: %s", artifactType, strings.Join(validArtifactTypes, "|"))
+		}
+
+		return exitCode(runArtifactFormatCheck(os.Stdout, artifactType, s.Args[0]))
 	}
+	return c
 }
 
-func runArtifactFormatCheck(w io.Writer, args []string) int {
-	var artifactType string
-	var positional []string
-
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		switch {
-		case arg == "--type" || arg == "-type":
-			if i+1 >= len(args) {
-				fmt.Fprintln(os.Stderr, "error: --type requires an argument")
-				return 1
-			}
-			artifactType = args[i+1]
-			i++
-		case strings.HasPrefix(arg, "--type="):
-			artifactType = strings.TrimPrefix(arg, "--type=")
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit artifact-format-check <artifact.md> --type <type>")
-			return 0
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) < 1 {
-		fmt.Fprintln(os.Stderr, "usage: skit artifact-format-check <artifact.md> --type <type>")
-		return 1
-	}
-
-	if artifactType == "" {
-		fmt.Fprintln(os.Stderr, "error: --type is required")
-		return 1
-	}
-
-	validType := false
-	for _, t := range validArtifactTypes {
-		if artifactType == t {
-			validType = true
-			break
-		}
-	}
-	if !validType {
-		fmt.Fprintf(os.Stderr, "error: invalid --type %q; must be one of: %s\n",
-			artifactType, strings.Join(validArtifactTypes, "|"))
-		return 1
-	}
-
-	artifactPath := positional[0]
-
+func runArtifactFormatCheck(w io.Writer, artifactType, artifactPath string) int {
 	data, err := os.ReadFile(artifactPath)
 	if err != nil {
 		summary := fmt.Sprintf("Artifact file not found: %s", artifactPath)

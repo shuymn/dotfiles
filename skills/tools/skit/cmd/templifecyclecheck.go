@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -22,51 +22,38 @@ var (
 	tlcADRPathRe = regexp.MustCompile(`docs/adr/[^\s)\]>]+\.md`)
 
 	tlcNoneTokens = map[string]bool{
-		"":           true,
-		"-":          true,
-		"none":       true,
-		"n/a":        true,
-		"na":         true,
-		"tbd":        true,
+		"":            true,
+		"-":           true,
+		"none":        true,
+		"n/a":         true,
+		"na":          true,
+		"tbd":         true,
 		"tbd-at-plan": true,
 	}
 
 	// Column name variants
-	tlcIDCols          = []string{"ID", "id", "Temp ID", "TEMP ID", "TempID"}
-	tlcLifecycleCols   = []string{"Lifecycle Record", "lifecycle_record", "Lifecycle", "ADR/Ledger"}
-	tlcTriggerCols     = []string{"Retirement Trigger", "retirement_trigger", "Trigger"}
+	tlcIDCols           = []string{"ID", "id", "Temp ID", "TEMP ID", "TempID"}
+	tlcLifecycleCols    = []string{"Lifecycle Record", "lifecycle_record", "Lifecycle", "ADR/Ledger"}
+	tlcTriggerCols      = []string{"Retirement Trigger", "retirement_trigger", "Trigger"}
 	tlcVerificationCols = []string{"Retirement Verification", "retirement_verification", "Verification"}
-	tlcScopeCols       = []string{"Removal Scope", "removal_scope", "Scope"}
+	tlcScopeCols        = []string{"Removal Scope", "removal_scope", "Scope"}
 )
 
 // TempLifecycleCheck returns the temp-lifecycle-check subcommand.
 func TempLifecycleCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "temp-lifecycle-check",
-		Description: "Verify TEMPxx lifecycle structure completeness in a design document",
-		Run: func(args []string) int {
-			return runTempLifecycleCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("temp-lifecycle-check", "Verify TEMPxx lifecycle structure completeness in a design document")
+	var baseDir string
+	c.StringVar(&baseDir, "base-dir", "", "", "Base directory for ADR file resolution (default: design file's directory)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 1 {
+			return fmt.Errorf("usage: skit temp-lifecycle-check <design-file> [--base-dir <dir>]")
+		}
+		return exitCode(runTempLifecycleCheck(os.Stdout, baseDir, s.Args[0]))
 	}
+	return c
 }
 
-func runTempLifecycleCheck(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet("temp-lifecycle-check", flag.ContinueOnError)
-	baseDir := fs.String("base-dir", "", "Base directory for ADR file resolution (default: design file's directory)")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if fs.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "usage: skit temp-lifecycle-check <design-file> [--base-dir <dir>]")
-		return 1
-	}
-
-	designFile := fs.Arg(0)
+func runTempLifecycleCheck(w io.Writer, baseDir, designFile string) int {
 	data, err := os.ReadFile(designFile)
 	if err != nil {
 		log.Emit(w, log.Result{
@@ -78,7 +65,7 @@ func runTempLifecycleCheck(w io.Writer, args []string) int {
 		return 1
 	}
 
-	resolvedBaseDir := *baseDir
+	resolvedBaseDir := baseDir
 	if resolvedBaseDir == "" {
 		resolvedBaseDir = filepath.Dir(designFile)
 	}

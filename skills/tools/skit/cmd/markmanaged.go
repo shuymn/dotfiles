@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,35 +21,24 @@ const markerContent = "managed-by-dotfiles\n"
 
 // MarkManaged returns the mark-managed subcommand.
 func MarkManaged() *cli.Command {
-	return &cli.Command{
-		Name:        markManagedTool,
-		Description: "Mark installed skills as managed by dotfiles",
-		Run: func(args []string) int {
-			return runMarkManaged(os.Stdout, args)
-		},
+	c := cli.NewCommand(markManagedTool, "Mark installed skills as managed by dotfiles")
+	c.EnableDryRun()
+	var manifestPath, agentsSkills, marker string
+	c.StringVar(&manifestPath, "manifest", "", "", "Path to managed skills manifest (required)")
+	c.StringVar(&agentsSkills, "agents-skills", "", "", "Path to ~/.agents/skills (required)")
+	c.StringVar(&marker, "marker", "", ".dotfiles-managed", "Managed marker filename")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if manifestPath == "" || agentsSkills == "" {
+			return fmt.Errorf("usage: skit mark-managed --manifest <path> --agents-skills <path> [--marker <name>]")
+		}
+		return exitCode(runMarkManaged(os.Stdout, manifestPath, agentsSkills, marker, s.DryRun))
 	}
+	return c
 }
 
-func runMarkManaged(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet(markManagedTool, flag.ContinueOnError)
-	manifestPath := fs.String("manifest", "", "Path to managed skills manifest (required)")
-	agentsSkills := fs.String("agents-skills", "", "Path to ~/.agents/skills (required)")
-	marker := fs.String("marker", ".dotfiles-managed", "Managed marker filename")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if *manifestPath == "" || *agentsSkills == "" {
-		fmt.Fprintln(os.Stderr, "usage: skit mark-managed --manifest <path> --agents-skills <path> [--marker <name>]")
-		return 1
-	}
-
-	resolvedManifest := pathutil.ExpandAndAbs(*manifestPath)
-	resolvedAgentsSkills := pathutil.ExpandAndAbs(*agentsSkills)
+func runMarkManaged(w io.Writer, manifestPath, agentsSkills, marker string, dryRun bool) int {
+	resolvedManifest := pathutil.ExpandAndAbs(manifestPath)
+	resolvedAgentsSkills := pathutil.ExpandAndAbs(agentsSkills)
 
 	m, err := manifest.Load(resolvedManifest)
 	if err != nil {
@@ -76,7 +65,15 @@ func runMarkManaged(w io.Writer, args []string) int {
 	marked := 0
 
 	for _, skill := range m.Skills {
-		markerPath := filepath.Join(resolvedAgentsSkills, skill, *marker)
+		markerPath := filepath.Join(resolvedAgentsSkills, skill, marker)
+		if dryRun {
+			if info, err := os.Stat(filepath.Dir(markerPath)); err != nil || !info.IsDir() {
+				missing = append(missing, skill)
+				continue
+			}
+			marked++
+			continue
+		}
 		if err := os.WriteFile(markerPath, []byte(markerContent), 0644); err != nil {
 			missing = append(missing, skill)
 			continue
@@ -94,6 +91,9 @@ func runMarkManaged(w io.Writer, args []string) int {
 	}
 	if len(missing) > 0 {
 		attrs = append(attrs, slog.String("signal.missing_names", strings.Join(missing, ",")))
+	}
+	if dryRun {
+		attrs = append(attrs, slog.Bool("signal.dry_run", true))
 	}
 
 	log.Emit(w, log.Result{

@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"context"
 	"crypto/sha256"
-	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -35,33 +35,20 @@ type checkEntry struct {
 
 // FreshnessPreflight returns the freshness-preflight subcommand.
 func FreshnessPreflight() *cli.Command {
-	return &cli.Command{
-		Name:        "freshness-preflight",
-		Description: "Pre-flight digest freshness check for review/recheck artifacts",
-		Run: func(args []string) int {
-			return runFreshnessPreflight(os.Stdout, args)
-		},
+	c := cli.NewCommand("freshness-preflight", "Pre-flight digest freshness check for review/recheck artifacts")
+	var baseDir string
+	c.StringVar(&baseDir, "base-dir", "", "", "Repository root for resolving relative source paths (default: topic_dir/../..)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 1 {
+			return fmt.Errorf("usage: skit freshness-preflight <topic-dir> [--base-dir <path>]")
+		}
+		return exitCode(runFreshnessPreflight(os.Stdout, baseDir, s.Args[0]))
 	}
+	return c
 }
 
-func runFreshnessPreflight(w io.Writer, args []string) int {
-	fs := flag.NewFlagSet("freshness-preflight", flag.ContinueOnError)
-	baseDir := fs.String("base-dir", "", "Repository root for resolving relative source paths (default: topic_dir/../..)")
-
-	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if fs.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "usage: skit freshness-preflight <topic-dir> [--base-dir <path>]")
-		return 1
-	}
-
-	topicDir := fs.Arg(0)
-	resolvedBase := *baseDir
+func runFreshnessPreflight(w io.Writer, baseDir, topicDir string) int {
+	resolvedBase := baseDir
 
 	info, err := os.Stat(topicDir)
 	if err != nil || !info.IsDir() {

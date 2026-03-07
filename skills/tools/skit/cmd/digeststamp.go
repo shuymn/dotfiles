@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -16,9 +17,9 @@ import (
 const dsToolName = "digest-stamp"
 
 var dsValidModes = map[string]bool{
-	"design-review":     true,
-	"plan-review":       true,
-	"dod-recheck":       true,
+	"design-review":      true,
+	"plan-review":        true,
+	"dod-recheck":        true,
 	"adversarial-verify": true,
 }
 
@@ -64,34 +65,17 @@ func (s *DsStampResult) RenderMarkdown() string {
 
 // DigestStamp returns the digest-stamp subcommand.
 func DigestStamp() *cli.Command {
-	return &cli.Command{
-		Name:        "digest-stamp",
-		Description: "Generate review header metadata (digest + timestamp)",
-		Run: func(args []string) int {
-			return runDigestStamp(os.Stdout, args)
-		},
+	c := cli.NewCommand("digest-stamp", "Generate review header metadata (digest + timestamp)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) != 2 {
+			return fmt.Errorf("usage: skit digest-stamp <mode> <source-file>")
+		}
+		return exitCode(runDigestStamp(os.Stdout, s.Args[0], s.Args[1]))
 	}
+	return c
 }
 
-func runDigestStamp(w io.Writer, args []string) int {
-	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
-		fmt.Fprintln(os.Stderr, "usage: skit digest-stamp <mode> <source-file>")
-		return 0
-	}
-
-	if len(args) != 2 {
-		log.Emit(w, log.Result{
-			Tool:    dsToolName,
-			Status:  "FAIL",
-			Code:    "INVALID_ARGUMENT_COUNT",
-			Summary: "Usage: skit digest-stamp <mode> <source-file>.",
-		})
-		return 1
-	}
-
-	mode := args[0]
-	sourceFile := args[1]
-
+func runDigestStamp(w io.Writer, mode, sourceFile string) int {
 	if !dsValidModes[mode] {
 		log.Emit(w, log.Result{
 			Tool:    dsToolName,

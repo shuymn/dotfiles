@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -84,15 +82,11 @@ func gcTestMakeDodRecheckReview(t *testing.T, dir, sourceDigest string) string {
 // --- Go implementation test runner ---
 
 func runGateCheckCmd(args ...string) (int, map[string]any) {
-	var buf bytes.Buffer
-	rc := runGateCheck(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(GateCheck(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 // --- Test cases ---
@@ -103,8 +97,8 @@ func TestGateCheck_InvalidArgCount(t *testing.T) {
 		if rc != 1 {
 			t.Errorf("args=%v: expected exit 1, got %d", args, rc)
 		}
-		if result["code"] != "INVALID_ARGUMENT_COUNT" {
-			t.Errorf("args=%v: expected INVALID_ARGUMENT_COUNT, got %v", args, result["code"])
+		if result["code"] != "COMMAND_ERROR" {
+			t.Errorf("args=%v: expected COMMAND_ERROR, got %v", args, result["code"])
 		}
 	}
 }

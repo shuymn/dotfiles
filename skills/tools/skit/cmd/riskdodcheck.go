@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -17,9 +18,9 @@ const riskDodCheckToolName = "risk-dod-check"
 
 // Exact annotation strings as defined in decompose-plan SKILL.md Step 2.6.
 const (
-	rdcDodCritical    = "Adversarial verification required (minimum 3 probes)."
-	rdcDodSensitive1  = "Heightened dod-recheck scrutiny applies."
-	rdcDodSensitive2  = "Adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category)."
+	rdcDodCritical     = "Adversarial verification required (minimum 3 probes)."
+	rdcDodSensitive1   = "Heightened dod-recheck scrutiny applies."
+	rdcDodSensitive2   = "Adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category)."
 	rdcDodStandardImpl = "Adversarial verification required (1 probe: most relevant category)."
 )
 
@@ -43,39 +44,17 @@ type rdcTask struct {
 
 // RiskDodCheck returns the risk-dod-check subcommand.
 func RiskDodCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "risk-dod-check",
-		Description: "Check that task DoD entries contain required risk tier annotations",
-		Run: func(args []string) int {
-			return runRiskDodCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("risk-dod-check", "Check that task DoD entries contain required risk tier annotations")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 2 {
+			return fmt.Errorf("usage: skit risk-dod-check <plan.md> <design.md>")
+		}
+		return exitCode(runRiskDodCheck(os.Stdout, s.Args[0], s.Args[1]))
 	}
+	return c
 }
 
-func runRiskDodCheck(w io.Writer, args []string) int {
-	var positional []string
-
-	for _, arg := range args {
-		switch {
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit risk-dod-check <plan.md> <design.md>")
-			return 0
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: skit risk-dod-check <plan.md> <design.md>")
-		return 1
-	}
-
-	planPath := positional[0]
-	designPath := positional[1]
-
+func runRiskDodCheck(w io.Writer, planPath, designPath string) int {
 	planData, err := os.ReadFile(planPath)
 	if err != nil {
 		log.Emit(w, log.Result{

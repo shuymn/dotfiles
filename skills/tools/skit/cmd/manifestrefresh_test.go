@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,9 +9,11 @@ import (
 )
 
 func runManifestRefreshCmd(args ...string) (int, string) {
-	var buf bytes.Buffer
-	rc := runManifestRefresh(&buf, args)
-	return rc, buf.String()
+	rc, stdout, _, err := runCommandOutput(ManifestRefresh(), "", args...)
+	if err != nil {
+		return 1, err.Error()
+	}
+	return rc, stdout
 }
 
 // TestSanitizeName: 各種入力パターンのサニタイズ検証

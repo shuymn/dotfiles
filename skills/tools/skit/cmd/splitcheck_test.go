@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,15 +10,11 @@ import (
 
 func runSplitCheckCmd(t *testing.T, args ...string) (int, map[string]any) {
 	t.Helper()
-	var buf bytes.Buffer
-	rc := runSplitCheck(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(SplitCheck(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 // writeSplitCheckFile writes content to rootDir/relativePath (POSIX slash path).
@@ -403,10 +397,8 @@ func TestSplitCheck_DesignFileNotFound(t *testing.T) {
 
 func TestSplitCheck_NoArgs(t *testing.T) {
 	rc, _ := runSplitCheckCmd(t)
-	// --help/-h returns 0, no args should show usage (also returns 0 per current impl).
-	// Verify it doesn't panic.
-	if rc != 0 {
-		t.Errorf("expected rc=0 for no args (help), got %d", rc)
+	if rc != 1 {
+		t.Errorf("expected rc=1 for missing args, got %d", rc)
 	}
 }
 
@@ -415,10 +407,7 @@ func TestSplitCheck_TooManyArgs(t *testing.T) {
 	if rc != 1 {
 		t.Errorf("expected rc=1, got %d", rc)
 	}
-	if out["status"] != "FAIL" {
-		t.Errorf("expected status=FAIL, got %v", out["status"])
-	}
-	if out["code"] != "INVALID_ARGUMENT_COUNT" {
-		t.Errorf("expected code=INVALID_ARGUMENT_COUNT, got %v", out["code"])
+	if out["code"] != "COMMAND_ERROR" {
+		t.Errorf("expected code=COMMAND_ERROR, got %v", out["code"])
 	}
 }

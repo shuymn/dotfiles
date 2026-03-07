@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -34,38 +35,17 @@ var bundleRequiredKeys = []string{
 
 // BundleValidateCheck returns the bundle-validate-check subcommand.
 func BundleValidateCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "bundle-validate-check",
-		Description: "Validate plan.md bundle consistency before task execution",
-		Run: func(args []string) int {
-			return runBundleValidateCheck(os.Stdout, args)
-		},
+	c := cli.NewCommand("bundle-validate-check", "Validate plan.md bundle consistency before task execution")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) < 1 {
+			return fmt.Errorf("usage: skit bundle-validate-check <plan.md>")
+		}
+		return exitCode(runBundleValidateCheck(os.Stdout, s.Args[0]))
 	}
+	return c
 }
 
-func runBundleValidateCheck(w io.Writer, args []string) int {
-	var positional []string
-
-	for _, arg := range args {
-		switch {
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit bundle-validate-check <plan.md>")
-			return 0
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) < 1 {
-		fmt.Fprintln(os.Stderr, "usage: skit bundle-validate-check <plan.md>")
-		return 1
-	}
-
-	planPath := positional[0]
-
+func runBundleValidateCheck(w io.Writer, planPath string) int {
 	data, err := os.ReadFile(planPath)
 	if err != nil {
 		log.Emit(w, log.Result{

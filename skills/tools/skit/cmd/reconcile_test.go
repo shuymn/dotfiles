@@ -1,25 +1,18 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
 func runReconcileCmd(args ...string) (int, map[string]any) {
-	var buf bytes.Buffer
-	rc := runReconcile(&buf, args)
-	var result map[string]any
-	if line := strings.TrimSpace(buf.String()); line != "" {
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			return rc, map[string]any{"_raw": line, "_err": err.Error()}
-		}
+	rc, stdout, _, err := runCommandOutput(Reconcile(), "", args...)
+	if err != nil {
+		return 1, map[string]any{"_err": err.Error()}
 	}
-	return rc, result
+	return rc, parseJSONResult(stdout)
 }
 
 // mkManagedSkillDir creates a skill subdirectory under agentsSkills and, if marker

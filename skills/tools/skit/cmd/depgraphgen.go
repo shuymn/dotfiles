@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -39,43 +40,18 @@ type task struct {
 
 // DepGraphGen returns the dep-graph-gen subcommand.
 func DepGraphGen() *cli.Command {
-	return &cli.Command{
-		Name:        "dep-graph-gen",
-		Description: "Generate Task Dependency Graph section in plan.md",
-		Run: func(args []string) int {
-			return runDepGraphGen(os.Stdout, args)
-		},
+	c := cli.NewCommand("dep-graph-gen", "Generate Task Dependency Graph section in plan.md")
+	c.EnableDryRun()
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if len(s.Args) != 1 {
+			return fmt.Errorf("usage: skit dep-graph-gen <plan.md>")
+		}
+		return exitCode(runDepGraphGen(os.Stdout, s.Args[0], s.DryRun))
 	}
+	return c
 }
 
-func runDepGraphGen(w io.Writer, args []string) int {
-	var positional []string
-
-	for _, arg := range args {
-		switch {
-		case arg == "--help" || arg == "-h":
-			fmt.Fprintln(os.Stderr, "usage: skit dep-graph-gen <plan.md>")
-			return 0
-		case strings.HasPrefix(arg, "-"):
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q\n", arg)
-			return 1
-		default:
-			positional = append(positional, arg)
-		}
-	}
-
-	if len(positional) != 1 {
-		log.Emit(w, log.Result{
-			Tool:    depGraphGenToolName,
-			Status:  "FAIL",
-			Code:    "INVALID_ARGUMENT_COUNT",
-			Summary: "Expected exactly 1 argument: <plan-file>.",
-		}, slog.Any("fix", []string{"FIX_USE_ONE_ARG"}))
-		return 1
-	}
-
-	planPath := positional[0]
-
+func runDepGraphGen(w io.Writer, planPath string, dryRun bool) int {
 	data, err := os.ReadFile(planPath)
 	if err != nil {
 		log.Emit(w, log.Result{
@@ -103,14 +79,16 @@ func runDepGraphGen(w io.Writer, args []string) int {
 	graph := generateDepGraph(tasks)
 	patched := patchPlan(text, graph)
 
-	if err := os.WriteFile(planPath, []byte(patched), 0644); err != nil {
-		log.Emit(w, log.Result{
-			Tool:    depGraphGenToolName,
-			Status:  "FAIL",
-			Code:    "PLAN_WRITE_FAILED",
-			Summary: fmt.Sprintf("Failed to write plan file: %s", planPath),
-		})
-		return 1
+	if !dryRun {
+		if err := os.WriteFile(planPath, []byte(patched), 0644); err != nil {
+			log.Emit(w, log.Result{
+				Tool:    depGraphGenToolName,
+				Status:  "FAIL",
+				Code:    "PLAN_WRITE_FAILED",
+				Summary: fmt.Sprintf("Failed to write plan file: %s", planPath),
+			})
+			return 1
+		}
 	}
 
 	rootCount := 0
@@ -131,6 +109,7 @@ func runDepGraphGen(w io.Writer, args []string) int {
 		slog.Int("signal.task_count", len(tasks)),
 		slog.Int("signal.root_count", rootCount),
 		slog.Int("signal.dep_edge_count", depEdgeCount),
+		slog.Bool("signal.dry_run", dryRun),
 	)
 	return 0
 }

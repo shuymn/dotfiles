@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -44,56 +44,19 @@ type fileEntry struct {
 
 // FileScopeCheck returns the file-scope-check subcommand.
 func FileScopeCheck() *cli.Command {
-	return &cli.Command{
-		Name:        "file-scope-check",
-		Description: "Verify that changed files fall within a task's Allowed/Exception Files scope",
-		Run: func(args []string) int {
-			return runFileScopeCheck(os.Stdout, os.Stdin, args)
-		},
+	c := cli.NewCommand("file-scope-check", "Verify that changed files fall within a task's Allowed/Exception Files scope")
+	var taskID int
+	c.IntVar(&taskID, "task", "", 0, "Task number (required)")
+	c.Run = func(ctx context.Context, s *cli.State) error {
+		if taskID == 0 || len(s.Args) < 1 {
+			return fmt.Errorf("usage: skit file-scope-check <plan-file> --task <N>")
+		}
+		return exitCode(runFileScopeCheck(os.Stdin, os.Stdout, taskID, s.Args[0]))
 	}
+	return c
 }
 
-// normalizeFlagArgs reorders args so that flag arguments precede positional
-// arguments, allowing usage like: <plan-file> --task <N>.
-// flag.FlagSet stops parsing at the first non-flag argument, so without this
-// reordering --task would not be seen when plan-file comes first.
-func normalizeFlagArgs(args []string) []string {
-	var flags, positional []string
-	for i := 0; i < len(args); i++ {
-		if (args[i] == "--task" || args[i] == "-task") && i+1 < len(args) {
-			flags = append(flags, args[i], args[i+1])
-			i++
-		} else if strings.HasPrefix(args[i], "-") {
-			flags = append(flags, args[i])
-		} else {
-			positional = append(positional, args[i])
-		}
-	}
-	return append(flags, positional...)
-}
-
-func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
-	fs := flag.NewFlagSet("file-scope-check", flag.ContinueOnError)
-	taskID := fs.Int("task", 0, "Task number (required)")
-
-	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
-		if err == flag.ErrHelp {
-			return 0
-		}
-		return 1
-	}
-
-	if *taskID == 0 {
-		fmt.Fprintln(os.Stderr, "usage: skit file-scope-check <plan-file> --task <N>")
-		return 1
-	}
-
-	if fs.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "usage: skit file-scope-check <plan-file> --task <N>")
-		return 1
-	}
-
-	planFile := fs.Arg(0)
+func runFileScopeCheck(r io.Reader, w io.Writer, taskID int, planFile string) int {
 	planData, err := os.ReadFile(planFile)
 	if err != nil {
 		log.Emit(w, log.Result{
@@ -106,13 +69,13 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 	}
 
 	planText := string(planData)
-	block := extractTaskBlock(planText, *taskID)
+	block := extractTaskBlock(planText, taskID)
 	if block == "" {
 		log.Emit(w, log.Result{
 			Tool:    fileScopeCheckToolName,
 			Status:  "FAIL",
 			Code:    "TASK_NOT_FOUND",
-			Summary: fmt.Sprintf("Task %d not found in plan.", *taskID),
+			Summary: fmt.Sprintf("Task %d not found in plan.", taskID),
 		}, slog.String("fix.1", "FIX_CHECK_TASK_ID"))
 		return 1
 	}
@@ -123,7 +86,7 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 			Tool:    fileScopeCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_ALLOWED_FILES",
-			Summary: fmt.Sprintf("No Allowed Files defined for Task %d. Scope check skipped.", *taskID),
+			Summary: fmt.Sprintf("No Allowed Files defined for Task %d. Scope check skipped.", taskID),
 		})
 		return 0
 	}
@@ -158,7 +121,7 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 		matches = append(matches, matchFile(f, allowed, exceptions))
 	}
 
-	return emitScopeResult(w, matches, *taskID)
+	return emitScopeResult(w, matches, taskID)
 }
 
 func emitScopeResult(w io.Writer, matches []fileMatch, taskID int) int {
