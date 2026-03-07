@@ -40,7 +40,7 @@ func ManifestRefresh() *cli.Command {
 	c.BoolVar(&printOnly, "print-only", "", false, "Print the generated manifest instead of writing it")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if source == "" {
-			return fmt.Errorf("usage: skit manifest-refresh --source <path> [--manifest <path>] [--print-only]")
+			return fmt.Errorf("usage: %s manifest-refresh --source <path> [--manifest <path>] [--print-only]", s.AppName)
 		}
 		return exitCode(runManifestRefresh(os.Stdout, source, manifestPath, printOnly, s.DryRun))
 	}

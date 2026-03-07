@@ -33,7 +33,7 @@ func Reconcile() *cli.Command {
 	c.StringVar(&skillsCmd, "skills-cmd", "", "", "Skills CLI command prefix, e.g. 'bunx --bun skills' (required)")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if manifestPath == "" || agentsSkills == "" || skillsCmd == "" {
-			return fmt.Errorf("usage: skit reconcile --manifest <path> --agents-skills <path> --skills-cmd <cmd> [--marker <name>]")
+			return fmt.Errorf("usage: %s reconcile --manifest <path> --agents-skills <path> --skills-cmd <cmd> [--marker <name>]", s.AppName)
 		}
 		return exitCode(runReconcile(os.Stdout, manifestPath, agentsSkills, marker, skillsCmd, s.DryRun))
 	}

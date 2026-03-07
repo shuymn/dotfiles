@@ -84,7 +84,7 @@ func BuildSkills() *cli.Command {
 	c.StringVar(&artifact, "artifact", "", "", "Path to the artifact skills root (required)")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if source == "" || artifact == "" {
-			return fmt.Errorf("usage: skit build-skills --source <path> --artifact <path>")
+			return fmt.Errorf("usage: %s build-skills --source <path> --artifact <path>", s.AppName)
 		}
 		return exitCode(runBuildSkills(os.Stdout, source, artifact, s.DryRun))
 	}

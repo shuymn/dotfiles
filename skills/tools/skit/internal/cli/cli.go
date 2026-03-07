@@ -62,6 +62,7 @@ func (s *StringSlice) Get() any {
 
 // State is passed to a command run function after flag parsing.
 type State struct {
+	AppName string
 	Command *Command
 	Path    []string
 	Flags   *flag.FlagSet
@@ -189,6 +190,7 @@ func (a *App) RunContext(ctx context.Context, args []string) error {
 	}
 
 	state := &State{
+		AppName: a.Name,
 		Command: cmd,
 		Path:    cmd.pathSegments(),
 		Flags:   fs,
