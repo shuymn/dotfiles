@@ -40,7 +40,7 @@ func TestTraceTemplateRenderIsDeterministic(t *testing.T) {
 		t.Error("rendered output contains unresolved template token '{{ .'")
 	}
 
-	// Specific content checks from Python tests.
+	// Specific content checks.
 	if !strings.Contains(first, "Coverage ratio (`REQ+AC covered / total REQ+AC`): `X / Y`") {
 		t.Error("missing expected coverage ratio line")
 	}

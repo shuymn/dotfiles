@@ -168,7 +168,7 @@ func rfParseDesignPath(planText, planPath string) string {
 		if filepath.IsAbs(source) {
 			return source
 		}
-		// Try resolving relative to CWD first (matching Python behavior).
+		// Try resolving relative to CWD first.
 		cwd, _ := os.Getwd()
 		candidate := filepath.Join(cwd, source)
 		if _, err := os.Stat(candidate); err == nil {
