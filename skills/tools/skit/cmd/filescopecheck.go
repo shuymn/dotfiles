@@ -46,17 +46,19 @@ type fileEntry struct {
 func FileScopeCheck() *cli.Command {
 	c := cli.NewCommand("file-scope-check", "Verify that changed files fall within a task's Allowed/Exception Files scope")
 	var taskID int
+	var planFile string
 	c.IntVar(&taskID, "task", "", 0, "Task number (required)")
+	c.StringArg(&planFile, "plan-file", "Plan file to inspect")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if taskID == 0 || len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit file-scope-check <plan-file> --task <N>")
+		if taskID == 0 {
+			return fmt.Errorf("--task is required")
 		}
-		return exitCode(runFileScopeCheck(os.Stdin, os.Stdout, taskID, s.Args[0]))
+		return exitCode(runFileScopeCheck(s.Stdin, s.Stdout, s.Stderr, taskID, planFile))
 	}
 	return c
 }
 
-func runFileScopeCheck(r io.Reader, w io.Writer, taskID int, planFile string) int {
+func runFileScopeCheck(r io.Reader, w, stderr io.Writer, taskID int, planFile string) int {
 	planData, err := os.ReadFile(planFile)
 	if err != nil {
 		log.Emit(w, log.Result{
@@ -95,7 +97,7 @@ func runFileScopeCheck(r io.Reader, w io.Writer, taskID int, planFile string) in
 
 	stdinData, err := io.ReadAll(r)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading stdin: %v\n", err)
+		fmt.Fprintf(stderr, "error reading stdin: %v\n", err)
 		return 1
 	}
 

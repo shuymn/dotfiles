@@ -52,11 +52,10 @@ type tableRow struct {
 func ArtifactFormatCheck() *cli.Command {
 	c := cli.NewCommand("artifact-format-check", "Validate structural format of skill workflow artifacts")
 	var artifactType string
+	var artifactPath string
 	c.StringVar(&artifactType, "type", "", "", "artifact type (design|plan|trace|compose|review|dod-recheck|adversarial) (required)")
+	c.StringArg(&artifactPath, "artifact-file", "Artifact file to validate")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit artifact-format-check <artifact.md> --type <type>")
-		}
 		if artifactType == "" {
 			return fmt.Errorf("--type is required")
 		}
@@ -72,7 +71,7 @@ func ArtifactFormatCheck() *cli.Command {
 			return fmt.Errorf("invalid --type %q; must be one of: %s", artifactType, strings.Join(validArtifactTypes, "|"))
 		}
 
-		return exitCode(runArtifactFormatCheck(os.Stdout, artifactType, s.Args[0]))
+		return exitCode(runArtifactFormatCheck(s.Stdout, artifactType, artifactPath))
 	}
 	return c
 }

@@ -43,12 +43,11 @@ var (
 func TempLifecycleCheck() *cli.Command {
 	c := cli.NewCommand("temp-lifecycle-check", "Verify TEMPxx lifecycle structure completeness in a design document")
 	var baseDir string
+	var designFile string
 	c.StringVar(&baseDir, "base-dir", "", "", "Base directory for ADR file resolution (default: design file's directory)")
+	c.StringArg(&designFile, "design-file", "Design file to inspect")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit temp-lifecycle-check <design-file> [--base-dir <dir>]")
-		}
-		return exitCode(runTempLifecycleCheck(os.Stdout, baseDir, s.Args[0]))
+		return exitCode(runTempLifecycleCheck(s.Stdout, baseDir, designFile))
 	}
 	return c
 }

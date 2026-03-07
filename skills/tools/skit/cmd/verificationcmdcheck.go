@@ -35,11 +35,10 @@ var lookPathFn = exec.LookPath
 // VerificationCmdCheck returns the verification-cmd-check subcommand.
 func VerificationCmdCheck() *cli.Command {
 	c := cli.NewCommand("verification-cmd-check", "Validate Verification Command column in Acceptance Criteria table of a design document")
+	var designFile string
+	c.StringArg(&designFile, "design-file", "Design document to inspect")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit verification-cmd-check <design.md>")
-		}
-		return exitCode(runVerificationCmdCheck(os.Stdout, s.Args[0]))
+		return exitCode(runVerificationCmdCheck(s.Stdout, designFile))
 	}
 	return c
 }

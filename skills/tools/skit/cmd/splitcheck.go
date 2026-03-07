@@ -57,11 +57,10 @@ var (
 // SplitCheck returns the split-check subcommand.
 func SplitCheck() *cli.Command {
 	c := cli.NewCommand("split-check", "Validate single/root-sub split decisions from structured design signals")
+	var designFile string
+	c.StringArg(&designFile, "design-file", "Design file to validate")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) != 1 {
-			return fmt.Errorf("usage: skit split-check <design-file>")
-		}
-		return exitCode(runSplitCheck(os.Stdout, s.Args[0]))
+		return exitCode(runSplitCheck(s.Stdout, designFile))
 	}
 	return c
 }

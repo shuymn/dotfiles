@@ -31,11 +31,11 @@ type accVector struct {
 func AdversarialCoverageCheck() *cli.Command {
 	c := cli.NewCommand("adversarial-coverage-check", "Check that all [required] attack vectors within selected categories are covered")
 	var tier string
+	var reportFile, vectorsFile string
 	c.StringVar(&tier, "tier", "", "", "risk tier (Critical|Sensitive|Standard) (required)")
+	c.StringArg(&reportFile, "report-file", "Adversarial report to inspect")
+	c.StringArg(&vectorsFile, "attack-vectors-file", "Attack vector reference file")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 2 {
-			return fmt.Errorf("usage: skit adversarial-coverage-check <report-file> <attack-vectors-file> --tier Critical|Sensitive|Standard")
-		}
 		if tier == "" {
 			return fmt.Errorf("--tier is required (Critical|Sensitive|Standard)")
 		}
@@ -44,7 +44,7 @@ func AdversarialCoverageCheck() *cli.Command {
 		default:
 			return fmt.Errorf("invalid tier %q (must be Critical, Sensitive, or Standard)", tier)
 		}
-		return exitCode(runAdversarialCoverageCheck(os.Stdout, tier, s.Args[0], s.Args[1]))
+		return exitCode(runAdversarialCoverageCheck(s.Stdout, tier, reportFile, vectorsFile))
 	}
 	return c
 }

@@ -92,13 +92,21 @@ func runGateCheckCmd(args ...string) (int, map[string]any) {
 // --- Test cases ---
 
 func TestGateCheck_InvalidArgCount(t *testing.T) {
-	for _, args := range [][]string{{}, {"only-one"}, {"a", "b", "c"}} {
-		rc, result := runGateCheckCmd(args...)
+	tests := []struct {
+		args []string
+		code string
+	}{
+		{args: []string{}, code: "MISSING_REQUIRED_ARGUMENT"},
+		{args: []string{"only-one"}, code: "MISSING_REQUIRED_ARGUMENT"},
+		{args: []string{"a", "b", "c"}, code: "TOO_MANY_ARGUMENTS"},
+	}
+	for _, tc := range tests {
+		rc, result := runGateCheckCmd(tc.args...)
 		if rc != 1 {
-			t.Errorf("args=%v: expected exit 1, got %d", args, rc)
+			t.Errorf("args=%v: expected exit 1, got %d", tc.args, rc)
 		}
-		if result["code"] != "COMMAND_ERROR" {
-			t.Errorf("args=%v: expected COMMAND_ERROR, got %v", args, result["code"])
+		if result["code"] != tc.code {
+			t.Errorf("args=%v: expected %s, got %v", tc.args, tc.code, result["code"])
 		}
 	}
 }

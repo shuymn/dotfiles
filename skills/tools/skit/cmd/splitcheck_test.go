@@ -407,7 +407,7 @@ func TestSplitCheck_TooManyArgs(t *testing.T) {
 	if rc != 1 {
 		t.Errorf("expected rc=1, got %d", rc)
 	}
-	if out["code"] != "COMMAND_ERROR" {
-		t.Errorf("expected code=COMMAND_ERROR, got %v", out["code"])
+	if out["code"] != "TOO_MANY_ARGUMENTS" {
+		t.Errorf("expected code=TOO_MANY_ARGUMENTS, got %v", out["code"])
 	}
 }

@@ -40,19 +40,19 @@ func ManifestRefresh() *cli.Command {
 	c.BoolVar(&printOnly, "print-only", "", false, "Print the generated manifest instead of writing it")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if source == "" {
-			return fmt.Errorf("usage: %s manifest-refresh --source <path> [--manifest <path>] [--print-only]", s.AppName)
+			return fmt.Errorf("--source is required")
 		}
-		return exitCode(runManifestRefresh(os.Stdout, source, manifestPath, printOnly, s.DryRun))
+		return exitCode(runManifestRefresh(s.Stdout, s.Stderr, source, manifestPath, printOnly, s.DryRun))
 	}
 	return c
 }
 
-func runManifestRefresh(w io.Writer, source, manifestPath string, printOnly, dryRun bool) int {
+func runManifestRefresh(w, stderr io.Writer, source, manifestPath string, printOnly, dryRun bool) int {
 	sourceRoot := pathutil.ExpandAndAbs(source)
 
 	info, err := os.Stat(sourceRoot)
 	if err != nil || !info.IsDir() {
-		fmt.Fprintf(os.Stderr, "manifest-refresh: source skills directory does not exist: %s\n", sourceRoot)
+		fmt.Fprintf(stderr, "manifest-refresh: source skills directory does not exist: %s\n", sourceRoot)
 		return 1
 	}
 
@@ -65,7 +65,7 @@ func runManifestRefresh(w io.Writer, source, manifestPath string, printOnly, dry
 
 	skills, err := discoverSkills(sourceRoot)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "manifest-refresh: failed to discover skills: %v\n", err)
+		fmt.Fprintf(stderr, "manifest-refresh: failed to discover skills: %v\n", err)
 		return 1
 	}
 
@@ -77,7 +77,7 @@ func runManifestRefresh(w io.Writer, source, manifestPath string, printOnly, dry
 
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "manifest-refresh: failed to marshal manifest: %v\n", err)
+		fmt.Fprintf(stderr, "manifest-refresh: failed to marshal manifest: %v\n", err)
 		return 1
 	}
 
@@ -88,11 +88,11 @@ func runManifestRefresh(w io.Writer, source, manifestPath string, printOnly, dry
 
 	if !dryRun {
 		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "manifest-refresh: failed to create manifest directory: %v\n", err)
+			fmt.Fprintf(stderr, "manifest-refresh: failed to create manifest directory: %v\n", err)
 			return 1
 		}
 		if err := os.WriteFile(outPath, append(data, '\n'), 0644); err != nil {
-			fmt.Fprintf(os.Stderr, "manifest-refresh: failed to write manifest: %v\n", err)
+			fmt.Fprintf(stderr, "manifest-refresh: failed to write manifest: %v\n", err)
 			return 1
 		}
 	}

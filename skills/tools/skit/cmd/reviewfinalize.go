@@ -865,11 +865,12 @@ func rfEmitFail(w io.Writer, code, summary string) {
 func ReviewFinalize() *cli.Command {
 	c := cli.NewCommand("review-finalize", "Finalize a plan review draft into the gate artifact")
 	c.EnableDryRun()
+	var planFile, draftFile, finalFile string
+	c.StringArg(&planFile, "plan-file", "Plan bundle file")
+	c.StringArg(&draftFile, "draft-file", "Draft review artifact")
+	c.StringArg(&finalFile, "final-file", "Final review artifact path")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) != 3 {
-			return fmt.Errorf("usage: skit review-finalize <plan-file> <draft-file> <final-file>")
-		}
-		return exitCode(runReviewFinalize(os.Stdout, s.Args[0], s.Args[1], s.Args[2], s.DryRun))
+		return exitCode(runReviewFinalize(s.Stdout, planFile, draftFile, finalFile, s.DryRun))
 	}
 	return c
 }

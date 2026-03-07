@@ -29,11 +29,11 @@ var (
 // TraceComposeCheck returns the trace-compose-check subcommand.
 func TraceComposeCheck() *cli.Command {
 	c := cli.NewCommand("trace-compose-check", "Cross-reference checks between design.md and plan.trace.md")
+	var designFile, traceFile string
+	c.StringArg(&designFile, "design-file", "Design document")
+	c.StringArg(&traceFile, "plan-trace-file", "Trace pack document")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 2 {
-			return fmt.Errorf("usage: skit trace-compose-check <design-file> <plan-trace-file>")
-		}
-		return exitCode(runTraceComposeCheck(os.Stdout, s.Args[0], s.Args[1]))
+		return exitCode(runTraceComposeCheck(s.Stdout, designFile, traceFile))
 	}
 	return c
 }

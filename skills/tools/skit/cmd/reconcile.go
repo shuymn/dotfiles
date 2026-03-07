@@ -33,14 +33,14 @@ func Reconcile() *cli.Command {
 	c.StringVar(&skillsCmd, "skills-cmd", "", "", "Skills CLI command prefix, e.g. 'bunx --bun skills' (required)")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if manifestPath == "" || agentsSkills == "" || skillsCmd == "" {
-			return fmt.Errorf("usage: %s reconcile --manifest <path> --agents-skills <path> --skills-cmd <cmd> [--marker <name>]", s.AppName)
+			return fmt.Errorf("--manifest, --agents-skills, and --skills-cmd are required")
 		}
-		return exitCode(runReconcile(os.Stdout, manifestPath, agentsSkills, marker, skillsCmd, s.DryRun))
+		return exitCode(runReconcile(s.Stdout, s.Stderr, manifestPath, agentsSkills, marker, skillsCmd, s.DryRun))
 	}
 	return c
 }
 
-func runReconcile(w io.Writer, manifestPath, agentsSkills, marker, skillsCmd string, dryRun bool) int {
+func runReconcile(w, stderr io.Writer, manifestPath, agentsSkills, marker, skillsCmd string, dryRun bool) int {
 	resolvedManifest := pathutil.ExpandAndAbs(manifestPath)
 	resolvedAgentsSkills := pathutil.ExpandAndAbs(agentsSkills)
 
@@ -122,8 +122,8 @@ func runReconcile(w io.Writer, manifestPath, agentsSkills, marker, skillsCmd str
 	cmdParts = append(cmdParts, toRemove...)
 
 	cmd := execCommandFn(cmdParts[0], cmdParts[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = w
+	cmd.Stderr = stderr
 
 	if err := cmd.Run(); err != nil {
 		log.Emit(w, log.Result{

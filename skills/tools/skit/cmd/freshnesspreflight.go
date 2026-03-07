@@ -37,12 +37,11 @@ type checkEntry struct {
 func FreshnessPreflight() *cli.Command {
 	c := cli.NewCommand("freshness-preflight", "Pre-flight digest freshness check for review/recheck artifacts")
 	var baseDir string
+	var topicDir string
 	c.StringVar(&baseDir, "base-dir", "", "", "Repository root for resolving relative source paths (default: topic_dir/../..)")
+	c.StringArg(&topicDir, "topic-dir", "Topic directory containing review artifacts")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit freshness-preflight <topic-dir> [--base-dir <path>]")
-		}
-		return exitCode(runFreshnessPreflight(os.Stdout, baseDir, s.Args[0]))
+		return exitCode(runFreshnessPreflight(s.Stdout, baseDir, topicDir))
 	}
 	return c
 }

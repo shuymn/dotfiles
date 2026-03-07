@@ -36,11 +36,10 @@ var bundleRequiredKeys = []string{
 // BundleValidateCheck returns the bundle-validate-check subcommand.
 func BundleValidateCheck() *cli.Command {
 	c := cli.NewCommand("bundle-validate-check", "Validate plan.md bundle consistency before task execution")
+	var planFile string
+	c.StringArg(&planFile, "plan-file", "Plan bundle file")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit bundle-validate-check <plan.md>")
-		}
-		return exitCode(runBundleValidateCheck(os.Stdout, s.Args[0]))
+		return exitCode(runBundleValidateCheck(s.Stdout, planFile))
 	}
 	return c
 }

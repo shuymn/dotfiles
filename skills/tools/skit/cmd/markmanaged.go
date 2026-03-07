@@ -29,9 +29,9 @@ func MarkManaged() *cli.Command {
 	c.StringVar(&marker, "marker", "", ".dotfiles-managed", "Managed marker filename")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if manifestPath == "" || agentsSkills == "" {
-			return fmt.Errorf("usage: %s mark-managed --manifest <path> --agents-skills <path> [--marker <name>]", s.AppName)
+			return fmt.Errorf("--manifest and --agents-skills are required")
 		}
-		return exitCode(runMarkManaged(os.Stdout, manifestPath, agentsSkills, marker, s.DryRun))
+		return exitCode(runMarkManaged(s.Stdout, manifestPath, agentsSkills, marker, s.DryRun))
 	}
 	return c
 }

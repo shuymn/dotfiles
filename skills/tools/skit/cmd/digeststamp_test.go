@@ -85,8 +85,8 @@ func TestDigestStampInvalidArgCount(t *testing.T) {
 	if rc != 1 {
 		t.Fatalf("expected exit 1, got %d", rc)
 	}
-	if result["code"] != "COMMAND_ERROR" {
-		t.Errorf("expected COMMAND_ERROR, got %v", result["code"])
+	if result["code"] != "MISSING_REQUIRED_ARGUMENT" {
+		t.Errorf("expected MISSING_REQUIRED_ARGUMENT, got %v", result["code"])
 	}
 }
 

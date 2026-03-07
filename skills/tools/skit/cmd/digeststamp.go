@@ -66,11 +66,11 @@ func (s *DsStampResult) RenderMarkdown() string {
 // DigestStamp returns the digest-stamp subcommand.
 func DigestStamp() *cli.Command {
 	c := cli.NewCommand("digest-stamp", "Generate review header metadata (digest + timestamp)")
+	var mode, sourceFile string
+	c.StringArg(&mode, "mode", "Header mode to generate")
+	c.StringArg(&sourceFile, "source-file", "Source artifact to hash")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) != 2 {
-			return fmt.Errorf("usage: skit digest-stamp <mode> <source-file>")
-		}
-		return exitCode(runDigestStamp(os.Stdout, s.Args[0], s.Args[1]))
+		return exitCode(runDigestStamp(s.Stdout, mode, sourceFile))
 	}
 	return c
 }

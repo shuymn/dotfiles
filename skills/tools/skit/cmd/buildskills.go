@@ -84,16 +84,16 @@ func BuildSkills() *cli.Command {
 	c.StringVar(&artifact, "artifact", "", "", "Path to the artifact skills root (required)")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if source == "" || artifact == "" {
-			return fmt.Errorf("usage: %s build-skills --source <path> --artifact <path>", s.AppName)
+			return fmt.Errorf("--source and --artifact are required")
 		}
-		return exitCode(runBuildSkills(os.Stdout, source, artifact, s.DryRun))
+		return exitCode(runBuildSkills(s.Stdout, s.Stderr, source, artifact, s.DryRun))
 	}
 	return c
 }
 
-func runBuildSkills(w io.Writer, source, artifact string, dryRun bool) int {
+func runBuildSkills(w, stderr io.Writer, source, artifact string, dryRun bool) int {
 	if err := buildSkills(w, source, artifact, dryRun); err != nil {
-		fmt.Fprintf(os.Stderr, "build-skills: %v\n", err)
+		fmt.Fprintf(stderr, "build-skills: %v\n", err)
 		return 1
 	}
 	return 0

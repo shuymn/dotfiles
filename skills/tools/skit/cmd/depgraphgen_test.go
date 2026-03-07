@@ -213,8 +213,8 @@ func TestDepGraphGen_InvalidArgCount(t *testing.T) {
 	if rc != 1 {
 		t.Errorf("expected rc=1, got %d", rc)
 	}
-	if out["code"] != "COMMAND_ERROR" {
-		t.Errorf("expected code=COMMAND_ERROR, got %v", out["code"])
+	if out["code"] != "MISSING_REQUIRED_ARGUMENT" {
+		t.Errorf("expected code=MISSING_REQUIRED_ARGUMENT, got %v", out["code"])
 	}
 }
 

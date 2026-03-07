@@ -23,11 +23,10 @@ var (
 // RiskFormatCheck returns the risk-format-check subcommand.
 func RiskFormatCheck() *cli.Command {
 	c := cli.NewCommand("risk-format-check", "Validate Risk Classification table format in a design document")
+	var designFile string
+	c.StringArg(&designFile, "design-file", "Design document to inspect")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 1 {
-			return fmt.Errorf("usage: skit risk-format-check <design.md>")
-		}
-		return exitCode(runRiskFormatCheck(os.Stdout, s.Args[0]))
+		return exitCode(runRiskFormatCheck(s.Stdout, designFile))
 	}
 	return c
 }

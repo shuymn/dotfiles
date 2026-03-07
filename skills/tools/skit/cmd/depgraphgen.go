@@ -42,11 +42,10 @@ type task struct {
 func DepGraphGen() *cli.Command {
 	c := cli.NewCommand("dep-graph-gen", "Generate Task Dependency Graph section in plan.md")
 	c.EnableDryRun()
+	var planFile string
+	c.StringArg(&planFile, "plan-file", "Plan file to rewrite")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) != 1 {
-			return fmt.Errorf("usage: skit dep-graph-gen <plan.md>")
-		}
-		return exitCode(runDepGraphGen(os.Stdout, s.Args[0], s.DryRun))
+		return exitCode(runDepGraphGen(s.Stdout, planFile, s.DryRun))
 	}
 	return c
 }

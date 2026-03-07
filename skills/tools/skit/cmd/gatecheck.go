@@ -29,11 +29,11 @@ var (
 // GateCheck returns the gate-check subcommand.
 func GateCheck() *cli.Command {
 	c := cli.NewCommand("gate-check", "Verify review gate before downstream skill execution")
+	var reviewFile, sourceFile string
+	c.StringArg(&reviewFile, "review-file", "Review artifact to validate")
+	c.StringArg(&sourceFile, "source-file", "Source artifact linked from the review")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) != 2 {
-			return fmt.Errorf("usage: skit gate-check <review-file> <source-file>")
-		}
-		return exitCode(runGateCheck(os.Stdout, s.Args[0], s.Args[1]))
+		return exitCode(runGateCheck(s.Stdout, reviewFile, sourceFile))
 	}
 	return c
 }

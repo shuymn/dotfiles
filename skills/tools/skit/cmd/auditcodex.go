@@ -34,9 +34,9 @@ func AuditCodex() *cli.Command {
 	c.BoolVar(&pruneDuplicates, "prune-duplicates", "", false, "Remove entries from ~/.codex/skills when the same entry exists in ~/.agents/skills")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if manifestPath == "" || agentsSkills == "" || codexSkills == "" {
-			return fmt.Errorf("usage: %s audit-codex --manifest <path> --agents-skills <path> --codex-skills <path> [--marker <name>] [--prune-duplicates]", s.AppName)
+			return fmt.Errorf("--manifest, --agents-skills, and --codex-skills are required")
 		}
-		return exitCode(runAuditCodex(os.Stdout, manifestPath, agentsSkills, codexSkills, marker, pruneDuplicates, s.DryRun))
+		return exitCode(runAuditCodex(s.Stdout, manifestPath, agentsSkills, codexSkills, marker, pruneDuplicates, s.DryRun))
 	}
 	return c
 }

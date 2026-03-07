@@ -453,11 +453,11 @@ func stcDedup(items []string) []string {
 // StructuralCheck returns the structural-check subcommand.
 func StructuralCheck() *cli.Command {
 	c := cli.NewCommand("structural-check", "Structural integrity checks on a plan bundle")
+	var designFile, planFile string
+	c.StringArg(&designFile, "design-file", "Design document")
+	c.StringArg(&planFile, "plan-file", "Plan document")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) != 2 {
-			return fmt.Errorf("usage: skit structural-check <design-file> <plan-file>")
-		}
-		return exitCode(runStructuralCheck(os.Stdout, s.Args[0], s.Args[1]))
+		return exitCode(runStructuralCheck(s.Stdout, designFile, planFile))
 	}
 	return c
 }

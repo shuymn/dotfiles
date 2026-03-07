@@ -45,11 +45,11 @@ type rdcTask struct {
 // RiskDodCheck returns the risk-dod-check subcommand.
 func RiskDodCheck() *cli.Command {
 	c := cli.NewCommand("risk-dod-check", "Check that task DoD entries contain required risk tier annotations")
+	var planFile, designFile string
+	c.StringArg(&planFile, "plan-file", "Plan file to inspect")
+	c.StringArg(&designFile, "design-file", "Design file to inspect")
 	c.Run = func(ctx context.Context, s *cli.State) error {
-		if len(s.Args) < 2 {
-			return fmt.Errorf("usage: skit risk-dod-check <plan.md> <design.md>")
-		}
-		return exitCode(runRiskDodCheck(os.Stdout, s.Args[0], s.Args[1]))
+		return exitCode(runRiskDodCheck(s.Stdout, planFile, designFile))
 	}
 	return c
 }
