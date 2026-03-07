@@ -19,15 +19,15 @@ func runReviewFinalizeCmd(args ...string) (int, map[string]any) {
 
 func TestRfExtractSection(t *testing.T) {
 	md := "## Summary\n\nSome content here.\n\n## Findings\n\nOther content.\n"
-	got := rfExtractSection(md, "Summary")
+	got := extractSection(md, "Summary")
 	if !strings.Contains(got, "Some content here.") {
 		t.Errorf("expected summary content, got %q", got)
 	}
-	got = rfExtractSection(md, "Findings")
+	got = extractSection(md, "Findings")
 	if !strings.Contains(got, "Other content.") {
 		t.Errorf("expected findings content, got %q", got)
 	}
-	got = rfExtractSection(md, "Missing")
+	got = extractSection(md, "Missing")
 	if got != "" {
 		t.Errorf("expected empty for missing section, got %q", got)
 	}
@@ -35,7 +35,7 @@ func TestRfExtractSection(t *testing.T) {
 
 func TestRfExtractSectionAtEnd(t *testing.T) {
 	md := "## Only Section\n\nContent at the end."
-	got := rfExtractSection(md, "Only Section")
+	got := extractSection(md, "Only Section")
 	if got != "Content at the end." {
 		t.Errorf("expected 'Content at the end.', got %q", got)
 	}

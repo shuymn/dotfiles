@@ -3,6 +3,8 @@ package workflow
 import (
 	"strings"
 	"testing"
+
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 func runVerificationCmdCheckCmd(args ...string) (int, map[string]any) {
@@ -16,7 +18,7 @@ func runVerificationCmdCheckCmd(args ...string) (int, map[string]any) {
 // --- Unit tests: checkVerificationRow ---
 
 func TestCheckVerificationRow_Empty(t *testing.T) {
-	row := map[string]string{"AC ID": "AC01", "Verification Command": ""}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: ""}
 	status, msg := checkVerificationRow(row)
 	if status != "FAIL" {
 		t.Errorf("expected FAIL, got %q", status)
@@ -27,7 +29,7 @@ func TestCheckVerificationRow_Empty(t *testing.T) {
 }
 
 func TestCheckVerificationRow_Dash(t *testing.T) {
-	row := map[string]string{"AC ID": "AC01", "Verification Command": "-"}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: "-"}
 	status, _ := checkVerificationRow(row)
 	if status != "FAIL" {
 		t.Errorf("expected FAIL for '-', got %q", status)
@@ -35,7 +37,7 @@ func TestCheckVerificationRow_Dash(t *testing.T) {
 }
 
 func TestCheckVerificationRow_None(t *testing.T) {
-	row := map[string]string{"AC ID": "AC01", "Verification Command": "none"}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: "none"}
 	status, _ := checkVerificationRow(row)
 	if status != "FAIL" {
 		t.Errorf("expected FAIL for 'none', got %q", status)
@@ -43,7 +45,7 @@ func TestCheckVerificationRow_None(t *testing.T) {
 }
 
 func TestCheckVerificationRow_NA(t *testing.T) {
-	row := map[string]string{"AC ID": "AC01", "Verification Command": "n/a"}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: "n/a"}
 	status, _ := checkVerificationRow(row)
 	if status != "FAIL" {
 		t.Errorf("expected FAIL for 'n/a', got %q", status)
@@ -51,7 +53,7 @@ func TestCheckVerificationRow_NA(t *testing.T) {
 }
 
 func TestCheckVerificationRow_TBDAtPlanHyphen(t *testing.T) {
-	row := map[string]string{"AC ID": "AC01", "Verification Command": "TBD-at-plan"}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: "TBD-at-plan"}
 	status, msg := checkVerificationRow(row)
 	if status != "TBD" {
 		t.Errorf("expected TBD for 'TBD-at-plan', got %q", status)
@@ -62,7 +64,7 @@ func TestCheckVerificationRow_TBDAtPlanHyphen(t *testing.T) {
 }
 
 func TestCheckVerificationRow_TBDAtPlanUnderscore(t *testing.T) {
-	row := map[string]string{"AC ID": "AC01", "Verification Command": "tbd_at_plan"}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: "tbd_at_plan"}
 	status, _ := checkVerificationRow(row)
 	if status != "TBD" {
 		t.Errorf("expected TBD for 'tbd_at_plan', got %q", status)
@@ -74,7 +76,7 @@ func TestCheckVerificationRow_ResolvableCommand(t *testing.T) {
 	lookPathFn = func(file string) (string, error) { return "/usr/bin/" + file, nil }
 	t.Cleanup(func() { lookPathFn = orig })
 
-	row := map[string]string{"AC ID": "AC01", "Verification Command": "go test ./..."}
+	row := model.AcceptanceCriteriaRow{AcID: "AC01", VerificationCommand: "go test ./..."}
 	status, _ := checkVerificationRow(row)
 	if status != "PASS" {
 		t.Errorf("expected PASS for resolvable command, got %q", status)
@@ -88,7 +90,7 @@ func TestCheckVerificationRow_UnresolvableCommand(t *testing.T) {
 	}
 	t.Cleanup(func() { lookPathFn = orig })
 
-	row := map[string]string{"AC ID": "AC02", "Verification Command": "nonexistent-tool --check"}
+	row := model.AcceptanceCriteriaRow{AcID: "AC02", VerificationCommand: "nonexistent-tool --check"}
 	status, msg := checkVerificationRow(row)
 	if status != "FAIL" {
 		t.Errorf("expected FAIL for unresolvable command, got %q", status)
@@ -103,9 +105,14 @@ func TestCheckVerificationRow_FallbackColumnName(t *testing.T) {
 	lookPathFn = func(file string) (string, error) { return "/usr/bin/" + file, nil }
 	t.Cleanup(func() { lookPathFn = orig })
 
-	// "Verification" as fallback column
-	row := map[string]string{"AC ID": "AC01", "Verification": "go test ./..."}
-	status, _ := checkVerificationRow(row)
+	section := `| AC ID | Verification |
+|-------|--------------|
+| AC01 | go test ./... |`
+	rows := parseAcceptanceCriteriaRows(section)
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(rows))
+	}
+	status, _ := checkVerificationRow(rows[0])
 	if status != "PASS" {
 		t.Errorf("expected PASS using fallback column, got %q", status)
 	}

@@ -300,23 +300,6 @@ func checkIDFormat(lines []string) []string {
 	return issues
 }
 
-func parseCells(line string) []string {
-	return strings.Split(strings.Trim(line, "|"), "|")
-}
-
-func isSeparatorRow(cells []string) bool {
-	for _, c := range cells {
-		t := strings.TrimSpace(c)
-		if t == "" {
-			t = "-"
-		}
-		if !sepCellRe.MatchString(t) {
-			return false
-		}
-	}
-	return true
-}
-
 func truncate60(s string) string {
 	if len(s) <= 60 {
 		return s

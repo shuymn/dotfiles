@@ -12,6 +12,7 @@ import (
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 const traceComposeCheckToolName = "trace-compose-check"
@@ -73,7 +74,7 @@ func runTraceComposeCheck(w io.Writer, designPath, tracePath string) int {
 	// Check C: AC-Ownership (derive ACs from already-built atom map, no second text scan)
 	designACs := tccFilterACs(designAtoms)
 	acSection := extractSection(traceText, "AC Ownership Map")
-	acRows := parseGenericTable(acSection)
+	acRows := parseAcOwnershipMapRows(acSection)
 	cStatus, cSummary, cEvidence := tccCheckACOwnership(designACs, acRows)
 
 	// Check D: TEMP-Trace
@@ -242,12 +243,12 @@ func tccCheckTraceXRef(designAtoms, traceAtoms map[string]struct{}) (status, sum
 }
 
 // tccCheckACOwnership checks AC coverage in ownership map.
-func tccCheckACOwnership(designACs map[string]struct{}, rows []map[string]string) (status, summary, evidence string) {
+func tccCheckACOwnership(designACs map[string]struct{}, rows []model.AcOwnershipMapRow) (status, summary, evidence string) {
 	mapACs := make(map[string]struct{})
 	ownerByAC := make(map[string][]string)
 	for _, row := range rows {
-		acID := strings.TrimSpace(row["AC ID"])
-		owner := strings.TrimSpace(row["Owner Task"])
+		acID := strings.TrimSpace(row.AcID)
+		owner := strings.TrimSpace(row.OwnerTask)
 		if acID != "" {
 			mapACs[acID] = struct{}{}
 			ownerByAC[acID] = append(ownerByAC[acID], owner)
@@ -296,16 +297,4 @@ func tccCheckTempTrace(designTemps, traceTemps map[string]struct{}) (status, sum
 		return "FAIL", "TEMP ID trace mismatch.", strings.Join(issues, "; ")
 	}
 	return "PASS", "All TEMP IDs matched in trace.", ""
-}
-
-// setDiff returns sorted elements in a that are not in b.
-func setDiff(a, b map[string]struct{}) []string {
-	var result []string
-	for k := range a {
-		if _, ok := b[k]; !ok {
-			result = append(result, k)
-		}
-	}
-	sort.Strings(result)
-	return result
 }

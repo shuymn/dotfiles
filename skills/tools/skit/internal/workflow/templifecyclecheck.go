@@ -13,6 +13,7 @@ import (
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 const tempLifecycleCheckToolName = "temp-lifecycle-check"
@@ -20,23 +21,6 @@ const tempLifecycleCheckToolName = "temp-lifecycle-check"
 var (
 	tlcTempIDRe  = regexp.MustCompile(`\bTEMP[A-Za-z0-9_-]*[0-9]+\b`)
 	tlcADRPathRe = regexp.MustCompile(`docs/adr/[^\s)\]>]+\.md`)
-
-	tlcNoneTokens = map[string]bool{
-		"":            true,
-		"-":           true,
-		"none":        true,
-		"n/a":         true,
-		"na":          true,
-		"tbd":         true,
-		"tbd-at-plan": true,
-	}
-
-	// Column name variants
-	tlcIDCols           = []string{"ID", "id", "Temp ID", "TEMP ID", "TempID"}
-	tlcLifecycleCols    = []string{"Lifecycle Record", "lifecycle_record", "Lifecycle", "ADR/Ledger"}
-	tlcTriggerCols      = []string{"Retirement Trigger", "retirement_trigger", "Trigger"}
-	tlcVerificationCols = []string{"Retirement Verification", "retirement_verification", "Verification"}
-	tlcScopeCols        = []string{"Removal Scope", "removal_scope", "Scope"}
 )
 
 // TempLifecycleCheck returns the temp-lifecycle-check subcommand.
@@ -84,8 +68,8 @@ func runTempLifecycleCheck(w io.Writer, baseDir, designFile string) int {
 	indexSection := tlcFindSubsection(compat, tlcIndexRe)
 	checklistSection := tlcFindSubsection(compat, tlcChecklistRe)
 
-	indexRows := tlcExtractTempRows(coalesce(indexSection, compat))
-	checklistRows := tlcExtractTempRows(coalesce(checklistSection, compat))
+	indexRows := tlcExtractIndexRows(coalesce(indexSection, compat))
+	checklistRows := tlcExtractChecklistRows(coalesce(checklistSection, compat))
 
 	if len(indexRows) == 0 && len(checklistRows) == 0 {
 		log.Emit(w, log.Result{
@@ -100,8 +84,8 @@ func runTempLifecycleCheck(w io.Writer, baseDir, designFile string) int {
 	var issues []string
 
 	// Cross-check: IDs in Index but not Checklist
-	indexOnly := tlcSetDiff(indexRows, checklistRows)
-	checklistOnly := tlcSetDiff(checklistRows, indexRows)
+	indexOnly := setDiff(tlcIndexKeySet(indexRows), tlcChecklistKeySet(checklistRows))
+	checklistOnly := setDiff(tlcChecklistKeySet(checklistRows), tlcIndexKeySet(indexRows))
 
 	for _, tid := range indexOnly {
 		issues = append(issues, fmt.Sprintf("%s: in Temporary Mechanism Index but missing from Sunset Closure Checklist", tid))
@@ -111,28 +95,27 @@ func runTempLifecycleCheck(w io.Writer, baseDir, designFile string) int {
 	}
 
 	// Required field checks on checklist rows
-	for _, tid := range tlcSortedKeys(checklistRows) {
+	for _, tid := range tlcSortedChecklistKeys(checklistRows) {
 		row := checklistRows[tid]
 		for _, field := range []struct {
 			label string
-			cols  []string
+			val   string
 		}{
-			{"Retirement Trigger", tlcTriggerCols},
-			{"Retirement Verification", tlcVerificationCols},
-			{"Removal Scope", tlcScopeCols},
+			{"Retirement Trigger", row.RetirementTrigger},
+			{"Retirement Verification", row.RetirementVerification},
+			{"Removal Scope", row.RemovalScope},
 		} {
-			val := strings.ToLower(tlcGetCol(row, field.cols))
-			if tlcNoneTokens[val] {
+			if isNoneToken(field.val, tbdNoneTokens) {
 				issues = append(issues, fmt.Sprintf("%s: required field '%s' is empty or TBD", tid, field.label))
 			}
 		}
 	}
 
 	// ADR file existence check
-	indexKeys := tlcSortedKeys(indexRows)
+	indexKeys := tlcSortedIndexKeys(indexRows)
 	for _, tid := range indexKeys {
 		row := indexRows[tid]
-		lifecycle := tlcGetCol(row, tlcLifecycleCols)
+		lifecycle := row.LifecycleRecord
 		if lifecycle == "" {
 			continue
 		}
@@ -217,13 +200,11 @@ func tlcFindSubsection(parent string, sectionRe *regexp.Regexp) string {
 	return content
 }
 
-// tlcExtractTempRows parses a markdown table in text and returns {temp_id: row} for rows with TEMP IDs.
-func tlcExtractTempRows(text string) map[string]map[string]string {
-	result := make(map[string]map[string]string)
-	rows := parseGenericTable(text)
+func tlcExtractIndexRows(text string) map[string]model.TemporaryMechanismIndexRow {
+	result := make(map[string]model.TemporaryMechanismIndexRow)
+	rows := parseTemporaryMechanismIndexRows(text)
 	for _, row := range rows {
-		idVal := tlcGetCol(row, tlcIDCols)
-		ids := tlcTempIDRe.FindAllString(idVal, -1)
+		ids := tlcTempIDRe.FindAllString(row.ID, -1)
 		if len(ids) > 0 {
 			result[ids[0]] = row
 		}
@@ -231,30 +212,44 @@ func tlcExtractTempRows(text string) map[string]map[string]string {
 	return result
 }
 
-// tlcGetCol returns the first non-empty value for any of the given column name variants.
-func tlcGetCol(row map[string]string, variants []string) string {
-	for _, col := range variants {
-		if val := row[col]; val != "" {
-			return strings.TrimSpace(val)
+func tlcExtractChecklistRows(text string) map[string]model.SunsetClosureChecklistRow {
+	result := make(map[string]model.SunsetClosureChecklistRow)
+	rows := parseSunsetClosureChecklistRows(text)
+	for _, row := range rows {
+		ids := tlcTempIDRe.FindAllString(row.ID, -1)
+		if len(ids) > 0 {
+			result[ids[0]] = row
 		}
 	}
-	return ""
-}
-
-// tlcSetDiff returns sorted keys in a that are not in b.
-func tlcSetDiff(a, b map[string]map[string]string) []string {
-	var result []string
-	for k := range a {
-		if _, ok := b[k]; !ok {
-			result = append(result, k)
-		}
-	}
-	sort.Strings(result)
 	return result
 }
 
-// tlcSortedKeys returns sorted keys of the map.
-func tlcSortedKeys(m map[string]map[string]string) []string {
+func tlcIndexKeySet(rows map[string]model.TemporaryMechanismIndexRow) map[string]struct{} {
+	result := make(map[string]struct{}, len(rows))
+	for id := range rows {
+		result[id] = struct{}{}
+	}
+	return result
+}
+
+func tlcChecklistKeySet(rows map[string]model.SunsetClosureChecklistRow) map[string]struct{} {
+	result := make(map[string]struct{}, len(rows))
+	for id := range rows {
+		result[id] = struct{}{}
+	}
+	return result
+}
+
+func tlcSortedIndexKeys(m map[string]model.TemporaryMechanismIndexRow) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func tlcSortedChecklistKeys(m map[string]model.SunsetClosureChecklistRow) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

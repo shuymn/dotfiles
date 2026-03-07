@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -14,19 +13,12 @@ import (
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 const scToolName = "split-check"
 
 var (
-	scNoneTokens = map[string]bool{
-		"":     true,
-		"-":    true,
-		"none": true,
-		"n/a":  true,
-		"na":   true,
-	}
-
 	scRequiredBoundaryColumns = []string{
 		"Boundary",
 		"Owns Requirements/AC",
@@ -43,15 +35,7 @@ var (
 		"Owns Requirements/AC",
 	}
 
-	scWhitespaceRe   = regexp.MustCompile(`\s+`)
-	scSlugRe         = regexp.MustCompile(`[^a-z0-9]+`)
-	scDepsRe         = regexp.MustCompile(`[;,]`)
-	scKeyValueLineRe = regexp.MustCompile(`^-\s*([^:]+):\s*(.+)$`)
-	scBulletLineRe   = regexp.MustCompile(`^-\s+\S`)
-
-	// Pre-compiled stop-pattern regexes for scExtractSection (level 2 and 3).
-	scStopLevel2Re = regexp.MustCompile(`(?m)^#{1,2}\s`)
-	scStopLevel3Re = regexp.MustCompile(`(?m)^#{1,3}\s`)
+	scSlugRe = regexp.MustCompile(`[^a-z0-9]+`)
 )
 
 // SplitCheck returns the split-check subcommand.
@@ -120,33 +104,6 @@ func runSplitCheck(w io.Writer, designFile string) int {
 
 // --- data types ---
 
-type scBoundaryRow struct {
-	Boundary                   string
-	OwnsRequirementsAC         string
-	PrimaryVerificationSurface string
-	TempLifecycleGroup         string
-	ParallelStream             string
-	DependsOn                  []string
-}
-
-func (r scBoundaryRow) NormalizedBoundary() string { return scNormalizeToken(r.Boundary) }
-
-func (r scBoundaryRow) IsOwned() bool {
-	n := scNormalizeToken(r.OwnsRequirementsAC)
-	return !scNoneTokens[n] && n != "integration-only"
-}
-
-func (r scBoundaryRow) IsParallel() bool { return r.ParallelStream == "yes" }
-
-type scSubdocIndexRow struct {
-	SubID              string
-	File               string
-	OwnedBoundary      string
-	OwnsRequirementsAC string
-}
-
-func (r scSubdocIndexRow) NormalizedBoundary() string { return scNormalizeToken(r.OwnedBoundary) }
-
 type scSubdocInfo struct {
 	Path          string
 	OwnedBoundary string
@@ -155,7 +112,7 @@ type scSubdocInfo struct {
 	Errors        []string
 }
 
-func (s scSubdocInfo) NormalizedBoundary() string { return scNormalizeToken(s.OwnedBoundary) }
+func (s scSubdocInfo) NormalizedBoundary() string { return normalizeToken(s.OwnedBoundary) }
 
 func (s scSubdocInfo) IsEffective() bool {
 	return s.LocalReqCount > 0 && s.LocalACCount > 0
@@ -164,8 +121,8 @@ func (s scSubdocInfo) IsEffective() bool {
 type scDesignDocData struct {
 	DesignFile      string
 	SplitDecision   string
-	BoundaryRows    []scBoundaryRow
-	SubdocIndexRows []scSubdocIndexRow
+	BoundaryRows    []model.BoundaryInventoryRow
+	SubdocIndexRows []model.SubDocIndexRow
 	Subdocs         []scSubdocInfo
 	RootACCount     int
 	Errors          []string
@@ -184,105 +141,17 @@ type scCheckResult struct {
 
 // --- helpers ---
 
-func scNormalizeToken(s string) string {
-	return strings.ToLower(strings.TrimSpace(scWhitespaceRe.ReplaceAllString(s, " ")))
-}
-
 func scSlugify(s string) string {
-	slug := strings.Trim(scSlugRe.ReplaceAllString(scNormalizeToken(s), "-"), "-")
+	slug := strings.Trim(scSlugRe.ReplaceAllString(normalizeToken(s), "-"), "-")
 	if slug == "" {
 		return "unknown"
 	}
 	return slug
 }
 
-// scExtractSection extracts content of a ## (level=2) or ### (level=3) heading section.
-func scExtractSection(text, title string, level int) string {
-	hashes := strings.Repeat("#", level)
-	pattern := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(hashes) + `\s+` + regexp.QuoteMeta(title) + `\s*$`)
-	loc := pattern.FindStringIndex(text)
-	if loc == nil {
-		return ""
-	}
-	rest := text[loc[1]:]
-	stopRe := scStopLevel2Re
-	if level == 3 {
-		stopRe = scStopLevel3Re
-	}
-	if endLoc := stopRe.FindStringIndex(rest); endLoc != nil {
-		return strings.TrimSpace(rest[:endLoc[0]])
-	}
-	return strings.TrimSpace(rest)
-}
-
-func scParseKeyValueBullets(text string) map[string]string {
-	result := make(map[string]string)
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if m := scKeyValueLineRe.FindStringSubmatch(line); m != nil {
-			result[strings.TrimSpace(m[1])] = strings.TrimSpace(m[2])
-		}
-	}
-	return result
-}
-
-func scCountBulletItems(text string) int {
-	count := 0
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "<!--") {
-			continue
-		}
-		if scBulletLineRe.MatchString(line) {
-			count++
-		}
-	}
-	return count
-}
-
-func scParseDependencies(value string) []string {
-	if scNoneTokens[scNormalizeToken(value)] {
-		return nil
-	}
-	parts := scDepsRe.Split(value, -1)
-	var result []string
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
-func scResolveRepoRelativePath(designFile, relativePath string) string {
-	if filepath.IsAbs(relativePath) {
-		return relativePath
-	}
-	dir := filepath.Dir(designFile)
-	seen := make(map[string]bool)
-	for {
-		if seen[dir] {
-			break
-		}
-		seen[dir] = true
-		candidate := filepath.Join(dir, relativePath)
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	cwd, _ := os.Getwd()
-	return filepath.Join(cwd, relativePath)
-}
-
 // scResolveBoundaryName returns the effective boundary name from a subdoc+index row pair,
 // using a priority fallback: subdoc.OwnedBoundary → row.OwnedBoundary → row.SubID.
-func scResolveBoundaryName(subdoc scSubdocInfo, row scSubdocIndexRow) string {
+func scResolveBoundaryName(subdoc scSubdocInfo, row model.SubDocIndexRow) string {
 	if subdoc.OwnedBoundary != "" {
 		return subdoc.OwnedBoundary
 	}
@@ -292,19 +161,17 @@ func scResolveBoundaryName(subdoc scSubdocInfo, row scSubdocIndexRow) string {
 	return row.SubID
 }
 
-func scParseTableHeaders(section string) []string {
-	for _, line := range strings.Split(section, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "|") {
-			cells := parseCells(trimmed)
-			headers := make([]string, len(cells))
-			for i, c := range cells {
-				headers[i] = strings.TrimSpace(c)
-			}
-			return headers
-		}
-	}
-	return nil
+func scNormalizedBoundary(boundary string) string {
+	return normalizeToken(boundary)
+}
+
+func scIsOwned(row model.BoundaryInventoryRow) bool {
+	n := normalizeToken(row.OwnsRequirementsAC)
+	return !isNoneToken(n, defaultNoneTokens) && n != "integration-only"
+}
+
+func scIsParallel(row model.BoundaryInventoryRow) bool {
+	return normalizeToken(row.ParallelStream) == "yes"
 }
 
 func scColumnsMatch(actual, expected []string) bool {
@@ -338,9 +205,9 @@ func scParseSubdoc(path string) scSubdocInfo {
 		}
 	}
 	text := string(data)
-	metadata := scParseKeyValueBullets(scExtractSection(text, "Sub-Doc Metadata", 2))
-	localReqs := scCountBulletItems(scExtractSection(text, "Local Requirements", 2))
-	localACRows := parseGenericTable(scExtractSection(text, "Local Acceptance Criteria", 2))
+	metadata := parseKeyValueBullets(extractSectionLevel(text, "Sub-Doc Metadata", 2))
+	localReqs := countBulletItems(extractSectionLevel(text, "Local Requirements", 2))
+	localACRows := parseAcceptanceCriteriaRows(extractSectionLevel(text, "Local Acceptance Criteria", 2))
 
 	var errors []string
 	ownedBoundary := metadata["Owned Boundary"]
@@ -359,35 +226,35 @@ func scParseSubdoc(path string) scSubdocInfo {
 func scParseDesignDoc(designFile, text string) scDesignDocData {
 	d := scDesignDocData{DesignFile: designFile}
 
-	decompSection := scExtractSection(text, "Decomposition Strategy", 2)
+	decompSection := extractSectionLevel(text, "Decomposition Strategy", 2)
 	if decompSection == "" {
 		d.Errors = append(d.Errors, "Design doc is missing `## Decomposition Strategy`.")
 		return d
 	}
 
-	fields := scParseKeyValueBullets(decompSection)
-	d.SplitDecision = scNormalizeToken(fields["Split Decision"])
+	fields := parseKeyValueBullets(decompSection)
+	d.SplitDecision = normalizeToken(fields["Split Decision"])
 	if d.SplitDecision != "single" && d.SplitDecision != "root-sub" {
 		d.Errors = append(d.Errors, "`Split Decision` must be `single` or `root-sub`.")
 	}
 
 	// Parse Boundary Inventory.
-	boundarySection := scExtractSection(decompSection, "Boundary Inventory", 3)
+	boundarySection := extractSectionLevel(decompSection, "Boundary Inventory", 3)
 	if boundarySection == "" {
 		d.Errors = append(d.Errors, "`## Decomposition Strategy` must include `### Boundary Inventory`.")
 	} else {
-		headers := scParseTableHeaders(boundarySection)
+		headers := parseTableHeaders(boundarySection)
 		if !scColumnsMatch(headers, scRequiredBoundaryColumns) {
 			d.Errors = append(d.Errors, "`### Boundary Inventory` must use columns: "+scQuoteColumns(scRequiredBoundaryColumns)+".")
 		}
 		seenBoundaries := make(map[string]string)
-		for _, row := range parseGenericTable(boundarySection) {
-			boundary := strings.TrimSpace(row["Boundary"])
+		for _, row := range parseBoundaryInventoryRows(boundarySection) {
+			boundary := strings.TrimSpace(row.Boundary)
 			if boundary == "" {
 				d.Errors = append(d.Errors, "Boundary Inventory contains a row with an empty `Boundary` value.")
 				continue
 			}
-			normBoundary := scNormalizeToken(boundary)
+			normBoundary := normalizeToken(boundary)
 			if existing, ok := seenBoundaries[normBoundary]; ok {
 				d.Errors = append(d.Errors, fmt.Sprintf(
 					"Boundary Inventory repeats boundary `%s` (already used by `%s`).",
@@ -397,7 +264,7 @@ func scParseDesignDoc(designFile, text string) scDesignDocData {
 			}
 			seenBoundaries[normBoundary] = boundary
 
-			parallelStream := scNormalizeToken(row["Parallel Stream"])
+			parallelStream := normalizeToken(row.ParallelStream)
 			if parallelStream != "yes" && parallelStream != "no" {
 				d.Errors = append(d.Errors, fmt.Sprintf(
 					"Boundary Inventory row `%s` is invalid: parallel_stream: parallel_stream must be yes or no.",
@@ -406,47 +273,17 @@ func scParseDesignDoc(designFile, text string) scDesignDocData {
 				continue
 			}
 
-			ownsReqsAC := strings.TrimSpace(row["Owns Requirements/AC"])
-			primaryVS := strings.TrimSpace(row["Primary Verification Surface"])
-			tempLG := strings.TrimSpace(row["TEMP Lifecycle Group"])
-
-			var rowErrors []string
-			if ownsReqsAC == "" {
-				rowErrors = append(rowErrors, fmt.Sprintf(
-					"Boundary Inventory row `%s` is invalid: owns_requirements_ac: owns_requirements_ac must be a non-empty string.",
-					boundary,
-				))
-			}
-			if primaryVS == "" {
-				rowErrors = append(rowErrors, fmt.Sprintf(
-					"Boundary Inventory row `%s` is invalid: primary_verification_surface: primary_verification_surface must be a non-empty string.",
-					boundary,
-				))
-			}
-			if tempLG == "" {
-				rowErrors = append(rowErrors, fmt.Sprintf(
-					"Boundary Inventory row `%s` is invalid: temp_lifecycle_group: temp_lifecycle_group must be a non-empty string.",
-					boundary,
-				))
-			}
-			if len(rowErrors) > 0 {
-				d.Errors = append(d.Errors, rowErrors...)
+			row.ParallelStream = parallelStream
+			if err := (&row).Validate(); err != nil {
+				d.Errors = append(d.Errors, fmt.Sprintf("Boundary Inventory row `%s` is invalid: %s.", boundary, err.Error()))
 				continue
 			}
-
-			d.BoundaryRows = append(d.BoundaryRows, scBoundaryRow{
-				Boundary:                   boundary,
-				OwnsRequirementsAC:         ownsReqsAC,
-				PrimaryVerificationSurface: primaryVS,
-				TempLifecycleGroup:         tempLG,
-				ParallelStream:             parallelStream,
-				DependsOn:                  scParseDependencies(row["Depends On"]),
-			})
+			d.BoundaryRows = append(d.BoundaryRows, row)
 		}
 	}
 
 	// Count root Acceptance Criteria.
-	acRows := parseGenericTable(scExtractSection(text, "Acceptance Criteria", 2))
+	acRows := parseAcceptanceCriteriaRows(extractSectionLevel(text, "Acceptance Criteria", 2))
 	d.RootACCount = len(acRows)
 
 	if d.SplitDecision != "root-sub" {
@@ -454,30 +291,30 @@ func scParseDesignDoc(designFile, text string) scDesignDocData {
 	}
 
 	// Parse Sub-Doc Index.
-	subdocSection := scExtractSection(decompSection, "Sub-Doc Index", 3)
+	subdocSection := extractSectionLevel(decompSection, "Sub-Doc Index", 3)
 	if subdocSection == "" {
 		d.Errors = append(d.Errors, "`Split Decision: root-sub` requires `### Sub-Doc Index`.")
 		return d
 	}
 
-	subdocHeaders := scParseTableHeaders(subdocSection)
+	subdocHeaders := parseTableHeaders(subdocSection)
 	if !scColumnsMatch(subdocHeaders, scRequiredSubdocIndexColumns) {
 		d.Errors = append(d.Errors, "`### Sub-Doc Index` must use columns: "+scQuoteColumns(scRequiredSubdocIndexColumns)+".")
 	}
 
 	seenSubdocBoundaries := make(map[string]string)
-	for _, row := range parseGenericTable(subdocSection) {
-		subID := strings.TrimSpace(row["Sub ID"])
-		fileValue := strings.TrimSpace(row["File"])
-		ownedBoundary := strings.TrimSpace(row["Owned Boundary"])
-		ownsReqs := strings.TrimSpace(row["Owns Requirements/AC"])
+	for _, row := range parseSubDocIndexRows(subdocSection) {
+		subID := strings.TrimSpace(row.SubID)
+		fileValue := strings.TrimSpace(row.File)
+		ownedBoundary := strings.TrimSpace(row.OwnedBoundary)
+		ownsReqs := strings.TrimSpace(row.OwnsRequirementsAC)
 
 		if subID == "" || fileValue == "" || ownedBoundary == "" {
 			d.Errors = append(d.Errors, "Sub-Doc Index rows must populate `Sub ID`, `File`, and `Owned Boundary`.")
 			continue
 		}
 
-		normBoundary := scNormalizeToken(ownedBoundary)
+		normBoundary := normalizeToken(ownedBoundary)
 		if existing, ok := seenSubdocBoundaries[normBoundary]; ok {
 			d.Errors = append(d.Errors, fmt.Sprintf(
 				"Sub-Doc Index repeats owned boundary `%s` (already used by `%s`).",
@@ -495,20 +332,18 @@ func scParseDesignDoc(designFile, text string) scDesignDocData {
 			continue
 		}
 
-		indexRow := scSubdocIndexRow{
-			SubID:              subID,
-			File:               fileValue,
-			OwnedBoundary:      ownedBoundary,
-			OwnsRequirementsAC: ownsReqs,
+		if err := (&row).Validate(); err != nil {
+			d.Errors = append(d.Errors, fmt.Sprintf("Sub-Doc Index row `%s` is invalid: %s.", subID, err.Error()))
+			continue
 		}
-		d.SubdocIndexRows = append(d.SubdocIndexRows, indexRow)
+		d.SubdocIndexRows = append(d.SubdocIndexRows, row)
 
-		subdocPath := scResolveRepoRelativePath(designFile, fileValue)
+		subdocPath := resolveRepoRelativePath(designFile, fileValue)
 		subdoc := scParseSubdoc(subdocPath)
 		if len(subdoc.Errors) > 0 {
 			d.Errors = append(d.Errors, subdoc.Errors...)
 		}
-		if subdoc.OwnedBoundary != "" && subdoc.NormalizedBoundary() != indexRow.NormalizedBoundary() {
+		if subdoc.OwnedBoundary != "" && subdoc.NormalizedBoundary() != scNormalizedBoundary(row.OwnedBoundary) {
 			d.Errors = append(d.Errors, fmt.Sprintf(
 				"Sub-doc `%s` declares owned boundary `%s`, but Sub-Doc Index maps it to `%s`.",
 				fileValue, subdoc.OwnedBoundary, ownedBoundary,
@@ -523,11 +358,11 @@ func scParseDesignDoc(designFile, text string) scDesignDocData {
 // --- signals and analysis ---
 
 func scBuildSignals(d scDesignDocData) map[string]string {
-	var ownedBoundaries []scBoundaryRow
+	var ownedBoundaries []model.BoundaryInventoryRow
 	knownBoundaries := make(map[string]bool)
 	for _, row := range d.BoundaryRows {
-		knownBoundaries[row.NormalizedBoundary()] = true
-		if row.IsOwned() {
+		knownBoundaries[scNormalizedBoundary(row.Boundary)] = true
+		if scIsOwned(row) {
 			ownedBoundaries = append(ownedBoundaries, row)
 		}
 	}
@@ -539,20 +374,20 @@ func scBuildSignals(d scDesignDocData) map[string]string {
 
 	parallelCount := 0
 	for _, row := range ownedBoundaries {
-		if row.IsParallel() {
+		if scIsParallel(row) {
 			parallelCount++
 		}
-		vs := scNormalizeToken(row.PrimaryVerificationSurface)
-		if !scNoneTokens[vs] {
+		vs := normalizeToken(row.PrimaryVerificationSurface)
+		if !isNoneToken(vs, defaultNoneTokens) {
 			verificationSurfaces[vs] = true
 		}
-		tg := scNormalizeToken(row.TempLifecycleGroup)
-		if !scNoneTokens[tg] {
+		tg := normalizeToken(row.TempLifecycleGroup)
+		if !isNoneToken(tg, defaultNoneTokens) {
 			tempGroups[tg] = true
 		}
-		normBoundary := row.NormalizedBoundary()
+		normBoundary := scNormalizedBoundary(row.Boundary)
 		for _, dep := range row.DependsOn {
-			normDep := scNormalizeToken(dep)
+			normDep := normalizeToken(dep)
 			if knownBoundaries[normDep] && normDep != normBoundary {
 				dependencyEdges[edge{normBoundary, normDep}] = true
 			}
@@ -647,13 +482,13 @@ func scAnalyzeDesignDoc(d scDesignDocData) scCheckResult {
 		// Check 1:1 match between owned Boundary Inventory rows and Sub-Doc Index.
 		inventoryBoundaries := make(map[string]string)
 		for _, row := range d.BoundaryRows {
-			if row.IsOwned() {
-				inventoryBoundaries[row.NormalizedBoundary()] = row.Boundary
+			if scIsOwned(row) {
+				inventoryBoundaries[scNormalizedBoundary(row.Boundary)] = row.Boundary
 			}
 		}
 		indexBoundaries := make(map[string]string)
 		for _, row := range d.SubdocIndexRows {
-			indexBoundaries[row.NormalizedBoundary()] = row.OwnedBoundary
+			indexBoundaries[scNormalizedBoundary(row.OwnedBoundary)] = row.OwnedBoundary
 		}
 
 		var missingInIndex, extraInIndex []string

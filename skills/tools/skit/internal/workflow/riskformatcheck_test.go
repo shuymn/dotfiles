@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 func runRiskFormatCheckCmd(args ...string) (int, map[string]any) {
@@ -27,10 +29,10 @@ func writeTempDesign(t *testing.T, content string) string {
 // --- Unit tests: checkRiskRow ---
 
 func TestCheckRiskRow_CriticalValid(t *testing.T) {
-	row := map[string]string{
-		"Area":             "Auth",
-		"Risk Tier":        "Critical",
-		"Change Rationale": "Defect Impact: auth bypass / Blast Radius: all users",
+	row := model.RiskClassificationRow{
+		Area:            "Auth",
+		RiskTier:        "Critical",
+		ChangeRationale: "Defect Impact: auth bypass / Blast Radius: all users",
 	}
 	ok, _ := checkRiskRow(row)
 	if !ok {
@@ -39,10 +41,10 @@ func TestCheckRiskRow_CriticalValid(t *testing.T) {
 }
 
 func TestCheckRiskRow_CriticalMissingFormat(t *testing.T) {
-	row := map[string]string{
-		"Area":             "Auth",
-		"Risk Tier":        "Critical",
-		"Change Rationale": "Very important area",
+	row := model.RiskClassificationRow{
+		Area:            "Auth",
+		RiskTier:        "Critical",
+		ChangeRationale: "Very important area",
 	}
 	ok, issue := checkRiskRow(row)
 	if ok {
@@ -54,10 +56,10 @@ func TestCheckRiskRow_CriticalMissingFormat(t *testing.T) {
 }
 
 func TestCheckRiskRow_SensitiveValid(t *testing.T) {
-	row := map[string]string{
-		"Area":             "DB Schema",
-		"Risk Tier":        "Sensitive",
-		"Change Rationale": "Defect Impact: silent corruption / Blast Radius: all services",
+	row := model.RiskClassificationRow{
+		Area:            "DB Schema",
+		RiskTier:        "Sensitive",
+		ChangeRationale: "Defect Impact: silent corruption / Blast Radius: all services",
 	}
 	ok, _ := checkRiskRow(row)
 	if !ok {
@@ -66,10 +68,10 @@ func TestCheckRiskRow_SensitiveValid(t *testing.T) {
 }
 
 func TestCheckRiskRow_StandardValid(t *testing.T) {
-	row := map[string]string{
-		"Area":             "UI",
-		"Risk Tier":        "Standard",
-		"Change Rationale": "Not Critical: UI only / Not Sensitive: locally visible failure",
+	row := model.RiskClassificationRow{
+		Area:            "UI",
+		RiskTier:        "Standard",
+		ChangeRationale: "Not Critical: UI only / Not Sensitive: locally visible failure",
 	}
 	ok, _ := checkRiskRow(row)
 	if !ok {
@@ -78,10 +80,10 @@ func TestCheckRiskRow_StandardValid(t *testing.T) {
 }
 
 func TestCheckRiskRow_StandardMissingFormat(t *testing.T) {
-	row := map[string]string{
-		"Area":             "UI",
-		"Risk Tier":        "Standard",
-		"Change Rationale": "Low risk area",
+	row := model.RiskClassificationRow{
+		Area:            "UI",
+		RiskTier:        "Standard",
+		ChangeRationale: "Low risk area",
 	}
 	ok, issue := checkRiskRow(row)
 	if ok {
@@ -93,10 +95,10 @@ func TestCheckRiskRow_StandardMissingFormat(t *testing.T) {
 }
 
 func TestCheckRiskRow_UnknownTierSkipped(t *testing.T) {
-	row := map[string]string{
-		"Area":             "X",
-		"Risk Tier":        "Unknown",
-		"Change Rationale": "irrelevant",
+	row := model.RiskClassificationRow{
+		Area:            "X",
+		RiskTier:        "Unknown",
+		ChangeRationale: "irrelevant",
 	}
 	ok, _ := checkRiskRow(row)
 	if !ok {

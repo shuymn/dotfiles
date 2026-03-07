@@ -25,14 +25,6 @@ var (
 	dgFirstTaskRe  = regexp.MustCompile(`(?m)^### Task \d+`)
 )
 
-var dgNoneTokens = map[string]bool{
-	"":     true,
-	"-":    true,
-	"none": true,
-	"n/a":  true,
-	"na":   true,
-}
-
 type task struct {
 	id   int
 	deps []string
@@ -142,7 +134,7 @@ func parseTasksWithDeps(text string) []task {
 
 func parseDepValue(value string) []string {
 	normalized := dgSpaceRe.ReplaceAllString(strings.TrimSpace(strings.ToLower(value)), " ")
-	if dgNoneTokens[normalized] {
+	if isNoneToken(normalized, defaultNoneTokens) {
 		return nil
 	}
 	matches := dgTaskRefRe.FindAllStringSubmatch(value, -1)

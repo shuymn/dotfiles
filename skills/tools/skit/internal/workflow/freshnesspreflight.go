@@ -193,11 +193,10 @@ func checkArtifact(artifactPath, baseDir string) (status, name, issue string) {
 
 	sourcePath := sourceArtifact
 	if !filepath.IsAbs(sourcePath) {
-		candidate := filepath.Join(baseDir, sourcePath)
-		if _, err := os.Stat(candidate); os.IsNotExist(err) {
-			candidate = filepath.Join(filepath.Dir(artifactPath), sourcePath)
-		}
-		sourcePath = candidate
+		sourcePath = resolveExistingPath(
+			filepath.Join(baseDir, sourcePath),
+			filepath.Join(filepath.Dir(artifactPath), sourcePath),
+		)
 	}
 
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {

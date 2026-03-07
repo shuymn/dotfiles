@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 func runTraceComposeCheckCmd(t *testing.T, args ...string) (int, map[string]any) {
@@ -191,9 +193,9 @@ func TestTccCheckTraceXRef_OrphanReverse(t *testing.T) {
 
 func TestTccCheckACOwnership_Pass(t *testing.T) {
 	acs := map[string]struct{}{"AC1": {}, "AC2": {}}
-	rows := []map[string]string{
-		{"AC ID": "AC1", "Owner Task": "Task 1"},
-		{"AC ID": "AC2", "Owner Task": "Task 2"},
+	rows := []model.AcOwnershipMapRow{
+		{AcID: "AC1", OwnerTask: "Task 1"},
+		{AcID: "AC2", OwnerTask: "Task 2"},
 	}
 	status, _, evidence := tccCheckACOwnership(acs, rows)
 	if status != "PASS" {
@@ -203,8 +205,8 @@ func TestTccCheckACOwnership_Pass(t *testing.T) {
 
 func TestTccCheckACOwnership_MissingFromOwnership(t *testing.T) {
 	acs := map[string]struct{}{"AC1": {}, "AC2": {}}
-	rows := []map[string]string{
-		{"AC ID": "AC1", "Owner Task": "Task 1"},
+	rows := []model.AcOwnershipMapRow{
+		{AcID: "AC1", OwnerTask: "Task 1"},
 	}
 	status, _, evidence := tccCheckACOwnership(acs, rows)
 	if status != "FAIL" {
@@ -217,9 +219,9 @@ func TestTccCheckACOwnership_MissingFromOwnership(t *testing.T) {
 
 func TestTccCheckACOwnership_Phantom(t *testing.T) {
 	acs := map[string]struct{}{"AC1": {}}
-	rows := []map[string]string{
-		{"AC ID": "AC1", "Owner Task": "Task 1"},
-		{"AC ID": "AC99", "Owner Task": "Task 2"},
+	rows := []model.AcOwnershipMapRow{
+		{AcID: "AC1", OwnerTask: "Task 1"},
+		{AcID: "AC99", OwnerTask: "Task 2"},
 	}
 	status, _, evidence := tccCheckACOwnership(acs, rows)
 	if status != "FAIL" {
@@ -232,9 +234,9 @@ func TestTccCheckACOwnership_Phantom(t *testing.T) {
 
 func TestTccCheckACOwnership_Duplicate(t *testing.T) {
 	acs := map[string]struct{}{"AC1": {}}
-	rows := []map[string]string{
-		{"AC ID": "AC1", "Owner Task": "Task 1"},
-		{"AC ID": "AC1", "Owner Task": "Task 2"},
+	rows := []model.AcOwnershipMapRow{
+		{AcID: "AC1", OwnerTask: "Task 1"},
+		{AcID: "AC1", OwnerTask: "Task 2"},
 	}
 	status, _, evidence := tccCheckACOwnership(acs, rows)
 	if status != "FAIL" {

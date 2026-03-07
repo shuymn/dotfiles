@@ -7,27 +7,14 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 const verificationCmdCheckToolName = "verification-cmd-check"
-
-var (
-	vcNextSectionRe = regexp.MustCompile(`(?m)^##\s`)
-
-	vcNoneTokens = map[string]bool{
-		"":     true,
-		"-":    true,
-		"none": true,
-		"n/a":  true,
-		"na":   true,
-		"tbd":  true,
-	}
-)
 
 // lookPathFn is the exec.LookPath function, replaceable in tests.
 var lookPathFn = exec.LookPath
@@ -68,7 +55,7 @@ func runVerificationCmdCheck(w io.Writer, designPath string) int {
 		return 0
 	}
 
-	rows := parseGenericTable(section)
+	rows := parseAcceptanceCriteriaRows(section)
 	if len(rows) == 0 {
 		log.Emit(w, log.Result{
 			Tool:    verificationCmdCheckToolName,
@@ -133,81 +120,20 @@ func runVerificationCmdCheck(w io.Writer, designPath string) int {
 	return 0
 }
 
-// extractSection extracts the content of a ## {title} section from text.
-func extractSection(text, title string) string {
-	pattern := regexp.MustCompile(`(?m)^##\s+` + regexp.QuoteMeta(title) + `\s*$`)
-	loc := pattern.FindStringIndex(text)
-	if loc == nil {
-		return ""
-	}
-	rest := text[loc[1]:]
-	nextLoc := vcNextSectionRe.FindStringIndex(rest)
-	if nextLoc != nil {
-		return strings.TrimSpace(rest[:nextLoc[0]])
-	}
-	return strings.TrimSpace(rest)
-}
-
-// parseGenericTable parses a markdown table and returns rows as maps of header -> cell value.
-func parseGenericTable(section string) []map[string]string {
-	var tableLines []string
-	for _, line := range strings.Split(section, "\n") {
-		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "|") {
-			tableLines = append(tableLines, trimmed)
-		}
-	}
-	if len(tableLines) < 2 {
-		return nil
-	}
-
-	rawHeaders := parseCells(tableLines[0])
-	headers := make([]string, len(rawHeaders))
-	for i, h := range rawHeaders {
-		headers[i] = strings.TrimSpace(h)
-	}
-
-	if !isSeparatorRow(parseCells(tableLines[1])) {
-		return nil
-	}
-
-	var rows []map[string]string
-	for _, line := range tableLines[2:] {
-		cells := parseCells(line)
-		if len(cells) != len(headers) {
-			continue
-		}
-		row := make(map[string]string, len(headers))
-		for i, h := range headers {
-			row[h] = strings.TrimSpace(cells[i])
-		}
-		rows = append(rows, row)
-	}
-	return rows
-}
-
 // checkVerificationRow checks a single AC row's Verification Command.
 // Returns (status, message): status is "PASS", "TBD", or "FAIL".
-func checkVerificationRow(row map[string]string) (string, string) {
-	cmd := coalesce(
-		row["Verification Command"],
-		row["verification_command"],
-		row["Verification"],
-	)
-	acID := coalesce(row["AC ID"], row["ac_id"])
+func checkVerificationRow(row model.AcceptanceCriteriaRow) (string, string) {
+	cmd := row.VerificationCommand
+	acID := row.AcID
 	if acID == "" {
 		acID = "?"
 	}
 
-	normalized := strings.ToLower(cmd)
-	normalized = strings.ReplaceAll(normalized, "-", "")
-	normalized = strings.ReplaceAll(normalized, "_", "")
-	normalized = strings.ReplaceAll(normalized, " ", "")
-
-	if vcNoneTokens[normalized] {
+	if isNoneToken(cmd, defaultNoneTokens) {
 		return "FAIL", fmt.Sprintf("%s: verification command is empty", acID)
 	}
 
-	if normalized == "tbdatplan" {
+	if normalizeCompactToken(cmd) == "tbdatplan" {
 		return "TBD", fmt.Sprintf("%s: TBD-at-plan (decompose-plan must resolve)", acID)
 	}
 

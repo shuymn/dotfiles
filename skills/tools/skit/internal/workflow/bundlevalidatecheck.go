@@ -155,14 +155,7 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 }
 
 func parseKV(text string) map[string]string {
-	result := make(map[string]string)
-	for _, line := range strings.Split(text, "\n") {
-		m := kvRe.FindStringSubmatch(line)
-		if m != nil {
-			result[strings.TrimSpace(m[1])] = strings.TrimSpace(m[2])
-		}
-	}
-	return result
+	return parseKeyValueBullets(text)
 }
 
 func extractHeaderLinks(text string) map[string]string {

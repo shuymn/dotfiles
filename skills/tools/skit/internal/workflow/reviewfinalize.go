@@ -74,24 +74,6 @@ type rfGranularityRow struct {
 
 // --- Parse functions ---
 
-func rfExtractSection(markdown, heading string) string {
-	// Find the heading line.
-	headPattern := regexp.MustCompile(`(?m)^## ` + regexp.QuoteMeta(heading) + `\s*$`)
-	loc := headPattern.FindStringIndex(markdown)
-	if loc == nil {
-		return ""
-	}
-	// Content starts after the heading line.
-	rest := markdown[loc[1]:]
-	// Find the next ## heading.
-	nextHead := regexp.MustCompile(`(?m)^## [^\n]+`)
-	endLoc := nextHead.FindStringIndex(rest)
-	if endLoc != nil {
-		return strings.TrimSpace(rest[:endLoc[0]])
-	}
-	return strings.TrimSpace(rest)
-}
-
 func rfParseSummary(body string) (map[string]string, []string) {
 	rawMap := make(map[string]string)
 	for _, line := range strings.Split(body, "\n") {
@@ -169,19 +151,7 @@ func rfParseDesignPath(planText, planPath string) string {
 		if filepath.IsAbs(source) {
 			return source
 		}
-		// Try resolving relative to CWD first.
-		cwd, _ := os.Getwd()
-		candidate := filepath.Join(cwd, source)
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-		// Fall back to resolving relative to plan directory.
-		candidate = filepath.Join(filepath.Dir(planPath), source)
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-		// Return CWD-relative as default.
-		return filepath.Join(cwd, source)
+		return resolvePathFromWorkingDirAndFile(planPath, source)
 	}
 	return filepath.Join(filepath.Dir(planPath), "design.md")
 }
@@ -230,15 +200,6 @@ func rfParseGranularityTable(body string) ([]rfGranularityRow, []string) {
 	}
 
 	return rows, errors
-}
-
-func allEmpty(cells []string) bool {
-	for _, c := range cells {
-		if c != "" {
-			return false
-		}
-	}
-	return true
 }
 
 // --- Scoring ---
@@ -733,20 +694,20 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 		return 1
 	}
 
-	summaryBody := rfExtractSection(draftText, "Summary")
+	summaryBody := extractSection(draftText, "Summary")
 	if summaryBody == "" {
-		summaryBody = rfExtractSection(draftText, "Reviewer Summary")
+		summaryBody = extractSection(draftText, "Reviewer Summary")
 	}
 	summaryMap, summaryErrors := rfParseSummary(summaryBody)
 
-	granularityBody := rfExtractSection(draftText, "Granularity Poker")
+	granularityBody := extractSection(draftText, "Granularity Poker")
 	granularityRows, granParseErrors := rfParseGranularityTable(granularityBody)
 	machineRows, machineBlockers := rfComputeMachineRows(
 		taskIDs, granularityRows, append(summaryErrors, granParseErrors...),
 	)
 
 	findingsBody := rfNormalizeSection(
-		rfExtractSection(draftText, "Findings"),
+		extractSection(draftText, "Findings"),
 		strings.Join([]string{
 			"| ID | Severity | Area | File/Section | Issue | Action |",
 			"|----|----------|------|--------------|-------|--------|",
@@ -754,7 +715,7 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 		}, "\n"),
 	)
 	improvementsBody := rfNormalizeSection(
-		rfExtractSection(draftText, "Non-Blocking Improvements"),
+		extractSection(draftText, "Non-Blocking Improvements"),
 		"- None.",
 	)
 
@@ -768,7 +729,7 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 	}
 
 	blockingBody := rfBuildBlockingIssuesSection(
-		rfExtractSection(draftText, "Blocking Issues"),
+		extractSection(draftText, "Blocking Issues"),
 		machineBlockers,
 	)
 

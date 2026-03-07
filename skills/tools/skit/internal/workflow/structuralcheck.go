@@ -353,7 +353,7 @@ func stcCheckQGateExec(planText string) StcCheckResult {
 	return StcCheckResult{
 		ID: "QGate-Exec", Status: "FAIL",
 		Summary:  "Some Quality Gate commands are not executable in current environment.",
-		Evidence: strings.Join(stcDedup(missingCmds), "; "),
+		Evidence: strings.Join(dedupStrings(missingCmds), "; "),
 	}
 }
 
@@ -392,7 +392,7 @@ func stcCheckDoDRunExec(planText string) StcCheckResult {
 	return StcCheckResult{
 		ID: "DoD-Run-Exec", Status: "FAIL",
 		Summary:  "Some DoD Run commands are not executable in current environment.",
-		Evidence: strings.Join(stcDedup(missingCmds), "; "),
+		Evidence: strings.Join(dedupStrings(missingCmds), "; "),
 	}
 }
 
@@ -436,18 +436,6 @@ func stcExtractFirstBacktickCmd(line string) string {
 		return ""
 	}
 	return m[1]
-}
-
-func stcDedup(items []string) []string {
-	seen := make(map[string]bool)
-	var result []string
-	for _, item := range items {
-		if !seen[item] {
-			seen[item] = true
-			result = append(result, item)
-		}
-	}
-	return result
 }
 
 // StructuralCheck returns the structural-check subcommand.

@@ -7,10 +7,10 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
-	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 const riskFormatCheckToolName = "risk-format-check"
@@ -56,7 +56,7 @@ func runRiskFormatCheck(w io.Writer, designPath string) int {
 		return 0
 	}
 
-	rows := parseGenericTable(section)
+	rows := parseRiskClassificationRows(section)
 	if len(rows) == 0 {
 		log.Emit(w, log.Result{
 			Tool:    riskFormatCheckToolName,
@@ -114,10 +114,10 @@ func runRiskFormatCheck(w io.Writer, designPath string) int {
 	return 0
 }
 
-func checkRiskRow(row map[string]string) (bool, string) {
-	tier := coalesce(row["Risk Tier"], row["risk_tier"])
-	rationale := coalesce(row["Change Rationale"], row["change_rationale"])
-	area := coalesce(row["Area"], row["area"])
+func checkRiskRow(row model.RiskClassificationRow) (bool, string) {
+	tier := row.RiskTier
+	rationale := row.ChangeRationale
+	area := row.Area
 	if area == "" {
 		area = "?"
 	}
@@ -139,13 +139,4 @@ func checkRiskRow(row map[string]string) (bool, string) {
 		}
 	}
 	return true, ""
-}
-
-func coalesce(vals ...string) string {
-	for _, v := range vals {
-		if t := strings.TrimSpace(v); t != "" {
-			return t
-		}
-	}
-	return ""
 }

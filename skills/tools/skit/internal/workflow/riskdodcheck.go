@@ -140,10 +140,10 @@ func rdcParseMaxRiskTier(text string) string {
 		return "Standard"
 	}
 	tierOrder := map[string]int{"Critical": 3, "Sensitive": 2, "Standard": 1}
-	rows := parseGenericTable(section)
+	rows := parseRiskClassificationRows(section)
 	maxTier := "Standard"
 	for _, row := range rows {
-		tier := strings.TrimSpace(coalesce(row["Risk Tier"], row["risk_tier"]))
+		tier := strings.TrimSpace(row.RiskTier)
 		if tier == "" {
 			tier = "Standard"
 		}
