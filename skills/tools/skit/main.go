@@ -27,6 +27,7 @@ func main() {
 
 	// scripts
 	app.Register(cmd.MarkManaged())
+	app.Register(cmd.Reconcile())
 
 	os.Exit(app.Run(os.Args))
 }

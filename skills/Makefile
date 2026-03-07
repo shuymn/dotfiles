@@ -59,7 +59,7 @@ install: ## Install built managed skills via skills CLI
 .PHONY: reconcile
 reconcile: ## Remove stale managed skills while preserving external skills
 	@printf '\n[skills-sync] step=reconcile start\n'
-	@uv run python scripts/skills_reconcile.py \
+	@$(PROJECT_ROOT)/tools/skit/skit reconcile \
 		--manifest "$(MANIFEST_PATH)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
 		--marker "$(SKILLS_MARKER)" \
