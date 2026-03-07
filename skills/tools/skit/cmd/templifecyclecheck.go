@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const tempLifecycleCheckToolName = "temp-lifecycle-check"
@@ -69,7 +69,7 @@ func runTempLifecycleCheck(w io.Writer, args []string) int {
 	designFile := fs.Arg(0)
 	data, err := os.ReadFile(designFile)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    tempLifecycleCheckToolName,
 			Status:  "FAIL",
 			Code:    "DESIGN_FILE_NOT_FOUND",
@@ -86,7 +86,7 @@ func runTempLifecycleCheck(w io.Writer, args []string) int {
 	text := string(data)
 	compat := tlcFindCompatSection(text)
 	if compat == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    tempLifecycleCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_COMPATIBILITY_SUNSET_SECTION",
@@ -102,7 +102,7 @@ func runTempLifecycleCheck(w io.Writer, args []string) int {
 	checklistRows := tlcExtractTempRows(coalesce(checklistSection, compat))
 
 	if len(indexRows) == 0 && len(checklistRows) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    tempLifecycleCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_TEMP_IDS_FOUND",
@@ -183,7 +183,7 @@ func runTempLifecycleCheck(w io.Writer, args []string) int {
 		}))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    tempLifecycleCheckToolName,
 		Status:  overall,
 		Code:    code,

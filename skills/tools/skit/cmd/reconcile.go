@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
@@ -59,7 +59,7 @@ func runReconcile(w io.Writer, args []string) int {
 
 	m, err := manifest.Load(resolvedManifest)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    reconcileTool,
 			Status:  "FAIL",
 			Code:    "MANIFEST_ERROR",
@@ -69,7 +69,7 @@ func runReconcile(w io.Writer, args []string) int {
 	}
 
 	if len(m.Skills) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    reconcileTool,
 			Status:  "FAIL",
 			Code:    "EMPTY_MANIFEST",
@@ -85,7 +85,7 @@ func runReconcile(w io.Writer, args []string) int {
 
 	installed, err := discoverManagedInstalled(resolvedAgentsSkills, *marker)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    reconcileTool,
 			Status:  "FAIL",
 			Code:    "MANIFEST_ERROR",
@@ -109,7 +109,7 @@ func runReconcile(w io.Writer, args []string) int {
 	}
 
 	if len(toRemove) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    reconcileTool,
 			Status:  "PASS",
 			Code:    "NO_STALE_MANAGED_SKILLS",
@@ -129,7 +129,7 @@ func runReconcile(w io.Writer, args []string) int {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    reconcileTool,
 			Status:  "FAIL",
 			Code:    "REMOVE_FAILED",
@@ -138,7 +138,7 @@ func runReconcile(w io.Writer, args []string) int {
 		return 1
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    reconcileTool,
 		Status:  "PASS",
 		Code:    "RECONCILE_COMPLETE",

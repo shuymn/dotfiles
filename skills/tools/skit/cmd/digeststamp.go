@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
 
@@ -80,7 +80,7 @@ func runDigestStamp(w io.Writer, args []string) int {
 	}
 
 	if len(args) != 2 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    dsToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_ARGUMENT_COUNT",
@@ -93,7 +93,7 @@ func runDigestStamp(w io.Writer, args []string) int {
 	sourceFile := args[1]
 
 	if !dsValidModes[mode] {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    dsToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_MODE",
@@ -104,7 +104,7 @@ func runDigestStamp(w io.Writer, args []string) int {
 
 	stamp, err := DsGenerateStamp(mode, sourceFile)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    dsToolName,
 			Status:  "FAIL",
 			Code:    "SOURCE_FILE_NOT_FOUND",
@@ -113,7 +113,7 @@ func runDigestStamp(w io.Writer, args []string) int {
 		return 1
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    dsToolName,
 		Status:  "PASS",
 		Code:    "STAMP_GENERATED",

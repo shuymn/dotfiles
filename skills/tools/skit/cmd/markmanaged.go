@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
@@ -53,7 +53,7 @@ func runMarkManaged(w io.Writer, args []string) int {
 
 	m, err := manifest.Load(resolvedManifest)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    markManagedTool,
 			Status:  "FAIL",
 			Code:    "MANIFEST_ERROR",
@@ -63,7 +63,7 @@ func runMarkManaged(w io.Writer, args []string) int {
 	}
 
 	if len(m.Skills) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    markManagedTool,
 			Status:  "PASS",
 			Code:    "NOTHING_TO_MARK",
@@ -96,7 +96,7 @@ func runMarkManaged(w io.Writer, args []string) int {
 		attrs = append(attrs, slog.String("signal.missing_names", strings.Join(missing, ",")))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    markManagedTool,
 		Status:  "PASS",
 		Code:    "MARK_COMPLETE",

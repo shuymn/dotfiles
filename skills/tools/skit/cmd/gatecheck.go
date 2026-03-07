@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
 
@@ -38,7 +38,7 @@ func GateCheck() *cli.Command {
 
 func runGateCheck(w io.Writer, args []string) int {
 	if len(args) != 2 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_ARGUMENT_COUNT",
@@ -58,7 +58,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	// Check 1: Review file existence + read
 	reviewBytes, err := os.ReadFile(reviewFile)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "REVIEW_FILE_NOT_FOUND",
@@ -74,7 +74,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	// Check 2: Overall Verdict
 	verdictValue := gcParseOverallVerdict(content)
 	if verdictValue == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "MISSING_OVERALL_VERDICT",
@@ -85,7 +85,7 @@ func runGateCheck(w io.Writer, args []string) int {
 		return 1
 	}
 	if verdictValue != "PASS" && verdictValue != "FAIL" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_OVERALL_VERDICT_VALUE",
@@ -97,7 +97,7 @@ func runGateCheck(w io.Writer, args []string) int {
 		return 1
 	}
 	if verdictValue != "PASS" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "OVERALL_VERDICT_NOT_PASS",
@@ -113,7 +113,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	// Check 3: Source Digest
 	reviewDigest := gcParseSourceDigest(content)
 	if reviewDigest == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "MISSING_SOURCE_DIGEST",
@@ -126,7 +126,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	}
 	sourceData, err := os.ReadFile(sourceFile)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "SOURCE_FILE_NOT_FOUND",
@@ -139,7 +139,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	}
 	currentDigest := fmt.Sprintf("%x", sha256.Sum256(sourceData))
 	if reviewDigest != currentDigest {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "SOURCE_DIGEST_MISMATCH",
@@ -156,7 +156,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	// Check 4: Sub-verdicts
 	subCount, failCount, failLines := gcCheckSubVerdicts(content)
 	if subCount > 0 && failCount > 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "SUB_VERDICT_FAILURES",
@@ -174,7 +174,7 @@ func runGateCheck(w io.Writer, args []string) int {
 	// Check 5: Exit codes (dod-recheck only)
 	nonzeroCmds := gcCheckExitCodes(content)
 	if len(nonzeroCmds) > 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    gcToolName,
 			Status:  "FAIL",
 			Code:    "NONZERO_EXIT_CODES",
@@ -188,7 +188,7 @@ func runGateCheck(w io.Writer, args []string) int {
 		return 1
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    gcToolName,
 		Status:  "PASS",
 		Code:    "ALL_CHECKS_PASSED",

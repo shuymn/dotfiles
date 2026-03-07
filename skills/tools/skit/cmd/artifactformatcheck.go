@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const artifactFormatCheckToolName = "artifact-format-check"
@@ -116,7 +116,7 @@ func runArtifactFormatCheck(w io.Writer, args []string) int {
 		if !os.IsNotExist(err) {
 			summary = fmt.Sprintf("Cannot read artifact file: %s", artifactPath)
 		}
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    artifactFormatCheckToolName,
 			Status:  "FAIL",
 			Code:    "ARTIFACT_FILE_NOT_FOUND",
@@ -129,7 +129,7 @@ func runArtifactFormatCheck(w io.Writer, args []string) int {
 
 	text := string(data)
 	if strings.TrimSpace(text) == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    artifactFormatCheckToolName,
 			Status:  "FAIL",
 			Code:    "ARTIFACT_FILE_EMPTY",
@@ -184,7 +184,7 @@ func runArtifactFormatCheck(w io.Writer, args []string) int {
 		}))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    artifactFormatCheckToolName,
 		Status:  overall,
 		Code:    code,

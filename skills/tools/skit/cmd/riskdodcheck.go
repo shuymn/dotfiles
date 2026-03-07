@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const riskDodCheckToolName = "risk-dod-check"
@@ -78,7 +78,7 @@ func runRiskDodCheck(w io.Writer, args []string) int {
 
 	planData, err := os.ReadFile(planPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    riskDodCheckToolName,
 			Status:  "FAIL",
 			Code:    "PLAN_FILE_NOT_FOUND",
@@ -89,7 +89,7 @@ func runRiskDodCheck(w io.Writer, args []string) int {
 
 	designData, err := os.ReadFile(designPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    riskDodCheckToolName,
 			Status:  "FAIL",
 			Code:    "DESIGN_FILE_NOT_FOUND",
@@ -102,7 +102,7 @@ func runRiskDodCheck(w io.Writer, args []string) int {
 	tasks := rdcExtractTasks(string(planData))
 
 	if len(tasks) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    riskDodCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_TASKS_FOUND",
@@ -141,7 +141,7 @@ func runRiskDodCheck(w io.Writer, args []string) int {
 		}))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    riskDodCheckToolName,
 		Status:  status,
 		Code:    code,

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const accToolName = "adversarial-coverage-check"
@@ -86,7 +86,7 @@ func runAdversarialCoverageCheck(w io.Writer, args []string) int {
 
 	reportData, err := os.ReadFile(reportPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    accToolName,
 			Status:  "FAIL",
 			Code:    "REPORT_FILE_NOT_FOUND",
@@ -97,7 +97,7 @@ func runAdversarialCoverageCheck(w io.Writer, args []string) int {
 
 	vectorsData, err := os.ReadFile(vectorsPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    accToolName,
 			Status:  "FAIL",
 			Code:    "ATTACK_VECTORS_FILE_NOT_FOUND",
@@ -107,7 +107,7 @@ func runAdversarialCoverageCheck(w io.Writer, args []string) int {
 	}
 
 	if tier == "Standard" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    accToolName,
 			Status:  "SKIP",
 			Code:    "STANDARD_TIER_NO_REQUIRED_COVERAGE",
@@ -124,7 +124,7 @@ func runAdversarialCoverageCheck(w io.Writer, args []string) int {
 	selected := accParseSelectedCategories(reportText, attackVectors)
 
 	if len(selected) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    accToolName,
 			Status:  "SKIP",
 			Code:    "NO_SELECTED_CATEGORIES",
@@ -161,7 +161,7 @@ func runAdversarialCoverageCheck(w io.Writer, args []string) int {
 		attrs = append(attrs, slog.Any("fix", []string{"FIX_ADD_MISSING_PROBE_OR_DOCUMENT_NA_RATIONALE"}))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    accToolName,
 		Status:  status,
 		Code:    code,

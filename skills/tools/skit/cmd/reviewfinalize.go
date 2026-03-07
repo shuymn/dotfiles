@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const rfToolName = "review-finalize"
@@ -817,7 +817,7 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string) int {
 		exitCode = 1
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    rfToolName,
 		Status:  status,
 		Code:    code,
@@ -849,7 +849,7 @@ func rfStructuralEvidence(result *StcStructuralResult) string {
 }
 
 func rfEmitFail(w io.Writer, code, summary string) {
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    rfToolName,
 		Status:  "FAIL",
 		Code:    code,
@@ -875,7 +875,7 @@ func runReviewFinalize(w io.Writer, args []string) int {
 	}
 
 	if len(args) != 3 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    rfToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_ARGUMENT_COUNT",

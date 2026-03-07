@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const toolName = "freshness-preflight"
@@ -65,7 +65,7 @@ func runFreshnessPreflight(w io.Writer, args []string) int {
 
 	info, err := os.Stat(topicDir)
 	if err != nil || !info.IsDir() {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    toolName,
 			Status:  "FAIL",
 			Code:    "TOPIC_DIR_NOT_FOUND",
@@ -87,7 +87,7 @@ func runFreshnessPreflight(w io.Writer, args []string) int {
 
 	artifactFiles := findArtifactFiles(topicDir)
 	if len(artifactFiles) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    toolName,
 			Status:  "SKIP",
 			Code:    "NO_REVIEW_ARTIFACTS",
@@ -142,7 +142,7 @@ func runFreshnessPreflight(w io.Writer, args []string) int {
 		attrs = append(attrs, slog.Any("skip", skipList))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    toolName,
 		Status:  overall,
 		Code:    code,

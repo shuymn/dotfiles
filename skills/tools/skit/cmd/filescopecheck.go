@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const fileScopeCheckToolName = "file-scope-check"
@@ -96,7 +96,7 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 	planFile := fs.Arg(0)
 	planData, err := os.ReadFile(planFile)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    fileScopeCheckToolName,
 			Status:  "FAIL",
 			Code:    "PLAN_FILE_NOT_FOUND",
@@ -108,7 +108,7 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 	planText := string(planData)
 	block := extractTaskBlock(planText, *taskID)
 	if block == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    fileScopeCheckToolName,
 			Status:  "FAIL",
 			Code:    "TASK_NOT_FOUND",
@@ -119,7 +119,7 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 
 	allowed := parseAllowedFiles(block)
 	if len(allowed) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    fileScopeCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_ALLOWED_FILES",
@@ -144,7 +144,7 @@ func runFileScopeCheck(w io.Writer, r io.Reader, args []string) int {
 	}
 
 	if len(changedFiles) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    fileScopeCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_CHANGED_FILES",
@@ -213,7 +213,7 @@ func emitScopeResult(w io.Writer, matches []fileMatch, taskID int) int {
 		)
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    fileScopeCheckToolName,
 		Status:  overall,
 		Code:    code,

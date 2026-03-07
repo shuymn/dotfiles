@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const (
@@ -467,7 +467,7 @@ func runStructuralCheck(w io.Writer, args []string) int {
 	}
 
 	if len(args) != 2 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    stcToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_ARGUMENT_COUNT",
@@ -480,7 +480,7 @@ func runStructuralCheck(w io.Writer, args []string) int {
 	planFile := args[1]
 
 	if _, err := os.Stat(designFile); os.IsNotExist(err) {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    stcToolName,
 			Status:  "FAIL",
 			Code:    "DESIGN_FILE_NOT_FOUND",
@@ -490,7 +490,7 @@ func runStructuralCheck(w io.Writer, args []string) int {
 	}
 
 	if _, err := os.Stat(planFile); os.IsNotExist(err) {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    stcToolName,
 			Status:  "FAIL",
 			Code:    "PLAN_FILE_NOT_FOUND",
@@ -529,7 +529,7 @@ func runStructuralCheck(w io.Writer, args []string) int {
 		}
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    stcToolName,
 		Status:  status,
 		Code:    code,

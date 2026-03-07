@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const traceComposeCheckToolName = "trace-compose-check"
@@ -62,7 +62,7 @@ func runTraceComposeCheck(w io.Writer, args []string) int {
 
 	designData, err := os.ReadFile(designPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    traceComposeCheckToolName,
 			Status:  "FAIL",
 			Code:    "DESIGN_FILE_NOT_FOUND",
@@ -73,7 +73,7 @@ func runTraceComposeCheck(w io.Writer, args []string) int {
 
 	traceData, err := os.ReadFile(tracePath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    traceComposeCheckToolName,
 			Status:  "FAIL",
 			Code:    "TRACE_FILE_NOT_FOUND",
@@ -147,7 +147,7 @@ func runTraceComposeCheck(w io.Writer, args []string) int {
 		}
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    traceComposeCheckToolName,
 		Status:  status,
 		Code:    code,

@@ -14,7 +14,7 @@ import (
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
-	skittemplate "github.com/shuymn/dotfiles/skills/tools/skit/internal/template"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/template"
 )
 
 const (
@@ -454,7 +454,7 @@ func renderStructuredTemplates(sourceSkillRoot, artifactSkillRoot string) error 
 	sort.Strings(templates)
 
 	for _, tmplPath := range templates {
-		rendered, err := skittemplate.RenderStructuredTemplate(tmplPath)
+		rendered, err := template.RenderStructuredTemplate(tmplPath)
 		if err != nil {
 			return err
 		}

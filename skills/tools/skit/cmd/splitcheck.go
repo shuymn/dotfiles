@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const scToolName = "split-check"
@@ -71,7 +71,7 @@ func runSplitCheck(w io.Writer, args []string) int {
 	}
 
 	if len(args) != 1 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    scToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_ARGUMENT_COUNT",
@@ -83,7 +83,7 @@ func runSplitCheck(w io.Writer, args []string) int {
 	designFile := args[0]
 	data, err := os.ReadFile(designFile)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    scToolName,
 			Status:  "FAIL",
 			Code:    "DESIGN_FILE_NOT_FOUND",
@@ -120,7 +120,7 @@ func runSplitCheck(w io.Writer, args []string) int {
 		attrs = append(attrs, slog.String(fmt.Sprintf("blocker.%d", i+1), blocker))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    scToolName,
 		Status:  result.Status,
 		Code:    result.Code,

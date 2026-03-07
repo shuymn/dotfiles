@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
@@ -58,7 +58,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 
 	m, err := manifest.Load(resolvedManifest)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    auditCodexTool,
 			Status:  "FAIL",
 			Code:    "MANIFEST_ERROR",
@@ -75,7 +75,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 	codexEntries, err := listSkillDirs(resolvedCodexSkills)
 	if err != nil {
 		if os.IsNotExist(err) {
-			skitlog.Emit(w, skitlog.Result{
+			log.Emit(w, log.Result{
 				Tool:    auditCodexTool,
 				Status:  "PASS",
 				Code:    "CODEX_DIR_MISSING",
@@ -83,7 +83,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 			})
 			return 0
 		}
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    auditCodexTool,
 			Status:  "FAIL",
 			Code:    "MANIFEST_ERROR",
@@ -93,7 +93,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 	}
 
 	if len(codexEntries) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    auditCodexTool,
 			Status:  "PASS",
 			Code:    "CODEX_DIR_EMPTY",
@@ -148,7 +148,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 			target := filepath.Join(resolvedCodexSkills, name)
 			if err := removeAllFn(target); err != nil {
 				attrs = append(attrs, slog.Int("signal.pruned", pruned))
-				skitlog.Emit(w, skitlog.Result{
+				log.Emit(w, log.Result{
 					Tool:    auditCodexTool,
 					Status:  "FAIL",
 					Code:    "PRUNE_FAILED",
@@ -162,7 +162,7 @@ func runAuditCodex(w io.Writer, args []string) int {
 
 	attrs = append(attrs, slog.Int("signal.pruned", pruned))
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    auditCodexTool,
 		Status:  "PASS",
 		Code:    "AUDIT_COMPLETE",

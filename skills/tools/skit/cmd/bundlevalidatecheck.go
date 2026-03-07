@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const bundleValidateCheckToolName = "bundle-validate-check"
@@ -68,7 +68,7 @@ func runBundleValidateCheck(w io.Writer, args []string) int {
 
 	data, err := os.ReadFile(planPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    bundleValidateCheckToolName,
 			Status:  "FAIL",
 			Code:    "PLAN_FILE_NOT_FOUND",
@@ -84,7 +84,7 @@ func runBundleValidateCheck(w io.Writer, args []string) int {
 
 	checkpointSection := extractSection(text, "Checkpoint Summary")
 	if checkpointSection == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    bundleValidateCheckToolName,
 			Status:  "FAIL",
 			Code:    "NO_CHECKPOINT_SUMMARY",
@@ -162,7 +162,7 @@ func runBundleValidateCheck(w io.Writer, args []string) int {
 		}))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    bundleValidateCheckToolName,
 		Status:  status,
 		Code:    code,

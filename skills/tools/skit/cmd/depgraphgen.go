@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const depGraphGenToolName = "dep-graph-gen"
@@ -65,7 +65,7 @@ func runDepGraphGen(w io.Writer, args []string) int {
 	}
 
 	if len(positional) != 1 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    depGraphGenToolName,
 			Status:  "FAIL",
 			Code:    "INVALID_ARGUMENT_COUNT",
@@ -78,7 +78,7 @@ func runDepGraphGen(w io.Writer, args []string) int {
 
 	data, err := os.ReadFile(planPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    depGraphGenToolName,
 			Status:  "FAIL",
 			Code:    "PLAN_FILE_NOT_FOUND",
@@ -91,7 +91,7 @@ func runDepGraphGen(w io.Writer, args []string) int {
 	tasks := parseTasksWithDeps(text)
 
 	if len(tasks) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    depGraphGenToolName,
 			Status:  "FAIL",
 			Code:    "NO_TASKS_FOUND",
@@ -104,7 +104,7 @@ func runDepGraphGen(w io.Writer, args []string) int {
 	patched := patchPlan(text, graph)
 
 	if err := os.WriteFile(planPath, []byte(patched), 0644); err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    depGraphGenToolName,
 			Status:  "FAIL",
 			Code:    "PLAN_WRITE_FAILED",
@@ -122,7 +122,7 @@ func runDepGraphGen(w io.Writer, args []string) int {
 		depEdgeCount += len(t.deps)
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    depGraphGenToolName,
 		Status:  "PASS",
 		Code:    "GRAPH_GENERATED",

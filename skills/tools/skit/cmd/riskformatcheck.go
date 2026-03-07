@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
-	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const riskFormatCheckToolName = "risk-format-check"
@@ -55,7 +55,7 @@ func runRiskFormatCheck(w io.Writer, args []string) int {
 
 	data, err := os.ReadFile(designPath)
 	if err != nil {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    riskFormatCheckToolName,
 			Status:  "FAIL",
 			Code:    "DESIGN_FILE_NOT_FOUND",
@@ -68,7 +68,7 @@ func runRiskFormatCheck(w io.Writer, args []string) int {
 
 	section := extractSection(string(data), "Risk Classification")
 	if section == "" {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    riskFormatCheckToolName,
 			Status:  "SKIP",
 			Code:    "NO_RISK_CLASSIFICATION_SECTION",
@@ -79,7 +79,7 @@ func runRiskFormatCheck(w io.Writer, args []string) int {
 
 	rows := parseGenericTable(section)
 	if len(rows) == 0 {
-		skitlog.Emit(w, skitlog.Result{
+		log.Emit(w, log.Result{
 			Tool:    riskFormatCheckToolName,
 			Status:  "FAIL",
 			Code:    "RISK_TABLE_EMPTY",
@@ -122,7 +122,7 @@ func runRiskFormatCheck(w io.Writer, args []string) int {
 		}))
 	}
 
-	skitlog.Emit(w, skitlog.Result{
+	log.Emit(w, log.Result{
 		Tool:    riskFormatCheckToolName,
 		Status:  status,
 		Code:    code,
