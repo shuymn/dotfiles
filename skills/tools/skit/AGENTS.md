@@ -16,7 +16,7 @@ go test -race -count=1 ./cmd/...   # single package
 ## Architecture
 
 `skit` and `skitkit` are minimal Go CLIs with no external deps. `internal/cli/` is a custom framework.
-Each subcommand: `cmd/<name>.go` exports `func <Name>() *cli.Command`, grouped by `internal/apps/` into authoring (`skit`) and admin (`skitkit`) command sets selected at build time via `-ldflags`.
+`cmd/` stays as thin exported wrappers; workflow checks live in `internal/workflow/`, managed skill sync lives in `internal/managedskills/`, and build pipeline logic lives in `internal/skillbuild/`, all grouped by `internal/apps/` into authoring (`skit`) and admin (`skitkit`) command sets selected at build time via `-ldflags`.
 
 **Template system:** `.md.tmpl` + sibling `.fragments.json` → rendered `.md`.
 Three supported types in `internal/template/spec.go` (`design-templates`, `plan-templates`, `trace-templates`),

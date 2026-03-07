@@ -22,3 +22,4 @@ Go-based CLIs for skill authoring checks and managed skill sync operations.
 
 - `skills/Makefile` uses `skitkit` for the build/install/reconcile/audit pipeline.
 - `skit` intentionally does not provide the sync/admin commands.
+- `cmd/` is kept thin on purpose; workflow logic lives in `internal/workflow/`, managed skill sync logic in `internal/managedskills/`, and artifact build logic in `internal/skillbuild/`.
