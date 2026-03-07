@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,26 +14,21 @@ import (
 
 	"skit/internal/cli"
 	"skit/internal/manifest"
-	"skit/internal/model"
 	skittemplate "skit/internal/template"
 )
 
 const (
-	buildSkillsTool          = "build-skills"
-	buildSkillsLogPrefix     = "[skills:build]"
-	buildSkillsCommonDirName = "common"
-	buildSkillsDepsName      = "dependencies.json"
-	buildSkillsSkillFile     = "SKILL.md"
-	buildSkillsSkillConfig   = "skill.json"
-	buildSkillsManifestName  = ".dotfiles-managed-skills.json"
-	buildSkillsTmplSuffix    = ".md.tmpl"
-	buildSkillsFragSuffix    = ".fragments.json"
+	buildSkillsTool         = "build-skills"
+	buildSkillsLogPrefix    = "[skills:build]"
+	buildSkillsSkillFile    = "SKILL.md"
+	buildSkillsManifestName = ".dotfiles-managed-skills.json"
+	buildSkillsTmplSuffix   = ".md.tmpl"
+	buildSkillsFragSuffix   = ".fragments.json"
 )
 
 var (
 	buildSkillsIgnoredNames = map[string]bool{
-		"tests":              true,
-		buildSkillsSkillConfig: true,
+		"tests": true,
 	}
 
 	// SCRIPT_REFERENCE_PATTERN matches script references in SKILL.md.
@@ -60,8 +54,6 @@ var (
 	buildSkillsForbiddenPatterns = []string{
 		"../_shared",
 		"../../_shared",
-		"../common",
-		"../../common",
 	}
 
 	buildSkillsTextSuffixes = map[string]bool{
@@ -81,21 +73,6 @@ func (e *BuildError) Error() string { return e.msg }
 
 func buildErr(format string, args ...any) *BuildError {
 	return &BuildError{msg: fmt.Sprintf(format, args...)}
-}
-
-// CommonScriptSpec holds source/build metadata for a common script.
-type CommonScriptSpec struct {
-	Dependencies []string
-	InstallPath  string // e.g. "scripts/lib/foo.sh"
-}
-
-func (s *CommonScriptSpec) IsPublic() bool {
-	parts := strings.Split(s.InstallPath, "/")
-	return len(parts) == 2 && parts[0] == "scripts"
-}
-
-func (s *CommonScriptSpec) RelativePath() string {
-	return filepath.FromSlash(s.InstallPath)
 }
 
 // BuildSkills returns the build-skills subcommand.
@@ -149,35 +126,14 @@ func buildSkills(w io.Writer, sourceStr, artifactStr string) error {
 	if err != nil || !info.IsDir() {
 		return buildErr("source skills directory does not exist: %s", sourceRoot)
 	}
-	commonScriptsDir := filepath.Join(sourceRoot, buildSkillsCommonDirName, "scripts")
-	if fi, err := os.Stat(commonScriptsDir); err != nil || !fi.IsDir() {
-		return buildErr("common scripts directory does not exist: %s", commonScriptsDir)
-	}
-
-	commonGraph, err := loadCommonDependencyGraph(sourceRoot)
-	if err != nil {
-		return err
-	}
 
 	skillDirs, err := iterSkillDirs(sourceRoot)
 	if err != nil {
 		return err
 	}
 
-	// Validate and resolve common scripts for each skill.
-	resolvedBySkill := make(map[string][]string, len(skillDirs))
 	for _, skillRoot := range skillDirs {
-		requested, err := loadSkillCommonScripts(skillRoot)
-		if err != nil {
-			return err
-		}
-		resolved, err := resolveCommonScripts(commonGraph, requested, filepath.Base(skillRoot))
-		if err != nil {
-			return err
-		}
-		resolvedBySkill[skillRoot] = resolved
-		publicRefs := publicCommonReferencePaths(commonGraph, resolved)
-		if err := validateReferencedScripts(skillRoot, publicRefs); err != nil {
+		if err := validateReferencedScripts(skillRoot); err != nil {
 			return err
 		}
 		if err := validateNoForbiddenPaths(skillRoot); err != nil {
@@ -193,7 +149,7 @@ func buildSkills(w io.Writer, sourceStr, artifactStr string) error {
 	}
 
 	for _, skillRoot := range skillDirs {
-		if err := copySkill(sourceRoot, skillRoot, artifactRoot, commonGraph, resolvedBySkill[skillRoot]); err != nil {
+		if err := copySkill(skillRoot, artifactRoot); err != nil {
 			return err
 		}
 	}
@@ -241,7 +197,7 @@ func iterSkillDirs(sourceRoot string) ([]string, error) {
 	}
 	var dirs []string
 	for _, e := range entries {
-		if e.Name() == buildSkillsCommonDirName || !e.IsDir() {
+		if !e.IsDir() {
 			continue
 		}
 		p := filepath.Join(sourceRoot, e.Name())
@@ -278,121 +234,7 @@ func writeBuildManifest(artifactRoot string) error {
 	return os.WriteFile(manifestPath, append(data, '\n'), 0644)
 }
 
-func loadCommonDependencyGraph(sourceRoot string) (map[string]*CommonScriptSpec, error) {
-	path := filepath.Join(sourceRoot, buildSkillsCommonDirName, buildSkillsDepsName)
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, buildErr("common dependency config not found: %s", path)
-	}
-
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	var raw map[string]*model.CommonDependencySpec
-	if err := dec.Decode(&raw); err != nil {
-		return nil, buildErr("invalid common dependency config: %s: %v", path, err)
-	}
-
-	commonRoot := filepath.Join(sourceRoot, buildSkillsCommonDirName)
-	seenInstallPaths := make(map[string]bool)
-	graph := make(map[string]*CommonScriptSpec, len(raw))
-
-	for scriptName, spec := range raw {
-		if err := spec.Validate(); err != nil {
-			return nil, buildErr("invalid common dependency config: %s: %v", path, err)
-		}
-		installPath := spec.InstallPath
-		// Must be forward-slash, relative, under scripts/.
-		if filepath.IsAbs(installPath) || !strings.HasPrefix(installPath, "scripts/") {
-			return nil, buildErr("common dependency install_path must stay under scripts/: %s", installPath)
-		}
-		if filepath.Base(installPath) != scriptName {
-			return nil, buildErr("common dependency install_path basename must match key: %s -> %s", scriptName, installPath)
-		}
-		if seenInstallPaths[installPath] {
-			return nil, buildErr("duplicate common dependency install_path: %s", installPath)
-		}
-		seenInstallPaths[installPath] = true
-
-		scriptPath := filepath.Join(commonRoot, filepath.FromSlash(installPath))
-		if _, err := os.Stat(scriptPath); err != nil {
-			return nil, buildErr("common dependency config references missing script: %s", scriptPath)
-		}
-		graph[scriptName] = &CommonScriptSpec{
-			Dependencies: spec.Dependencies,
-			InstallPath:  installPath,
-		}
-	}
-
-	// Validate dependency references.
-	for scriptName, spec := range graph {
-		for _, dep := range spec.Dependencies {
-			if _, ok := graph[dep]; !ok {
-				return nil, buildErr("common dependency config references unknown dependency: %s -> %s", scriptName, dep)
-			}
-		}
-	}
-
-	return graph, nil
-}
-
-func loadSkillCommonScripts(skillRoot string) ([]string, error) {
-	configPath := filepath.Join(skillRoot, buildSkillsSkillConfig)
-	if _, err := os.Stat(configPath); err != nil {
-		return nil, nil
-	}
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	var cfg model.SkillConfig
-	if err := dec.Decode(&cfg); err != nil {
-		return nil, buildErr("%s: invalid skill.json: %v", filepath.Base(skillRoot), err)
-	}
-	if err := cfg.Validate(); err != nil {
-		return nil, buildErr("%s: invalid skill.json: %v", filepath.Base(skillRoot), err)
-	}
-	return cfg.CommonScripts, nil
-}
-
-func resolveCommonScripts(graph map[string]*CommonScriptSpec, requested []string, skillName string) ([]string, error) {
-	resolved := make([]string, 0)
-	seen := make(map[string]bool)
-	queue := append([]string(nil), requested...)
-
-	for len(queue) > 0 {
-		scriptName := queue[0]
-		queue = queue[1:]
-		if seen[scriptName] {
-			continue
-		}
-		spec, ok := graph[scriptName]
-		if !ok {
-			return nil, buildErr("%s: unknown common script dependency `%s`", skillName, scriptName)
-		}
-		seen[scriptName] = true
-		resolved = append(resolved, scriptName)
-		queue = append(queue, spec.Dependencies...)
-	}
-
-	sort.Strings(resolved)
-	return resolved, nil
-}
-
-func publicCommonReferencePaths(graph map[string]*CommonScriptSpec, resolved []string) []string {
-	var paths []string
-	for _, name := range resolved {
-		spec := graph[name]
-		if spec.IsPublic() {
-			paths = append(paths, filepath.ToSlash(spec.InstallPath))
-		}
-	}
-	sort.Strings(paths)
-	return paths
-}
-
-func validateReferencedScripts(skillRoot string, availableCommonRefs []string) error {
+func validateReferencedScripts(skillRoot string) error {
 	skillMd := filepath.Join(skillRoot, buildSkillsSkillFile)
 	content, err := os.ReadFile(skillMd)
 	if err != nil {
@@ -407,11 +249,6 @@ func validateReferencedScripts(skillRoot string, availableCommonRefs []string) e
 		}
 	}
 
-	commonRefSet := make(map[string]bool)
-	for _, r := range availableCommonRefs {
-		commonRefSet[r] = true
-	}
-
 	var missing, notExecutable []string
 	refs := make([]string, 0, len(refSet))
 	for r := range refSet {
@@ -423,9 +260,6 @@ func validateReferencedScripts(skillRoot string, availableCommonRefs []string) e
 		scriptPath := filepath.Join(skillRoot, filepath.FromSlash(ref))
 		fi, err := os.Stat(scriptPath)
 		if err != nil || !fi.Mode().IsRegular() {
-			if commonRefSet[ref] {
-				continue
-			}
 			missing = append(missing, ref)
 			continue
 		}
@@ -535,7 +369,7 @@ func validateExplicitSkillRootPaths(skillRoot string) error {
 	return nil
 }
 
-func copySkill(sourceRoot, sourceSkillRoot, artifactRoot string, commonGraph map[string]*CommonScriptSpec, resolved []string) error {
+func copySkill(sourceSkillRoot, artifactRoot string) error {
 	skillName := filepath.Base(sourceSkillRoot)
 	artifactSkillRoot := filepath.Join(artifactRoot, skillName)
 
@@ -578,8 +412,7 @@ func copySkill(sourceRoot, sourceSkillRoot, artifactRoot string, commonGraph map
 		return buildErr("%s: %v", skillName, err)
 	}
 
-	// Copy common scripts.
-	return copyCommonScripts(sourceRoot, artifactSkillRoot, commonGraph, resolved)
+	return nil
 }
 
 func copyFile(src, dst string) error {
@@ -602,21 +435,6 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(dstFile, srcFile)
 	return err
-}
-
-func copyCommonScripts(sourceRoot, artifactSkillRoot string, graph map[string]*CommonScriptSpec, resolved []string) error {
-	for _, scriptName := range resolved {
-		spec := graph[scriptName]
-		srcPath := filepath.Join(sourceRoot, buildSkillsCommonDirName, spec.RelativePath())
-		dstPath := filepath.Join(artifactSkillRoot, spec.RelativePath())
-		if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
-			return err
-		}
-		if err := copyFile(srcPath, dstPath); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func renderStructuredTemplates(sourceSkillRoot, artifactSkillRoot string) error {
@@ -697,7 +515,7 @@ func validateArtifactRoot(artifactRoot string) error {
 		return err
 	}
 	for _, skillRoot := range skillDirs {
-		if err := validateReferencedScripts(skillRoot, nil); err != nil {
+		if err := validateReferencedScripts(skillRoot); err != nil {
 			return err
 		}
 		if err := validateNoForbiddenPaths(skillRoot); err != nil {

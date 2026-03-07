@@ -256,23 +256,3 @@ func TestBoundaryInventoryRowDependsOnDisplay(t *testing.T) {
 	}
 }
 
-func TestSkillConfigRejectsDuplicates(t *testing.T) {
-	s := SkillConfig{CommonScripts: []string{"foo.sh", "foo.sh"}}
-	if err := s.Validate(); err == nil {
-		t.Fatal("expected error for duplicate common_scripts, got nil")
-	}
-}
-
-func TestSkillConfigRejectsEmptyItem(t *testing.T) {
-	s := SkillConfig{CommonScripts: []string{"foo.sh", ""}}
-	if err := s.Validate(); err == nil {
-		t.Fatal("expected error for empty common_scripts item, got nil")
-	}
-}
-
-func TestCommonDependencySpecRejectsEmptyDependency(t *testing.T) {
-	c := CommonDependencySpec{Dependencies: []string{"ok.sh", ""}, InstallPath: "scripts/ok.sh"}
-	if err := c.Validate(); err == nil {
-		t.Fatal("expected error for empty dependency, got nil")
-	}
-}

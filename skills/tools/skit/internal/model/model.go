@@ -34,54 +34,6 @@ func validateNonEmptyStringList(fieldName string, values []string, allowEmpty bo
 	return nil
 }
 
-// ---- Build models ----
-
-// SkillConfig is the parsed representation of a skill's skill.json.
-type SkillConfig struct {
-	CommonScripts []string `json:"common_scripts"`
-}
-
-func (s *SkillConfig) Validate() error {
-	seen := make(map[string]bool)
-	for _, v := range s.CommonScripts {
-		if v == "" {
-			return fmt.Errorf("common_scripts items must be non-empty strings")
-		}
-		if seen[v] {
-			return fmt.Errorf("duplicate common_scripts entry: %s", v)
-		}
-		seen[v] = true
-	}
-	return nil
-}
-
-// CommonDependencySpec describes a single common script entry in dependencies.json.
-type CommonDependencySpec struct {
-	Dependencies []string `json:"dependencies"`
-	InstallPath  string   `json:"install_path"`
-}
-
-func (c *CommonDependencySpec) Validate() error {
-	for _, v := range c.Dependencies {
-		if v == "" {
-			return fmt.Errorf("dependencies must contain only non-empty strings")
-		}
-	}
-	return nil
-}
-
-// CommonDependencyGraph is the top-level parsed representation of dependencies.json.
-type CommonDependencyGraph map[string]*CommonDependencySpec
-
-func (g CommonDependencyGraph) Validate() error {
-	for _, spec := range g {
-		if err := spec.Validate(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // ---- Design template row models ----
 
 type ClarificationRow struct {

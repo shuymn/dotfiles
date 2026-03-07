@@ -65,65 +65,6 @@ func buildToTempDir(t *testing.T) string {
 	return artifactRoot
 }
 
-func TestSourceSkillsHaveNoParentTraversalHelperRefs(t *testing.T) {
-	srcRoot := skillsSourceRoot()
-	entries, err := os.ReadDir(srcRoot)
-	if err != nil {
-		t.Fatalf("ReadDir: %v", err)
-	}
-
-	for _, e := range entries {
-		if e.Name() == "common" || e.Name() == "tests" || !e.IsDir() {
-			continue
-		}
-		skillRoot := filepath.Join(srcRoot, e.Name())
-
-		// Must not have scripts/lib sub-dir directly.
-		libPath := filepath.Join(skillRoot, "scripts", "lib")
-		if _, err := os.Stat(libPath); err == nil {
-			t.Errorf("%s: unexpected scripts/lib directory", e.Name())
-		}
-
-		// Check for forbidden patterns in text files.
-		forbidden := []string{"../../common/scripts/", "../_shared", "../../_shared"}
-		err := filepath.WalkDir(skillRoot, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if d.IsDir() {
-				return nil
-			}
-			ext := filepath.Ext(d.Name())
-			switch ext {
-			case ".md", ".sh", ".txt":
-			default:
-				return nil
-			}
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			s := string(data)
-			for _, pattern := range forbidden {
-				if strings.Contains(s, pattern) {
-					t.Errorf("%s: forbidden pattern %q in %s", e.Name(), pattern, path)
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			t.Errorf("WalkDir %s: %v", e.Name(), err)
-		}
-	}
-
-	// Verify expected common lib files exist.
-	for _, name := range []string{"llm-check-output.sh", "path-display.sh"} {
-		p := filepath.Join(srcRoot, "common", "scripts", "lib", name)
-		if _, err := os.Stat(p); err != nil {
-			t.Errorf("expected common lib file: %s", p)
-		}
-	}
-}
 
 func TestSourceMarkdownUsesExplicitSkillRootForRuntimeRefs(t *testing.T) {
 	srcRoot := skillsSourceRoot()
@@ -133,7 +74,7 @@ func TestSourceMarkdownUsesExplicitSkillRootForRuntimeRefs(t *testing.T) {
 	}
 
 	for _, e := range entries {
-		if e.Name() == "common" || e.Name() == "tests" || !e.IsDir() {
+		if e.Name() == "tests" || !e.IsDir() {
 			continue
 		}
 		skillRoot := filepath.Join(srcRoot, e.Name())
@@ -182,24 +123,12 @@ func TestBuildOutputsStandaloneArtifacts(t *testing.T) {
 		t.Fatalf("WalkDir: %v", err)
 	}
 
-	// Specific artifact checks.
-	checkExists := []string{
+	// Specific artifact checks: common scripts must not appear in artifacts.
+	checkNotExists := []string{
 		filepath.Join(artifactRoot, "design-doc", "scripts", "gate-check.sh"),
-		filepath.Join(artifactRoot, "setup-ralph", "scripts", "gate-check.sh"),
+		filepath.Join(artifactRoot, "design-doc", "scripts", "split-check.sh"),
 		filepath.Join(artifactRoot, "design-doc", "scripts", "lib", "llm-check-output.sh"),
 		filepath.Join(artifactRoot, "design-doc", "scripts", "lib", "path-display.sh"),
-	}
-	for _, p := range checkExists {
-		if _, err := os.Stat(p); err != nil {
-			t.Errorf("expected artifact file missing: %s", p)
-		}
-	}
-
-	checkNotExists := []string{
-		filepath.Join(artifactRoot, "design-doc", "scripts", "split-check.sh"),
-		filepath.Join(artifactRoot, "design-doc", "scripts", "llm-check-output.sh"),
-		filepath.Join(artifactRoot, "design-doc", "scripts", "path-display.sh"),
-		filepath.Join(artifactRoot, "design-doc", "skill.json"),
 	}
 	for _, p := range checkNotExists {
 		if _, err := os.Stat(p); err == nil {
@@ -261,40 +190,3 @@ func TestBuildIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestBuiltShellScriptsAreExecutable(t *testing.T) {
-	artifactRoot := buildToTempDir(t)
-
-	targetScripts := map[string]bool{
-		"digest-stamp.sh": true,
-		"gate-check.sh":   true,
-	}
-
-	var found []string
-	err := filepath.WalkDir(artifactRoot, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && targetScripts[d.Name()] {
-			found = append(found, path)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("WalkDir: %v", err)
-	}
-
-	if len(found) == 0 {
-		t.Fatal("no target shell scripts found in artifact")
-	}
-
-	for _, path := range found {
-		info, err := os.Stat(path)
-		if err != nil {
-			t.Errorf("Stat %s: %v", path, err)
-			continue
-		}
-		if info.Mode()&0o111 == 0 {
-			t.Errorf("shell script not executable: %s (mode %o)", path, info.Mode())
-		}
-	}
-}
