@@ -2,6 +2,7 @@ PROJECT_ROOT := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 SOURCE_ROOT := $(abspath $(PROJECT_ROOT)/src)
 ARTIFACT_ROOT := $(abspath $(PROJECT_ROOT)/../etc/claude/skills)
 MANIFEST_PATH := $(ARTIFACT_ROOT)/.dotfiles-managed-skills.json
+SKITKIT_BIN := $(PROJECT_ROOT)/tools/skit/skitkit
 SKILLS_MARKER := .dotfiles-managed
 SKILLS_CMD := bunx --bun skills
 SKILLS_AGENTS := codex claude-code
@@ -22,7 +23,7 @@ help: ## Self-documented Makefile
 build: ## Build standalone skills artifacts into ../etc/claude/skills
 	@$(MAKE) -C $(PROJECT_ROOT)/tools/skit build
 	@printf '\n[skills-sync] step=build start\n'
-	@$(PROJECT_ROOT)/tools/skit/skit build-skills \
+	@$(SKITKIT_BIN) build-skills \
 		--source "$(SOURCE_ROOT)" \
 		--artifact "$(ARTIFACT_ROOT)"
 	@printf '[skills-sync] step=build done\n'
@@ -36,7 +37,7 @@ install: ## Install built managed skills via skills CLI
 	@printf '\n[skills-sync] step=install start\n'
 	@printf '[skills-sync] note=bunx-skills-output-uncontrolled\n'
 	@$(SKILLS_CMD) add "$(ARTIFACT_ROOT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
-	@$(PROJECT_ROOT)/tools/skit/skit mark-managed \
+	@$(SKITKIT_BIN) mark-managed \
 		--manifest "$(MANIFEST_PATH)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
 		--marker "$(SKILLS_MARKER)"
@@ -45,7 +46,7 @@ install: ## Install built managed skills via skills CLI
 .PHONY: reconcile
 reconcile: ## Remove stale managed skills while preserving external skills
 	@printf '\n[skills-sync] step=reconcile start\n'
-	@$(PROJECT_ROOT)/tools/skit/skit reconcile \
+	@$(SKITKIT_BIN) reconcile \
 		--manifest "$(MANIFEST_PATH)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
 		--marker "$(SKILLS_MARKER)" \
@@ -59,7 +60,7 @@ list-managed: ## Print the generated skills manifest
 .PHONY: audit-codex
 audit-codex: ## Audit ~/.codex/skills and prune duplicates found in ~/.agents/skills
 	@printf '\n[skills-sync] step=codex-audit start\n'
-	@$(PROJECT_ROOT)/tools/skit/skit audit-codex \
+	@$(SKITKIT_BIN) audit-codex \
 		--manifest "$(MANIFEST_PATH)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
 		--codex-skills "$(CODEX_SKILLS_HOME)" \
