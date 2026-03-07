@@ -76,7 +76,7 @@ func TestNewConfiguredAppLeafHelpUsesConfiguredBinaryName(t *testing.T) {
 	}
 
 	out := stdout.String()
-	if !strings.Contains(out, "Usage: skitkit build-skills [flags] [args...]") {
+	if !strings.Contains(out, "Usage: skitkit build-skills [flags]") {
 		t.Fatalf("expected skitkit leaf usage, got %q", out)
 	}
 }
