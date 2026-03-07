@@ -24,6 +24,7 @@ func main() {
 	app.Register(cmd.DigestStamp())
 	app.Register(cmd.StructuralCheck())
 	app.Register(cmd.ReviewFinalize())
+	app.Register(cmd.GateCheck())
 
 	// scripts
 	app.Register(cmd.BuildSkills())
