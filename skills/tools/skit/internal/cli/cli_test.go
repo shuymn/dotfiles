@@ -18,8 +18,8 @@ func TestRunContextNoSubcommandEmitsStructuredError(t *testing.T) {
 	assertExitCode(t, err, 1)
 
 	result := decodeJSONLine(t, app.Stdout.(*bytes.Buffer).String())
-	if result["msg"] != "cli-error" {
-		t.Fatalf("expected cli-error message, got %v", result["msg"])
+	if result["status"] != "FAIL" {
+		t.Fatalf("expected FAIL status, got %v", result["status"])
 	}
 	if result["code"] != "NO_SUBCOMMAND" {
 		t.Fatalf("expected NO_SUBCOMMAND, got %v", result["code"])
@@ -45,11 +45,15 @@ func TestRootHelpFlagsPrintUsage(t *testing.T) {
 	}
 }
 
-func TestHelpSubcommandPrintsLeafUsage(t *testing.T) {
+func TestHelpSubcommandPrintsGeneratedLeafUsage(t *testing.T) {
 	app := newTestApp()
 	cmd := NewCommand("build-skills", "Build skill artifacts")
-	var source string
+	var source, planFile, profile string
+	var inputs []string
 	cmd.StringVar(&source, "source", "s", "", "Source root")
+	cmd.StringArg(&planFile, "plan-file", "Plan file")
+	cmd.OptionalStringArg(&profile, "profile", "Execution profile")
+	cmd.StringArgs(&inputs, "input", "Extra inputs")
 	app.Root.Add(cmd)
 
 	if err := app.RunContext(context.Background(), []string{"help", "build-skills"}); err != nil {
@@ -57,21 +61,27 @@ func TestHelpSubcommandPrintsLeafUsage(t *testing.T) {
 	}
 
 	out := app.Stdout.(*bytes.Buffer).String()
-	if !strings.Contains(out, "Usage: skit build-skills [flags] [args...]") {
+	if !strings.Contains(out, "Usage: skit build-skills [flags] <plan-file> [profile] [input...]") {
 		t.Fatalf("expected leaf usage, got %q", out)
 	}
 	if !strings.Contains(out, "--source, -s <value>") {
 		t.Fatalf("expected flag help, got %q", out)
 	}
+	if !strings.Contains(out, "Arguments:") || !strings.Contains(out, "<plan-file>") {
+		t.Fatalf("expected arguments help, got %q", out)
+	}
 }
 
-func TestDispatchWithNestedCommandAndNormalizedFlags(t *testing.T) {
+func TestDispatchWithNestedCommandAndDeclarativeArgs(t *testing.T) {
 	app := newTestApp()
 	parent := NewCommand("parent", "parent command")
 	child := NewCommand("child", "child command")
 
 	var (
 		path    string
+		target  string
+		profile string
+		inputs  []string
 		verbose bool
 		force   bool
 		color   = true
@@ -82,6 +92,9 @@ func TestDispatchWithNestedCommandAndNormalizedFlags(t *testing.T) {
 	child.BoolVar(&verbose, "verbose", "v", false, "Verbose")
 	child.BoolVar(&force, "force", "f", false, "Force")
 	child.BoolVar(&color, "color", "c", true, "Color")
+	child.StringArg(&target, "target", "Target id")
+	child.OptionalStringArg(&profile, "profile", "Execution profile")
+	child.StringArgs(&inputs, "input", "Extra inputs")
 	child.Run = func(ctx context.Context, s *State) error {
 		got = s
 		return nil
@@ -90,7 +103,7 @@ func TestDispatchWithNestedCommandAndNormalizedFlags(t *testing.T) {
 	app.Root.Add(parent)
 
 	err := app.RunContext(context.Background(), []string{
-		"parent", "child", "pos1", "--path=dst", "-vf", "--no-color", "--", "--literal",
+		"parent", "child", "task-1", "prod", "input-1", "--path=dst", "-vf", "--no-color", "--", "--literal",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -102,11 +115,67 @@ func TestDispatchWithNestedCommandAndNormalizedFlags(t *testing.T) {
 	if path != "dst" || !verbose || !force || color {
 		t.Fatalf("unexpected flag state path=%q verbose=%t force=%t color=%t", path, verbose, force, color)
 	}
+	if target != "task-1" || profile != "prod" {
+		t.Fatalf("unexpected positional binding target=%q profile=%q", target, profile)
+	}
+	if !reflect.DeepEqual(inputs, []string{"input-1", "--literal"}) {
+		t.Fatalf("expected rest args [input-1 --literal], got %v", inputs)
+	}
 	if !reflect.DeepEqual(got.Path, []string{"parent", "child"}) {
 		t.Fatalf("expected path [parent child], got %v", got.Path)
 	}
-	if !reflect.DeepEqual(got.Args, []string{"pos1", "--literal"}) {
-		t.Fatalf("expected args [pos1 --literal], got %v", got.Args)
+	if got.Stdout != app.Stdout || got.Stderr != app.Stderr || got.Stdin != app.Stdin {
+		t.Fatal("expected injected stdio in state")
+	}
+}
+
+func TestParentHelpPrintedWhenTrailingHelpFlagUsed(t *testing.T) {
+	app := newTestApp()
+	parent := NewCommand("parent", "parent command")
+	parent.Add(NewCommand("child", "child command"))
+	app.Root.Add(parent)
+
+	if err := app.RunContext(context.Background(), []string{"parent", "--help"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	out := app.Stdout.(*bytes.Buffer).String()
+	if !strings.Contains(out, "Usage: skit parent <command> [flags]") {
+		t.Fatalf("expected parent usage, got %q", out)
+	}
+}
+
+func TestMissingRequiredArgumentEmitsStructuredJSON(t *testing.T) {
+	app := newTestApp()
+	cmd := NewCommand("count", "count command")
+	var planFile string
+	cmd.StringArg(&planFile, "plan-file", "Plan file")
+	cmd.Run = func(ctx context.Context, s *State) error { return nil }
+	app.Root.Add(cmd)
+
+	err := app.RunContext(context.Background(), []string{"count"})
+	assertExitCode(t, err, 1)
+
+	result := decodeJSONLine(t, app.Stdout.(*bytes.Buffer).String())
+	if result["code"] != "MISSING_REQUIRED_ARGUMENT" {
+		t.Fatalf("expected MISSING_REQUIRED_ARGUMENT, got %v", result["code"])
+	}
+}
+
+func TestTooManyArgumentsEmitsStructuredJSON(t *testing.T) {
+	app := newTestApp()
+	cmd := NewCommand("count", "count command")
+	var planFile string
+	cmd.StringArg(&planFile, "plan-file", "Plan file")
+	cmd.Run = func(ctx context.Context, s *State) error { return nil }
+	app.Root.Add(cmd)
+
+	err := app.RunContext(context.Background(), []string{"count", "plan.md", "extra.md"})
+	assertExitCode(t, err, 1)
+
+	result := decodeJSONLine(t, app.Stdout.(*bytes.Buffer).String())
+	if result["code"] != "TOO_MANY_ARGUMENTS" {
+		t.Fatalf("expected TOO_MANY_ARGUMENTS, got %v", result["code"])
 	}
 }
 
@@ -160,9 +229,11 @@ func TestInputHardeningRejectsControlCharacters(t *testing.T) {
 	}
 }
 
-func TestInputHardeningRejectsPreEncodedSequences(t *testing.T) {
+func TestInputHardeningRejectsPreEncodedPositionalSequences(t *testing.T) {
 	app := newTestApp()
 	cmd := NewCommand("check", "check command")
+	var path string
+	cmd.StringArg(&path, "path", "Path")
 	cmd.Run = func(ctx context.Context, s *State) error { return nil }
 	app.Root.Add(cmd)
 
@@ -243,6 +314,7 @@ func TestNilRunEmitsStructuredJSON(t *testing.T) {
 
 func newTestApp() *App {
 	app := New("skit", "skill toolkit")
+	app.Stdin = strings.NewReader("")
 	app.Stdout = &bytes.Buffer{}
 	app.Stderr = &bytes.Buffer{}
 	return app
