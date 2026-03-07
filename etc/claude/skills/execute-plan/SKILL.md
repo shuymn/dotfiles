@@ -37,7 +37,7 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 
 Before executing any task in implement mode, verify the plan review gate:
 
-1. Run `<skill-root>/scripts/gate-check.sh <plan.review.md> <plan.md>`.
+1. Run `skit gate-check <plan.review.md> <plan.md>`.
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `decompose-plan review` first.
 
@@ -80,7 +80,7 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
      - `Updated At`
    - `Checkpoint Summary` has `Alignment Verdict: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
-   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has `Overall Verdict: PASS`. All sub-verdicts are validated programmatically by `gate-check.sh`.
+   - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has `Overall Verdict: PASS`. All sub-verdicts are validated programmatically by `skit gate-check`.
 5. Check task dependencies:
    - Treat dependency status as satisfied only when the user explicitly confirms prerequisites are already satisfied.
    - If explicit user confirmation is missing, stop and ask for confirmation.

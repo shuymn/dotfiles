@@ -42,7 +42,7 @@ No exceptions. Not even "just to test one thing" or "the first task is trivial."
 
 Before starting decomposition in create mode, verify the design review gate:
 
-1. Run `<skill-root>/scripts/gate-check.sh <design.review.md> <design.md>`.
+1. Run `skit gate-check <design.review.md> <design.md>`.
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current design file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `design-doc review` first.
 
