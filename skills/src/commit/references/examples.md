@@ -2,20 +2,24 @@
 
 ## Examples of Meaningful Units
 
-**Good (separate commits):**
+**Good (single logical changes):**
 - `fix(auth): handle null user sessions`
 - `refactor(auth): extract session validation logic`
 - `feat(auth): add remember me option`
+- `feat: harden MySQL and CLI input validation`
 
-**Bad (bundled together):**
+**Bad (bundled or misleading):**
 - `fix(auth): handle null sessions and add remember me option and refactor validation`
+- `feat(mysql,cli,testkit): harden error handling and input validation`
+
+If you think a message needs multiple scopes, try splitting it into separate commits first. If the work is one inseparable logical change, use `type: subject`.
 
 ## When Uncertain About Grouping — Example Prompt
 
 ```
-I see changes to both authentication and user profile code. I'm unsure if these should be:
-1. One commit (if profile changes depend on auth changes)
-2. Two commits (if they're independent improvements)
+I see changes to both authentication and user profile code. Multiple scopes are usually a sign these should be split, so I'm considering:
+1. Two commits (if the changes can be reviewed and reverted independently)
+2. One commit without scope (if both changes are one inseparable logical change)
 
 The changes are:
 - auth.js: Added session timeout handling
@@ -42,6 +46,10 @@ How would you like me to group these changes?
 **Style + Logic Changes:**
 - COMMIT 1: Fix business logic error
 - COMMIT 2: Format/lint the affected files
+
+**Cross-Cutting But Inseparable:**
+- Use one commit without scope only when splitting would break one logical change
+- Example: `feat: harden request validation across CLI and API entrypoints`
 
 ## Patch-Based Partial Staging
 
