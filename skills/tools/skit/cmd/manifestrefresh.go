@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"skit/internal/cli"
-	"skit/internal/manifest"
-	"skit/internal/pathutil"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
 
 const (

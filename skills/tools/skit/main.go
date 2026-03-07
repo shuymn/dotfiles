@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"skit/cmd"
-	"skit/internal/cli"
+	"github.com/shuymn/dotfiles/skills/tools/skit/cmd"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	gotemplate "text/template"
 
-	"skit/internal/model"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 // TemplateRenderError is returned when a structured template cannot be rendered.

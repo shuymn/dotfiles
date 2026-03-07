@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"skit/internal/cli"
-	skitlog "skit/internal/log"
-	"skit/internal/pathutil"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
+	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
 
 const dsToolName = "digest-stamp"

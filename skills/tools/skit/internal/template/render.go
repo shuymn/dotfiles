@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"skit/internal/model"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/model"
 )
 
 // RenderMarkdownTable renders a padded Markdown table from headers and rows.

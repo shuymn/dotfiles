@@ -11,10 +11,10 @@ import (
 	"sort"
 	"strings"
 
-	"skit/internal/cli"
-	skitlog "skit/internal/log"
-	"skit/internal/manifest"
-	"skit/internal/pathutil"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
+	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/pathutil"
 )
 
 const reconcileTool = "reconcile"

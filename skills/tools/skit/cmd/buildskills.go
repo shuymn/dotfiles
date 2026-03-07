@@ -12,9 +12,9 @@ import (
 	"sort"
 	"strings"
 
-	"skit/internal/cli"
-	"skit/internal/manifest"
-	skittemplate "skit/internal/template"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/manifest"
+	skittemplate "github.com/shuymn/dotfiles/skills/tools/skit/internal/template"
 )
 
 const (

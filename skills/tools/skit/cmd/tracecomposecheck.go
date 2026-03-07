@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"skit/internal/cli"
-	skitlog "skit/internal/log"
+	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
+	skitlog "github.com/shuymn/dotfiles/skills/tools/skit/internal/log"
 )
 
 const traceComposeCheckToolName = "trace-compose-check"
