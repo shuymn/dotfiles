@@ -4,11 +4,10 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
-import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from collections import deque
 from pathlib import Path, PurePosixPath
@@ -85,26 +84,7 @@ class CommonScriptSpec:
         return Path(*self.install_path.parts)
 
 
-def load_manifest_helpers() -> tuple[object, object, object]:
-    module_path = SCRIPT_DIR / "skills_manifest_refresh.py"
-    spec = importlib.util.spec_from_file_location(
-        "skills_manifest_refresh", module_path
-    )
-    if spec is None or spec.loader is None:
-        raise BuildError(f"failed to load skills_manifest_refresh: {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return (
-        module.build_manifest,
-        module.discover_skills,
-        module.format_source_root_for_manifest,
-    )
-
-
-build_manifest, discover_skills, format_source_root_for_manifest = (
-    load_manifest_helpers()
-)
+SKIT_BIN = SCRIPT_DIR.parent / "tools" / "skit" / "skit"
 
 
 def log(message: str) -> None:
@@ -151,10 +131,10 @@ def clean_artifact_root(artifact_root: Path) -> None:
 
 
 def write_manifest(artifact_root: Path) -> None:
-    manifest_path = artifact_root / MANIFEST_NAME
-    manifest_source_root = format_source_root_for_manifest(artifact_root, manifest_path)
-    manifest = build_manifest(manifest_source_root, discover_skills(artifact_root))
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    subprocess.run(
+        [str(SKIT_BIN), "manifest-refresh", "--source", str(artifact_root)],
+        check=True,
+    )
 
 
 def iter_text_files(root: Path) -> list[Path]:

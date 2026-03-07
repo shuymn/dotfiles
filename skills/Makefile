@@ -19,7 +19,7 @@ help: ## Self-documented Makefile
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: ## Build standalone skills artifacts into ../etc/claude/skills
+build: build-skit ## Build standalone skills artifacts into ../etc/claude/skills
 	@printf '\n[skills-sync] step=build start\n'
 	@uv run python scripts/build_skills.py \
 		--source "$(SOURCE_ROOT)" \

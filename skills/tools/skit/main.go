@@ -26,6 +26,7 @@ func main() {
 	app.Register(cmd.ReviewFinalize())
 
 	// scripts
+	app.Register(cmd.ManifestRefresh())
 	app.Register(cmd.MarkManaged())
 	app.Register(cmd.Reconcile())
 	app.Register(cmd.AuditCodex())
