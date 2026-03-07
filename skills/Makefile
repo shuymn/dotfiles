@@ -21,29 +21,16 @@ help: ## Self-documented Makefile
 .PHONY: build
 build: build-skit ## Build standalone skills artifacts into ../etc/claude/skills
 	@printf '\n[skills-sync] step=build start\n'
-	@uv run python scripts/build_skills.py \
+	@$(PROJECT_ROOT)/tools/skit/skit build-skills \
 		--source "$(SOURCE_ROOT)" \
 		--artifact "$(ARTIFACT_ROOT)"
 	@printf '[skills-sync] step=build done\n'
 
 .PHONY: test
-test: ## Run pytest against src/ and tests/
+test: ## Run Go tests for skit
 	@printf '\n[skills-sync] step=test start\n'
-	@uv run --group dev pytest
+	@cd $(PROJECT_ROOT)/tools/skit && go test ./...
 	@printf '[skills-sync] step=test done\n'
-
-.PHONY: fmt
-fmt: ## Format Python files under src/, tests/, and scripts/
-	@printf '\n[skills-sync] step=fmt start\n'
-	@uv run --group dev ruff check --select I --fix src tests scripts
-	@uv run --group dev ruff format src tests scripts
-	@printf '[skills-sync] step=fmt done\n'
-
-.PHONY: lint
-lint: ## Lint Python files under src/, tests/, and scripts/
-	@printf '\n[skills-sync] step=lint start\n'
-	@uv run --group dev ruff check src tests scripts
-	@printf '[skills-sync] step=lint done\n'
 
 .PHONY: install
 install: ## Install built managed skills via skills CLI
