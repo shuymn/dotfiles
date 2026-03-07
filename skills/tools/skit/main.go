@@ -24,5 +24,9 @@ func main() {
 	app.Register(cmd.DigestStamp())
 	app.Register(cmd.StructuralCheck())
 	app.Register(cmd.ReviewFinalize())
+
+	// scripts
+	app.Register(cmd.MarkManaged())
+
 	os.Exit(app.Run(os.Args))
 }

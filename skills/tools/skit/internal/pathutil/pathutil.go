@@ -7,6 +7,19 @@ import (
 	"strings"
 )
 
+// ExpandAndAbs expands a leading "~/" to the home directory and returns an absolute path.
+func ExpandAndAbs(p string) string {
+	if strings.HasPrefix(p, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			p = filepath.Join(home, p[2:])
+		}
+	}
+	if abs, err := filepath.Abs(p); err == nil {
+		return abs
+	}
+	return p
+}
+
 // DisplayPath returns a human-friendly display path.
 // Priority: git-root relative -> CWD relative -> HOME relative -> absolute.
 func DisplayPath(rawPath string) string {

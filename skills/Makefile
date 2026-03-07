@@ -50,7 +50,7 @@ install: ## Install built managed skills via skills CLI
 	@printf '\n[skills-sync] step=install start\n'
 	@printf '[skills-sync] note=bunx-skills-output-uncontrolled\n'
 	@$(SKILLS_CMD) add "$(ARTIFACT_ROOT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
-	@uv run python scripts/skills_mark_managed.py \
+	@$(PROJECT_ROOT)/tools/skit/skit mark-managed \
 		--manifest "$(MANIFEST_PATH)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
 		--marker "$(SKILLS_MARKER)"

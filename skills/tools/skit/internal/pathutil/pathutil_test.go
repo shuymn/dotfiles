@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func TestExpandAndAbsTilde(t *testing.T) {
+	home := os.Getenv("HOME")
+	if home == "" {
+		t.Skip("HOME not set")
+	}
+	got := ExpandAndAbs("~/foo")
+	want := filepath.Join(home, "foo")
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestExpandAndAbsAbsolute(t *testing.T) {
+	got := ExpandAndAbs("/tmp/foo")
+	if got != "/tmp/foo" {
+		t.Errorf("got %q, want /tmp/foo", got)
+	}
+}
+
 func TestDisplayPathEmpty(t *testing.T) {
 	if got := DisplayPath(""); got != "" {
 		t.Errorf("expected empty, got %q", got)
