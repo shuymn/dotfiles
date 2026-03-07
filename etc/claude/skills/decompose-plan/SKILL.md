@@ -42,7 +42,7 @@ No exceptions. Not even "just to test one thing" or "the first task is trivial."
 
 Before starting decomposition in create mode, verify the design review gate:
 
-1. Run `skit gate-check <design.review.md> <design.md>`.
+1. Run `skit gate-check <review-file> <source-file>`.
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current design file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `design-doc review` first.
 
@@ -50,7 +50,7 @@ Before starting decomposition in create mode, verify the design review gate:
 
 Before loading design atoms in create mode, verify that the source design's `single` / `root-sub` decision still holds:
 
-1. Run `skit split-check <design.md>`.
+1. Run `skit split-check <design-file>`.
 2. If the split check reports `FAIL`, stop as `BLOCKED` and request design updates before decomposition.
 3. If the split check reports advisories only, continue, but keep `plan.md` compact and avoid compensating for a weak split with duplicated boundary-local narrative.
 
@@ -277,7 +277,7 @@ For design atoms expressing hard behavioral constraints — restricting behavior
 6. Ensure each task in `plan.md` references `REQxx/ACxx` in `Satisfied Requirements` and has complete `Design Anchors`.
 7. Ensure each `TEMPxx` has introducing/retiring task mappings (or explicit waiver metadata) in `plan.trace.md`.
 8. Write `Checkpoint Summary` in `plan.md` using the required fixed format.
-9. Run `skit dep-graph-gen <plan.md>` to auto-generate `## Task Dependency Graph`. Do NOT write this section manually — the command generates it from `**Dependencies**` fields.
+9. Run `skit dep-graph-gen <plan-file>` to auto-generate `## Task Dependency Graph`. Do NOT write this section manually — the command generates it from `**Dependencies**` fields.
 
 ### Step 4: Structural Self-Check (Required)
 
@@ -300,7 +300,7 @@ The review agent writes `plan.review.draft.md`, and a finalizer script produces 
 1. Present the compact `plan.md` first.
 2. Mention that detailed traceability is in `plan.trace.md` and reconstruction evidence is in `plan.compose.md`.
 3. Apply feedback and update all impacted files.
-4. If feedback splits, merges, reorders, removes, renames, or adds tasks, treat dependency updates as whole-plan impact analysis: update the changed tasks and every other task whose `Dependencies`, ordering, or prerequisite assumptions reference the changed task IDs or boundaries (for example, if `T3` is split, also update each downstream `T<N>` that depended on `T3`). Do not limit the fix to the changed task itself. Then re-run `skit dep-graph-gen <plan.md>` to regenerate the Task Dependency Graph.
+4. If feedback splits, merges, reorders, removes, renames, or adds tasks, treat dependency updates as whole-plan impact analysis: update the changed tasks and every other task whose `Dependencies`, ordering, or prerequisite assumptions reference the changed task IDs or boundaries (for example, if `T3` is split, also update each downstream `T<N>` that depended on `T3`). Do not limit the fix to the changed task itself. Then re-run `skit dep-graph-gen <plan-file>` to regenerate the Task Dependency Graph.
 5. Re-run Structural Self-Check after each meaningful change.
 6. Repeat until the user explicitly approves.
 7. After approval, suggest running `decompose-plan review` (independent sub-agent verification) before `execute-plan`.
