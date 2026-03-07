@@ -21,7 +21,7 @@ make sync-skills
   - Symlinks `etc/claude/**` into `~/.claude/**` (excluding `etc/claude/skills/**`).
 - `make sync-skills`
   - Delegates to `skills/Makefile`.
-  - Rebuilds `etc/claude/skills/**` from `skills/src/**` before installation.
+  - Rebuilds `etc/claude/skills/**` from `skills/src/**` via `skitkit` before installation.
   - Manages skills from `etc/claude/skills/**` using `bunx --bun skills`.
   - Reconciles stale managed skills while preserving external/manual skills.
   - Treats `~/.agents/skills` as canonical and prunes only duplicates from `~/.codex/skills`.

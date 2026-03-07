@@ -10,7 +10,7 @@ Standalone project for skill source, build tooling, and validation.
   - Structured reference sections use `*.md.tmpl` + adjacent `*.fragments.json`; build renders them back to plain Markdown artifacts.
   - `src/common/` contains shared source-only helpers vendored into built artifacts.
 - `tools/skit/`
-  - Go-based CLI (`skit`) for build, validation, and management tasks. See [`tools/skit/README.md`](tools/skit/README.md).
+  - Go-based CLIs: `skit` for authoring/review checks and `skitkit` for build/sync management. See [`tools/skit/README.md`](tools/skit/README.md).
 - `Makefile`
   - Entrypoints for build, test, install, reconcile, audit, and sync.
 
@@ -19,7 +19,7 @@ Standalone project for skill source, build tooling, and validation.
 - `make -C skills build`
   - Build `../etc/claude/skills/**` from `src/**`.
 - `make -C skills sync`
-  - Build artifacts, install managed skills, reconcile stale managed skills, audit Codex duplicates, and sync `AGENTS.md`.
+  - Build artifacts via `skitkit`, install managed skills, reconcile stale managed skills, audit Codex duplicates, and sync `AGENTS.md`.
 
 ## Notes
 

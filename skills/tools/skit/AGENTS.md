@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 ## Commands
 
 ```bash
-make build          # go build -o skit .
+make build          # go build -ldflags "...BinaryName=skit ...CommandSet=authoring" -o skit . && go build -ldflags "...BinaryName=skitkit ...CommandSet=admin" -o skitkit .
 make test           # go test -race -count=10 -shuffle=on ./...
 
 go test -race -count=1 ./cmd/...   # single package
@@ -15,8 +15,8 @@ go test -race -count=1 ./cmd/...   # single package
 
 ## Architecture
 
-`skit` is a minimal Go CLI with no external deps. `internal/cli/` is a custom framework.
-Each subcommand: `cmd/<name>.go` exports `func <Name>() *cli.Command`, registered in `main.go`.
+`skit` and `skitkit` are minimal Go CLIs with no external deps. `internal/cli/` is a custom framework.
+Each subcommand: `cmd/<name>.go` exports `func <Name>() *cli.Command`, grouped by `internal/apps/` into authoring (`skit`) and admin (`skitkit`) command sets selected at build time via `-ldflags`.
 
 **Template system:** `.md.tmpl` + sibling `.fragments.json` → rendered `.md`.
 Three supported types in `internal/template/spec.go` (`design-templates`, `plan-templates`, `trace-templates`),
