@@ -19,7 +19,8 @@ help: ## Self-documented Makefile
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: build-skit ## Build standalone skills artifacts into ../etc/claude/skills
+build: ## Build standalone skills artifacts into ../etc/claude/skills
+	@$(MAKE) -C $(PROJECT_ROOT)/tools/skit build
 	@printf '\n[skills-sync] step=build start\n'
 	@$(PROJECT_ROOT)/tools/skit/skit build-skills \
 		--source "$(SOURCE_ROOT)" \
@@ -28,9 +29,7 @@ build: build-skit ## Build standalone skills artifacts into ../etc/claude/skills
 
 .PHONY: test
 test: ## Run Go tests for skit
-	@printf '\n[skills-sync] step=test start\n'
-	@cd $(PROJECT_ROOT)/tools/skit && go test ./...
-	@printf '[skills-sync] step=test done\n'
+	@$(MAKE) -C $(PROJECT_ROOT)/tools/skit test
 
 .PHONY: install
 install: ## Install built managed skills via skills CLI
@@ -74,12 +73,6 @@ codex-agents-md: ## Sync ../etc/claude/CLAUDE.md to ~/.codex/AGENTS.md
 	@mkdir -p $(dir $(CODEX_AGENTS_TARGET))
 	@cp -fv "$(CODEX_AGENTS_SOURCE)" "$(CODEX_AGENTS_TARGET)"
 	@printf '[skills-sync] step=codex-agents-md done\n'
-
-.PHONY: build-skit
-build-skit: ## Build skit Go binary into tools/skit/
-	@printf '\n[skills-sync] step=build-skit start\n'
-	@cd $(PROJECT_ROOT)/tools/skit && go build -o skit .
-	@printf '[skills-sync] step=build-skit done\n'
 
 .PHONY: sync
 sync: build install reconcile audit-codex codex-agents-md ## Build and install skills plus Codex sync
