@@ -62,7 +62,7 @@ Do NOT sync a plan that has not been explicitly approved by the user.
 6. Validate review report readiness:
    - Derive review path by replacing `plan.md` with `plan.review.md`.
    - The review file exists.
-   - Run gate check: `skit gate-check <plan.review.md> <plan.md>`. If exit code is non-zero, stop and ask the user to re-run `decompose-plan review`.
+   - Run gate check: `skit gate-check <review-file> <source-file>`. If exit code is non-zero, stop and ask the user to re-run `decompose-plan review`.
    - The review report contains (Review Metadata + Summary):
      - `Overall Verdict: PASS` (in `## Review Metadata`)
      - `Forward Fidelity: PASS`

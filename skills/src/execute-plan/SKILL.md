@@ -37,7 +37,7 @@ Do not continue to other tasks unless the user explicitly asks in a new instruct
 
 Before executing any task in implement mode, verify the plan review gate:
 
-1. Run `skit gate-check <plan.review.md> <plan.md>`.
+1. Run `skit gate-check <review-file> <source-file>`.
 2. The review file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `decompose-plan review` first.
 

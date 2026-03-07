@@ -20,7 +20,7 @@ allowed-tools: [Read, Bash, Grep, Glob, Write]
 
 Before starting adversarial verification, verify the dod-recheck gate:
 
-1. Run `skit gate-check <task-N.dod-recheck.md> <plan.md>`.
+1. Run `skit gate-check <review-file> <source-file>`.
 2. The dod-recheck file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `execute-plan dod-recheck` first.
 
