@@ -1,7 +1,0 @@
-{
-  "common_scripts": [
-    "gate-check.sh",
-    "llm-check-output.sh",
-    "path-display.sh"
-  ]
-}
