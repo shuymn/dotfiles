@@ -1,4 +1,4 @@
-package cmd
+package workflow
 
 import (
 	"crypto/sha256"
