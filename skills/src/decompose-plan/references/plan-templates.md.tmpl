@@ -18,7 +18,7 @@ Templates for `plan.md` output artifact.
 
 Project-wide checks that every task must pass at DoD.
 
-{{ render_fragment("quality_gates") }}
+{{ .quality_gates }}
 
 > Always required. Step 1.7 blocks if no quality gates detected.
 ```
@@ -28,7 +28,7 @@ Project-wide checks that every task must pass at DoD.
 ```markdown
 ## Checkpoint Summary
 
-{{ render_fragment("checkpoint_summary") }}
+{{ .checkpoint_summary }}
 ```
 
 ## Task Template

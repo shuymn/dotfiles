@@ -26,15 +26,15 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ## Clarifications
 
-{{ render_fragment("clarifications") }}
+{{ .clarifications }}
 
 ## Existing Codebase Constraints (Required for non-greenfield)
 
-{{ render_fragment("existing_codebase_constraints") }}
+{{ .existing_codebase_constraints }}
 
 ## Risk Classification
 
-{{ render_fragment("risk_classification") }}
+{{ .risk_classification }}
 
 <!-- Required when design is non-greenfield, or when greenfield touches Critical domains (auth, billing, access control, encryption, PII). -->
 <!-- Critical/Sensitive require structured Change Rationale: "Defect Impact: [...] / Blast Radius: [...]". Standard requires semantic justification: "Not Critical: [reason] / Not Sensitive: [reason]". If justification cannot be written, escalate to Sensitive or higher (confidence gate). -->
@@ -48,7 +48,7 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ### Boundary Inventory
 
-{{ render_fragment("boundary_inventory") }}
+{{ .boundary_inventory }}
 
 <!-- Required for both `single` and `root-sub`. -->
 <!-- Use `Integration-only` for root-only integration rows. -->
@@ -57,11 +57,11 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 ### Sub-Doc Index (required when root-sub)
 
-{{ render_fragment("sub_doc_index") }}
+{{ .sub_doc_index }}
 
 ### Root Coverage (required when root-sub)
 
-{{ render_fragment("root_coverage") }}
+{{ .root_coverage }}
 
 ## Proposed Solution
 
@@ -96,19 +96,19 @@ Use this structure as a starting point. Default to the Core Profile sections. Ad
 
 Use stable IDs (`TEMPxx`). For each entry, point to the lifecycle record (`ADR` preferred; local ledger acceptable for small/local mechanics).
 
-{{ render_fragment("temporary_mechanism_index") }}
+{{ .temporary_mechanism_index }}
 
 ### Sunset Closure Checklist
 
 Required for every `TEMPxx`, even when details are captured in ADR.
 
-{{ render_fragment("sunset_closure_checklist") }}
+{{ .sunset_closure_checklist }}
 
 If coordination or handoff risk exists, add optional `Owner` and `Target` columns.
 
 ## Decision Log
 
-{{ render_fragment("decision_log") }}
+{{ .decision_log }}
 
 ## Open Questions
 
@@ -116,7 +116,7 @@ If coordination or handoff risk exists, add optional `Owner` and `Target` column
 
 ## Acceptance Criteria
 
-{{ render_fragment("acceptance_criteria") }}
+{{ .acceptance_criteria }}
 
 <!-- See ears-types.md for EARS type definitions, syntax templates, and selection guidance. -->
 <!-- Contract Type: schema (data shape validation), api-contract (API interface compliance), cli-contract (CLI behavior compliance), behavioral (logic/state behavior), none (no specific contract). Default: behavioral. -->
@@ -232,5 +232,5 @@ Use this template for each sub document listed in the root design doc's `Sub-Doc
 
 ## Local Acceptance Criteria
 
-{{ render_fragment("sub_local_acceptance_criteria") }}
+{{ .sub_local_acceptance_criteria }}
 ```
