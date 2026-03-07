@@ -95,7 +95,7 @@ func TestSourceSkillsHaveNoParentTraversalHelperRefs(t *testing.T) {
 			}
 			ext := filepath.Ext(d.Name())
 			switch ext {
-			case ".md", ".py", ".sh", ".txt", ".j2":
+			case ".md", ".sh", ".txt":
 			default:
 				return nil
 			}
@@ -182,7 +182,7 @@ func TestBuildOutputsStandaloneArtifacts(t *testing.T) {
 		t.Fatalf("WalkDir: %v", err)
 	}
 
-	// Specific artifact checks from Python tests.
+	// Specific artifact checks.
 	checkExists := []string{
 		filepath.Join(artifactRoot, "design-doc", "scripts", "gate-check.sh"),
 		filepath.Join(artifactRoot, "setup-ralph", "scripts", "gate-check.sh"),

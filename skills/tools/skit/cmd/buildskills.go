@@ -33,14 +33,8 @@ const (
 
 var (
 	buildSkillsIgnoredNames = map[string]bool{
-		"__pycache__":        true,
-		".pytest_cache":      true,
 		"tests":              true,
 		buildSkillsSkillConfig: true,
-	}
-	buildSkillsIgnoredSuffixes = map[string]bool{
-		".pyc": true,
-		".pyo": true,
 	}
 
 	// SCRIPT_REFERENCE_PATTERN matches script references in SKILL.md.
@@ -54,7 +48,7 @@ var (
 		hint string
 	}{
 		{
-			regexp.MustCompile(`(?i)\b(?:re-)?run ` + "`" + `(?:uv run(?: --with [A-Za-z0-9._-]+)* python |bash )?scripts/`),
+			regexp.MustCompile(`(?i)\b(?:re-)?run ` + "`" + `(?:bash )?scripts/`),
 			"use <skill-root>/scripts/... for executed helper commands",
 		},
 		{
@@ -72,7 +66,6 @@ var (
 
 	buildSkillsTextSuffixes = map[string]bool{
 		".md":   true,
-		".py":   true,
 		".sh":   true,
 		".txt":  true,
 		".json": true,
@@ -228,13 +221,8 @@ func buildSkillsShouldIgnore(name string) bool {
 	if buildSkillsIgnoredNames[name] {
 		return true
 	}
-	ext := filepath.Ext(name)
-	if buildSkillsIgnoredSuffixes[ext] {
-		return true
-	}
 	return strings.HasSuffix(name, buildSkillsTmplSuffix) ||
-		strings.HasSuffix(name, buildSkillsFragSuffix) ||
-		strings.HasSuffix(name, ".md.j2") // Python Jinja2 template, rendered by Go as .md.tmpl
+		strings.HasSuffix(name, buildSkillsFragSuffix)
 }
 
 func isSkillDir(path string) bool {
@@ -674,8 +662,7 @@ func validateArtifactRoot(artifactRoot string) error {
 			return err
 		}
 		name := d.Name()
-		if buildSkillsIgnoredNames[name] || buildSkillsIgnoredSuffixes[filepath.Ext(name)] ||
-			strings.HasSuffix(name, buildSkillsTmplSuffix) || strings.HasSuffix(name, buildSkillsFragSuffix) {
+		if buildSkillsShouldIgnore(name) {
 			rel, _ := filepath.Rel(artifactRoot, path)
 			leakedPaths = append(leakedPaths, rel)
 		}
