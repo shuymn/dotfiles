@@ -28,6 +28,7 @@ func main() {
 	// scripts
 	app.Register(cmd.MarkManaged())
 	app.Register(cmd.Reconcile())
+	app.Register(cmd.AuditCodex())
 
 	os.Exit(app.Run(os.Args))
 }

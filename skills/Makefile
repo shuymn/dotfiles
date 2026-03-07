@@ -73,7 +73,7 @@ list-managed: ## Print the generated skills manifest
 .PHONY: audit-codex
 audit-codex: ## Audit ~/.codex/skills and prune duplicates found in ~/.agents/skills
 	@printf '\n[skills-sync] step=codex-audit start\n'
-	@uv run python scripts/audit_codex_skills.py \
+	@$(PROJECT_ROOT)/tools/skit/skit audit-codex \
 		--manifest "$(MANIFEST_PATH)" \
 		--agents-skills "$(AGENTS_SKILLS_HOME)" \
 		--codex-skills "$(CODEX_SKILLS_HOME)" \

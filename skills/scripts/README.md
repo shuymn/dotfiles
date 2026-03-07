@@ -14,10 +14,6 @@ Helper scripts for the local `skills/Makefile` workflow.
 - `skills_manifest_refresh.py`
   - Shared helper used by `build_skills.py` to generate the managed manifest.
   - Scans a skills artifact tree and writes a machine-independent manifest.
-- `audit_codex_skills.py`
-  - Audits `~/.codex/skills` and detects entries duplicated in `~/.agents/skills`.
-  - In `make skills-audit-codex`, duplicate entries are pruned from `~/.codex/skills`.
-  - Codex-only entries are preserved.
 
 ## Usage
 
