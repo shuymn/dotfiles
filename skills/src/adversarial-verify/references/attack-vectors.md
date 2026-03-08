@@ -90,7 +90,8 @@ Match attack categories to the **semantic characteristics** of the change, not t
 
 Refer to the Change Rationale's `Defect Impact` and `Blast Radius` to determine category priority — prioritize categories whose attack surface overlaps with the stated defect impact and blast radius.
 
-## Project-Specific Vectors
+## Maintainer-Curated Extension Vectors
 
-<!-- Populated automatically when adversarial-verify discovers vulnerabilities (FAIL→fix→PASS cycle). -->
+<!-- Optional extension area for maintainers of this skill source. -->
+<!-- Normal adversarial verification runs must not edit this file. -->
 <!-- Format: - **[Category]: [Vector Name]**: [Description and attack method]. Source: Task N, YYYY-MM-DD. -->

@@ -20,8 +20,8 @@ allowed-tools: [Read, Bash, Grep, Glob, Write]
 
 Before starting adversarial verification, verify the dod-recheck gate:
 
-1. Run `skit gate-check <review-file> <source-file>`.
-2. The dod-recheck file must exist, contain `Overall Verdict: PASS`, and be fresh for the current task contract (task-scoped freshness, not whole-plan freshness).
+1. Run `skit gate-check <dod-recheck-file> <plan-file>`.
+2. The dod-recheck artifact must exist, contain `Overall Verdict: PASS`, and be fresh for the current task contract (task-scoped freshness, not whole-plan freshness).
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `execute-plan dod-recheck` first.
 
 ## Tier-Based Invocation Policy
@@ -46,8 +46,8 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 ## Procedure
 
 1. **Generate Header**: Run `skit digest-stamp adversarial-verify <plan-file>` to produce the verification metadata header.
-2. **Load Context**: Read the Adversarial Verify Input block, all implementation files listed, and `references/attack-vectors.md` (including the `## Project-Specific Vectors` section).
-3. **Select Attack Categories**: Based on the Change Areas and Change Rationale, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change. If `## Project-Specific Vectors` contains vectors matching the change characteristics, include them as additional probe targets regardless of the selected categories.
+2. **Load Context**: Read the Adversarial Verify Input block, all implementation files listed, and `<skill-root>/references/attack-vectors.md` (including the optional `## Maintainer-Curated Extension Vectors` section when present).
+3. **Select Attack Categories**: Based on the Change Areas and Change Rationale, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change. If `## Maintainer-Curated Extension Vectors` contains vectors matching the change characteristics, include them as additional probe targets regardless of the selected categories.
 4. **Execute Attacks**: For each selected attack vector:
    - Design a concrete test or probe targeting the implementation.
    - Create the test file (naming: `*_adversarial_test.*` or in a dedicated `adversarial/` directory).
@@ -89,7 +89,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 - Task completion is revoked — the task is not considered done.
 - The full chain must be re-executed: `execute-plan(implement)` → `execute-plan(dod-recheck)` → `adversarial-verify`.
 - Report specific vulnerabilities with reproduction steps.
-- After the FAIL→fix→re-execute chain completes with PASS, append each discovered vulnerability to `references/attack-vectors.md` under `## Project-Specific Vectors`. Format: `- **[Category]: [Vector Name]**: [Description and attack method]. Source: Task N, YYYY-MM-DD.`
+- If the run reveals a reusable attack vector, record it in the adversarial report and propose a separate skill-maintenance task. Do NOT edit `<skill-root>/references/attack-vectors.md` during adversarial verification.
 
 ## Output Format
 
@@ -98,7 +98,7 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 
 ## Verification Metadata
 
-<digest-stamp.sh output>
+<digest-stamp output>
 - **Overall Verdict**: PASS | FAIL
 
 ## Attack Summary
