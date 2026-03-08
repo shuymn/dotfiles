@@ -14,6 +14,12 @@
 - Prefer the most elegant solution that stays in scope: for non-trivial changes with material trade-offs, compare up to 2 alternatives and choose the lowest-risk option.
 - If new findings invalidate the current plan, stop execution, update the plan, then continue.
 - Do not expand scope to adjacent features without explicit approval.
+- In the root session, use the design-doc / decompose-plan / execute-plan workflow only when the user explicitly requests it or provides its inputs; otherwise handle the request directly.
+- In workflow mode, determine the active phase and explicitly delegate to the corresponding stage role; do not rely on automatic role selection.
+- Keep user questioning in the root session for `design-doc(create)` and `decompose-plan(create)`.
+- Run `design_reviewer`, `plan_reviewer`, `dod_rechecker`, `adversarial_verifier`, and `completion_auditor` with fresh context (`fork_context=false`).
+- Keep production-code ownership with exactly one `task_implementer` at a time.
+- Limit active sub-agents to at most 4 and use parallelism mainly for `repo_explorer` and `docs_researcher`.
 - Requirement Notation: Uses EARS (Easy Approach to Requirements Syntax) instead of BDD Given/When/Then for acceptance criteria. EARS is more context-efficient for LLM-driven workflows in a single-developer environment where non-technical stakeholder readability is unnecessary.
 
 ## Skill Usage Guide

@@ -5,7 +5,7 @@
 
 ## 基本の順番
 
-1. `workflow-orchestrator`
+1. root session が workflow mode に入る
 2. `design-drafter`
 3. `design-reviewer`
 4. `plan-drafter`
@@ -20,8 +20,9 @@
 
 ## 使い方
 
-- 入口は常に `workflow-orchestrator` です。
-- 親 agent が現在の phase を判断し、対応する role を明示的に起動します。
+- 専用の orchestrator agent は使いません。通常は root session がそのまま動きます。
+- ユーザーが workflow を明示したとき、または design / plan / task / Ralph artifact を渡したときだけ、root session が workflow mode に入ります。
+- workflow mode では、root session が現在の phase を判断し、対応する role を明示的に起動します。
 - `design-doc(create)` と `decompose-plan(create)` でユーザーに質問するのは親 agent だけです。
 - `repo-explorer` は repo 内の事実確認、`docs-researcher` は外部 docs の確認に使います。
 - `design-reviewer`、`plan-reviewer`、`dod-rechecker`、`adversarial-verifier`、`completion-auditor` は独立性を保って使います。
@@ -30,25 +31,24 @@
 ### phase ごとの使わせ方
 
 - 設計を始めるとき:
-  `workflow-orchestrator` が必要に応じて `repo-explorer` / `docs-researcher` を使い、要件整理後に `design-drafter` を起動します。
+  root session が必要に応じて `repo-explorer` / `docs-researcher` を使い、要件整理後に `design-drafter` を起動します。
 - 設計を見直すとき:
-  `workflow-orchestrator` が `design-reviewer` を独立に起動します。
+  root session が `design-reviewer` を独立に起動します。
 - 実装計画に分解するとき:
-  `workflow-orchestrator` が `plan-drafter` を起動します。
+  root session が `plan-drafter` を起動します。
 - 実装計画を見直すとき:
-  `workflow-orchestrator` が `plan-reviewer` を独立に起動します。
+  root session が `plan-reviewer` を独立に起動します。
 - 実装するとき:
-  `workflow-orchestrator` が対象 task を決めたうえで `task-implementer` を起動します。
+  root session が対象 task を決めたうえで `task-implementer` を起動します。
 - 完了条件を再確認するとき:
-  `workflow-orchestrator` が `dod-rechecker` を起動します。
+  root session が `dod-rechecker` を起動します。
 - 攻撃的に検証するとき:
-  `workflow-orchestrator` が `adversarial-verifier` を起動します。
+  root session が `adversarial-verifier` を起動します。
 - 最終完了を監査するとき:
-  `workflow-orchestrator` が `completion-auditor` を起動します。これは plan や Ralph metadata が `completion_gate` を要求するときに使います。
+  root session が `completion-auditor` を起動します。これは plan や Ralph metadata が `completion_gate` を要求するときに使います。
 
 ## 各 agent の説明
 
-- `workflow-orchestrator`: 親 agent。phase 判定、skill ルーティング、ユーザーへの質問、sub-agent の起動順制御を担当します。
 - `repo-explorer`: ローカル repo の調査役です。ファイル、設定、テスト、スクリプトを読み、実装判断の材料を集めます。
 - `docs-researcher`: 外部ドキュメント調査役です。公式 docs や一次情報を確認し、要点だけ返します。
 - `design-drafter`: `design-doc` の create 担当です。親が整理した要件をもとに設計草案を作ります。
@@ -70,12 +70,12 @@
 ## よくある起動パターン
 
 - 新しい設計を作る:
-  `workflow-orchestrator` → `repo-explorer` / `docs-researcher` → `design-drafter` → `design-reviewer`
+  root session → `repo-explorer` / `docs-researcher` → `design-drafter` → `design-reviewer`
 - 設計から plan を作る:
-  `workflow-orchestrator` → `plan-drafter` → `plan-reviewer`
+  root session → `plan-drafter` → `plan-reviewer`
 - 1 task だけ実装する:
-  `workflow-orchestrator` → `task-implementer` → `dod-rechecker`
+  root session → `task-implementer` → `dod-rechecker`
 - 重要な task を最後まで検証する:
-  `workflow-orchestrator` → `task-implementer` → `dod-rechecker` → `adversarial-verifier`
+  root session → `task-implementer` → `dod-rechecker` → `adversarial-verifier`
 - 製品レベルの完了主張まで閉じる:
-  `workflow-orchestrator` → `task-implementer` → `dod-rechecker` → `adversarial-verifier` → `completion-auditor`
+  root session → `task-implementer` → `dod-rechecker` → `adversarial-verifier` → `completion-auditor`
