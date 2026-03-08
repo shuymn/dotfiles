@@ -44,11 +44,11 @@ var (
 	rfSourceLineRe = regexp.MustCompile(`(?m)^- \*\*Source\*\*: ` + "`([^`]+)`")
 
 	rfAllowedTaskShapePredicates = map[string]bool{
-		"MULTI_OBJECTIVE":               true,
-		"BOUNDARY_WITHOUT_VERIFICATION": true,
+		"MULTI_OBJECTIVE":                 true,
+		"BOUNDARY_WITHOUT_VERIFICATION":   true,
 		"RUNTIME_PATH_WITHOUT_REAL_CHECK": true,
-		"OWNERSHIP_TOO_BROAD":           true,
-		"HARNESS_ONLY_CLOSURE":          true,
+		"OWNERSHIP_TOO_BROAD":             true,
+		"HARNESS_ONLY_CLOSURE":            true,
 	}
 )
 
@@ -137,7 +137,7 @@ func rfParseDesignPath(planText, planPath string) string {
 		if filepath.IsAbs(source) {
 			return source
 		}
-		return resolvePathFromWorkingDirAndFile(planPath, source)
+		return resolveRepoRelativePath(planPath, source)
 	}
 	return filepath.Join(filepath.Dir(planPath), "design.md")
 }

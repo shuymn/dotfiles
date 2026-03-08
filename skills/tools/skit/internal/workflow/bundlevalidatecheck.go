@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -54,7 +53,6 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 	}
 
 	text := string(data)
-	baseDir := filepath.Dir(planPath)
 
 	checkpointSection := extractSection(text, "Checkpoint Summary")
 	if checkpointSection == "" {
@@ -104,10 +102,7 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 		if ref == "" {
 			continue
 		}
-		refPath := ref
-		if !filepath.IsAbs(ref) {
-			refPath = filepath.Join(baseDir, ref)
-		}
+		refPath := resolveRepoRelativePath(planPath, ref)
 		if _, statErr := os.Stat(refPath); os.IsNotExist(statErr) {
 			issues = append(issues, fmt.Sprintf("%s file not found: %s", key, ref))
 		}

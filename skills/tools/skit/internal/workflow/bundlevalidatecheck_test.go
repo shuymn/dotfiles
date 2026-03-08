@@ -26,13 +26,13 @@ func writeTempPlan(t *testing.T, content string) string {
 
 func makeCheckpointKV(overrides map[string]string) string {
 	kv := map[string]string{
-		"Alignment Verdict":   "PASS",
+		"Alignment Verdict":    "PASS",
 		"Scope Contract Guard": "PASS",
-		"Quality Gate Guard":  "PASS",
-		"Review Artifact":     "docs/plans/topic/plan.review.md",
-		"Trace Pack":          "docs/plans/topic/plan.trace.md",
-		"Compose Pack":        "docs/plans/topic/plan.compose.md",
-		"Updated At":          "2026-03-09",
+		"Quality Gate Guard":   "PASS",
+		"Review Artifact":      "docs/plans/topic/plan.review.md",
+		"Trace Pack":           "docs/plans/topic/plan.trace.md",
+		"Compose Pack":         "docs/plans/topic/plan.compose.md",
+		"Updated At":           "2026-03-09",
 	}
 	for k, v := range overrides {
 		kv[k] = v
@@ -104,3 +104,35 @@ func TestBundleValidateCheck_ValidBundle(t *testing.T) {
 	}
 }
 
+func TestBundleValidateCheck_RepoRelativeLinksFromNestedPlan(t *testing.T) {
+	dir := t.TempDir()
+	planDir := filepath.Join(dir, "docs", "plans", "topic")
+	if err := os.MkdirAll(planDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"plan.review.md", "plan.trace.md", "plan.compose.md"} {
+		if err := os.WriteFile(filepath.Join(planDir, name), []byte("# ok\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	plan := strings.Join([]string{
+		"# Plan",
+		"",
+		"- **Trace Pack**: `docs/plans/topic/plan.trace.md`",
+		"- **Compose Pack**: `docs/plans/topic/plan.compose.md`",
+		"",
+		"## Checkpoint Summary",
+		"",
+		makeCheckpointKV(nil),
+	}, "\n")
+	planPath := filepath.Join(planDir, "plan.md")
+	if err := os.WriteFile(planPath, []byte(plan), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	rc, out := runBundleValidateCheckCmd(planPath)
+	if rc != 0 || out["status"] != "PASS" {
+		t.Fatalf("unexpected output: rc=%d out=%v", rc, out)
+	}
+}

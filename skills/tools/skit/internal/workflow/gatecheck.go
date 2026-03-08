@@ -135,7 +135,11 @@ func runGateCheck(w io.Writer, reviewFile, sourceFile string) int {
 			return 1
 		}
 	} else {
-		freshStatus, _, freshIssue := checkArtifact(reviewFile, filepath.Dir(sourceFile))
+		baseDir := repoRootFromPath(sourceFile)
+		if baseDir == "" {
+			baseDir = filepath.Dir(sourceFile)
+		}
+		freshStatus, _, freshIssue := checkArtifactWithSourceHint(reviewFile, baseDir, sourceFile)
 		if freshStatus != "PASS" {
 			code := "INVALID_ARTIFACT_METADATA"
 			summary := freshIssue

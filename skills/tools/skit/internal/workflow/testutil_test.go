@@ -5,10 +5,39 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
+	"testing"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 )
+
+func TestMain(m *testing.M) {
+	gitToplevelFn = func(dir string) (string, error) {
+		return "", fmt.Errorf("git stubbed out in tests")
+	}
+	gitDiffNamesFn = func(root, base string) ([]string, error) {
+		return nil, fmt.Errorf("git stubbed out in tests")
+	}
+	os.Exit(m.Run())
+}
+
+func stubGit(t *testing.T, repoRoot string, diffFiles []string) {
+	t.Helper()
+	origToplevel := gitToplevelFn
+	origDiffNames := gitDiffNamesFn
+	t.Cleanup(func() {
+		gitToplevelFn = origToplevel
+		gitDiffNamesFn = origDiffNames
+	})
+	gitToplevelFn = func(dir string) (string, error) {
+		return repoRoot, nil
+	}
+	gitDiffNamesFn = func(root, base string) ([]string, error) {
+		return diffFiles, nil
+	}
+}
 
 func runCommandOutput(command *cli.Command, stdin string, args ...string) (int, string, string, error) {
 	var stdout bytes.Buffer

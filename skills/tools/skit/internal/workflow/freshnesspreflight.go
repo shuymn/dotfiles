@@ -10,8 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
@@ -41,11 +41,11 @@ type checkEntry struct {
 }
 
 type artifactMetadata struct {
-	SourceArtifact     string
-	SourceDigest       string
-	TaskID             string
-	TaskContractDigest string
-	BaseCommit         string
+	SourceArtifact      string
+	SourceDigest        string
+	TaskID              string
+	TaskContractDigest  string
+	BaseCommit          string
 	ImplementationFiles []string
 }
 
@@ -54,7 +54,7 @@ func FreshnessPreflight() *cli.Command {
 	c := cli.NewCommand("freshness-preflight", "Pre-flight freshness check for review and task verification artifacts")
 	var baseDir string
 	var topicDir string
-	c.StringVar(&baseDir, "base-dir", "", "", "Repository root for resolving relative source paths (default: topic_dir/../..)")
+	c.StringVar(&baseDir, "base-dir", "", "", "Repository root for resolving relative source paths (default: git root of topic-dir, else topic-dir)")
 	c.StringArg(&topicDir, "topic-dir", "Topic directory containing review artifacts")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		return exitCode(runFreshnessPreflight(s.Stdout, baseDir, topicDir))
@@ -81,9 +81,11 @@ func runFreshnessPreflight(w io.Writer, baseDir, topicDir string) int {
 	if resolvedBase == "" {
 		abs, err := filepath.Abs(topicDir)
 		if err != nil {
-			resolvedBase = filepath.Dir(filepath.Dir(topicDir))
-		} else {
-			resolvedBase = filepath.Dir(filepath.Dir(abs))
+			abs = topicDir
+		}
+		resolvedBase = repoRootFromPath(abs)
+		if resolvedBase == "" {
+			resolvedBase = abs
 		}
 	}
 
@@ -205,6 +207,10 @@ func sha256File(path string) (string, error) {
 }
 
 func checkArtifact(artifactPath, baseDir string) (status, name, issue string) {
+	return checkArtifactWithSourceHint(artifactPath, baseDir, "")
+}
+
+func checkArtifactWithSourceHint(artifactPath, baseDir, sourceFileHint string) (status, name, issue string) {
 	name = filepath.Base(artifactPath)
 	data, err := os.ReadFile(artifactPath)
 	if err != nil {
@@ -216,13 +222,7 @@ func checkArtifact(artifactPath, baseDir string) (status, name, issue string) {
 		return "INVALID", name, "missing Source Artifact metadata"
 	}
 
-	sourcePath := meta.SourceArtifact
-	if !filepath.IsAbs(sourcePath) {
-		sourcePath = resolveExistingPath(
-			filepath.Join(baseDir, sourcePath),
-			filepath.Join(filepath.Dir(artifactPath), sourcePath),
-		)
-	}
+	sourcePath := resolveArtifactSourcePath(artifactPath, sourceFileHint, baseDir, meta.SourceArtifact)
 	if _, err := os.Stat(sourcePath); err != nil {
 		return "INVALID", name, fmt.Sprintf("source file not found: %s", meta.SourceArtifact)
 	}
@@ -285,11 +285,11 @@ func checkTaskScopedArtifact(name, sourcePath, artifactPath string, meta artifac
 		return "INVALID", "missing Implementation Files metadata"
 	}
 
-	repoRoot, err := gitRepoRoot(filepath.Dir(sourcePath))
+	repoRoot, err := gitToplevelFn(filepath.Dir(sourcePath))
 	if err != nil {
 		return "INVALID", fmt.Sprintf("cannot resolve git repo root: %v", err)
 	}
-	diffFiles, err := gitDiffNames(repoRoot, meta.BaseCommit)
+	diffFiles, err := gitDiffNamesFn(repoRoot, meta.BaseCommit)
 	if err != nil {
 		return "INVALID", fmt.Sprintf("cannot inspect git diff from %s: %v", meta.BaseCommit, err)
 	}
@@ -321,16 +321,9 @@ func isTaskScopedArtifact(name string) bool {
 	return strings.HasSuffix(name, ".dod-recheck.md") || strings.HasSuffix(name, ".adversarial.md")
 }
 
-func gitRepoRoot(dir string) (string, error) {
-	cmd := exec.Command("git", "-C", dir, "rev-parse", "--show-toplevel")
-	out, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(out)), nil
-}
+var gitDiffNamesFn = gitDiffNamesImpl
 
-func gitDiffNames(repoRoot, baseCommit string) ([]string, error) {
+func gitDiffNamesImpl(repoRoot, baseCommit string) ([]string, error) {
 	cmd := exec.Command("git", "-C", repoRoot, "diff", "--name-only", baseCommit)
 	out, err := cmd.Output()
 	if err != nil {

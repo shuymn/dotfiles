@@ -206,3 +206,87 @@ func TestReviewFinalize_AllClearPasses(t *testing.T) {
 		t.Fatalf("unexpected output: rc=%d out=%v", rc, out)
 	}
 }
+
+func TestReviewFinalize_RepoRelativeSourceIgnoresCallerCwd(t *testing.T) {
+	dir := t.TempDir()
+	planDir := filepath.Join(dir, "docs", "plans", "topic")
+	if err := os.MkdirAll(planDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	designPath := filepath.Join(planDir, "design.md")
+	planPath := filepath.Join(planDir, "plan.md")
+	draftPath := filepath.Join(planDir, "plan.review.draft.md")
+	finalPath := filepath.Join(planDir, "plan.review.md")
+
+	design := "# Design\n\n## Acceptance Criteria\n\n| AC ID | Description |\n|-------|-------------|\n| AC01 | one |\n"
+	plan := strings.Join([]string{
+		"# Topic Implementation Plan",
+		"",
+		"- **Source**: `docs/plans/topic/design.md`",
+		"",
+		"## Quality Gates",
+		"",
+		"- `true`",
+		"",
+		"### Task 1: Build",
+		"- **Satisfied Requirements**: AC01",
+		"- **Design Anchors**: AC01",
+		"- **Dependencies**: none",
+		"- **DoD**:",
+		"  - Run: `true`",
+	}, "\n")
+	draft := strings.Join([]string{
+		"# Topic - Plan Review Draft",
+		"",
+		"## Reviewer Summary",
+		"",
+		"- Forward Fidelity: PASS",
+		"- Reverse Fidelity: PASS",
+		"- Round-trip: PASS",
+		"- Behavioral Lock: PASS",
+		"- Negative Path: PASS",
+		"- Temporal: PASS",
+		"- Traceability: PASS",
+		"- Scope: PASS",
+		"- Testability: PASS",
+		"- Execution Readiness: PASS",
+		"- Integration Coverage: PASS",
+		"- Risk Classification: PASS",
+		"",
+		"## Task Shape Findings",
+		"",
+		"| Task | Severity | Predicate | Evidence | Action |",
+		"|------|----------|-----------|----------|--------|",
+		"| Task 1 | info | OWNERSHIP_TOO_BROAD | Scope contract is tight enough for the current boundary. | No action required. |",
+	}, "\n")
+
+	for path, content := range map[string]string{
+		designPath: design,
+		planPath:   plan,
+		draftPath:  draft,
+	} {
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherDir := t.TempDir()
+	if err := os.Chdir(otherDir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore cwd: %v", err)
+		}
+	}()
+
+	rc, out := runReviewFinalizeCmd("--dry-run", planPath, draftPath, finalPath)
+	if rc != 0 || out["code"] != "REVIEW_FINALIZED" {
+		t.Fatalf("unexpected output: rc=%d out=%v", rc, out)
+	}
+}

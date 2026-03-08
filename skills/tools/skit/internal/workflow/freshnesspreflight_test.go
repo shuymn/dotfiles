@@ -3,7 +3,6 @@ package workflow
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -40,43 +39,6 @@ func runCmd(args ...string) (int, map[string]any) {
 	return rc, parseJSONResult(stdout)
 }
 
-func initGitRepo(t *testing.T) (string, string) {
-	t.Helper()
-	dir := t.TempDir()
-	run := func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Dir = dir
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("%v failed: %v\n%s", args, err, string(out))
-		}
-		return strings.TrimSpace(string(out))
-	}
-
-	run("git", "init")
-	run("git", "config", "user.email", "test@example.com")
-	run("git", "config", "user.name", "Test User")
-	return dir, run("git", "rev-parse", "--show-toplevel")
-}
-
-func commitAll(t *testing.T, dir, message string) string {
-	t.Helper()
-	run := func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Dir = dir
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("%v failed: %v\n%s", args, err, string(out))
-		}
-		return strings.TrimSpace(string(out))
-	}
-	run("git", "add", ".")
-	run("git", "commit", "-m", message)
-	return run("git", "rev-parse", "HEAD")
-}
-
 func TestFreshArtifactPass(t *testing.T) {
 	tmp := t.TempDir()
 	content := []byte("# Design\n")
@@ -94,6 +56,32 @@ func TestFreshArtifactPass(t *testing.T) {
 	status, name, _ := checkArtifact(reviewPath, tmp)
 	if status != "PASS" || name != "design.review.md" {
 		t.Fatalf("unexpected result: status=%q name=%q", status, name)
+	}
+}
+
+func TestRunFreshnessPreflight_DefaultBaseDirSupportsRepoRelativeArtifact(t *testing.T) {
+	root := t.TempDir()
+	topicDir := filepath.Join(root, "docs", "plans", "topic")
+	if err := os.MkdirAll(topicDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	content := []byte("# Design\n")
+	srcPath := filepath.Join(topicDir, "design.md")
+	if err := os.WriteFile(srcPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+	reviewPath := filepath.Join(topicDir, "design.review.md")
+	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("docs/plans/topic/design.md", sha256Bytes(content))), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	rc, out := runCmd(topicDir)
+	if rc != 0 {
+		t.Fatalf("expected exit 0, got %d: %v", rc, out)
+	}
+	if out["code"] != "ALL_ARTIFACTS_FRESH" {
+		t.Fatalf("expected ALL_ARTIFACTS_FRESH, got %v", out["code"])
 	}
 }
 
@@ -115,27 +103,22 @@ func TestStaleWholeSourceArtifact(t *testing.T) {
 }
 
 func TestTaskScopedArtifactIgnoresOtherTaskEdits(t *testing.T) {
-	repoDir, _ := initGitRepo(t)
+	repoDir := t.TempDir()
+	stubGit(t, repoDir, []string{"src/feature/main.txt"})
+
 	plan := "# Plan\n\n### Task 1: One\n- **Owned Paths**:\n  - `src/feature/**`\n\n### Task 2: Two\n- **Owned Paths**:\n  - `docs/**`\n"
 	if err := os.MkdirAll(filepath.Join(repoDir, "src/feature"), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Join(repoDir, "docs"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte(plan), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "src/feature/main.txt"), []byte("base\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	base := commitAll(t, repoDir, "base")
-
 	if err := os.WriteFile(filepath.Join(repoDir, "src/feature/main.txt"), []byte("updated\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
+
 	taskDigest := computeTaskContractDigest(extractTaskBlock(plan, 1))
-	artifact := makeTaskArtifact("plan.md", 1, taskDigest, base, []string{"src/feature/main.txt"})
+	artifact := makeTaskArtifact("plan.md", 1, taskDigest, "abcdef1234567", []string{"src/feature/main.txt"})
 	artifactPath := filepath.Join(repoDir, "topic-task-1.dod-recheck.md")
 	if err := os.WriteFile(artifactPath, []byte(artifact), 0644); err != nil {
 		t.Fatal(err)
@@ -153,7 +136,9 @@ func TestTaskScopedArtifactIgnoresOtherTaskEdits(t *testing.T) {
 }
 
 func TestTaskScopedArtifactStaleOnTaskContractChange(t *testing.T) {
-	repoDir, _ := initGitRepo(t)
+	repoDir := t.TempDir()
+	stubGit(t, repoDir, []string{"src/feature/main.txt"})
+
 	plan := "# Plan\n\n### Task 1: One\n- **Owned Paths**:\n  - `src/feature/**`\n"
 	if err := os.MkdirAll(filepath.Join(repoDir, "src/feature"), 0755); err != nil {
 		t.Fatal(err)
@@ -161,17 +146,13 @@ func TestTaskScopedArtifactStaleOnTaskContractChange(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte(plan), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "src/feature/main.txt"), []byte("base\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	base := commitAll(t, repoDir, "base")
-
 	if err := os.WriteFile(filepath.Join(repoDir, "src/feature/main.txt"), []byte("updated\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
+
 	taskDigest := computeTaskContractDigest(extractTaskBlock(plan, 1))
 	artifactPath := filepath.Join(repoDir, "topic-task-1.dod-recheck.md")
-	if err := os.WriteFile(artifactPath, []byte(makeTaskArtifact("plan.md", 1, taskDigest, base, []string{"src/feature/main.txt"})), 0644); err != nil {
+	if err := os.WriteFile(artifactPath, []byte(makeTaskArtifact("plan.md", 1, taskDigest, "abcdef1234567", []string{"src/feature/main.txt"})), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -187,7 +168,7 @@ func TestTaskScopedArtifactStaleOnTaskContractChange(t *testing.T) {
 }
 
 func TestTaskScopedArtifactMissingMetadataIsInvalid(t *testing.T) {
-	repoDir, _ := initGitRepo(t)
+	repoDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte("# Plan\n"), 0644); err != nil {
 		t.Fatal(err)
 	}

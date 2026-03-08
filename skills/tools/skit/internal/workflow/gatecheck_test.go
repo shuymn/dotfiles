@@ -136,6 +136,44 @@ func TestGateCheck_SourceFileMissing(t *testing.T) {
 	}
 }
 
+func TestGateCheck_RepoRelativeSourceArtifactWithAbsolutePaths(t *testing.T) {
+	root := t.TempDir()
+	topicDir := filepath.Join(root, "docs", "plans", "topic")
+	if err := os.MkdirAll(topicDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	sourcePath := filepath.Join(topicDir, "design.md")
+	if err := os.WriteFile(sourcePath, []byte("# Design\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	digest := gcTestComputeDigest(t, sourcePath)
+
+	reviewPath := filepath.Join(topicDir, "design.review.md")
+	content := fmt.Sprintf(`- **Mode**: design-review
+- **Source Artifact**: docs/plans/topic/design.md
+- **Source Digest**: %s
+- **Reviewed At**: 2024-01-01T00:00:00Z
+- **Isolation**: sub-agent
+- **Overall Verdict**: PASS
+
+## Checklist
+
+- Criterion A: PASS
+`, digest)
+	if err := os.WriteFile(reviewPath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	rc, result := runGateCheckCmd(reviewPath, sourcePath)
+	if rc != 0 {
+		t.Fatalf("expected exit 0, got %d: %v", rc, result)
+	}
+	if result["code"] != "ALL_CHECKS_PASSED" {
+		t.Errorf("expected ALL_CHECKS_PASSED, got %v", result["code"])
+	}
+}
+
 func TestGateCheck_MissingOverallVerdict(t *testing.T) {
 	dir := t.TempDir()
 	srcPath := gcTestWriteSourceFile(t, dir, "# Source\n")
