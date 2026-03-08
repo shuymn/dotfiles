@@ -36,34 +36,34 @@ func TestExtractTaskBlock_ZeroPaddedTaskID(t *testing.T) {
 func TestParseScopeContract(t *testing.T) {
 	block := `### Task 1: Scope
 - **Owned Paths**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/feature/**`" + `
 - **Shared Touchpoints**:
-  - ` + "`Cargo.toml`" + ` (workspace dependency update)
+  - ` + "`config/project.yaml`" + ` (shared configuration update)
 - **Prohibited Paths**:
-  - ` + "`reference/sqldef/**`" + `
+  - ` + "`generated/**`" + `
 `
 
 	scope, issues := parseScopeContract(block)
 	if len(issues) != 0 {
 		t.Fatalf("expected no issues, got %v", issues)
 	}
-	if len(scope.Owned) != 1 || scope.Owned[0].Pattern != "crates/cli/src/**" {
+	if len(scope.Owned) != 1 || scope.Owned[0].Pattern != "src/feature/**" {
 		t.Fatalf("unexpected owned paths: %+v", scope.Owned)
 	}
-	if len(scope.Shared) != 1 || scope.Shared[0].Rationale != "workspace dependency update" {
+	if len(scope.Shared) != 1 || scope.Shared[0].Rationale != "shared configuration update" {
 		t.Fatalf("unexpected shared touchpoints: %+v", scope.Shared)
 	}
-	if len(scope.Prohibited) != 1 || scope.Prohibited[0].Pattern != "reference/sqldef/**" {
+	if len(scope.Prohibited) != 1 || scope.Prohibited[0].Pattern != "generated/**" {
 		t.Fatalf("unexpected prohibited paths: %+v", scope.Prohibited)
 	}
 }
 
 func TestMatchFile_ProhibitedPrecedence(t *testing.T) {
 	scope := scopeContract{
-		Owned:      []scopeEntry{{Pattern: "crates/**"}},
-		Prohibited: []scopeEntry{{Pattern: "crates/generated/**"}},
+		Owned:      []scopeEntry{{Pattern: "src/**"}},
+		Prohibited: []scopeEntry{{Pattern: "src/generated/**"}},
 	}
-	match := matchFile("crates/generated/schema.rs", scope)
+	match := matchFile("src/generated/schema.json", scope)
 	if match.Status != scopeStatusProhibited {
 		t.Fatalf("expected prohibited precedence, got %+v", match)
 	}
@@ -74,12 +74,12 @@ func TestFileScopeCheck_ScopeContractSatisfied(t *testing.T) {
 # Plan
 ### Task 1: Test
 - **Owned Paths**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/feature/**`" + `
 - **Shared Touchpoints**:
-  - ` + "`Cargo.toml`" + ` (workspace dependency update)
+  - ` + "`config/project.yaml`" + ` (shared configuration update)
 `
 	p := writePlanFile(t, plan)
-	rc, out := runFileScopeCheckCmd("crates/cli/src/main.rs\nCargo.toml\n", p, "--task", "1")
+	rc, out := runFileScopeCheckCmd("src/feature/main.txt\nconfig/project.yaml\n", p, "--task", "1")
 	if rc != 0 {
 		t.Fatalf("expected rc=0, got %d with %v", rc, out)
 	}
@@ -96,10 +96,10 @@ func TestFileScopeCheck_CrossBoundaryFails(t *testing.T) {
 # Plan
 ### Task 1: Test
 - **Owned Paths**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/feature/**`" + `
 `
 	p := writePlanFile(t, plan)
-	rc, out := runFileScopeCheckCmd("crates/cli/src/main.rs\nREADME.md\n", p, "--task", "1")
+	rc, out := runFileScopeCheckCmd("src/feature/main.txt\nREADME.md\n", p, "--task", "1")
 	if rc != 1 {
 		t.Fatalf("expected rc=1, got %d", rc)
 	}
@@ -113,12 +113,12 @@ func TestFileScopeCheck_ProhibitedFails(t *testing.T) {
 # Plan
 ### Task 1: Test
 - **Owned Paths**:
-  - ` + "`crates/**`" + `
+  - ` + "`src/**`" + `
 - **Prohibited Paths**:
-  - ` + "`reference/sqldef/**`" + `
+  - ` + "`generated/**`" + `
 `
 	p := writePlanFile(t, plan)
-	rc, out := runFileScopeCheckCmd("reference/sqldef/schema.sql\n", p, "--task", "1")
+	rc, out := runFileScopeCheckCmd("generated/schema.json\n", p, "--task", "1")
 	if rc != 1 {
 		t.Fatalf("expected rc=1, got %d", rc)
 	}
@@ -132,10 +132,10 @@ func TestFileScopeCheck_MissingOwnedPathsFailsClosed(t *testing.T) {
 # Plan
 ### Task 1: Test
 - **Shared Touchpoints**:
-  - ` + "`Cargo.toml`" + ` (workspace dependency update)
+  - ` + "`config/project.yaml`" + ` (shared configuration update)
 `
 	p := writePlanFile(t, plan)
-	rc, out := runFileScopeCheckCmd("Cargo.toml\n", p, "--task", "1")
+	rc, out := runFileScopeCheckCmd("config/project.yaml\n", p, "--task", "1")
 	if rc != 1 {
 		t.Fatalf("expected rc=1, got %d", rc)
 	}
@@ -143,4 +143,3 @@ func TestFileScopeCheck_MissingOwnedPathsFailsClosed(t *testing.T) {
 		t.Fatalf("unexpected output: %v", out)
 	}
 }
-

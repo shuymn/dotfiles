@@ -43,11 +43,11 @@ func TestRiskDodCheck_PassesWithNewContract(t *testing.T) {
 ### Task 1: Harden CLI
 - **Risk Tier**: Sensitive
 - **Owned Paths**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/cli/**`" + `
 - **Shared Touchpoints**:
-  - ` + "`Cargo.toml`" + ` (workspace dependency update)
+  - ` + "`config/project.yaml`" + ` (shared configuration update)
 - **Boundary Verification**:
-  - Run: ` + "`cargo test -p stateql-cli --test live_smoke`" + `
+  - Run: ` + "`./scripts/smoke-test.sh`" + `
 - **DoD**:
   - Global Quality Gates apply.
 `
@@ -64,7 +64,7 @@ func TestRiskDodCheck_FailsWithoutBoundaryVerification(t *testing.T) {
 ### Task 1: Harden CLI
 - **Risk Tier**: Critical
 - **Owned Paths**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/cli/**`" + `
 - **DoD**:
   - Global Quality Gates apply.
 `
@@ -81,9 +81,9 @@ func TestRiskDodCheck_FailsOnLegacyFieldsAndBoilerplate(t *testing.T) {
 ### Task 1: Legacy
 - **Risk Tier**: Standard
 - **Allowed Files**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/cli/**`" + `
 - **Owned Paths**:
-  - ` + "`crates/cli/src/**`" + `
+  - ` + "`src/cli/**`" + `
 - **DoD**:
   - ` + rdcLegacyStandardImpl + `
 `
@@ -93,4 +93,3 @@ func TestRiskDodCheck_FailsOnLegacyFieldsAndBoilerplate(t *testing.T) {
 		t.Fatalf("unexpected output: rc=%d out=%v", rc, out)
 	}
 }
-

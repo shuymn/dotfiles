@@ -43,7 +43,7 @@ func TestRfParseSummaryAllPass(t *testing.T) {
 func TestRfParseTaskShapeFindings(t *testing.T) {
 	body := `| Task | Severity | Predicate | Evidence | Action |
 |------|----------|-----------|----------|--------|
-| Task 1 | blocker | OWNERSHIP_TOO_BROAD | Owned Paths cover two unrelated crates. | Re-slice the task. |
+| Task 1 | blocker | OWNERSHIP_TOO_BROAD | Owned Paths cover two unrelated areas. | Re-slice the task. |
 | Task 2 | warning | BOUNDARY_WITHOUT_VERIFICATION | Shared boundary lacks explicit verification. | Tighten the command. |`
 	findings, issues := rfParseTaskShapeFindings(body, []string{"Task 1", "Task 2"})
 	if len(issues) != 0 {

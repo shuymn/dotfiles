@@ -79,14 +79,14 @@ Overwrite `.ralph/prd.json` with:
       "passes": false,
       "risk_tier": "Standard",
       "scope_contract": {
-        "owned_paths": ["crates/foo/src/**"],
+        "owned_paths": ["path/to/owned-area/**"],
         "shared_touchpoints": [
           {
-            "path": "Cargo.toml",
-            "rationale": "workspace dependency update"
+            "path": "path/to/shared-file.ext",
+            "rationale": "shared configuration or dependency update"
           }
         ],
-        "prohibited_paths": ["reference/sqldef/**"]
+        "prohibited_paths": ["path/to/prohibited-area/**"]
       },
       "boundary_required": false,
       "completion_gate": false
