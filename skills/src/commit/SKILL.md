@@ -163,13 +163,13 @@ When a file contains multiple logical changes, use the patch-based approach. See
 Before `git commit`, validate the drafted subject mechanically:
 
 ```bash
-subject='feat: centralize request validation'
-printf '%s' "$subject" | wc -c
-printf '%s\n' "$subject" | rg -n '\band\b'
+printf '%s' 'feat: centralize request validation' | wc -c
+printf '%s\n' 'feat: centralize request validation' | rg -n '\band\b'
 ```
 
 - If `wc -c` exceeds 50: rewrite before committing
 - If `rg` matches `and` in an English subject: treat it as a forced reconsideration point
+- Run each check as a complete shell command; do not pass `printf` and `wc` as separate tool arguments
 - First try splitting the staged change into separate commits
 - If the change is truly inseparable, rewrite to a single-purpose phrasing without `and`
 

@@ -23,38 +23,29 @@ Before fetching anything, determine where the feedback is coming from:
 
 Arguments may be a PR URL, PR number, or empty (use current branch's PR).
 
-```bash
-# If a URL like https://github.com/owner/repo/pull/123 was given:
-OWNER=<parsed>; REPO=<parsed>; PR_NUM=<parsed>
+- If a URL like `https://github.com/owner/repo/pull/123` was given, resolve `<owner>`, `<repo>`, and `<pr_num>` from the URL.
+- If a number was given, resolve `<owner>` and `<repo>` from `gh repo view`, then use the provided PR number as `<pr_num>`.
+- If no argument was given, resolve `<owner>` and `<repo>` from `gh repo view`, then resolve `<pr_num>` from `gh pr view`.
 
-# If a number was given:
-OWNER=$(gh repo view --json owner -q .owner.login); REPO=$(gh repo view --json name -q .name); PR_NUM=<given>
-
-# If no argument:
-OWNER=$(gh repo view --json owner -q .owner.login)
-REPO=$(gh repo view --json name -q .name)
-PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
-```
-
-Gather PR info using `gh api` (works for any repo, not just the current one):
+Gather PR info using `gh api` (works for any repo, not just the current one). Substitute concrete values directly into each command:
 
 ```bash
 # PR metadata
-gh api repos/$OWNER/$REPO/pulls/$PR_NUM --jq '{title,state,body}'
+gh api repos/<owner>/<repo>/pulls/<pr_num> --jq '{title,state,body}'
 
 # Changed files
-gh api repos/$OWNER/$REPO/pulls/$PR_NUM/files --jq '.[].filename'
+gh api repos/<owner>/<repo>/pulls/<pr_num>/files --jq '.[].filename'
 
 # General PR comments (issue-level)
-gh api repos/$OWNER/$REPO/issues/$PR_NUM/comments \
+gh api repos/<owner>/<repo>/issues/<pr_num>/comments \
   --jq '.[] | "[\(.user.login)] \(.body)"'
 
 # Review-level comments (overall approval/request changes)
-gh api repos/$OWNER/$REPO/pulls/$PR_NUM/reviews \
+gh api repos/<owner>/<repo>/pulls/<pr_num>/reviews \
   --jq '.[] | "[\(.user.login)] \(.state): \(.body)"'
 
 # Inline review thread comments (line-specific suggestions — most common for bots)
-gh api repos/$OWNER/$REPO/pulls/$PR_NUM/comments \
+gh api repos/<owner>/<repo>/pulls/<pr_num>/comments \
   --jq '.[] | "[\(.user.login)] \(.path):\(.line // .original_line): \(.body)"'
 ```
 
