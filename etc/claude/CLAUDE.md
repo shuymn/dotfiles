@@ -20,6 +20,7 @@
 - Run `design_reviewer`, `plan_reviewer`, `dod_rechecker`, `adversarial_verifier`, and `completion_auditor` with fresh context (`fork_context=false`).
 - Keep production-code ownership with exactly one `task_implementer` at a time.
 - Limit active sub-agents to at most 4 and use parallelism mainly for `repo_explorer` and `docs_researcher`.
+- For long-running sub-agent work, silence alone is not evidence of a stall. Prefer waiting over interrupting; if agent-thread activity, local file changes, or command output indicates progress, keep waiting and avoid steering unless requirements changed or a real blocker is evident.
 - Requirement Notation: Uses EARS (Easy Approach to Requirements Syntax) instead of BDD Given/When/Then for acceptance criteria. EARS is more context-efficient for LLM-driven workflows in a single-developer environment where non-technical stakeholder readability is unnecessary.
 
 ## Skill Usage Guide
