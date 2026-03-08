@@ -136,7 +136,6 @@ Keep the execution file thin and move heavy analysis to sidecars.
 
 - **Plan templates** (header, checkpoint summary, task structure): See [plan-templates.md](references/plan-templates.md)
 - **Trace templates** (trace matrices, cross self-check, compose reconstruction): See [trace-templates.md](references/trace-templates.md)
-- **Granularity poker rubric** (review-only scoring): See [granularity-poker.md](references/granularity-poker.md)
 
 ### Compression Rules
 
@@ -154,17 +153,17 @@ Keep the execution file thin and move heavy analysis to sidecars.
 - Keep each task outcome independently testable.
 - Keep task granularity at one coherent, reviewable change unit; do not include commit commands or require commit execution.
 - Do not use fixed file-count or LOC thresholds as hard rules.
-- In create mode, do not score granularity or assign a granularity verdict.
-- Ensure each task exposes the structural facts needed for review-mode scoring: one stated `Goal`, one main `RED` verification flow, explicit `Dependencies`, and a rollback boundary implied by `Files`/`Allowed Files`.
+- In create mode, do not score granularity or assign any numeric sizing verdict.
+- Ensure each task exposes the structural facts needed for review-mode blocker checks: one stated `Goal`, explicit `Dependencies`, a `Scope Contract`, and explicit verification surfaces (`RED`, `Boundary Verification`, `Closure Verification` when needed).
 
-### Granularity Self-Check (Create Mode Only)
+### Task Shape Self-Check (Create Mode Only)
 
-Use these non-scoring axes to shape tasks before presenting `plan.md`. Re-slice overloaded tasks, but do not assign cards, totals, thresholds, PASS/FAIL, or any granularity verdict in create mode; `decompose-plan review` remains the authoritative granularity gate.
+Use these non-scoring questions to shape tasks before presenting `plan.md`.
 
-- `Objective`: Keep each task to one stated objective. If a task contains multiple independently releasable outcomes, split them.
-- `Surface`: Separate unrelated boundaries or top-level path families into different tasks.
-- `Verification`: Keep one main verification flow in `RED`/`DoD`; move independent checks into follow-up tasks.
-- `Rollback`: Separate reversible preparation from irreversible cutover or removal so rollback remains clear.
+- `Objective`: Keep each task to one primary objective. If a task contains multiple independently releasable outcomes, split it.
+- `Boundary`: Separate unrelated ownership surfaces or top-level path families into different tasks.
+- `Verification Surface`: Add `Boundary Verification` whenever the task crosses public/runtime/integration boundaries. Add `Closure Verification` only when an extra close-out surface is genuinely needed.
+- `Rollback`: Keep rollback and removal boundaries legible through `Scope Contract`, not through file-count heuristics.
 
 ### Behavioral Lock Rules (Required)
 
@@ -225,20 +224,22 @@ For design atoms expressing hard behavioral constraints — restricting behavior
    - Do not create `TEMPxx`-only tasks or add `TEMPxx` fields to `plan.md` task blocks.
    - If retirement is intentionally deferred, record waiver metadata in the trace (`reason`, `deadline`, `owner` optional for solo operation).
    - When a retiring task is identified, ensure its DoD in `plan.md` includes negative verification that the `TEMPxx` removal is complete (fallback/temporary path must fail or be absent).
-5. For each task, define `Allowed Files` as a list of glob patterns covering all files the task may Create or Modify. Patterns should be precise enough to detect unintended scope creep but broad enough to avoid false positives for expected paths.
-5.1. For each task, optionally define `Exception Files` when the task legitimately needs to modify files outside `Allowed Files` (e.g., shared configuration, generated files). Each exception must include a rationale. Exception Files exempt the file from `SCOPE_DEVIATION` in dod-recheck but do not add it to `Allowed Files`.
+5. For each task, define a `Scope Contract` instead of file allowlists:
+   - `Owned Paths`: required. These are the paths the task primarily owns.
+   - `Shared Touchpoints`: optional. Each entry must include a rationale.
+   - `Prohibited Paths`: optional. These are fail-closed boundaries for the task.
+   - Keep enforcement closed-world: work outside `Owned Paths` and `Shared Touchpoints` is a re-slice, not an implicit expansion.
 5.5. For each AC with `Verification Command: TBD-at-plan` in the design doc, resolve the concrete command based on task context (test framework, verification approach). Record the resolved command in the task's RED or DoD. If a concrete command cannot be determined, stop as `BLOCKED`.
-6. For each task, define `RED`, `GREEN`, `REFACTOR`, and `DoD` without implementation snippets.
+6. For each task, define `RED`, `GREEN`, `REFACTOR`, `DoD`, and any required verification surfaces without implementation snippets.
    - Define RED as an executed test failure (assertion/runtime), not a compilation/import/module error.
    - If missing symbols/files would prevent compilation, require minimal scaffolding in the task so RED can be evaluated by executed tests.
    - If direct unit-level RED is technically difficult, require the nearest executable boundary test (integration/contract/e2e) while keeping fail-first.
    - Do not abandon TDD due to testability difficulty; add testability-enabling work and continue the RED loop.
    - Define DoD as strict AND semantics: all DoD items are mandatory, and none are optional alternatives.
-   - If Quality Gates were detected in Step 1.7, append a quality gate reference line to every task DoD: `Run: all commands in \`## Quality Gates\`` / `Expected: all PASS`.
-   - If the task's inherited risk tier is Critical, append to DoD: `Adversarial verification required (minimum 3 probes).`
-   - If the task's inherited risk tier is Sensitive, append to DoD: `Heightened dod-recheck scrutiny applies`.
-   - If the task's inherited risk tier is Sensitive, append to DoD: `Adversarial verification required (minimum 2 probes: Category 1 + most relevant 1 category).`
-   - If the task's inherited risk tier is Standard and its Files contain implementation files (paths not matching `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`), append to DoD: `Adversarial verification required (1 probe: most relevant category).`
+   - If Quality Gates were detected in Step 1.7, reference them once in each task DoD as `Global Quality Gates apply.`
+   - Use `Boundary Verification` when the task crosses public/runtime/integration boundaries.
+   - Use `Closure Verification` only when the task needs explicit closure beyond local RED/DoD success.
+   - Do not duplicate risk/adversarial boilerplate in DoD. `Risk Tier` is the source of truth and downstream skills derive the required scrutiny.
 7. Build a **Behavioral Lock Map** from design atoms:
    - Extract lock atoms: design wording, acceptance criteria, or constraint entries that express exclusivity, removal, replacement, or mandatory failure on a former path. Common keyword examples (not exhaustive): `only`, `remove`, `no fallback`, `fail-closed`, `唯一`, `廃止`, `禁止`.
    - Map each lock atom to one or more task-level negative checks and one positive boundary check.
@@ -258,11 +259,11 @@ For design atoms expressing hard behavioral constraints — restricting behavior
 11. **High-Risk Auto-Detection**:
     - ACs with EARS Type=Unwanted or lock requirements are automatically classified as high-risk.
     - Manual override of high-risk classification requires documented reason in the task.
-12. Prepare task structure for granularity review:
-   - Require every task to present a single stated objective, one main verification flow, and an explicit rollback boundary.
-   - Apply the create-mode `Objective` / `Surface` / `Verification` / `Rollback` self-check to re-slice overloaded tasks before presentation.
+12. Prepare task structure for review:
+   - Require every task to present a single primary objective, explicit `Scope Contract`, and explicit verification surfaces.
+   - Apply the create-mode `Objective` / `Boundary` / `Verification Surface` / `Rollback` self-check to re-slice overloaded tasks before presentation.
    - If task structure is ambiguous enough that review mode would need extra inference, rewrite the task before presenting the plan.
-   - Do not assign granularity scores, totals, or PASS/FAIL in create mode; review mode is the authoritative granularity gate.
+   - Do not assign numeric granularity scores or machine totals in create mode.
 
 ### Step 3: Write Plan Bundle
 
@@ -285,14 +286,14 @@ Perform structural checks before presenting the plan. Semantic verification is d
 
 1. Run `skit structural-check <design-file> <plan-file>`.
 2. Run `skit trace-compose-check <design-file> <plan-trace-file>`.
-3. Run `skit risk-dod-check <plan-file> <design-file>`. If it reports `FAIL`, add missing DoD annotations to affected tasks.
+3. Run `skit risk-dod-check <plan-file> <design-file>`. If it reports `FAIL`, fix missing task-level `Risk Tier`, `Scope Contract`, `Boundary Verification`, or remove legacy boilerplate.
 4. If any check reports FAIL, fix the affected tasks and re-run until all PASS.
 5. Do NOT present the plan to the user if structural checks are failing.
 6. Record structural check results in `plan.trace.md`.
 5. When writing commands or file paths into `plan.trace.md`, use repository-relative project paths and `scripts/<name>.sh` helper names, never absolute filesystem paths.
 6. Update `Checkpoint Summary` in `plan.md`.
 
-**Note**: The deep semantic checks (forward/reverse fidelity, behavioral lock guard, granularity scoring, temporal completeness, etc.) are now performed by `decompose-plan review` mode, which runs as an independent sub-agent.
+**Note**: The deep semantic checks (forward/reverse fidelity, behavioral lock guard, task-shape blockers, temporal completeness, etc.) are now performed by `decompose-plan review` mode, which runs as an independent sub-agent.
 The review agent writes `plan.review.draft.md`, and a finalizer script produces the gate artifact `plan.review.md`.
 
 ### Step 5: Review with User
@@ -314,7 +315,7 @@ The review agent writes `plan.review.draft.md`, and a finalizer script produces 
 - **No TDD Abandonment**: Testability difficulty is resolved by scaffolding or boundary-level tests, not by skipping RED.
 - **DoD Conjunction**: DoD is always AND semantics; all DoD items must be satisfied.
 - **Maintainability (DRY)**: Avoid duplicated task intent; express shared logic once via trace matrices and dependency graph.
-- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries reviewable by exposing clear task structure in create mode and delegating granularity scoring to the independent review flow.
+- **Execution Rhythm (Frequent Commits Principle)**: Keep task boundaries reviewable by exposing clear task structure in create mode and delegating task-shape blocking checks to the independent review flow.
 - **Instruction over Implementation**: Describe intent and verification, not code.
 - **No Micromanagement**: Avoid over-splitting and line-by-line directives.
 - **Context Efficiency**: Keep frequently-read artifacts compact; move heavy evidence to on-demand sidecars.

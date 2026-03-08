@@ -326,29 +326,19 @@ func (r *QualityGateRow) Validate() error {
 // ---- Plan template models ----
 
 type CheckpointSummaryTemplate struct {
-	AlignmentVerdict            string `json:"alignment_verdict"`
-	ForwardFidelity             string `json:"forward_fidelity"`
-	ReverseFidelity             string `json:"reverse_fidelity"`
-	NonGoalGuard                string `json:"non_goal_guard"`
-	BehavioralLockGuard         string `json:"behavioral_lock_guard"`
-	TemporalCompletenessGuard   string `json:"temporal_completeness_guard"`
-	QualityGateGuard            string `json:"quality_gate_guard"`
-	IntegrationCoverageGuard    string `json:"integration_coverage_guard"`
-	RiskClassificationGuard     string `json:"risk_classification_guard"`
-	TempSummary                 string `json:"temp_summary"`
-	TracePack                   string `json:"trace_pack"`
-	ComposePack                 string `json:"compose_pack"`
-	UpdatedAt                   string `json:"updated_at"`
+	AlignmentVerdict  string `json:"alignment_verdict"`
+	ScopeContractGuard string `json:"scope_contract_guard"`
+	QualityGateGuard  string `json:"quality_gate_guard"`
+	ReviewArtifact    string `json:"review_artifact"`
+	TracePack         string `json:"trace_pack"`
+	ComposePack       string `json:"compose_pack"`
+	UpdatedAt         string `json:"updated_at"`
 }
 
 func (c *CheckpointSummaryTemplate) Validate() error {
 	passFail := []struct{ name, val string }{
 		{"alignment_verdict", c.AlignmentVerdict},
-		{"forward_fidelity", c.ForwardFidelity},
-		{"reverse_fidelity", c.ReverseFidelity},
-		{"non_goal_guard", c.NonGoalGuard},
-		{"behavioral_lock_guard", c.BehavioralLockGuard},
-		{"temporal_completeness_guard", c.TemporalCompletenessGuard},
+		{"scope_contract_guard", c.ScopeContractGuard},
 		{"quality_gate_guard", c.QualityGateGuard},
 	}
 	for _, f := range passFail {
@@ -356,13 +346,16 @@ func (c *CheckpointSummaryTemplate) Validate() error {
 			return fmt.Errorf("%s must be %q, got %q", f.name, PassFailTemplate, f.val)
 		}
 	}
-	if c.IntegrationCoverageGuard != PassFailNaTemplate {
-		return fmt.Errorf("integration_coverage_guard must be %q, got %q", PassFailNaTemplate, c.IntegrationCoverageGuard)
+	if err := validateNonEmpty("review_artifact", c.ReviewArtifact); err != nil {
+		return err
 	}
-	if c.RiskClassificationGuard != RiskClassificationGuardTemplate {
-		return fmt.Errorf("risk_classification_guard must be %q, got %q", RiskClassificationGuardTemplate, c.RiskClassificationGuard)
+	if err := validateNonEmpty("trace_pack", c.TracePack); err != nil {
+		return err
 	}
-	return nil
+	if err := validateNonEmpty("compose_pack", c.ComposePack); err != nil {
+		return err
+	}
+	return validateNonEmpty("updated_at", c.UpdatedAt)
 }
 
 // ---- Trace template models ----

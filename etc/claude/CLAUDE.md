@@ -20,9 +20,9 @@
 
 If there is even a small chance a skill applies, invoke it BEFORE responding.
 
-**Workflow:** Design needed → `design-doc(create)` → `design-doc(review)` | Task breakdown → `decompose-plan(create)` → `decompose-plan(review)` | Implementation → `execute-plan(implement)` → `execute-plan(dod-recheck)` → `adversarial-verify` (Sensitive/Critical tier)
+**Workflow:** Design needed → `design-doc(create)` → `design-doc(review)` | Task breakdown → `decompose-plan(create)` → `decompose-plan(review)` | Implementation → `execute-plan(implement)` → `execute-plan(dod-recheck)` → `adversarial-verify` → `completion-audit`
 
-**Priority:** Process skills first (design-doc, decompose-plan), then implementation skills (execute-plan, domain-specific). Review modes (`design-doc review`, `decompose-plan review`, `execute-plan dod-recheck`) run as independent sub-agents.
+**Priority:** Process skills first (design-doc, decompose-plan), then implementation skills (execute-plan, domain-specific). Review/verification modes (`design-doc review`, `decompose-plan review`, `execute-plan dod-recheck`, `completion-audit`) run as independent sub-agents where applicable.
 
 **Red flags — if you think any of these, stop and check skills:** "Just a simple question" / "Let me explore first" / "This skill is overkill" / "I remember this skill" (skills evolve; read current version).
 

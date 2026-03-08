@@ -4,12 +4,12 @@
 
 > `<skill-root>` means the directory containing the parent `SKILL.md`. Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not to this file's location.
 
-Independent verification of a completed task's DoD. This mode runs as a sub-agent (`fork_context=false`) in a separate session because the implementing agent cannot reliably catch its own blind spots — confirmation bias makes self-verification unreliable.
+Independent verification of a completed task's DoD. This mode runs as a sub-agent (`fork_context=false`) in a separate session because the implementing agent cannot reliably catch its own blind spots.
 
 ## Constraints
 
-- The rechecking agent must NOT have implemented the task being rechecked — independence is what makes this verification meaningful.
-- Do NOT modify any code, plan, or design artifacts. Editing during recheck would contaminate the verification evidence.
+- The rechecking agent must NOT have implemented the task being rechecked.
+- Do NOT modify any code, plan, or design artifacts.
 - Read-only + command execution only.
 
 ## Input
@@ -19,86 +19,60 @@ Independent verification of a completed task's DoD. This mode runs as a sub-agen
 
 ## Procedure
 
-1. **Generate Header**: Run `skit digest-stamp dod-recheck <plan-file>` to produce the recheck metadata header.
-2. **Re-execute DoD Commands**: For each DoD command from the Recheck Input:
-   - Run the command fresh.
-   - Record: command, exit code, actual output, expected outcome, PASS/FAIL.
-3. **Re-execute Quality Gate Commands**: If Quality Gates are listed in the Recheck Input:
-   - Run each quality gate command.
-   - Record: command, exit code, PASS/FAIL.
-3.5. **File Scope Verification**:
-   - Run: `git diff --name-only <base>..HEAD | skit file-scope-check <plan-file> --task <N>`
-   - The script reads the task's `Allowed Files` and `Exception Files` from the plan, matches changed files, and outputs a findings table.
-   - If the script is unavailable, perform the check manually:
-     - Read the task's `Allowed Files` glob patterns from the plan.
-     - Read the task's `Exception Files` patterns from the plan (if defined).
-     - Compare implementation files against `Allowed Files` first, then `Exception Files`.
-     - Files matching `Exception Files` but not `Allowed Files`: status `OK (exception)`.
-     - Files matching neither: status `SCOPE_DEVIATION`.
-   - Record in `## File Scope Findings` table:
+1. **Generate Header**: Run `skit digest-stamp dod-recheck <plan-file>` for the common source metadata, then append task-scoped metadata:
+   - `Task ID`
+   - `Task Contract Digest`
+   - `Base Commit`
+   - `Implementation Files`
+   - `Boundary Changes`
+2. **Re-execute DoD Commands**: Run each DoD command fresh and record command, exit code, expected outcome, actual outcome, and PASS/FAIL.
+3. **Re-execute Quality Gate Commands**: If Quality Gates are listed in the Recheck Input, run each command fresh and record PASS/FAIL.
+4. **Scope Contract Verification**:
+   - Run: `git diff --name-only <base> | skit file-scope-check <plan-file> --task <N>`
+   - The checker reads `Owned Paths`, `Shared Touchpoints`, and `Prohibited Paths` from the task's `Scope Contract`.
+   - Record findings in `## File Scope Findings`:
 
      | # | File | Matched Pattern | Status |
      |---|------|----------------|--------|
-     | 1 | [path] | [pattern or EXCEPTION(pattern) or NONE] | OK / OK (exception) / SCOPE_DEVIATION |
+     | 1 | [path] | [pattern or NONE] | OWNED_OK / SHARED_OK / CROSS_BOUNDARY / PROHIBITED |
 
-   - **Scope deviation policy**: Any `SCOPE_DEVIATION` forces `Overall Verdict: FAIL`, regardless of risk tier.
-   - If Heightened Scrutiny is also performed, include scope deviation findings in that section as well.
-
-4. **Compute Overall Verdict**:
-   - Base condition: `Overall Verdict: PASS` only when ALL DoD commands AND all Quality Gate commands PASS.
-   - Scope deviation override: if any `SCOPE_DEVIATION` exists, set `Overall Verdict: FAIL`.
-   - Heightened scrutiny override: if any finding has severity `critical` or `high`, set `Overall Verdict: FAIL` even when DoD/Quality Gate commands pass.
-5. **Write Recheck Report**: Output to `...-task-<N>.dod-recheck.md` (where N is the task number).
-6. Write file paths in repository-relative form. If you mention a skill helper command, render it as `scripts/<name>.sh`, never an absolute filesystem path.
+   - Verdict policy:
+     - `PROHIBITED`: FAIL
+     - `CROSS_BOUNDARY`: completion revoked; plan re-slice required
+     - `SHARED_OK`: PASS allowed, but record advisory context
+     - `OWNED_OK`: normal PASS
+5. **Inspection Surface**:
+   - Sensitive/Critical: perform heightened scrutiny and re-run fresh `Boundary Verification` commands.
+   - Standard tasks with implementation files: perform standard inspection using the implementation files recorded in the Recheck Input and metadata.
+6. **Compute Overall Verdict**:
+   - PASS only when all DoD commands and Quality Gate commands PASS, `File Scope Findings` contain no `CROSS_BOUNDARY` or `PROHIBITED`, and heightened scrutiny has no `critical`/`high` findings.
+7. **Write Recheck Report**: Output to `...-task-<N>.dod-recheck.md`.
 
 ## Heightened Scrutiny (Sensitive/Critical)
 
-When the Recheck Input indicates Risk Tier is Sensitive or Critical, perform additional inspection beyond DoD command re-execution:
+Inspect implementation diffs and task boundary behavior for:
 
-1. Read the implementation diff for files changed by the task.
-2. Inspect for:
-   - Unvalidated inputs at trust boundaries
-   - Missing error handling on failure paths
-   - Hardcoded values (secrets, credentials, magic numbers)
-   - Silent failures (swallowed exceptions, ignored error returns)
-   - Unsafe type coercions or unchecked casts
-3. Record findings in `## Heightened Scrutiny Findings` table:
+- Unvalidated inputs at trust boundaries
+- Missing error handling on failure paths
+- Hardcoded values
+- Silent failures
+- Unsafe type coercions or unchecked casts
+- Boundary verification that still closes only on mocks or harness substitutes
 
-| # | File | Line(s) | Category | Finding | Severity |
-|---|------|---------|----------|---------|----------|
-| 1 | [path] | [lines] | [category] | [description] | critical/high/warning |
+Severity policy:
 
-- Severity policy:
-  - `critical`: directly exploitable by an attacker (e.g., unauthenticated path, credentials exposure). Forces `Overall Verdict: FAIL`.
-  - `high`: high likelihood of causing production outage or state corruption (e.g., swallowed errors leading to inconsistent state). Forces `Overall Verdict: FAIL`.
-  - `warning`: best-practice violation with limited immediate impact. Advisory only.
-- Allowed severity values are exactly: `critical`, `high`, `warning`.
-- For Critical-tier tasks, note that `adversarial-verify` is required separately after dod-recheck PASS.
+- `critical`: exploitable or access-control/security defect. Forces FAIL.
+- `high`: strong outage/state corruption risk. Forces FAIL.
+- `warning`: advisory only.
 
 ## Standard Inspection (Standard with Implementation Files)
 
-When the Recheck Input indicates Risk Tier is Standard and the task's Files block contains Create/Modify entries for implementation files, perform a standard code inspection.
+When the Recheck Input includes implementation files for a Standard-tier task, inspect those files for:
 
-**Implementation file definition**: Files in the Create/Modify entries whose paths do NOT match any of: `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`.
+- Hardcoded values
+- Silent failures
 
-**Inspection items** (subset of Heightened Scrutiny):
-- Hardcoded values (secrets, credentials, magic numbers)
-- Silent failures (swallowed exceptions, ignored error return values)
-
-Record findings in `## Standard Inspection Findings` table:
-
-| # | File | Line(s) | Category | Finding | Severity |
-|---|------|---------|----------|---------|----------|
-| 1 | [path] | [lines] | [category] | [description] | warning |
-
-- All findings are severity `warning` (advisory only, no FAIL override).
-- This inspection does NOT apply when Risk Tier is Sensitive or Critical (Heightened Scrutiny covers those).
-
-## On FAIL
-
-- Task completion is revoked — the task is not considered done.
-- Progression to the next task is prohibited.
-- Report the specific failing DoD/Quality Gate items and any `critical`/`high` heightened scrutiny findings with evidence.
+All findings are advisory `warning` severity unless they escalate the task into Sensitive/Critical territory and require reslicing.
 
 ## Output Format
 
@@ -107,7 +81,13 @@ Record findings in `## Standard Inspection Findings` table:
 
 ## Recheck Metadata
 
-<digest-stamp.sh output>
+<digest-stamp output>
+- **Task ID**: Task N
+- **Task Contract Digest**: [sha256]
+- **Base Commit**: [git commit]
+- **Implementation Files**:
+  - [repo-relative path]
+- **Boundary Changes**: owned | shared | cross-boundary
 - **Overall Verdict**: PASS | FAIL
 
 ## DoD Verification
@@ -124,15 +104,15 @@ Record findings in `## Standard Inspection Findings` table:
 
 ## File Scope Findings
 
-<!-- Present when Allowed Files are defined for the task -->
+<!-- Always present when scope verification runs; if there are no findings, emit a single no-op row or a short "none" note. -->
 
 | # | File | Matched Pattern | Status |
 |---|------|----------------|--------|
-| 1 | [path] | [pattern or EXCEPTION(pattern) or NONE] | OK / OK (exception) / SCOPE_DEVIATION |
+| 1 | [path] | [pattern or NONE] | OWNED_OK / SHARED_OK / CROSS_BOUNDARY / PROHIBITED |
 
 ## Heightened Scrutiny Findings
 
-<!-- Present when Risk Tier is Sensitive or Critical -->
+<!-- Present when Risk Tier is Sensitive or Critical. -->
 
 | # | File | Line(s) | Category | Finding | Severity |
 |---|------|---------|----------|---------|----------|
@@ -140,7 +120,7 @@ Record findings in `## Standard Inspection Findings` table:
 
 ## Standard Inspection Findings
 
-<!-- Present when Risk Tier is Standard and Files contain implementation files -->
+<!-- Present when Risk Tier is Standard and Implementation Files include implementation code. -->
 
 | # | File | Line(s) | Category | Finding | Severity |
 |---|------|---------|----------|---------|----------|
@@ -154,9 +134,9 @@ Record findings in `## Standard Inspection Findings` table:
 
 ## Task Completion Definition
 
-A task is considered complete only when BOTH conditions are met:
+A task is complete only when both conditions hold:
 
-1. **Implement mode**: All RED/GREEN/REFACTOR/DoD steps pass.
-2. **DoD Recheck mode**: Independent sub-agent confirms all DoD items pass.
+1. Implement mode passes all RED/GREEN/REFACTOR/DoD steps.
+2. DoD Recheck mode confirms the task on the current task contract.
 
-If `dod-recheck` returns FAIL, the implement completion is revoked and the task must be fixed before proceeding to the next task.
+If `dod-recheck` returns FAIL, the implementation completion is revoked.

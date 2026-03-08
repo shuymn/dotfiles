@@ -16,7 +16,7 @@ import (
 const artifactFormatCheckToolName = "artifact-format-check"
 
 var validArtifactTypes = []string{
-	"design", "plan", "trace", "compose", "review", "dod-recheck", "adversarial",
+	"design", "plan", "trace", "compose", "review", "dod-recheck", "adversarial", "completion-audit",
 }
 
 var requiredSections = map[string][]string{
@@ -27,12 +27,14 @@ var requiredSections = map[string][]string{
 	"review":      {},
 	"dod-recheck": {},
 	"adversarial": {"Attack Summary"},
+	"completion-audit": {"Product-Path Smoke", "Open Completion Gaps", "Decision"},
 }
 
 var requiresOverallVerdict = map[string]bool{
 	"review":      true,
 	"dod-recheck": true,
 	"adversarial": true,
+	"completion-audit": true,
 }
 
 var (

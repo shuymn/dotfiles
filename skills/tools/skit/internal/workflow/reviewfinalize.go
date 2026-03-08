@@ -38,41 +38,27 @@ var (
 		"Integration Coverage": true,
 		"Risk Classification":  true,
 	}
-	rfAllowedCards = map[int]bool{1: true, 2: true, 3: true, 5: true, 8: true}
-	rfAxes         = []string{"Objective", "Surface", "Verification", "Rollback"}
 
 	rfTaskHeadRe   = regexp.MustCompile(`(?m)^### Task (\d+):`)
 	rfTitleRe      = regexp.MustCompile(`(?m)^# (.+)$`)
 	rfSourceLineRe = regexp.MustCompile(`(?m)^- \*\*Source\*\*: ` + "`([^`]+)`")
+
+	rfAllowedTaskShapePredicates = map[string]bool{
+		"MULTI_OBJECTIVE":               true,
+		"BOUNDARY_WITHOUT_VERIFICATION": true,
+		"RUNTIME_PATH_WITHOUT_REAL_CHECK": true,
+		"OWNERSHIP_TOO_BROAD":           true,
+		"HARNESS_ONLY_CLOSURE":          true,
+	}
 )
 
-var rfAxisRecommendations = map[string]string{
-	"Objective":    "Split independently releasable outcomes so this task owns one objective.",
-	"Surface":      "Separate unrelated boundaries or top-level path families into different tasks.",
-	"Verification": "Reduce the task to one main verification flow and move independent checks into follow-up tasks.",
-	"Rollback":     "Separate reversible preparation from irreversible cutover or removal so rollback stays clean.",
+type rfTaskShapeFinding struct {
+	Task      string
+	Severity  string
+	Predicate string
+	Evidence  string
+	Action    string
 }
-
-// --- Data types ---
-
-type rfMachineRow struct {
-	Task           string
-	Total          string
-	Verdict        string
-	Trigger        string
-	Recommendation string
-}
-
-type rfGranularityRow struct {
-	Task         string
-	Objective    string
-	Surface      string
-	Verification string
-	Rollback     string
-	Evidence     string
-}
-
-// --- Parse functions ---
 
 func rfParseSummary(body string) (map[string]string, []string) {
 	rawMap := make(map[string]string)
@@ -156,339 +142,82 @@ func rfParseDesignPath(planText, planPath string) string {
 	return filepath.Join(filepath.Dir(planPath), "design.md")
 }
 
-func rfParseGranularityTable(body string) ([]rfGranularityRow, []string) {
-	var rows []rfGranularityRow
-	var errors []string
-	foundHeader := false
-
-	for _, line := range strings.Split(body, "\n") {
-		stripped := strings.TrimSpace(line)
-		if !strings.HasPrefix(stripped, "|") {
-			continue
-		}
-		cells := parseCells(stripped)
-		trimmedCells := make([]string, len(cells))
-		for i, c := range cells {
-			trimmedCells[i] = strings.TrimSpace(c)
-		}
-		if len(trimmedCells) == 0 || allEmpty(trimmedCells) {
-			continue
-		}
-		if trimmedCells[0] == "Task" {
-			foundHeader = true
-			continue
-		}
-		if isSeparatorRow(cells) {
-			continue
-		}
-		if len(trimmedCells) != 6 {
-			errors = append(errors, fmt.Sprintf("Malformed granularity row: `%s`.", stripped))
-			continue
-		}
-		rows = append(rows, rfGranularityRow{
-			Task:         trimmedCells[0],
-			Objective:    trimmedCells[1],
-			Surface:      trimmedCells[2],
-			Verification: trimmedCells[3],
-			Rollback:     trimmedCells[4],
-			Evidence:     trimmedCells[5],
-		})
+func rfParseTaskShapeFindings(body string, validTasks []string) ([]rfTaskShapeFinding, []string) {
+	if strings.TrimSpace(body) == "" {
+		return nil, nil
 	}
 
-	if !foundHeader {
-		errors = append(errors, "Granularity Poker table header is missing.")
+	rows := parseGenericTable(body)
+	if len(rows) == 0 {
+		return nil, []string{"Task Shape Findings section must contain a markdown table."}
 	}
 
-	return rows, errors
-}
-
-// --- Scoring ---
-
-func rfComputeMachineRows(taskIDs []string, granRows []rfGranularityRow, parseErrors []string) ([]rfMachineRow, []string) {
-	rowsByTask := make(map[string]rfGranularityRow)
-	taskIssues := make(map[string][]string)
-	for _, id := range taskIDs {
-		taskIssues[id] = nil
-	}
-	var extraRows []rfMachineRow
-	globalIssues := append([]string{}, parseErrors...)
-
-	for _, row := range granRows {
-		task := row.Task
-		if _, ok := taskIssues[task]; !ok {
-			extraRows = append(extraRows, rfMachineRow{
-				Task:           task,
-				Total:          "n/a",
-				Verdict:        "FAIL",
-				Trigger:        "unknown task in draft",
-				Recommendation: "Delete this row or rename it to an existing Task ID from plan.md.",
-			})
-			globalIssues = append(globalIssues, fmt.Sprintf("Granularity Poker references unknown task `%s`.", task))
-			continue
-		}
-		if _, exists := rowsByTask[task]; exists {
-			taskIssues[task] = append(taskIssues[task], "duplicate draft row")
-			continue
-		}
-		rowsByTask[task] = row
+	validTaskSet := make(map[string]bool, len(validTasks))
+	for _, task := range validTasks {
+		validTaskSet[task] = true
 	}
 
-	var machineRows []rfMachineRow
-	var blockers []string
-
-	for _, taskID := range taskIDs {
-		row, exists := rowsByTask[taskID]
-		issues := taskIssues[taskID]
-
-		if !exists {
-			issues = append(issues, "missing draft row")
-			machineRows = append(machineRows, rfMachineRow{
-				Task:           taskID,
-				Total:          "n/a",
-				Verdict:        "FAIL",
-				Trigger:        "missing draft row",
-				Recommendation: rfBuildRecommendation(issues, nil, nil, false),
-			})
-			blockers = append(blockers, fmt.Sprintf("Add one granularity poker row for `%s`.", taskID))
+	var findings []rfTaskShapeFinding
+	var issues []string
+	for _, row := range rows {
+		finding := rfTaskShapeFinding{
+			Task:      strings.TrimSpace(firstNonEmpty(row["Task"], row["task"])),
+			Severity:  strings.ToLower(strings.TrimSpace(firstNonEmpty(row["Severity"], row["severity"]))),
+			Predicate: strings.TrimSpace(firstNonEmpty(row["Predicate"], row["predicate"])),
+			Evidence:  strings.TrimSpace(firstNonEmpty(row["Evidence"], row["evidence"])),
+			Action:    strings.TrimSpace(firstNonEmpty(row["Action"], row["action"])),
+		}
+		if finding.Task == "" {
+			issues = append(issues, "Task Shape Findings contains a row without Task.")
 			continue
 		}
-
-		rawCards := map[string]string{
-			"Objective":    row.Objective,
-			"Surface":      row.Surface,
-			"Verification": row.Verification,
-			"Rollback":     row.Rollback,
+		if finding.Task != "General" && !validTaskSet[finding.Task] {
+			issues = append(issues, fmt.Sprintf("Task Shape Findings references unknown task `%s`.", finding.Task))
 		}
-		parsedCards := make(map[string]int)
-		for _, axis := range rfAxes {
-			v, err := strconv.Atoi(rawCards[axis])
-			if err != nil {
-				issues = append(issues, fmt.Sprintf("invalid %s card `%s`", strings.ToLower(axis), rawCards[axis]))
-			} else if !rfAllowedCards[v] {
-				issues = append(issues, fmt.Sprintf("invalid %s card `%s`", strings.ToLower(axis), rawCards[axis]))
-			} else {
-				parsedCards[axis] = v
+		if finding.Severity != "blocker" && finding.Severity != "warning" && finding.Severity != "info" {
+			issues = append(issues, fmt.Sprintf("Task Shape Findings row for `%s` has invalid severity `%s`.", finding.Task, finding.Severity))
+			continue
+		}
+		if !rfAllowedTaskShapePredicates[finding.Predicate] {
+			issues = append(issues, fmt.Sprintf("Task Shape Findings row for `%s` has invalid predicate `%s`.", finding.Task, finding.Predicate))
+			continue
+		}
+		if finding.Evidence == "" || finding.Action == "" {
+			issues = append(issues, fmt.Sprintf("Task Shape Findings row for `%s` is missing Evidence or Action.", finding.Task))
+			continue
+		}
+		findings = append(findings, finding)
+	}
+
+	sort.SliceStable(findings, func(i, j int) bool {
+		if findings[i].Task == findings[j].Task {
+			if findings[i].Severity == findings[j].Severity {
+				return findings[i].Predicate < findings[j].Predicate
 			}
+			return findings[i].Severity < findings[j].Severity
 		}
-
-		var cards []int
-		axisScores := make(map[string]int)
-		if len(parsedCards) == 4 {
-			for _, axis := range rfAxes {
-				axisScores[axis] = parsedCards[axis]
-				cards = append(cards, parsedCards[axis])
-			}
-		}
-
-		triggerParts := append([]string{}, issues...)
-		var highAxes []string
-		aggregateExceeded := false
-
-		if len(cards) == 4 {
-			for _, axis := range rfAxes {
-				if axisScores[axis] == 8 {
-					highAxes = append(highAxes, axis)
-				}
-			}
-			total := 0
-			for _, c := range cards {
-				total += c
-			}
-			if len(highAxes) > 0 {
-				axisNames := make([]string, len(highAxes))
-				for i, a := range highAxes {
-					axisNames[i] = strings.ToLower(a)
-				}
-				triggerParts = append(triggerParts, "axis ceiling exceeded ("+strings.Join(axisNames, ", ")+")")
-			}
-			if total > 11 {
-				triggerParts = append(triggerParts, "aggregate score exceeded machine limit")
-				aggregateExceeded = true
-			}
-
-			verdict := "PASS"
-			if len(triggerParts) > 0 {
-				verdict = "FAIL"
-			}
-			totalText := strconv.Itoa(total)
-
-			if verdict == "FAIL" {
-				blockers = append(blockers, fmt.Sprintf("Re-slice `%s` or fix its granularity poker row.", taskID))
-			}
-
-			trigger := "within machine limit"
-			if len(triggerParts) > 0 {
-				trigger = strings.Join(triggerParts, "; ")
-			}
-			machineRows = append(machineRows, rfMachineRow{
-				Task:           taskID,
-				Total:          totalText,
-				Verdict:        verdict,
-				Trigger:        trigger,
-				Recommendation: rfBuildRecommendation(issues, axisScores, highAxes, aggregateExceeded),
-			})
-		} else {
-			if len(triggerParts) == 0 {
-				triggerParts = append(triggerParts, "invalid card values")
-			}
-			blockers = append(blockers, fmt.Sprintf("Re-slice `%s` or fix its granularity poker row.", taskID))
-			machineRows = append(machineRows, rfMachineRow{
-				Task:           taskID,
-				Total:          "n/a",
-				Verdict:        "FAIL",
-				Trigger:        strings.Join(triggerParts, "; "),
-				Recommendation: rfBuildRecommendation(issues, nil, nil, false),
-			})
-		}
-	}
-
-	machineRows = append(machineRows, extraRows...)
-	blockers = append(blockers, globalIssues...)
-	return machineRows, blockers
-}
-
-func rfBuildRecommendation(issues []string, axisScores map[string]int, highAxes []string, aggregateExceeded bool) string {
-	if len(issues) == 0 && len(highAxes) == 0 && !aggregateExceeded {
-		return "-"
-	}
-
-	var recommendations []string
-	var invalidAxes []string
-	seen := make(map[string]bool)
-
-	for _, issue := range issues {
-		if issue == "missing draft row" {
-			recommendations = append(recommendations, "Add one granularity poker row for this task with all four axis cards and one evidence sentence.")
-			continue
-		}
-		if issue == "duplicate draft row" {
-			recommendations = append(recommendations, "Keep exactly one granularity poker row for this task and merge duplicate evidence into that row.")
-			continue
-		}
-		if strings.HasPrefix(issue, "invalid ") && strings.Contains(issue, " card `") {
-			axisStr := strings.TrimPrefix(issue, "invalid ")
-			axisStr = axisStr[:strings.Index(axisStr, " card `")]
-			invalidAxes = append(invalidAxes, rfTitleCase(axisStr))
-		}
-	}
-
-	if len(invalidAxes) > 0 {
-		deduped := rfDedupAxes(invalidAxes)
-		axesText := strings.Join(rfLowerAll(deduped), ", ")
-		recommendations = append(recommendations, fmt.Sprintf(
-			"Replace invalid %s card values with allowed cards (1, 2, 3, 5, 8) and keep one evidence sentence.", axesText,
-		))
-	}
-
-	for _, axis := range highAxes {
-		recommendations = append(recommendations, rfAxisRecommendations[axis])
-	}
-
-	if aggregateExceeded {
-		rec := rfAggregateRecommendation(axisScores, highAxes)
-		recommendations = append(recommendations, rec)
-	}
-
-	var ordered []string
-	for _, r := range recommendations {
-		if !seen[r] {
-			seen[r] = true
-			ordered = append(ordered, r)
-		}
-	}
-
-	if len(ordered) == 0 {
-		return "-"
-	}
-	return strings.Join(ordered, " ")
-}
-
-func rfAggregateRecommendation(axisScores map[string]int, excludeAxes []string) string {
-	excluded := make(map[string]bool)
-	for _, a := range excludeAxes {
-		excluded[a] = true
-	}
-
-	type axisScore struct {
-		axis  string
-		score int
-	}
-	var candidates []axisScore
-	for _, axis := range rfAxes {
-		if excluded[axis] {
-			continue
-		}
-		if score, ok := axisScores[axis]; ok {
-			candidates = append(candidates, axisScore{axis, score})
-		}
-	}
-
-	if len(candidates) == 0 {
-		return "Re-slice this task into smaller changes before re-scoring its granularity row."
-	}
-
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return candidates[i].score > candidates[j].score
+		return findings[i].Task < findings[j].Task
 	})
-
-	limit := 2
-	if len(candidates) < limit {
-		limit = len(candidates)
-	}
-	var parts []string
-	for _, c := range candidates[:limit] {
-		parts = append(parts, rfAxisRecommendations[c.axis])
-	}
-	return strings.Join(parts, " ")
+	return findings, issues
 }
 
-func rfDedupAxes(axes []string) []string {
-	seen := make(map[string]bool)
-	var result []string
-	for _, axis := range rfAxes {
-		for _, a := range axes {
-			if strings.EqualFold(a, axis) && !seen[axis] {
-				seen[axis] = true
-				result = append(result, axis)
-			}
-		}
-	}
-	return result
-}
-
-func rfTitleCase(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
-}
-
-func rfLowerAll(items []string) []string {
-	result := make([]string, len(items))
-	for i, s := range items {
-		result[i] = strings.ToLower(s)
-	}
-	return result
-}
-
-// --- Decision ---
-
-func rfMakeDecisionReason(structuralOK bool, summaryMap map[string]string, machineRows []rfMachineRow) (string, string) {
+func rfMakeDecisionReason(structuralOK bool, summaryMap map[string]string, taskShape []rfTaskShapeFinding) (string, string) {
 	var failingSummary []string
 	for _, field := range rfSummaryFields {
 		if summaryMap[field] == "FAIL" {
 			failingSummary = append(failingSummary, field)
 		}
 	}
-	var failingTasks []string
-	for _, row := range machineRows {
-		if row.Verdict == "FAIL" {
-			failingTasks = append(failingTasks, row.Task)
+
+	var blockers []string
+	for _, finding := range taskShape {
+		if finding.Severity == "blocker" {
+			blockers = append(blockers, finding.Task+"("+finding.Predicate+")")
 		}
 	}
 
-	if structuralOK && len(failingSummary) == 0 && len(failingTasks) == 0 {
-		return "yes", "Structural check passed, all non-granularity viewpoints passed or were N/A, and the machine granularity gate passed."
+	if structuralOK && len(failingSummary) == 0 && len(blockers) == 0 {
+		return "yes", "Structural check passed, all summary viewpoints passed or were N/A, and task shape blockers are absent."
 	}
 
 	var reasons []string
@@ -498,13 +227,11 @@ func rfMakeDecisionReason(structuralOK bool, summaryMap map[string]string, machi
 	if len(failingSummary) > 0 {
 		reasons = append(reasons, "summary failures: "+strings.Join(failingSummary, ", "))
 	}
-	if len(failingTasks) > 0 {
-		reasons = append(reasons, "granularity failures: "+strings.Join(failingTasks, ", "))
+	if len(blockers) > 0 {
+		reasons = append(reasons, "task shape blockers: "+strings.Join(blockers, ", "))
 	}
 	return "no", strings.Join(reasons, "; ")
 }
-
-// --- Rendering ---
 
 func rfNormalizeSection(body, fallback string) string {
 	trimmed := strings.TrimSpace(body)
@@ -514,15 +241,15 @@ func rfNormalizeSection(body, fallback string) string {
 	return trimmed
 }
 
-func rfBuildBlockingIssuesSection(reviewerBody string, machineBlockers []string) string {
+func rfBuildBlockingIssuesSection(reviewerBody string, autoBlockers []string) string {
 	var parts []string
 	if trimmed := strings.TrimSpace(reviewerBody); trimmed != "" {
 		parts = append(parts, trimmed)
 	}
-	if len(machineBlockers) > 0 {
+	if len(autoBlockers) > 0 {
 		var items []string
-		for _, b := range machineBlockers {
-			items = append(items, "- [ ] "+b)
+		for _, blocker := range autoBlockers {
+			items = append(items, "- [ ] "+blocker)
 		}
 		parts = append(parts, strings.Join(items, "\n"))
 	}
@@ -538,7 +265,7 @@ func rfRenderFinalReport(
 	summaryMap map[string]string,
 	structuralOK bool,
 	structuralEvidence string,
-	machineRows []rfMachineRow,
+	taskShape []rfTaskShapeFinding,
 	findingsBody string,
 	blockingBody string,
 	improvementsBody string,
@@ -546,14 +273,6 @@ func rfRenderFinalReport(
 	reason string,
 ) string {
 	updatedAt := time.Now().Local().Format("2006-01-02 15:04 MST")
-
-	granularityVerdict := "PASS"
-	for _, row := range machineRows {
-		if row.Verdict != "PASS" {
-			granularityVerdict = "FAIL"
-			break
-		}
-	}
 
 	overallVerdict := "PASS"
 	if !structuralOK {
@@ -565,8 +284,11 @@ func rfRenderFinalReport(
 			break
 		}
 	}
-	if granularityVerdict == "FAIL" {
-		overallVerdict = "FAIL"
+	for _, finding := range taskShape {
+		if finding.Severity == "blocker" {
+			overallVerdict = "FAIL"
+			break
+		}
 	}
 
 	summaryLines := []string{
@@ -575,7 +297,6 @@ func rfRenderFinalReport(
 		fmt.Sprintf("- Round-trip: %s", summaryMap["Round-trip"]),
 		fmt.Sprintf("- Behavioral Lock: %s", summaryMap["Behavioral Lock"]),
 		fmt.Sprintf("- Negative Path: %s", summaryMap["Negative Path"]),
-		fmt.Sprintf("- Granularity: %s", granularityVerdict),
 		fmt.Sprintf("- Temporal: %s", summaryMap["Temporal"]),
 		fmt.Sprintf("- Traceability: %s", summaryMap["Traceability"]),
 		fmt.Sprintf("- Scope: %s", summaryMap["Scope"]),
@@ -586,17 +307,35 @@ func rfRenderFinalReport(
 		fmt.Sprintf("- Updated At: %s", updatedAt),
 	}
 
-	var machineTable []string
-	for _, row := range machineRows {
-		machineTable = append(machineTable, fmt.Sprintf(
+	blockers := 0
+	warnings := 0
+	info := 0
+	var shapeRows []string
+	for _, finding := range taskShape {
+		switch finding.Severity {
+		case "blocker":
+			blockers++
+		case "warning":
+			warnings++
+		case "info":
+			info++
+		}
+		shapeRows = append(shapeRows, fmt.Sprintf(
 			"| %s | %s | %s | %s | %s |",
-			row.Task, row.Total, row.Verdict, row.Trigger, row.Recommendation,
+			finding.Task, finding.Severity, finding.Predicate, finding.Evidence, finding.Action,
 		))
+	}
+	if len(shapeRows) == 0 {
+		shapeRows = append(shapeRows, "| General | info | n/a | No task shape findings recorded. | - |")
 	}
 
 	structuralEvidenceDisplay := structuralEvidence
 	if structuralEvidenceDisplay == "" {
 		structuralEvidenceDisplay = "not captured"
+	}
+	taskShapeBlockers := "none"
+	if blockers > 0 {
+		taskShapeBlockers = strconv.Itoa(blockers)
 	}
 
 	lines := []string{
@@ -613,15 +352,18 @@ func rfRenderFinalReport(
 	lines = append(lines, summaryLines...)
 	lines = append(lines,
 		"",
-		"## Granularity Gate (Machine)",
+		"## Task Shape Findings",
 		"",
 		fmt.Sprintf("- **Structural Check**: %s", map[bool]string{true: "PASS", false: "FAIL"}[structuralOK]),
 		fmt.Sprintf("- **Structural Evidence**: %s", structuralEvidenceDisplay),
+		fmt.Sprintf("- **Task Shape Blockers**: %s", taskShapeBlockers),
+		fmt.Sprintf("- **Task Shape Warnings**: %d", warnings),
+		fmt.Sprintf("- **Task Shape Info**: %d", info),
 		"",
-		"| Task | Total | Verdict | Trigger | Recommendation |",
-		"|------|-------|---------|---------|----------------|",
+		"| Task | Severity | Predicate | Evidence | Action |",
+		"|------|----------|-----------|----------|--------|",
 	)
-	lines = append(lines, machineTable...)
+	lines = append(lines, shapeRows...)
 	lines = append(lines,
 		"",
 		"## Findings",
@@ -642,15 +384,13 @@ func rfRenderFinalReport(
 		fmt.Sprintf("- Reason: %s", reason),
 		"",
 		"Note: This review validates design and plan artifacts only.",
-		"Implementation correctness is verified by dod-recheck (L4) and adversarial-verify (L5).",
+		"Implementation correctness is verified by dod-recheck (L4), adversarial-verify (L5), and completion-audit (final closure).",
 		"Plan PASS does not imply implementation PASS.",
 		"",
 	)
 
 	return strings.Join(lines, "\n")
 }
-
-// --- Main workflow ---
 
 func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) int {
 	planFile, err := filepath.Abs(planPath)
@@ -668,7 +408,6 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 		rfEmitFail(w, "INVALID_PATH", fmt.Sprintf("Cannot resolve final path: %s.", finalPath))
 		return 1
 	}
-
 	if draftFile == finalFile {
 		rfEmitFail(w, "SAME_FILE", "Draft review file and final review file must differ.")
 		return 1
@@ -700,11 +439,8 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 	}
 	summaryMap, summaryErrors := rfParseSummary(summaryBody)
 
-	granularityBody := extractSection(draftText, "Granularity Poker")
-	granularityRows, granParseErrors := rfParseGranularityTable(granularityBody)
-	machineRows, machineBlockers := rfComputeMachineRows(
-		taskIDs, granularityRows, append(summaryErrors, granParseErrors...),
-	)
+	taskShapeBody := extractSection(draftText, "Task Shape Findings")
+	taskShapeFindings, taskShapeErrors := rfParseTaskShapeFindings(taskShapeBody, taskIDs)
 
 	findingsBody := rfNormalizeSection(
 		extractSection(draftText, "Findings"),
@@ -724,16 +460,28 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 	structuralOK := structResult.Passed
 	structuralEvidence := rfStructuralEvidence(structResult)
 
+	var autoBlockers []string
 	if !structuralOK {
-		machineBlockers = append(machineBlockers, "Resolve structural-check failures before rerunning review finalization.")
+		autoBlockers = append(autoBlockers, "Resolve structural-check failures before rerunning review finalization.")
+	}
+	for _, issue := range summaryErrors {
+		autoBlockers = append(autoBlockers, issue)
+	}
+	for _, issue := range taskShapeErrors {
+		autoBlockers = append(autoBlockers, issue)
+	}
+	for _, finding := range taskShapeFindings {
+		if finding.Severity == "blocker" {
+			autoBlockers = append(autoBlockers, fmt.Sprintf("%s: %s (%s)", finding.Task, finding.Predicate, finding.Evidence))
+		}
 	}
 
 	blockingBody := rfBuildBlockingIssuesSection(
 		extractSection(draftText, "Blocking Issues"),
-		machineBlockers,
+		autoBlockers,
 	)
 
-	proceed, reason := rfMakeDecisionReason(structuralOK, summaryMap, machineRows)
+	proceed, reason := rfMakeDecisionReason(structuralOK, summaryMap, taskShapeFindings)
 
 	stamp, err := DsGenerateStamp("plan-review", planFile)
 	if err != nil {
@@ -746,8 +494,8 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 		stamp.RenderMarkdown(),
 		summaryMap,
 		structuralOK,
-		strings.ReplaceAll(structuralEvidence, "\n", "\\n"),
-		machineRows,
+		structuralEvidence,
+		taskShapeFindings,
 		findingsBody,
 		blockingBody,
 		improvementsBody,
@@ -765,10 +513,8 @@ func rfExecute(w io.Writer, planPath, draftPath, finalPath string, dryRun bool) 
 			rfEmitFail(w, "WRITE_FAILED", fmt.Sprintf("Cannot write final file: %s.", finalFile))
 			return 1
 		}
-
-		// Delete draft (ignore if already gone).
 		if err := os.Remove(draftFile); err != nil && !os.IsNotExist(err) {
-			// Non-fatal, continue.
+			// Ignore draft cleanup failures.
 		}
 	}
 
@@ -820,6 +566,15 @@ func rfEmitFail(w io.Writer, code, summary string) {
 		Code:    code,
 		Summary: summary,
 	})
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 // ReviewFinalize returns the review-finalize subcommand.

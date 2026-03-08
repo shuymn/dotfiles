@@ -70,18 +70,13 @@ Reason: implicit selection hides unvalidated dependency assumptions and removes 
    - Referenced sidecars exist.
    - `Checkpoint Summary` exists and uses required keys:
      - `Alignment Verdict`
-     - `Forward Fidelity`
-     - `Reverse Fidelity`
-     - `Non-Goal Guard`
-     - `Behavioral Lock Guard`
-     - `Temporal Completeness Guard`
+     - `Scope Contract Guard`
      - `Quality Gate Guard`
-     - `Integration Coverage Guard`
-     - `Risk Classification Guard`
+     - `Review Artifact`
      - `Trace Pack`
      - `Compose Pack`
      - `Updated At`
-   - `Checkpoint Summary` has `Alignment Verdict: PASS`.
+   - `Checkpoint Summary` has `Alignment Verdict: PASS`, `Scope Contract Guard: PASS`, and `Quality Gate Guard: PASS`.
    - `Checkpoint Summary` `Trace Pack` and `Compose Pack` values match header links.
    - Review report exists at `.../plan.review.md` (replace `plan.md` with `plan.review.md`) and has `Overall Verdict: PASS`. All sub-verdicts are validated programmatically by `skit gate-check`.
 5. Check task dependencies:
@@ -104,7 +99,8 @@ If validation fails, stop and ask for plan correction before implementation.
    - `GREEN`: implement minimal code to pass RED.
    - `REFACTOR`: perform safe cleanup while keeping tests green.
    - `DoD`: treat all DoD items as AND conditions. Task completion requires every DoD item to pass.
-     - When a DoD item reads `Run: all commands in \`## Quality Gates\``, resolve the command list from the `## Quality Gates` section in `plan.md` and run each command individually.
+     - When a DoD item reads `Global Quality Gates apply.`, resolve the command list from the `## Quality Gates` section in `plan.md` and run each command individually.
+   - If the task defines `Boundary Verification`, run it fresh and confirm it closes on the real product path rather than scaffolding or mocks.
    - If the task has `deps` and the DoD includes boundary-level tests (integration/contract/e2e), confirm those tests exercise the actual dependency implementations — not mock substitutes. If boundary tests run against mocks only, follow Stop Conditions.
 2. Verify expected outputs after each step before proceeding.
 3. Mark the task as `completed` in TodoWrite.
@@ -120,12 +116,17 @@ If expected results are not met, stop and follow Stop Conditions.
    ## Recheck Input
    - **Task ID**: Task N
    - **Risk Tier**: [Standard | Sensitive | Critical]
+   - **Task Contract Digest**: [sha256 of current task block]
+   - **Base Commit**: [git commit before implementation]
+   - **Implementation Files**:
+     - [repo-relative path]
+   - **Boundary Changes**: [owned | shared | cross-boundary]
    - **DoD Commands**: [DoD verification command list]
    - **Expected Outcomes**: [Expected result for each command]
    - **Quality Gates**: [Resolved commands from `## Quality Gates`, if applicable]
    - **Risk Flags**: [Any deviations recorded during implementation]
    ```
-4. If the task's Risk Tier is Sensitive or Critical, or if the task's Risk Tier is Standard and its Files contain implementation files (paths not matching `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`), output an Adversarial Verify Input block:
+4. If the task's Risk Tier is Sensitive or Critical, or if the task's Risk Tier is Standard and it changed implementation files, output an Adversarial Verify Input block:
    ```
    ## Adversarial Verify Input
    - **Task ID**: Task N
@@ -135,6 +136,7 @@ If expected results are not met, stop and follow Stop Conditions.
    - **Change Areas**: [Areas from Risk Classification that this task touches]
    - **Change Rationale**: [From design doc Risk Classification]
    - **Implementation Files**: [Files created/modified in this task]
+   - **Task Contract Digest**: [same digest as Recheck Input]
    - **DoD Evidence**: [Summary of verification results]
    ```
    Use repository-relative paths in both handoff blocks; do not emit absolute filesystem paths.

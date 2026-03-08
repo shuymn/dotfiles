@@ -2,11 +2,11 @@ package workflow
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,7 +20,6 @@ const gcToolName = "gate-check"
 
 var (
 	gcOverallVerdictRe  = regexp.MustCompile(`(?m)^\s*-?\s*\*{0,2}Overall Verdict\*{0,2}:\s*(.*)$`)
-	gcSourceDigestRe    = regexp.MustCompile(`Source Digest\*{0,2}:\s*([a-f0-9]{64})`)
 	gcListVerdictRe     = regexp.MustCompile(`^- [A-Za-z][A-Za-z /()-]*:\s*(PASS|FAIL|N/A)`)
 	gcOverallVerdictPfx = regexp.MustCompile(`^- \*{0,2}Overall Verdict`)
 	gcTableRowNumRe     = regexp.MustCompile(`^\|[[:space:]]*[0-9]+[[:space:]]*\|`)
@@ -40,7 +39,6 @@ func GateCheck() *cli.Command {
 
 func runGateCheck(w io.Writer, reviewFile, sourceFile string) int {
 	displayReviewFile := pathutil.DisplayPath(reviewFile)
-	displaySourceFile := pathutil.DisplayPath(sourceFile)
 
 	// Check 1: Review file existence + read
 	reviewBytes, err := os.ReadFile(reviewFile)
@@ -97,47 +95,85 @@ func runGateCheck(w io.Writer, reviewFile, sourceFile string) int {
 		return 1
 	}
 
-	// Check 3: Source Digest
-	reviewDigest := gcParseSourceDigest(content)
-	if reviewDigest == "" {
-		log.Emit(w, log.Result{
-			Tool:    gcToolName,
-			Status:  "FAIL",
-			Code:    "MISSING_SOURCE_DIGEST",
-			Summary: "Could not extract Source Digest from review file.",
-		},
-			slog.String("fix.1", "FIX_ADD_SOURCE_DIGEST"),
-			slog.String("fix.2", "FIX_REGENERATE_HEADER"),
-		)
-		return 1
-	}
-	sourceData, err := os.ReadFile(sourceFile)
-	if err != nil {
-		log.Emit(w, log.Result{
-			Tool:    gcToolName,
-			Status:  "FAIL",
-			Code:    "SOURCE_FILE_NOT_FOUND",
-			Summary: "Source file could not be read.",
-		},
-			slog.String("signal.missing_path", displaySourceFile),
-			slog.String("fix.1", "FIX_SOURCE_FILE_PATH"),
-		)
-		return 1
-	}
-	currentDigest := fmt.Sprintf("%x", sha256.Sum256(sourceData))
-	if reviewDigest != currentDigest {
-		log.Emit(w, log.Result{
-			Tool:    gcToolName,
-			Status:  "FAIL",
-			Code:    "SOURCE_DIGEST_MISMATCH",
-			Summary: "Source Digest does not match current source file.",
-		},
-			slog.String("signal.review_digest", reviewDigest),
-			slog.String("signal.current_digest", currentDigest),
-			slog.String("fix.1", "FIX_RERUN_REVIEW_ON_CURRENT_SOURCE"),
-			slog.String("fix.2", "FIX_UPDATE_SOURCE_DIGEST"),
-		)
-		return 1
+	// Check 3: Source freshness (whole-source for review artifacts, task-contract for task-scoped artifacts).
+	meta := extractMetadata(content)
+	if meta.SourceArtifact == "" && !isTaskScopedArtifact(filepath.Base(reviewFile)) {
+		if meta.SourceDigest == "" {
+			log.Emit(w, log.Result{
+				Tool:    gcToolName,
+				Status:  "FAIL",
+				Code:    "MISSING_SOURCE_DIGEST",
+				Summary: "Could not extract Source Digest from review file.",
+			},
+				slog.String("fix.1", "FIX_ADD_SOURCE_DIGEST"),
+				slog.String("fix.2", "FIX_REGENERATE_HEADER"),
+			)
+			return 1
+		}
+		currentDigest, err := sha256File(sourceFile)
+		if err != nil {
+			log.Emit(w, log.Result{
+				Tool:    gcToolName,
+				Status:  "FAIL",
+				Code:    "SOURCE_FILE_NOT_FOUND",
+				Summary: "Source file could not be read.",
+			},
+				slog.String("fix.1", "FIX_SOURCE_FILE_PATH"),
+			)
+			return 1
+		}
+		if currentDigest != meta.SourceDigest {
+			log.Emit(w, log.Result{
+				Tool:    gcToolName,
+				Status:  "FAIL",
+				Code:    "SOURCE_DIGEST_MISMATCH",
+				Summary: "Source Digest does not match current source file.",
+			},
+				slog.String("fix.1", "FIX_RERUN_REVIEW_ON_CURRENT_SOURCE"),
+				slog.String("fix.2", "FIX_UPDATE_SOURCE_DIGEST"),
+			)
+			return 1
+		}
+	} else {
+		freshStatus, _, freshIssue := checkArtifact(reviewFile, filepath.Dir(sourceFile))
+		if freshStatus != "PASS" {
+			code := "INVALID_ARTIFACT_METADATA"
+			summary := freshIssue
+			fix := []string{"FIX_REGENERATE_ARTIFACT_ON_CURRENT_SOURCE"}
+			switch {
+			case strings.Contains(freshIssue, "source file not found"):
+				code = "SOURCE_FILE_NOT_FOUND"
+				summary = "Source file could not be read."
+				fix = []string{"FIX_SOURCE_FILE_PATH"}
+			case strings.Contains(freshIssue, "Source Digest"):
+				code = "MISSING_SOURCE_DIGEST"
+				summary = "Could not extract Source Digest from review file."
+				fix = []string{"FIX_ADD_SOURCE_DIGEST", "FIX_REGENERATE_HEADER"}
+			case strings.Contains(freshIssue, "Task ID") || strings.Contains(freshIssue, "Task Contract Digest") || strings.Contains(freshIssue, "Base Commit") || strings.Contains(freshIssue, "Implementation Files"):
+				code = "MISSING_TASK_CONTRACT_METADATA"
+				summary = freshIssue
+				fix = []string{"FIX_ADD_TASK_CONTRACT_METADATA", "FIX_RERUN_DOD_RECHECK_ON_CURRENT_TASK"}
+			case freshStatus == "STALE" && isTaskScopedArtifact(filepath.Base(reviewFile)):
+				code = "TASK_CONTRACT_STALE"
+				summary = freshIssue
+				fix = []string{"FIX_RERUN_RECHECK_ON_CURRENT_TASK_CONTRACT"}
+			case freshStatus == "STALE":
+				code = "SOURCE_DIGEST_MISMATCH"
+				summary = "Source Digest does not match current source file."
+				fix = []string{"FIX_RERUN_REVIEW_ON_CURRENT_SOURCE", "FIX_UPDATE_SOURCE_DIGEST"}
+			}
+			log.Emit(w, log.Result{
+				Tool:    gcToolName,
+				Status:  "FAIL",
+				Code:    code,
+				Summary: summary,
+			},
+				slog.String("signal.source_status", freshStatus),
+				slog.String("signal.source_issue", freshIssue),
+				slog.Any("fix", fix),
+			)
+			return 1
+		}
 	}
 
 	// Check 4: Sub-verdicts
@@ -182,7 +218,6 @@ func runGateCheck(w io.Writer, reviewFile, sourceFile string) int {
 		Summary: "All gate checks passed.",
 	},
 		slog.String("detail.overall_verdict", verdictValue),
-		slog.String("detail.source_digest", reviewDigest),
 		slog.Int("detail.sub_verdicts_checked", subCount),
 	)
 	return 0
@@ -194,14 +229,6 @@ func gcParseOverallVerdict(content string) string {
 		return ""
 	}
 	return strings.TrimSpace(m[1])
-}
-
-func gcParseSourceDigest(content string) string {
-	m := gcSourceDigestRe.FindStringSubmatch(content)
-	if m == nil {
-		return ""
-	}
-	return m[1]
 }
 
 func gcCheckSubVerdicts(content string) (subCount, failCount int, failLines []string) {

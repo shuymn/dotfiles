@@ -19,15 +19,9 @@
   ],
   "checkpoint_summary": {
     "alignment_verdict": "PASS | FAIL",
-    "forward_fidelity": "PASS | FAIL",
-    "reverse_fidelity": "PASS | FAIL",
-    "non_goal_guard": "PASS | FAIL",
-    "behavioral_lock_guard": "PASS | FAIL",
-    "temporal_completeness_guard": "PASS | FAIL",
+    "scope_contract_guard": "PASS | FAIL",
     "quality_gate_guard": "PASS | FAIL",
-    "integration_coverage_guard": "PASS | FAIL | N/A",
-    "risk_classification_guard": "PASS | FAIL | N/A (greenfield without Critical-domain changes)",
-    "temp_summary": "introduced=X, retired=Y, open=Z, waived=W",
+    "review_artifact": "docs/plans/<topic>/plan.review.md",
     "trace_pack": "docs/plans/<topic>/plan.trace.md",
     "compose_pack": "docs/plans/<topic>/plan.compose.md",
     "updated_at": "YYYY-MM-DD"

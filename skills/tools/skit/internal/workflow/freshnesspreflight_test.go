@@ -3,6 +3,7 @@ package workflow
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,6 +16,22 @@ func makeReviewArtifact(sourceArtifact, sourceDigest string) string {
 	)
 }
 
+func makeTaskArtifact(sourceArtifact string, taskID int, taskDigest, baseCommit string, implFiles []string) string {
+	lines := []string{
+		"- **Mode**: dod-recheck",
+		fmt.Sprintf("- **Source Artifact**: %s", sourceArtifact),
+		fmt.Sprintf("- **Task ID**: Task %d", taskID),
+		fmt.Sprintf("- **Task Contract Digest**: %s", taskDigest),
+		fmt.Sprintf("- **Base Commit**: %s", baseCommit),
+		"- **Implementation Files**:",
+	}
+	for _, file := range implFiles {
+		lines = append(lines, "  - "+file)
+	}
+	lines = append(lines, "- **Overall Verdict**: PASS")
+	return strings.Join(lines, "\n") + "\n"
+}
+
 func runCmd(args ...string) (int, map[string]any) {
 	rc, stdout, _, err := runCommandOutput(FreshnessPreflight(), "", args...)
 	if err != nil {
@@ -23,7 +40,42 @@ func runCmd(args ...string) (int, map[string]any) {
 	return rc, parseJSONResult(stdout)
 }
 
-// --- Unit tests: checkArtifact ---
+func initGitRepo(t *testing.T) (string, string) {
+	t.Helper()
+	dir := t.TempDir()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%v failed: %v\n%s", args, err, string(out))
+		}
+		return strings.TrimSpace(string(out))
+	}
+
+	run("git", "init")
+	run("git", "config", "user.email", "test@example.com")
+	run("git", "config", "user.name", "Test User")
+	return dir, run("git", "rev-parse", "--show-toplevel")
+}
+
+func commitAll(t *testing.T, dir, message string) string {
+	t.Helper()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%v failed: %v\n%s", args, err, string(out))
+		}
+		return strings.TrimSpace(string(out))
+	}
+	run("git", "add", ".")
+	run("git", "commit", "-m", message)
+	return run("git", "rev-parse", "HEAD")
+}
 
 func TestFreshArtifactPass(t *testing.T) {
 	tmp := t.TempDir()
@@ -40,141 +92,128 @@ func TestFreshArtifactPass(t *testing.T) {
 	}
 
 	status, name, _ := checkArtifact(reviewPath, tmp)
+	if status != "PASS" || name != "design.review.md" {
+		t.Fatalf("unexpected result: status=%q name=%q", status, name)
+	}
+}
+
+func TestStaleWholeSourceArtifact(t *testing.T) {
+	tmp := t.TempDir()
+	srcPath := filepath.Join(tmp, "design.md")
+	if err := os.WriteFile(srcPath, []byte("# Design v2\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	reviewPath := filepath.Join(tmp, "design.review.md")
+	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", sha256Bytes([]byte("# Design v1\n")))), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	status, _, issue := checkArtifact(reviewPath, tmp)
+	if status != "STALE" || !strings.Contains(issue, "digest mismatch") {
+		t.Fatalf("unexpected result: status=%q issue=%q", status, issue)
+	}
+}
+
+func TestTaskScopedArtifactIgnoresOtherTaskEdits(t *testing.T) {
+	repoDir, _ := initGitRepo(t)
+	plan := "# Plan\n\n### Task 1: One\n- **Owned Paths**:\n  - `crates/cli/src/**`\n\n### Task 2: Two\n- **Owned Paths**:\n  - `docs/**`\n"
+	if err := os.MkdirAll(filepath.Join(repoDir, "crates/cli/src"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "docs"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte(plan), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "crates/cli/src/main.rs"), []byte("fn main() {}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	base := commitAll(t, repoDir, "base")
+
+	if err := os.WriteFile(filepath.Join(repoDir, "crates/cli/src/main.rs"), []byte("fn main() { println!(\"hi\"); }\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	taskDigest := computeTaskContractDigest(extractTaskBlock(plan, 1))
+	artifact := makeTaskArtifact("plan.md", 1, taskDigest, base, []string{"crates/cli/src/main.rs"})
+	artifactPath := filepath.Join(repoDir, "topic-task-1.dod-recheck.md")
+	if err := os.WriteFile(artifactPath, []byte(artifact), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	updatedPlan := strings.Replace(plan, "### Task 2: Two", "### Task 2: Two Updated", 1)
+	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte(updatedPlan), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	status, _, issue := checkArtifact(artifactPath, repoDir)
 	if status != "PASS" {
-		t.Errorf("expected PASS, got %q", status)
-	}
-	if name != "design.review.md" {
-		t.Errorf("expected name design.review.md, got %q", name)
+		t.Fatalf("expected PASS, got status=%q issue=%q", status, issue)
 	}
 }
 
-func TestStaleArtifactStale(t *testing.T) {
-	tmp := t.TempDir()
-	srcPath := filepath.Join(tmp, "design.md")
-	if err := os.WriteFile(srcPath, []byte("# Design v1\n"), 0644); err != nil {
+func TestTaskScopedArtifactStaleOnTaskContractChange(t *testing.T) {
+	repoDir, _ := initGitRepo(t)
+	plan := "# Plan\n\n### Task 1: One\n- **Owned Paths**:\n  - `crates/cli/src/**`\n"
+	if err := os.MkdirAll(filepath.Join(repoDir, "crates/cli/src"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	staleDigest := sha256Bytes([]byte("# Design old\n"))
+	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte(plan), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "crates/cli/src/main.rs"), []byte("fn main() {}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	base := commitAll(t, repoDir, "base")
 
-	reviewPath := filepath.Join(tmp, "design.review.md")
-	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", staleDigest)), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "crates/cli/src/main.rs"), []byte("fn main() { println!(\"hi\"); }\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	taskDigest := computeTaskContractDigest(extractTaskBlock(plan, 1))
+	artifactPath := filepath.Join(repoDir, "topic-task-1.dod-recheck.md")
+	if err := os.WriteFile(artifactPath, []byte(makeTaskArtifact("plan.md", 1, taskDigest, base, []string{"crates/cli/src/main.rs"})), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	status, _, issue := checkArtifact(reviewPath, tmp)
-	if status != "STALE" {
-		t.Errorf("expected STALE, got %q", status)
+	changedPlan := strings.Replace(plan, "`crates/cli/src/**`", "`crates/cli/**`", 1)
+	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte(changedPlan), 0644); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(issue, "mismatch") {
-		t.Errorf("expected 'mismatch' in issue, got %q", issue)
+
+	status, _, issue := checkArtifact(artifactPath, repoDir)
+	if status != "STALE" || !strings.Contains(issue, "task contract digest mismatch") {
+		t.Fatalf("unexpected result: status=%q issue=%q", status, issue)
 	}
 }
 
-func TestNoDigestSkip(t *testing.T) {
-	tmp := t.TempDir()
-	reviewPath := filepath.Join(tmp, "design.review.md")
-	if err := os.WriteFile(reviewPath, []byte("# Review\n\n- **Overall Verdict**: PASS\n"), 0644); err != nil {
+func TestTaskScopedArtifactMissingMetadataIsInvalid(t *testing.T) {
+	repoDir, _ := initGitRepo(t)
+	if err := os.WriteFile(filepath.Join(repoDir, "plan.md"), []byte("# Plan\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	artifactPath := filepath.Join(repoDir, "topic-task-1.dod-recheck.md")
+	if err := os.WriteFile(artifactPath, []byte("- **Source Artifact**: plan.md\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	status, _, _ := checkArtifact(reviewPath, tmp)
-	if status != "SKIP" {
-		t.Errorf("expected SKIP, got %q", status)
+	status, _, issue := checkArtifact(artifactPath, repoDir)
+	if status != "INVALID" || !strings.Contains(issue, "Task ID") {
+		t.Fatalf("unexpected result: status=%q issue=%q", status, issue)
 	}
 }
 
-func TestSourceNotFoundSkip(t *testing.T) {
+func TestRunFreshnessPreflight_FailsForInvalidArtifact(t *testing.T) {
 	tmp := t.TempDir()
-	reviewPath := filepath.Join(tmp, "design.review.md")
-	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("nonexistent.md", strings.Repeat("a", 64))), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "task.dod-recheck.md"), []byte("- **Source Artifact**: plan.md\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-
-	status, _, issue := checkArtifact(reviewPath, tmp)
-	if status != "SKIP" {
-		t.Errorf("expected SKIP, got %q", status)
-	}
-	if !strings.Contains(issue, "not found") {
-		t.Errorf("expected 'not found' in issue, got %q", issue)
-	}
-}
-
-// --- Integration tests: runFreshnessPreflight ---
-
-func TestNoArtifactFilesSkip(t *testing.T) {
-	tmp := t.TempDir()
-	rc, out := runCmd(tmp)
-	if rc != 0 {
-		t.Errorf("expected rc=0, got %d", rc)
-	}
-	if out["status"] != "SKIP" {
-		t.Errorf("expected status=SKIP, got %v", out["status"])
-	}
-	if out["code"] != "NO_REVIEW_ARTIFACTS" {
-		t.Errorf("expected code=NO_REVIEW_ARTIFACTS, got %v", out["code"])
-	}
-}
-
-func TestAllFreshPass(t *testing.T) {
-	tmp := t.TempDir()
-	content := []byte("# Design\n")
-	srcPath := filepath.Join(tmp, "design.md")
-	if err := os.WriteFile(srcPath, content, 0644); err != nil {
-		t.Fatal(err)
-	}
-	digest := sha256Bytes(content)
-
-	reviewPath := filepath.Join(tmp, "design.review.md")
-	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", digest)), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "plan.md"), []byte("# Plan\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	rc, out := runCmd(tmp)
-	if rc != 0 {
-		t.Errorf("expected rc=0, got %d", rc)
-	}
-	if out["status"] != "PASS" {
-		t.Errorf("expected status=PASS, got %v", out["status"])
-	}
-	if out["signal.stale"] != float64(0) {
-		t.Errorf("expected signal.stale=0, got %v", out["signal.stale"])
+	if rc != 1 || out["code"] != "ARTIFACT_FRESHNESS_VIOLATIONS" {
+		t.Fatalf("unexpected output: rc=%d out=%v", rc, out)
 	}
 }
 
-func TestStaleArtifactFail(t *testing.T) {
-	tmp := t.TempDir()
-	srcPath := filepath.Join(tmp, "design.md")
-	if err := os.WriteFile(srcPath, []byte("# Current content\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	staleDigest := sha256Bytes([]byte("# Old content\n"))
-
-	reviewPath := filepath.Join(tmp, "design.review.md")
-	if err := os.WriteFile(reviewPath, []byte(makeReviewArtifact("design.md", staleDigest)), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	rc, out := runCmd(tmp)
-	if rc != 1 {
-		t.Errorf("expected rc=1, got %d", rc)
-	}
-	if out["status"] != "FAIL" {
-		t.Errorf("expected status=FAIL, got %v", out["status"])
-	}
-	if out["signal.stale"] != float64(1) {
-		t.Errorf("expected signal.stale=1, got %v", out["signal.stale"])
-	}
-	if out["code"] != "STALE_REVIEW_ARTIFACTS" {
-		t.Errorf("expected code=STALE_REVIEW_ARTIFACTS, got %v", out["code"])
-	}
-}
-
-func TestTopicDirNotFound(t *testing.T) {
-	rc, out := runCmd("/nonexistent/topic/dir/xyz")
-	if rc != 1 {
-		t.Errorf("expected rc=1, got %d", rc)
-	}
-	if out["code"] != "TOPIC_DIR_NOT_FOUND" {
-		t.Errorf("expected code=TOPIC_DIR_NOT_FOUND, got %v", out["code"])
-	}
-}

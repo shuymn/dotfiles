@@ -24,7 +24,7 @@ allowed-tools: [Read, Bash, Grep, Glob, Write]
 Before starting adversarial verification, verify the dod-recheck gate:
 
 1. Run `skit gate-check <review-file> <source-file>`.
-2. The dod-recheck file must exist, contain `Overall Verdict: PASS`, and the Source Digest must match the current plan file.
+2. The dod-recheck file must exist, contain `Overall Verdict: PASS`, and be fresh for the current task contract (task-scoped freshness, not whole-plan freshness).
 3. If the gate check fails, stop as `BLOCKED` and request the user to run `execute-plan dod-recheck` first.
 
 ## Tier-Based Invocation Policy
@@ -36,7 +36,7 @@ Before starting adversarial verification, verify the dod-recheck gate:
 | Standard (impl) | Conditional Mandatory | 1 | Most relevant 1 category |
 | Standard (non-impl) | Optional | — | User-selected |
 
-**Implementation file definition**: Same as `dod-recheck-mode.md` Standard Inspection — Files in Create/Modify entries whose paths do NOT match any of: `*test*`, `*spec*`, `*.md`, `docs/*`, `*.txt`. Standard (impl) applies when the task's Files block contains at least one implementation file.
+**Implementation file definition**: Use the repository-relative `Implementation Files` recorded in the Adversarial Verify Input / Recheck Input. Standard (impl) applies when at least one of those files is implementation code rather than docs/tests-only scaffolding.
 
 ## Input
 

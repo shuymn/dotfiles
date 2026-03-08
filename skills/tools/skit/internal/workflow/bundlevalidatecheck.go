@@ -20,14 +20,9 @@ var kvRe = regexp.MustCompile(`^\s*-?\s*\*\*([^*]+)\*\*\s*:\s*(.*)$`)
 
 var bundleRequiredKeys = []string{
 	"Alignment Verdict",
-	"Forward Fidelity",
-	"Reverse Fidelity",
-	"Non-Goal Guard",
-	"Behavioral Lock Guard",
-	"Temporal Completeness Guard",
+	"Scope Contract Guard",
 	"Quality Gate Guard",
-	"Integration Coverage Guard",
-	"Risk Classification Guard",
+	"Review Artifact",
 	"Trace Pack",
 	"Compose Pack",
 	"Updated At",
@@ -90,20 +85,22 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 		issues = append(issues, fmt.Sprintf("missing required keys: %s", strings.Join(missing, ", ")))
 	}
 
-	// 2. Alignment Verdict must be PASS
-	alignment := kv["Alignment Verdict"]
-	if alignment != "PASS" {
-		issues = append(issues, fmt.Sprintf("Alignment Verdict must be exactly PASS, got: %q", alignment))
+	// 2. Required PASS verdicts.
+	requiredPass := []string{"Alignment Verdict", "Scope Contract Guard", "Quality Gate Guard"}
+	for _, key := range requiredPass {
+		if strings.TrimSpace(kv[key]) != "PASS" {
+			issues = append(issues, fmt.Sprintf("%s must be exactly PASS, got: %q", key, kv[key]))
+		}
 	}
 
-	// 3+4. Trace Pack / Compose Pack: consistency and sidecar existence
-	for _, key := range []string{"Trace Pack", "Compose Pack"} {
-		headerVal := strings.TrimSpace(headerLinks[key])
-		summaryVal := strings.TrimSpace(kv[key])
-		if headerVal != "" && summaryVal != "" && headerVal != summaryVal {
+	// 3. Review / Trace / Compose artifacts must exist. Trace and Compose must also match header links.
+	for _, key := range []string{"Review Artifact", "Trace Pack", "Compose Pack"} {
+		headerVal := normalizeBundleRef(headerLinks[key])
+		summaryVal := normalizeBundleRef(kv[key])
+		if (key == "Trace Pack" || key == "Compose Pack") && headerVal != "" && summaryVal != "" && headerVal != summaryVal {
 			issues = append(issues, fmt.Sprintf("%s: header=%q != checkpoint=%q", key, headerVal, summaryVal))
 		}
-		ref := strings.TrimSpace(coalesce(kv[key], headerLinks[key]))
+		ref := normalizeBundleRef(coalesce(kv[key], headerLinks[key]))
 		if ref == "" {
 			continue
 		}
@@ -118,7 +115,7 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 
 	status := "PASS"
 	code := "BUNDLE_VALID"
-	summary := "Bundle valid: all required keys present, Alignment Verdict PASS, sidecars exist."
+	summary := "Bundle valid: required checkpoint keys are present, guards PASS, and artifacts exist."
 
 	if len(issues) > 0 {
 		status = "FAIL"
@@ -136,8 +133,8 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 	if len(issues) > 0 {
 		attrs = append(attrs, slog.Any("fix", []string{
 			"FIX_ADD_MISSING_CHECKPOINT_KEYS",
-			"FIX_SET_ALIGNMENT_VERDICT_PASS",
-			"FIX_RECONCILE_PACK_LINKS_AND_FILES",
+			"FIX_SET_REQUIRED_GUARDS_PASS",
+			"FIX_RECONCILE_ARTIFACT_LINKS_AND_FILES",
 		}))
 	}
 
@@ -152,6 +149,10 @@ func runBundleValidateCheck(w io.Writer, planPath string) int {
 		return 1
 	}
 	return 0
+}
+
+func normalizeBundleRef(raw string) string {
+	return strings.Trim(strings.TrimSpace(raw), "`")
 }
 
 func parseKV(text string) map[string]string {

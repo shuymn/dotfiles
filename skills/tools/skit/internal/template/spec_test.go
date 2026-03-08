@@ -68,8 +68,9 @@ func TestCheckpointSummaryRendersSemanticVerdictPlaceholders(t *testing.T) {
 
 	checks := []string{
 		"- Alignment Verdict: PASS | FAIL",
-		"- Integration Coverage Guard: PASS | FAIL | N/A",
-		"- Risk Classification Guard: PASS | FAIL | N/A (greenfield without Critical-domain changes)",
+		"- Scope Contract Guard: PASS | FAIL",
+		"- Quality Gate Guard: PASS | FAIL",
+		"- Review Artifact: `docs/plans/<topic>/plan.review.md`",
 		"- Trace Pack: `docs/plans/<topic>/plan.trace.md`",
 		"- Compose Pack: `docs/plans/<topic>/plan.compose.md`",
 		"- Updated At: `YYYY-MM-DD`",

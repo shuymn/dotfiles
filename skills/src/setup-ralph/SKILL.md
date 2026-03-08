@@ -8,7 +8,6 @@ argument-hint: "[plan-path]"
 
 - `<skill-root>` means the directory containing this `SKILL.md`.
 - Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
-- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`.
 
 # Setup Ralph
 
@@ -16,93 +15,54 @@ Prepare `.ralph/` for the execution loop: fill `prd.json` from an approved plan 
 
 Prerequisite: `.ralph/` has already been initialized via `ralph init`.
 
-## Not in Scope
-
-- Running `ralph init` — `.ralph/` must already exist before this skill runs.
-- Modifying plan.md, design docs, or review reports.
-- Selecting or executing tasks — that is `execute-plan`'s responsibility.
-
-## When to Use
-
-- You have an approved plan bundle from `decompose-plan`.
-- `decompose-plan review` has produced `.../plan.review.md` with PASS verdict.
-- `.ralph/` already exists (created by `ralph init`).
-- Input: a plan.md file path (passed as argument or resolved interactively) and its derived `.../plan.review.md`.
-- Output: updated `.ralph/prd.json` and `.ralph/prompt.run.md`.
-
-## <HARD-GATE: PLAN APPROVAL>
+## Hard Gate
 
 Do NOT sync a plan that has not been explicitly approved by the user.
 
-- Verify the plan's `Checkpoint Summary` passes full validation (see Step 1.5).
-- Verify the review report (`.../plan.review.md`) exists and has PASS verdicts (see Step 1.6).
-- If any required key is missing or any verdict is not PASS, stop and ask the user to fix the plan first.
-
 ## Process
 
-### Step 1: Resolve Plan Path
+### Step 1: Resolve and Validate the Plan Bundle
 
-1. If `$ARGUMENTS` is provided, use it as the plan path directly.
-2. If no argument, search `docs/plans/*/plan.md` for available plans.
-3. If multiple plans exist, present the list and ask the user to select one.
-4. If no plans exist, stop and inform the user.
-5. Validate the resolved path exists and is a `decompose-plan` plan bundle:
-   - The file contains `## Task Dependency Graph`.
-   - The file contains `## Checkpoint Summary` with all required keys:
-     - `Alignment Verdict: PASS`
-     - `Forward Fidelity: PASS`
-     - `Reverse Fidelity: PASS`
-     - `Non-Goal Guard: PASS`
-     - `Behavioral Lock Guard: PASS`
-     - `Temporal Completeness Guard: PASS`
-     - `Quality Gate Guard: PASS` (or `N/A (no quality gates detected)`)
-     - `Integration Coverage Guard: PASS` (or `N/A` for plans with no cross-task deps)
-     - `Trace Pack` and `Compose Pack` paths that match the plan header links
-     - `Updated At`
-6. Validate review report readiness:
-   - Derive review path by replacing `plan.md` with `plan.review.md`.
-   - The review file exists.
-   - Run gate check: `skit gate-check <review-file> <source-file>`. If exit code is non-zero, stop and ask the user to re-run `decompose-plan review`.
-   - The review report contains (Review Metadata + Summary):
-     - `Overall Verdict: PASS` (in `## Review Metadata`)
-     - `Forward Fidelity: PASS`
-     - `Reverse Fidelity: PASS`
-     - `Round-trip: PASS`
-     - `Behavioral Lock: PASS`
-     - `Negative Path: PASS`
-     - `Granularity: PASS`
-     - `Temporal: PASS`
-     - `Traceability: PASS`
-     - `Scope: PASS`
-     - `Testability: PASS`
-     - `Execution Readiness: PASS`
-     - `Integration Coverage: PASS` (or `N/A (no cross-task deps)`)
-     - `Updated At`
+1. Resolve the target `plan.md` path from `$ARGUMENTS` or `docs/plans/*/plan.md`.
+2. Validate the plan bundle with `skit bundle-validate-check <plan-file>`.
+3. Confirm `Checkpoint Summary` contains:
+   - `Alignment Verdict: PASS`
+   - `Scope Contract Guard: PASS`
+   - `Quality Gate Guard: PASS`
+   - `Review Artifact`
+   - `Trace Pack`
+   - `Compose Pack`
+   - `Updated At`
+4. Derive `plan.review.md` from `Review Artifact` or the plan location.
+5. Run `skit gate-check <review-file> <plan-file>`.
+6. Require the final review artifact to show:
+   - `Overall Verdict: PASS`
+   - `Task Shape Blockers: none`
+   - `Scope: PASS`
+   - `Execution Readiness: PASS`
 
 ### Step 2: Parse Plan Tasks
 
-Extract tasks from the plan.md by parsing each `### Task N: <title>` section:
+Extract each `### Task N: <title>` section and sync it to one Ralph story.
 
-1. **Task ID**: Extract `N` from `### Task N:` and map to `task-N`.
-2. **Title**: Extract the title text after `### Task N: `.
-3. **Dependencies**: Parse `**Dependencies**: T1, T2` (or `none`), with or without a leading markdown list marker (`- `).
-   - Map `TN` references to `task-N` story IDs.
-   - `none` maps to an empty array `[]`.
-4. Validate the dependency graph:
-   - All referenced dependency IDs exist as parsed tasks.
-   - No circular dependencies.
+Required story metadata:
 
-### Step 3: Derive Metadata
+- `id`: `task-N`
+- `title`
+- `deps`
+- `passes`: `false`
+- `risk_tier`
+- `scope_contract`
+- `boundary_required`
+- `completion_gate`
 
-1. **project**: Identify a short slug for the project. Use any reasonable source: git remote URL, directory name, `AGENTS.md` references, or the plan context. There is no strict format — pick what feels natural as a project identifier.
-2. **branchName**: Read the plan's `**Goal**`, `**Architecture**`, `**Tech Stack**`, and task titles to understand the overall intent, then generate a branch name that concisely describes the change.
-   - Format: `<type>/<slug>` (e.g., `feat/config-schema-sync`, `refactor/runner-error-handling`).
-   - `<type>` is one of: `feat`, `fix`, `refactor`, `chore`, `docs` — choose based on the plan's primary intent.
-   - `<slug>` is a short, descriptive kebab-case name (2-4 words) summarizing the plan scope. Use your judgement — do not mechanically extract from the filename or title.
-   - The filename and heading are available as hints, but the branch name should reflect the plan's actual content.
-3. If either value cannot be determined, ask the user.
+Rules:
 
-### Step 4: Write prd.json
+- `scope_contract` must preserve `Owned Paths`, `Shared Touchpoints`, and `Prohibited Paths`.
+- `boundary_required` is true when the task declares `Boundary Verification`.
+- `completion_gate` is true when the plan as a whole requires `completion-audit`, or when the task belongs to a public/runtime/release-claim path that cannot be closed by local task PASS alone.
+
+### Step 3: Write `.ralph/prd.json`
 
 Overwrite `.ralph/prd.json` with:
 
@@ -115,78 +75,68 @@ Overwrite `.ralph/prd.json` with:
     {
       "id": "task-1",
       "title": "<task title>",
-      "deps": ["task-0"],
-      "passes": false
+      "deps": [],
+      "passes": false,
+      "risk_tier": "Standard",
+      "scope_contract": {
+        "owned_paths": ["crates/foo/src/**"],
+        "shared_touchpoints": [
+          {
+            "path": "Cargo.toml",
+            "rationale": "workspace dependency update"
+          }
+        ],
+        "prohibited_paths": ["reference/sqldef/**"]
+      },
+      "boundary_required": false,
+      "completion_gate": false
     }
   ]
 }
 ```
 
-Rules:
-- All stories start with `"passes": false`.
-- Story order matches task order in the plan.
-- The `plan` field is the relative path from the project root.
+### Step 4: Update `.ralph/prompt.run.md`
 
-### Step 5: Update prompt.run.md
+Update only the editable project-specific sections:
 
-Update the editable sections of `.ralph/prompt.run.md` with project-specific content derived from `AGENTS.md` (or `CLAUDE.md`) and the plan.
+1. **Context**
+   - repository structure
+   - tech stack / architecture
+   - plan-specific boundaries and packages
+2. **Rules**
+   - coding rules from `AGENTS.md`
+   - `Scope Contract` handling guidance
+   - requirement to use `execute-plan` for each story
+   - requirement to run `completion-audit` when the plan or story metadata marks a completion gate
+3. **Quality Gates**
+   - project-wide `## Quality Gates`
+   - any recurring boundary verification expectations that should be visible during the loop
 
-Read project guidance sources in order:
-1. `AGENTS.md` at project root (if exists).
-2. The resolved plan.md (for tech stack and verification commands).
+### Step 5: Report
 
-Update only the following sections (preserve all other sections unchanged):
+Summarize:
 
-1. **Context**: Add project-specific context.
-   - Repository structure and key directories from `AGENTS.md`.
-   - Tech stack and architecture from the plan header (`**Architecture**`, `**Tech Stack**`).
-   - Key packages and their responsibilities relevant to the plan scope.
-
-2. **Rules**: Add project-specific coding rules.
-   - Coding conventions from `AGENTS.md` (error handling, naming, testing style).
-   - Plan-specific constraints (protected paths, file placement rules from task `**Files**` sections).
-   - Add a rule directing the agent to use the `execute-plan` skill for each story during the Turn Procedure.
-
-3. **Quality Gates**: Add project-specific verification commands.
-   - Build/test/lint commands from `AGENTS.md` (e.g., `task test`, `task lint`, `task fmt`).
-   - Plan-specific verification commands from task `**DoD**` sections (e.g., `rtk go test ./internal/config/...`).
-
-Rules for editing prompt.run.md:
-- Never modify sections marked `<!-- do not edit: ... -->`.
-- Never modify Task Selection, Turn Procedure, Progress Format, Codebase Patterns, or Stop Condition sections.
-- Keep additions concise; prefer referencing `AGENTS.md` over duplicating its content.
-
-### Step 6: Report
-
-1. Summarize `prd.json` updates without dumping full file content:
-   - project, plan path, branchName
-   - story count and task ID range (e.g., `task-1` to `task-8`)
-2. Summarize `prompt.run.md` updates without dumping section content:
-   - What changed in Context, Rules, and Quality Gates
-   - Any commands or constraints added/updated
-3. Summarize:
-   - Number of stories synced.
-   - Dependency chain (e.g., `T1 -> T2 -> T3 -> T4`).
-   - Derived metadata (project, branchName).
-4. Suggest the user review both files and start the ralph loop.
+- project / plan / branchName
+- number of synced stories
+- dependency chain
+- which story metadata fields were added or changed
+- whether final `completion-audit` is required
 
 ## Stop Conditions
 
-Stop immediately and ask user guidance when:
+Stop and ask the user when:
 
-- `.ralph/` does not exist (user should run `ralph init` first).
-- `.ralph/prd.json` or `.ralph/prompt.run.md` does not exist.
-- Plan path cannot be resolved or does not exist.
-- Plan is missing `Checkpoint Summary`, missing required keys, or has any verdict that is not PASS.
-- Review report is missing, malformed, or has any verdict that is not PASS.
-- A dependency references a task ID that does not exist in the plan.
-- Circular dependency detected.
-- branchName cannot be derived and user does not provide it.
-- Neither `AGENTS.md` nor `CLAUDE.md` exists at the project root (no source for project-specific guidance).
+- `.ralph/` does not exist
+- `.ralph/prd.json` or `.ralph/prompt.run.md` does not exist
+- the plan is missing `Checkpoint Summary` or required PASS guards
+- `plan.review.md` is missing or not PASS
+- `Task Shape Blockers` is not `none`
+- task dependencies are invalid or cyclic
+- no project guidance source (`AGENTS.md` or `CLAUDE.md`) exists
 
 ## Key Principles
 
-- **Deterministic Mapping**: The same plan.md always produces the same prd.json stories (task mapping is purely structural).
-- **Plan Fidelity**: prd.json is a direct projection of plan.md tasks; do not add, remove, or reorder stories.
-- **Minimal Edit**: Update only Context, Rules, and Quality Gates in prompt.run.md; never touch ralph runtime machinery sections.
-- **Fail-Fast Validation**: Validate the plan structure and dependencies before writing any files.
+- **Plan Fidelity**: `prd.json` is a projection of `plan.md`; do not invent or reorder stories.
+- **Scope Fidelity**: preserve `Scope Contract` metadata; do not collapse it into flat file lists.
+- **Completion Fidelity**: do not drop product-level closure requirements. If the plan needs `completion-audit`, keep that signal in Ralph state.
+- **Minimal Edit**: update only the project-specific portions of `prompt.run.md`.

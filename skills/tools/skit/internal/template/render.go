@@ -197,15 +197,9 @@ func renderQualityGates(rows []model.QualityGateRow) string {
 func renderCheckpointSummary(section model.CheckpointSummaryTemplate) string {
 	return RenderBullets([]string{
 		"Alignment Verdict: " + section.AlignmentVerdict,
-		"Forward Fidelity: " + section.ForwardFidelity,
-		"Reverse Fidelity: " + section.ReverseFidelity,
-		"Non-Goal Guard: " + section.NonGoalGuard,
-		"Behavioral Lock Guard: " + section.BehavioralLockGuard,
-		"Temporal Completeness Guard: " + section.TemporalCompletenessGuard,
+		"Scope Contract Guard: " + section.ScopeContractGuard,
 		"Quality Gate Guard: " + section.QualityGateGuard,
-		"Integration Coverage Guard: " + section.IntegrationCoverageGuard,
-		"Risk Classification Guard: " + section.RiskClassificationGuard,
-		"TEMP Summary: " + section.TempSummary,
+		"Review Artifact: `" + section.ReviewArtifact + "`",
 		"Trace Pack: `" + section.TracePack + "`",
 		"Compose Pack: `" + section.ComposePack + "`",
 		"Updated At: `" + section.UpdatedAt + "`",
