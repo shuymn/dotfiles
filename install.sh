@@ -3,59 +3,51 @@
 set -eu -o pipefail
 
 errorf() {
-  printf "%s" "$*"
+  printf "%s\n" "$*" >&2
   exit 1
 }
 
-is_exists() {
-  type "$1" >/dev/null 2>&1
-  return $?
+script_dir() {
+  local script_source
+  local resolved_dir
+  script_source="${BASH_SOURCE[0]}"
+  if [[ ! -f "${script_source}" ]]; then
+    errorf "remote execution is disabled; clone the repository locally and run ./install.sh"
+  fi
+  resolved_dir="$(cd -- "$(dirname -- "${script_source}")" && pwd -P)"
+  if [[ ! -f "${resolved_dir}/Makefile" ]] || [[ ! -f "${resolved_dir}/install.sh" ]]; then
+    errorf "remote execution is disabled; clone the repository locally and run ./install.sh"
+  fi
+  printf "%s\n" "${resolved_dir}"
 }
 
-# Set DOTPATH as default variable
-if [ -z "${DOTPATH:-}" ]; then
-  DOTPATH=~/.dotfiles
-  export DOTPATH
-fi
-
-DOTFILES_GITHUB="https://github.com/shuymn/dotfiles.git"
-export DOTFILES_GITHUB
-
-download() {
-  if [ -d "$DOTPATH" ]; then
-    errorf "$DOTPATH: already exists"
+require_local_checkout() {
+  if [[ ! -f "${DOTPATH}/Makefile" ]]; then
+    errorf "${DOTPATH}: Makefile not found"
   fi
 
-  echo "Downloading dotfiles..."
-
-  if is_exists "git"; then
-    git clone --recursive "$DOTFILES_GITHUB" "$DOTPATH"
-  else
-    errorf "git command not found"
+  if [[ ! -f "${DOTPATH}/install.sh" ]]; then
+    errorf "${DOTPATH}: install.sh not found"
   fi
 
-  echo "Finish downloading"
+  if [[ ! -d "${DOTPATH}/.git" ]]; then
+    errorf "${DOTPATH}: not a git checkout; clone the repository locally before running install.sh"
+  fi
 }
 
 link() {
   echo "Linking dotfiles..."
-
-  if [ ! -d "$DOTPATH" ]; then
-    errorf "$DOTPATH: not found"
-  fi
-
-  cd "$DOTPATH"
-
-  make link && echo "Finish linking"
+  make -C "${DOTPATH}" link
+  echo "Finish linking"
 }
 
 install() {
-  # Download the repository
-  download &&
-
-    # Link dotfiles to home directory
-    link
+  require_local_checkout
+  link
 }
+
+DOTPATH="$(script_dir)"
+export DOTPATH
 
 trap "echo 'terminated' 1>&2; exit 1" INT ERR
 install
