@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/design-doc/references/ears-types.md; edit source and rebuild -->
+
 # EARS Requirement Types
 
 Easy Approach to Requirements Syntax (EARS) provides 5 structured sentence patterns for writing unambiguous, testable requirements.

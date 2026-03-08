@@ -69,6 +69,13 @@ func testConfig() Config {
 			}
 			return filepath.ToSlash(rel)
 		},
+		FormatSourcePath: func(sourceRoot, sourcePath string) string {
+			rel, err := filepath.Rel(sourceRoot, sourcePath)
+			if err != nil {
+				return sourcePath
+			}
+			return filepath.ToSlash(filepath.Join("src", rel))
+		},
 	}
 }
 
@@ -116,5 +123,24 @@ func TestBuildOutputsStandaloneArtifacts(t *testing.T) {
 	}
 	if strings.Contains(string(content), "{{ render_fragment") {
 		t.Fatal("rendered template contains unresolved fragment token")
+	}
+	if !strings.Contains(string(content), "<!-- do not edit: generated from src/design-doc/references/design-templates.md.tmpl; edit source and rebuild -->") {
+		t.Fatal("rendered template missing generated notice")
+	}
+}
+
+func TestInjectMarkdownNoticePreservesFrontmatter(t *testing.T) {
+	got := injectMarkdownNotice("---\nname: test\n---\nbody\n", "<!-- do not edit -->")
+	want := "---\nname: test\n---\n\n<!-- do not edit -->\n\nbody\n"
+	if got != want {
+		t.Fatalf("injectMarkdownNotice frontmatter mismatch\nwant:\n%s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInjectMarkdownNoticePrependsWithoutFrontmatter(t *testing.T) {
+	got := injectMarkdownNotice("# title\n", "<!-- do not edit -->")
+	want := "<!-- do not edit -->\n\n# title\n"
+	if got != want {
+		t.Fatalf("injectMarkdownNotice plain markdown mismatch\nwant:\n%s\ngot:\n%s", want, got)
 	}
 }

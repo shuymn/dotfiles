@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/decompose-plan/references/granularity-poker.md; edit source and rebuild -->
+
 # Granularity Poker
 
 Review-only scoring rubric for `decompose-plan review`.

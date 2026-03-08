@@ -154,6 +154,22 @@ func TestBuildOutputsStandaloneArtifacts(t *testing.T) {
 	if !strings.Contains(s, "| Question") {
 		t.Error("rendered template missing | Question")
 	}
+	if !strings.Contains(s, "<!-- do not edit: generated from skills/src/design-doc/references/design-templates.md.tmpl; edit source and rebuild -->") {
+		t.Error("rendered template missing generated notice")
+	}
+
+	skillPath := filepath.Join(artifactRoot, "commit", "SKILL.md")
+	skillContent, err := os.ReadFile(skillPath)
+	if err != nil {
+		t.Fatalf("ReadFile SKILL.md: %v", err)
+	}
+	skillText := string(skillContent)
+	if !strings.Contains(skillText, "<!-- do not edit: generated from skills/src/commit/SKILL.md; edit source and rebuild -->") {
+		t.Error("SKILL.md missing generated notice")
+	}
+	if !strings.HasPrefix(skillText, "---\nname: commit\n") {
+		t.Error("SKILL.md frontmatter should remain at the top")
+	}
 }
 
 func TestBuildIsIdempotent(t *testing.T) {

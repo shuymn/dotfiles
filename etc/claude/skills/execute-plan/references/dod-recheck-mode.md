@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/execute-plan/references/dod-recheck-mode.md; edit source and rebuild -->
+
 # DoD Recheck Mode
 
 > `<skill-root>` means the directory containing the parent `SKILL.md`. Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not to this file's location.

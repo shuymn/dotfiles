@@ -4,6 +4,9 @@ description: Prepares .ralph/ runtime state from an approved and reviewed plan b
 argument-hint: "[plan-path]"
 ---
 
+<!-- do not edit: generated from skills/src/setup-ralph/SKILL.md; edit source and rebuild -->
+
+
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

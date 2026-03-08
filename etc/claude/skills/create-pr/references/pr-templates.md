@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/create-pr/references/pr-templates.md; edit source and rebuild -->
+
 # PR Templates
 
 ## Standard Format (English)

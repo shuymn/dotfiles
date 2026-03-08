@@ -4,6 +4,9 @@ description: "Executes one user-selected task from an approved plan bundle using
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 ---
 
+<!-- do not edit: generated from skills/src/execute-plan/SKILL.md; edit source and rebuild -->
+
+
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

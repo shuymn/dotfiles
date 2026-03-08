@@ -4,6 +4,9 @@ description: "Decomposes an approved design document into a TDD-based implementa
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
+<!-- do not edit: generated from skills/src/decompose-plan/SKILL.md; edit source and rebuild -->
+
+
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

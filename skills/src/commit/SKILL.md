@@ -47,7 +47,7 @@ Always verify actual git state with live commands — cached snapshots from skil
 - Examples:
   - `feat(auth): add OAuth2 login`
   - `fix(api): handle null user responses`
-  - `feat: harden MySQL and CLI input validation`
+  - `feat: centralize request validation`
 - Use imperative mood, keep under 50 chars, start subject with lowercase
 
 **--japanese**: Creates commit messages with English types and optional scope plus Japanese descriptions:
@@ -55,7 +55,7 @@ Always verify actual git state with live commands — cached snapshots from skil
 - Examples:
   - `feat(auth): OAuth2ログインを追加`
   - `fix(api): ユーザーエンドポイントのnull処理を修正`
-  - `feat: MySQLとCLIの入力検証を強化`
+  - `feat: 入力検証を一元化`
 - Use である調, keep under 50 chars, use カタカナ for tech terms
 
 **Default when neither `--english` nor `--japanese` is set**:
@@ -96,6 +96,7 @@ Always verify actual git state with live commands — cached snapshots from skil
 - Imperative mood (English) / である調 (Japanese)
 - Start English subject with lowercase (e.g., `fix bug`, not `Fix bug`)
 - No period at end
+- Treat English subject `and` as a red flag; reconsider split or rewrite before commit
 - Allowed formats: `type(scope): subject` and `type: subject`
 - `scope` is optional, but when present it must name exactly one area
 - Never use multiple scopes such as `feat(mysql,cli,testkit): ...`
@@ -122,6 +123,8 @@ Always verify actual git state with live commands — cached snapshots from skil
      - For partial staging within a file: follow **Patch-Based Partial Staging**
    - **Verify staged changes**: `git diff --cached` — ensure only one logical change is staged
    - **If staging is wrong**: stop and ask user before proceeding (see Prohibited Commands)
+   - **Draft subject and run sanity checks**: follow **Subject Sanity Checks**
+   - **If English subject contains `and`**: stop and reconsider split or wording before commit
    - **Commit**: `git commit -m "<type>(<scope>): description"` or `git commit -m "<type>: description"`
    - **Confirm**: `git log --oneline -1`
 5. **Repeat for next logical unit** until all changes are committed
@@ -145,6 +148,8 @@ Always verify actual git state with live commands — cached snapshots from skil
      - For partial staging within a file: follow **Patch-Based Partial Staging**
    - **Verify staged changes**: `git diff --cached` — ensure only one logical change is staged
    - **If staging is wrong**: stop and ask user before proceeding (see Prohibited Commands)
+   - **Draft subject and run sanity checks**: follow **Subject Sanity Checks**
+   - **If English subject contains `and`**: stop and reconsider split or wording before commit
    - **Commit**: `git commit -m "<type>(<scope>): description"` or `git commit -m "<type>: description"`
    - **Confirm**: `git log --oneline -1`
 8. **Repeat for next logical unit** until all changes are committed
@@ -152,6 +157,21 @@ Always verify actual git state with live commands — cached snapshots from skil
 ### Patch-Based Partial Staging
 
 When a file contains multiple logical changes, use the patch-based approach. See [examples.md](references/examples.md#patch-based-partial-staging) for the full procedure.
+
+### Subject Sanity Checks
+
+Before `git commit`, validate the drafted subject mechanically:
+
+```bash
+subject='feat: centralize request validation'
+printf '%s' "$subject" | wc -c
+printf '%s\n' "$subject" | rg -n '\band\b'
+```
+
+- If `wc -c` exceeds 50: rewrite before committing
+- If `rg` matches `and` in an English subject: treat it as a forced reconsideration point
+- First try splitting the staged change into separate commits
+- If the change is truly inseparable, rewrite to a single-purpose phrasing without `and`
 
 ### Prohibited Commands During Partial Commit Preparation
 
@@ -188,7 +208,7 @@ For scenarios requiring separate commits (refactoring + feature, bug fix + test,
 ## Character Count
 ```bash
 # Check length
-echo -n "feat: harden CLI input validation" | wc -c
+printf '%s' "feat: centralize request validation" | wc -c
 ```
 
 ## Handling @ Symbols
@@ -215,7 +235,7 @@ If commit signing fails (for example with 1Password or other signing agents):
 ## Anti-Patterns
 
 Red flags that indicate multiple logical changes are bundled:
-- Commit message contains "and" (except in detailed descriptions)
+- English commit subject contains `and`
 - Using vague messages like "various fixes" or "multiple improvements"
 - Using comma-separated scopes like `feat(mysql,cli,testkit): ...` instead of splitting commits or omitting scope
 - Staging all changed files without reviewing each one

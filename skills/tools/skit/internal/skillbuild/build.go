@@ -34,6 +34,7 @@ type Config struct {
 	TextSuffixes              map[string]bool
 	DiscoverSkills            func(string) ([]string, error)
 	FormatSourceRoot          func(string, string) string
+	FormatSourcePath          func(string, string) string
 }
 
 // BuildError is returned when the skill build fails.
@@ -184,6 +185,8 @@ func (cfg Config) validate() error {
 		return fmt.Errorf("skillbuild: missing DiscoverSkills")
 	case cfg.FormatSourceRoot == nil:
 		return fmt.Errorf("skillbuild: missing FormatSourceRoot")
+	case cfg.FormatSourcePath == nil:
+		return fmt.Errorf("skillbuild: missing FormatSourcePath")
 	}
 	return nil
 }
@@ -346,6 +349,7 @@ func (cfg Config) validateNoForbiddenPaths(skillRoot string) error {
 func (cfg Config) copySkill(sourceSkillRoot, artifactRoot string) error {
 	skillName := filepath.Base(sourceSkillRoot)
 	artifactSkillRoot := filepath.Join(artifactRoot, skillName)
+	sourceRoot := filepath.Dir(sourceSkillRoot)
 
 	if err := filepath.WalkDir(sourceSkillRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -375,41 +379,49 @@ func (cfg Config) copySkill(sourceSkillRoot, artifactRoot string) error {
 		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 			return err
 		}
-		return copyFile(path, dst)
+		return cfg.copyArtifactFile(sourceRoot, path, dst)
 	}); err != nil {
 		return err
 	}
 
-	if err := cfg.renderStructuredTemplates(sourceSkillRoot, artifactSkillRoot); err != nil {
+	if err := cfg.renderStructuredTemplates(sourceRoot, sourceSkillRoot, artifactSkillRoot); err != nil {
 		return NewBuildError("%s: %v", skillName, err)
 	}
 
 	return nil
 }
 
-func copyFile(src, dst string) error {
-	srcFile, err := os.Open(src)
+func readFileWithMode(path string) ([]byte, fs.FileMode, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
-	defer srcFile.Close()
+	defer file.Close()
 
-	srcInfo, err := srcFile.Stat()
+	info, err := file.Stat()
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
-	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, srcInfo.Mode())
+	data, err := io.ReadAll(file)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
-	defer dstFile.Close()
-
-	_, err = io.Copy(dstFile, srcFile)
-	return err
+	return data, info.Mode(), nil
 }
 
-func (cfg Config) renderStructuredTemplates(sourceSkillRoot, artifactSkillRoot string) error {
+func (cfg Config) copyArtifactFile(sourceRoot, src, dst string) error {
+	data, mode, err := readFileWithMode(src)
+	if err != nil {
+		return err
+	}
+	if filepath.Ext(src) == ".md" {
+		data = []byte(cfg.decorateMarkdownArtifact(sourceRoot, src, string(data)))
+	}
+	return os.WriteFile(dst, data, mode)
+}
+
+func (cfg Config) renderStructuredTemplates(sourceRoot, sourceSkillRoot, artifactSkillRoot string) error {
 	var templates []string
 	err := filepath.WalkDir(sourceSkillRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -436,11 +448,35 @@ func (cfg Config) renderStructuredTemplates(sourceSkillRoot, artifactSkillRoot s
 		if err := os.MkdirAll(filepath.Dir(dstPath), 0o755); err != nil {
 			return err
 		}
+		if strings.HasSuffix(dstPath, ".md") {
+			rendered = cfg.decorateMarkdownArtifact(sourceRoot, tmplPath, rendered)
+		}
 		if err := os.WriteFile(dstPath, []byte(rendered), 0o644); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (cfg Config) decorateMarkdownArtifact(sourceRoot, sourcePath, content string) string {
+	notice := fmt.Sprintf("<!-- do not edit: generated from %s; edit source and rebuild -->", cfg.FormatSourcePath(sourceRoot, sourcePath))
+	return injectMarkdownNotice(content, notice)
+}
+
+func injectMarkdownNotice(content, notice string) string {
+	lines := strings.Split(content, "\n")
+	if len(lines) > 0 && lines[0] == "---" {
+		for i := 1; i < len(lines); i++ {
+			if lines[i] == "---" {
+				var out []string
+				out = append(out, lines[:i+1]...)
+				out = append(out, "", notice, "")
+				out = append(out, lines[i+1:]...)
+				return strings.Join(out, "\n")
+			}
+		}
+	}
+	return notice + "\n\n" + content
 }
 
 func (cfg Config) validateArtifactRoot(artifactRoot string) error {

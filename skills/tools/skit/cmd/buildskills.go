@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"regexp"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
@@ -89,6 +90,18 @@ func validateExplicitSkillRootPaths(skillRoot string) error {
 	return skillbuild.ValidateExplicitSkillRootPaths(skillRoot, buildSkillsConfig())
 }
 
+func formatSourcePath(sourceRoot, sourcePath string) string {
+	rel, err := filepath.Rel(sourceRoot, sourcePath)
+	if err != nil {
+		return sourcePath
+	}
+	prefix := filepath.ToSlash(filepath.Join(filepath.Base(filepath.Dir(sourceRoot)), filepath.Base(sourceRoot)))
+	if rel == "." {
+		return prefix
+	}
+	return prefix + "/" + filepath.ToSlash(rel)
+}
+
 func buildSkillsConfig() skillbuild.Config {
 	patterns := make([]skillbuild.ExplicitSkillRootPattern, 0, len(buildSkillsExplicitSkillRootPatterns))
 	for _, p := range buildSkillsExplicitSkillRootPatterns {
@@ -112,5 +125,6 @@ func buildSkillsConfig() skillbuild.Config {
 		TextSuffixes:              buildSkillsTextSuffixes,
 		DiscoverSkills:            discoverSkills,
 		FormatSourceRoot:          formatSourceRoot,
+		FormatSourcePath:          formatSourcePath,
 	}
 }

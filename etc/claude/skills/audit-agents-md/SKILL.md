@@ -4,6 +4,9 @@ description: Audits and refines a CLAUDE.md or AGENTS.md file for instruction de
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
+<!-- do not edit: generated from skills/src/audit-agents-md/SKILL.md; edit source and rebuild -->
+
+
 # Audit Agent Instruction Files
 
 Audit a CLAUDE.md or AGENTS.md file against established best practices for agent instruction files, then propose concrete improvements.

@@ -4,6 +4,9 @@ description: "Processes AI reviewer feedback and applies only verified fixes. Wo
 allowed-tools: [Bash, Read, Grep, Glob, WebSearch]
 ---
 
+<!-- do not edit: generated from skills/src/triage-review/SKILL.md; edit source and rebuild -->
+
+
 # Apply Verified Fixes from AI Review Comments
 
 ## Not in Scope

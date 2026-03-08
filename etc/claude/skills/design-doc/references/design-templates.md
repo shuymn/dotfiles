@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/design-doc/references/design-templates.md.tmpl; edit source and rebuild -->
+
 # Design Doc Templates
 
 ## Design Doc Template

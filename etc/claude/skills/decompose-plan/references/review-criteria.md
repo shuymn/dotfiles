@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/decompose-plan/references/review-criteria.md; edit source and rebuild -->
+
 # Plan Review Criteria
 
 12 evaluation viewpoints for `decompose-plan(review)` mode. Granularity is scored separately in `references/granularity-poker.md` and finalized by script.

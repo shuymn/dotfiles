@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/design-doc/references/review-criteria.md; edit source and rebuild -->
+
 # Design Doc Review Criteria
 
 Fixed 8-point evaluation framework for `design-doc(review)` mode.

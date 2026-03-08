@@ -4,6 +4,9 @@ description: "Creates or reviews a design document (mode=create|review). Create 
 allowed-tools: [Read, Write, Edit, Grep, Glob, TodoWrite, Bash]
 ---
 
+<!-- do not edit: generated from skills/src/design-doc/SKILL.md; edit source and rebuild -->
+
+
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

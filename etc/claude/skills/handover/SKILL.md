@@ -5,6 +5,9 @@ disable-model-invocation: true
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 ---
 
+<!-- do not edit: generated from skills/src/handover/SKILL.md; edit source and rebuild -->
+
+
 # Create Session Handover
 
 Generate a `HANDOVER.md` file in the current project folder so the next session can continue without losing context.

@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/decompose-plan/references/plan-templates.md.tmpl; edit source and rebuild -->
+
 # Plan Templates
 
 Templates for `plan.md` output artifact.

@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/decompose-plan/references/trace-templates.md.tmpl; edit source and rebuild -->
+
 # Trace & Check Templates
 
 Templates for `plan.trace.md` and `plan.compose.md` output artifacts.

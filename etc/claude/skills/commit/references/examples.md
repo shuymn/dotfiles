@@ -1,3 +1,5 @@
+<!-- do not edit: generated from skills/src/commit/references/examples.md; edit source and rebuild -->
+
 # Commit Examples and Scenarios
 
 ## Examples of Meaningful Units
@@ -6,13 +8,17 @@
 - `fix(auth): handle null user sessions`
 - `refactor(auth): extract session validation logic`
 - `feat(auth): add remember me option`
-- `feat: harden MySQL and CLI input validation`
+- `feat: centralize request validation`
 
 **Bad (bundled or misleading):**
 - `fix(auth): handle null sessions and add remember me option and refactor validation`
 - `feat(mysql,cli,testkit): harden error handling and input validation`
 
 If you think a message needs multiple scopes, try splitting it into separate commits first. If the work is one inseparable logical change, use `type: subject`.
+
+If an English subject contains `and`, treat that as a mandatory reconsideration point:
+- Split the change if the two sides of `and` can be reviewed or reverted independently
+- Otherwise rewrite to one purpose, for example `feat: centralize request validation`
 
 ## When Uncertain About Grouping — Example Prompt
 
@@ -49,7 +55,7 @@ How would you like me to group these changes?
 
 **Cross-Cutting But Inseparable:**
 - Use one commit without scope only when splitting would break one logical change
-- Example: `feat: harden request validation across CLI and API entrypoints`
+- Example: `feat: centralize request validation`
 
 ## Patch-Based Partial Staging
 
