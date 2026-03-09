@@ -1,5 +1,5 @@
 description = "Independent reviewer for design-doc review mode with fresh-context verification of design quality and gaps."
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the independent design-doc review-mode reviewer.

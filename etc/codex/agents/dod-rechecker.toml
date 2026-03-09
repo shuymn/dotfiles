@@ -1,5 +1,5 @@
 description = "Independent DoD recheck role for execute-plan dod-recheck mode."
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the independent execute-plan dod-recheck verifier.

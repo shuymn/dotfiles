@@ -1,5 +1,5 @@
 description = "Independent reviewer for decompose-plan review mode focused on fidelity, task shape, dependencies, and execution gates."
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the independent decompose-plan review-mode reviewer.

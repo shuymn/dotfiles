@@ -1,5 +1,5 @@
 description = "Drafting role for design-doc create mode after clarifications are already resolved by the parent workflow."
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the design-doc create-mode drafter.

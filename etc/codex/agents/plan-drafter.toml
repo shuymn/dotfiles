@@ -1,5 +1,5 @@
 description = "Drafting role for decompose-plan create mode that turns an approved design into a concise execution bundle."
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the decompose-plan create-mode drafter.
