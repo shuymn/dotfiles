@@ -28,6 +28,8 @@ type Config struct {
 	TemplateSuffix            string
 	FragmentSuffix            string
 	IgnoredNames              map[string]bool
+	ExcludedSkills            map[string]bool
+	SyncIgnored               map[string]bool
 	ScriptReferencePattern    *regexp.Regexp
 	ExplicitSkillRootPatterns []ExplicitSkillRootPattern
 	ForbiddenPatterns         []string
@@ -83,6 +85,13 @@ func Build(w io.Writer, cfg Config, sourceStr, artifactStr string, dryRun bool) 
 	if err != nil {
 		return err
 	}
+
+	syncIgnored, err := ParseSyncIgnore(sourceRoot)
+	if err != nil {
+		return err
+	}
+	cfg.SyncIgnored = syncIgnored
+	skillDirs = cfg.filterExcluded(w, skillDirs)
 
 	for _, skillRoot := range skillDirs {
 		if err := cfg.validateReferencedScripts(skillRoot); err != nil {
@@ -225,6 +234,23 @@ func (cfg Config) iterSkillDirs(sourceRoot string) ([]string, error) {
 	}
 	sort.Strings(dirs)
 	return dirs, nil
+}
+
+func (cfg Config) filterExcluded(w io.Writer, skillDirs []string) []string {
+	var filtered []string
+	for _, skillRoot := range skillDirs {
+		name := filepath.Base(skillRoot)
+		if cfg.SyncIgnored[name] {
+			fmt.Fprintf(w, "%s excluded=%s (reason=.syncignore)\n", cfg.LogPrefix, name)
+			continue
+		}
+		if cfg.ExcludedSkills[name] {
+			fmt.Fprintf(w, "%s excluded=%s (reason=--exclude)\n", cfg.LogPrefix, name)
+			continue
+		}
+		filtered = append(filtered, skillRoot)
+	}
+	return filtered
 }
 
 func cleanArtifactRoot(artifactRoot string) error {

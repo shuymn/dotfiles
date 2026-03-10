@@ -116,16 +116,65 @@ func TestBuildOutputsStandaloneArtifacts(t *testing.T) {
 		t.Fatalf("manifest file missing: %v", err)
 	}
 
-	renderedTemplate := filepath.Join(artifactRoot, "design-doc", "references", "design-templates.md")
-	content, err := os.ReadFile(renderedTemplate)
+	// design-doc is excluded by .syncignore so it must not appear in the artifact.
+	if _, err := os.Stat(filepath.Join(artifactRoot, "design-doc")); err == nil {
+		t.Fatal("design-doc (syncignore-excluded skill) found in artifact root")
+	}
+}
+
+func TestBuildExcludedSkillsAbsentFromArtifacts(t *testing.T) {
+	cfg := testConfig()
+
+	// Pick a skill not already excluded by .syncignore so we can verify --exclude logging.
+	srcRoot := skillsSourceRoot()
+	syncIgnored, err := ParseSyncIgnore(srcRoot)
 	if err != nil {
-		t.Fatalf("ReadFile rendered template: %v", err)
+		t.Fatalf("ParseSyncIgnore: %v", err)
 	}
-	if strings.Contains(string(content), "{{ render_fragment") {
-		t.Fatal("rendered template contains unresolved fragment token")
+	entries, err := os.ReadDir(srcRoot)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
 	}
-	if !strings.Contains(string(content), "<!-- do not edit: generated from src/design-doc/references/design-templates.md.tmpl; edit source and rebuild -->") {
-		t.Fatal("rendered template missing generated notice")
+	var targetSkill string
+	for _, e := range entries {
+		if e.IsDir() && e.Name() != "tests" && !syncIgnored[e.Name()] {
+			targetSkill = e.Name()
+			break
+		}
+	}
+	if targetSkill == "" {
+		t.Fatal("no skill found in source tree outside .syncignore")
+	}
+
+	cfg.ExcludedSkills = map[string]bool{targetSkill: true}
+
+	tmp := t.TempDir()
+	artifactRoot := filepath.Join(tmp, "artifacts")
+	var buf bytes.Buffer
+	if err := Build(&buf, cfg, srcRoot, artifactRoot, false); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	// Excluded skill must not appear in artifact directory.
+	if _, err := os.Stat(filepath.Join(artifactRoot, targetSkill)); err == nil {
+		t.Errorf("excluded skill %q found in artifact root", targetSkill)
+	}
+
+	// Excluded skill must not appear in manifest.
+	manifestPath := filepath.Join(artifactRoot, ".dotfiles-managed-skills.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("ReadFile manifest: %v", err)
+	}
+	if strings.Contains(string(manifestData), `"`+targetSkill+`"`) {
+		t.Errorf("excluded skill %q found in manifest", targetSkill)
+	}
+
+	// Log must contain the excluded entry.
+	logOutput := buf.String()
+	expectedLog := "excluded=" + targetSkill + " (reason=--exclude)"
+	if !strings.Contains(logOutput, expectedLog) {
+		t.Errorf("expected log to contain %q, got:\n%s", expectedLog, logOutput)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/cli"
 	"github.com/shuymn/dotfiles/skills/tools/skit/internal/skillbuild"
@@ -62,28 +63,40 @@ var (
 func BuildSkills() *cli.Command {
 	c := cli.NewCommand(buildSkillsTool, "Build standalone skill artifacts from a source tree")
 	c.EnableDryRun()
-	var source, artifact string
+	var source, artifact, exclude string
 	c.StringVar(&source, "source", "", "", "Path to the source skills root (required)")
 	c.StringVar(&artifact, "artifact", "", "", "Path to the artifact skills root (required)")
+	c.StringVar(&exclude, "exclude", "", "", "Comma-separated list of skill names to exclude from build")
 	c.Run = func(ctx context.Context, s *cli.State) error {
 		if source == "" || artifact == "" {
 			return fmt.Errorf("--source and --artifact are required")
 		}
-		return exitCode(runBuildSkills(s.Stdout, s.Stderr, source, artifact, s.DryRun))
+		cfg := buildSkillsConfig()
+		if exclude != "" {
+			excluded := map[string]bool{}
+			for _, name := range strings.Split(exclude, ",") {
+				name = strings.TrimSpace(name)
+				if name != "" {
+					excluded[name] = true
+				}
+			}
+			cfg.ExcludedSkills = excluded
+		}
+		return exitCode(runBuildSkills(s.Stdout, s.Stderr, cfg, source, artifact, s.DryRun))
 	}
 	return c
 }
 
-func runBuildSkills(w, stderr io.Writer, source, artifact string, dryRun bool) int {
-	if err := buildSkills(w, source, artifact, dryRun); err != nil {
+func runBuildSkills(w, stderr io.Writer, cfg skillbuild.Config, source, artifact string, dryRun bool) int {
+	if err := buildSkills(w, cfg, source, artifact, dryRun); err != nil {
 		fmt.Fprintf(stderr, "build-skills: %v\n", err)
 		return 1
 	}
 	return 0
 }
 
-func buildSkills(w io.Writer, sourceStr, artifactStr string, dryRun bool) error {
-	return skillbuild.Build(w, buildSkillsConfig(), sourceStr, artifactStr, dryRun)
+func buildSkills(w io.Writer, cfg skillbuild.Config, sourceStr, artifactStr string, dryRun bool) error {
+	return skillbuild.Build(w, cfg, sourceStr, artifactStr, dryRun)
 }
 
 func validateExplicitSkillRootPaths(skillRoot string) error {

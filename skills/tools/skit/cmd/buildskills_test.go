@@ -59,7 +59,7 @@ func buildToTempDir(t *testing.T) string {
 	tmp := t.TempDir()
 	artifactRoot := filepath.Join(tmp, "artifacts")
 	var buf bytes.Buffer
-	if err := buildSkills(&buf, skillsSourceRoot(), artifactRoot, false); err != nil {
+	if err := buildSkills(&buf, buildSkillsConfig(), skillsSourceRoot(), artifactRoot, false); err != nil {
 		t.Fatalf("buildSkills: %v", err)
 	}
 	return artifactRoot
@@ -122,42 +122,6 @@ func TestBuildOutputsStandaloneArtifacts(t *testing.T) {
 		t.Fatalf("WalkDir: %v", err)
 	}
 
-	// Specific artifact checks: common scripts must not appear in artifacts.
-	checkNotExists := []string{
-		filepath.Join(artifactRoot, "design-doc", "scripts", "gate-check.sh"),
-		filepath.Join(artifactRoot, "design-doc", "scripts", "split-check.sh"),
-		filepath.Join(artifactRoot, "design-doc", "scripts", "lib", "llm-check-output.sh"),
-		filepath.Join(artifactRoot, "design-doc", "scripts", "lib", "path-display.sh"),
-	}
-	for _, p := range checkNotExists {
-		if _, err := os.Stat(p); err == nil {
-			t.Errorf("expected path to not exist: %s", p)
-		}
-	}
-
-	// Rendered template file.
-	renderedTemplate := filepath.Join(artifactRoot, "design-doc", "references", "design-templates.md")
-	if _, err := os.Stat(renderedTemplate); err != nil {
-		t.Errorf("rendered template missing: %v", err)
-	}
-	content, err := os.ReadFile(renderedTemplate)
-	if err != nil {
-		t.Fatalf("ReadFile rendered template: %v", err)
-	}
-	s := string(content)
-	if strings.Contains(s, "{{ render_fragment") {
-		t.Error("rendered template contains unresolved {{ render_fragment")
-	}
-	if !strings.Contains(s, "## Clarifications") {
-		t.Error("rendered template missing ## Clarifications")
-	}
-	if !strings.Contains(s, "| Question") {
-		t.Error("rendered template missing | Question")
-	}
-	if !strings.Contains(s, "<!-- do not edit: generated from skills/src/design-doc/references/design-templates.md.tmpl; edit source and rebuild -->") {
-		t.Error("rendered template missing generated notice")
-	}
-
 	skillPath := filepath.Join(artifactRoot, "commit", "SKILL.md")
 	skillContent, err := os.ReadFile(skillPath)
 	if err != nil {
@@ -177,7 +141,7 @@ func TestBuildIsIdempotent(t *testing.T) {
 	first := snapshotTree(t, artifactRoot)
 
 	var buf bytes.Buffer
-	if err := buildSkills(&buf, skillsSourceRoot(), artifactRoot, false); err != nil {
+	if err := buildSkills(&buf, buildSkillsConfig(), skillsSourceRoot(), artifactRoot, false); err != nil {
 		t.Fatalf("second buildSkills: %v", err)
 	}
 	second := snapshotTree(t, artifactRoot)
