@@ -2,16 +2,10 @@
   "version": 1,
   "source_root": ".",
   "skills": [
-    "adversarial-verify",
     "audit-agents-md",
     "commit",
-    "completion-audit",
     "create-pr",
-    "decompose-plan",
-    "design-doc",
-    "execute-plan",
     "handover",
-    "setup-ralph",
     "triage-review"
   ]
 }
