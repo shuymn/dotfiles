@@ -14,26 +14,20 @@
 - Prefer the most elegant solution that stays in scope: for non-trivial changes with material trade-offs, compare up to 2 alternatives and choose the lowest-risk option.
 - If new findings invalidate the current plan, stop execution, update the plan, then continue.
 - Do not expand scope to adjacent features without explicit approval.
-- In the root session, use the design-doc / decompose-plan / execute-plan workflow only when the user explicitly requests it or provides its inputs; otherwise handle the request directly.
-- In workflow mode, determine the active phase and explicitly delegate to the corresponding stage role; do not rely on automatic role selection.
-- Keep user questioning in the root session for `design-doc(create)` and `decompose-plan(create)`.
-- Run `design_reviewer`, `plan_reviewer`, `dod_rechecker`, `adversarial_verifier`, and `completion_auditor` with fresh context (`fork_context=false`).
-- Keep production-code ownership with exactly one `task_implementer` at a time.
-- Limit active sub-agents to at most 4 and use parallelism mainly for `repo_explorer` and `docs_researcher`.
 - For long-running sub-agent work, silence alone is not evidence of a stall. Prefer waiting over interrupting; if agent-thread activity, local file changes, or command output indicates progress, keep waiting and avoid steering unless requirements changed or a real blocker is evident.
 - Requirement Notation: Uses EARS (Easy Approach to Requirements Syntax) instead of BDD Given/When/Then for acceptance criteria. EARS is more context-efficient for LLM-driven workflows in a single-developer environment where non-technical stakeholder readability is unnecessary.
 
-## Skill Usage Guide
+## Development Style
 
-If there is even a small chance a skill applies, invoke it BEFORE responding.
+- Develop with TDD (exploration → Red → Green → Refactoring).
+- When KPI or coverage targets are given, keep iterating until they are met.
 
-**Workflow:** Design needed → `design-doc(create)` → `design-doc(review)` | Task breakdown → `decompose-plan(create)` → `decompose-plan(review)` | Implementation → `execute-plan(implement)` → `execute-plan(dod-recheck)` → `adversarial-verify` → `completion-audit`
+## Code Design
 
-**Priority:** Process skills first (design-doc, decompose-plan), then implementation skills (execute-plan, domain-specific). Review/verification modes (`design-doc review`, `decompose-plan review`, `execute-plan dod-recheck`, `completion-audit`) run as independent sub-agents where applicable.
-
-**Red flags — if you think any of these, stop and check skills:** "Just a simple question" / "Let me explore first" / "This skill is overkill" / "I remember this skill" (skills evolve; read current version).
-
-**Discipline:** Rigid skills (TDD, verification) — follow exactly. Flexible skills (patterns) — adapt to context. The skill itself indicates which.
+- Maintain separation of concerns.
+- Separate state from logic.
+- Prioritize readability and maintainability.
+- Define the contract layer (APIs/types) strictly, and keep the implementation layer regenerable.
 
 ## Critical Recap
 
