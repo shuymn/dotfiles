@@ -37,7 +37,17 @@
 - 層、部品、工程都合の横分解を書かない
 - 実装メモではなく、AI に渡す実行単位の入口として使う
 
-### 3. ADR
+### 3. `docs/roadmap.md`
+
+`IDEA.md` が大きく、いきなり `TODO.md` に落とすと粗すぎるときだけ作る。
+
+- `Theme` 候補
+- 大きな優先方向
+- まだ着手しない論点の圧縮
+
+実装詳細、task 分解、gate 詳細は書かない。
+
+### 4. ADR ( `docs/adr/<topic>.md` )
 
 コードから復元しにくい判断だけを書く。
 
@@ -47,7 +57,7 @@
 
 <!-- 実装詳細、現状説明、コードの言い換えは書かない。役目を終えた prose は残さず、置換か削除を優先する。 -->
 
-### 4. Architecture Baseline
+### 5. Architecture Baseline
 
 新規プロダクト、基盤変更、永続化、境界設計、技術選定のように、長距離で破綻しやすい賭けがあるときだけ作る。
 
@@ -63,27 +73,29 @@
 - `Open Questions`
 - `Revisit trigger`
 
-<!-- `Roadmap` と `Design Doc` は default artifact にしない。必要になったときだけ一時的に使い、役目を終えたら削除または ADR へ圧縮する。 -->
+<!-- `docs/roadmap.md` は optional artifact とする。 -->
+<!-- 重い `Design Doc` は default artifact にしない。必要になったときだけ一時的に使い、役目を終えたら削除または ADR へ圧縮する。 -->
 
 ---
 
 ## Standard Loop
 
 <!-- `Goal / Constraints` の初期置き場は会話である。 -->
-<!-- 最初の永続 artifact は `Architecture Baseline` または `TODO.md` のどちらかになる。 -->
+<!-- 最初の永続 artifact は `docs/roadmap.md`、`Architecture Baseline`、`TODO.md` のいずれかになる。 -->
 
 1. `Goal / Constraints` を定める。
-2. 長距離で壊れやすい賭けがあるなら `Architecture Baseline` を作る。
-3. `Open Questions` を `blocking | risk-bearing | non-blocking` に分類する。
-4. `blocking` を `decision` または `spike` で潰す。
-5. 再利用価値がある判断だけ ADR に残す。
-6. 安定した面の上で `TODO.md` から 1 つの縦テーマを切る。
-7. そのテーマを表す `Executable doc` を先に作る。
-8. AI に `Executable doc` を先に失敗させ、`Red -> Green -> Refactor` の順で実装と整理を進めさせる。
-9. gate が通るまで AI が自走する。
-10. 人間は escalation 条件に当たったときだけ介入する。
-11. 変更後、残す価値がある差分だけを `TODO.md` と ADR に反映する。
-12. 一時メモ、途中の計画、賞味期限切れの prose は削除する。
+2. `IDEA.md` が大きいなら `docs/roadmap.md` に `Theme` 候補を圧縮する。
+3. 長距離で壊れやすい賭けがあるなら `Architecture Baseline` を作る。
+4. `Open Questions` を `blocking | risk-bearing | non-blocking` に分類する。
+5. `blocking` を `decision` または `spike` で潰す。
+6. 再利用価値がある判断だけ ADR に残す。
+7. 安定した面の上で `TODO.md` から 1 つの縦テーマを切る。
+8. そのテーマを表す `Executable doc` を先に作る。
+9. AI に `Executable doc` を先に失敗させ、`Red -> Green -> Refactor` の順で実装と整理を進めさせる。
+10. gate が通るまで AI が自走する。
+11. 人間は escalation 条件に当たったときだけ介入する。
+12. 変更後、残す価値がある差分だけを `TODO.md` と ADR に反映する。
+13. 一時メモ、途中の計画、賞味期限切れの prose は削除する。
 
 <!-- 重要なのは、自然言語の計画を厚くすることではなく、AI が 1 回の作業で扱える最小の実行単位に圧縮すること。 -->
 
