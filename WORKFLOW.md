@@ -1,302 +1,287 @@
 # Workflow
 
-<!-- 更新原則は append ではなく rewrite とする。新しい論点が出たら追記せず、全体を削って書き直し、今の最小運用仕様だけを残す。 -->
+<!-- 更新原則は append ではなく rewrite とする。新しい論点が出たら追記せず、全体を削って今の最小運用仕様だけを書き直す。 -->
 
-## Flow
+## Position
 
-永続文書は `Roadmap`、`Design Doc`、`ADR`, `TODO.md` に絞る。
+<!-- この Workflow は、人間がローカルプランナーや常時レビュー担当になる前提を捨てる。 -->
 
-流れは次の通り。
-
-`Roadmap -> Design Doc & ADR -> TODO.md -> 実装`
-
----
-
-## Decomposition Principle
-
-分解は縦方向に行う。
-
-この文書でいう `縦` とは、層、部品、工程ごとの分解ではなく、「1つ終わると外から何が前進したかが観測できる単位」を指す。以後、この単位を `縦テーマ` と呼ぶ。判断基準は内部構造ではなく、ユーザー、呼び出し元、運用者、外部システムのいずれかから見て、何が新しくできるようになったか、何が安全に保証されるようになったかである。
-
-この文書でいう `横` とは、parser、IR、renderer のような層、API と DB のような部品、実装、テスト、リファクタのような工程都合で分けることを指す。横分解は実装作業の棚卸しには使えても、Roadmap と TODO の主要単位にはしない。
-
-`Roadmap`、`Design Doc`、`TODO.md` はすべてこの原則に従う。特に `TODO.md` の `Theme` は、内部の作業束ではなく、縦テーマでなければならない。
+- `code + tests + scripts` を `source of truth` とする。
+- 実行も静的検査もできない自然言語文書は、原則として残さない。
+- テストコードを第一級のドキュメントとみなす。
+- 人間は `goal / constraints / escalation` を握り、局所探索と実装は AI に大きく委ねる。
+- 全差分の精読は default にしない。通過条件は prose review ではなく executable gate で決める。
 
 ---
 
-## Verification Taxonomy
+## Source of Truth
 
-verification taxonomy は `static | unit | integration | system` に揃える。`system` は e2e を含む。Theme は required verification coverage に含めた全 level を満たす必要がある。
+永続 artifact は次に絞る。
 
-coverage の基本方針は `integration-first` とする。
+### 1. Code / Tests / Scripts
 
-- 全 Theme で `static` は必須とする。
-- `integration` は default で必須とする。外から観測できる前進、境界接続、契約、状態遷移を Theme 完了条件に含むなら `integration` を外さない。
-- `unit` は `integration` の代替ではなく追加 level とする。局所責務や局所 contract の破綻を、`integration` より安く早く強く検出したいときに追加する。
-- `system` は主要シナリオ、ユーザー価値、stop-ship 条件を Theme 完了条件に含むときだけ追加する。
+これが唯一の一次情報である。
 
-各 level の定義は次の通り。
+- 現在の挙動
+- `public contract`
+- 再現手順
+- 受け入れ条件
 
-- `static`
-  静的解析、型、lint、禁止依存などの即時 gate。evidence は `executor/check identifier + case/suite/scenario identifier + pass/fail + replay handle`。
-- `unit`
-  局所責務、モジュール、関数、unit-level contract。evidence は `executor/check identifier + case/suite/scenario identifier + pass/fail + replay handle`。
-- `integration`
-  境界接続、API/CLI 契約、状態遷移、integration-level reject。evidence は `executor/check identifier + case/suite/scenario identifier + pass/fail + replay handle`。
-- `system`
-  主要シナリオ、ユーザー価値、stop-ship 条件、e2e-level reject。evidence は `executor/check identifier + case/suite/scenario identifier + pass/fail + replay handle`。
+は、可能な限りコード、テスト、fixture、CLI、script に埋め込む。
 
----
+### 2. `TODO.md`
 
-## Artifact Definitions
+未完了の縦テーマだけを持つ backlog。
 
-### Roadmap
+- 1 `Theme` = 1つの外から観測できる前進
+- 層、部品、工程都合の横分解を書かない
+- 実装メモではなく、AI に渡す実行単位の入口として使う
 
-長期テーマ、到達像、進行順のラフな方向を保持する。まだ `Design Doc` 化するには早いが、単なるアイデアメモではなく「どこへ進むか」を示す。
+### 3. ADR
 
-`Roadmap` でも横方向の分解は避ける。ここでの `Theme` は、縦テーマとして書く。
+コードから復元しにくい判断だけを書く。
 
-- `Theme`
-  どの長期テーマを前進させるかを書く。
-- `Outcome`
-  そのテーマが進むと何ができるようになるかを書く。
-- `Why it matters`
-  なぜそれが重要か、何を前進させるかを書く。
-- `Vertical Tension`
-  その縦テーマから `Design Doc` で固定すべき判断を導く時に、まだ固定されていない設計上の張力だけを書く。部品分割の論点一覧ではなく、「この `Theme` を縦テーマとして成立させるには何を解かなければならないか」に寄せる。
+- なぜその制約や方針を採ったか
+- 何を捨てたか
+- どこで見直すか
 
-`Roadmap` には固定技術選定、実装順の詳細、細粒度タスク、`Reject if` を書かない。
+<!-- 実装詳細、現状説明、コードの言い換えは書かない。役目を終えた prose は残さず、置換か削除を優先する。 -->
 
-### Design Doc
+### 4. Architecture Baseline
 
-`TODO.md` に落とす前に固定すべき判断を持つ source of truth。
+新規プロダクト、基盤変更、永続化、境界設計、技術選定のように、長距離で破綻しやすい賭けがあるときだけ作る。
 
-`Roadmap` の `Vertical Tension` に含まれる open question を解消して固定した判断の canonical source は ADR とする。`Design Doc` は構造、制約、verification を持ち、固定判断は `ADR References` で参照する。判断が衝突した場合は ADR を優先する。
+<!-- これは重い `Design Doc` ではない。目的は、最終ゴールまでの詳細設計を固定することではなく、先に露出すべき賭けと `Open Questions` を短く固定することにある。 -->
+
+<!-- 最低限次だけ持つ。 -->
 
 - `Goal`
-  この設計で成立させたいことを書く。
-- `Scope / Non-Scope`
-  今回扱う範囲と、意図的に扱わない範囲を書く。
-- `Architecture / Responsibility`
-  どこに責務を置くか、どの境界で分けるかを書く。
-- `ADR References`
-  open question を解消して固定した技術選定や採否判断として参照すべき ADR を列挙する。
+- `Non-goals`
 - `Constraints`
-  fail-closed、互換性、変更境界など、破ってはいけない制約を書く。
-- `Verification Strategy`
-  Theme の性質ごとに required verification coverage をどう決めるか、何で妥当性を確かめるかを書く。
+- `Core boundaries`
+- `Key tech decisions`
+- `Open Questions`
+- `Revisit trigger`
 
-`Design Doc` に残すのは、少なくとも次の入力になるものだけとする。
+<!-- `Roadmap` と `Design Doc` は default artifact にしない。必要になったときだけ一時的に使い、役目を終えたら削除または ADR へ圧縮する。 -->
 
-- `TODO Input`
-  これがないと縦テーマを切れないもの。
-- `Gate Input`
-  これがないと `Reject if` や `Verification` を決められないもの。
-- `Execution Input`
-  これがないと安全に実行単位へ切れないもの。
+---
 
-`Reference Only` は原則残さない。
+## Standard Loop
 
-### ADR
+<!-- `Goal / Constraints` の初期置き場は会話である。 -->
+<!-- 最初の永続 artifact は `Architecture Baseline` または `TODO.md` のどちらかになる。 -->
 
-`Roadmap` の `Vertical Tension` に含まれる open question を解消して固定した判断を記録する。
+1. `Goal / Constraints` を定める。
+2. 長距離で壊れやすい賭けがあるなら `Architecture Baseline` を作る。
+3. `Open Questions` を `blocking | risk-bearing | non-blocking` に分類する。
+4. `blocking` を `decision` または `spike` で潰す。
+5. 再利用価値がある判断だけ ADR に残す。
+6. 安定した面の上で `TODO.md` から 1 つの縦テーマを切る。
+7. そのテーマを表す `Executable doc` を先に作る。
+8. AI に `Executable doc` を先に失敗させ、`Red -> Green -> Refactor` の順で実装と整理を進めさせる。
+9. gate が通るまで AI が自走する。
+10. 人間は escalation 条件に当たったときだけ介入する。
+11. 変更後、残す価値がある差分だけを `TODO.md` と ADR に反映する。
+12. 一時メモ、途中の計画、賞味期限切れの prose は削除する。
 
-ADR は技術選定や採否判断の canonical source であり、`Design Doc` から参照される。少なくとも次を持つ。
+<!-- 重要なのは、自然言語の計画を厚くすることではなく、AI が 1 回の作業で扱える最小の実行単位に圧縮すること。 -->
 
-- `Status`
-  提案中、採用、廃止など、判断の状態を書く。
-- `Context`
-  何を決める必要があり、どの open question を解消するのかを書く。
-- `Decision`
-  何を採用したかを書く。
-- `Rejected Alternatives`
-  今回採らない案を書く。
-- `Consequences`
-  その判断により何が固定され、何が影響を受けるかを書く。
+---
 
-判断が衝突した場合は ADR を優先する。
+## Architecture Baseline
 
-### TODO.md
+<!-- `Architecture Baseline` は、長距離で効く賭けだけを先に固定するための薄い初期設計である。 -->
 
-未完了の縦テーマを管理する。TODO は実行命令書ではなく、テーマ管理のハブとする。
+<!-- ここで扱うのは、後から変えると高くつくものに限る。 -->
 
-基本原則は、TODO を横分解ではなく縦テーマで書くこと。ここでの `Theme` は縦テーマを指す。
+固定する項目:
 
-`Why not split further?` は補足ではなく、分割停止条件である。これに具体的に答えられない Theme は、まだ粒度が悪いとみなす。
+- 技術選定
+- 実行環境
+- 永続化方式
+- 境界の切り方
+- データモデルの中心
+- compatibility / migration 方針
+- fail-closed にする条件
+
+<!-- 逆に、次はここで固定しない。 -->
+
+固定しない項目:
+
+- 実装詳細
+- モジュール細分
+- helper 配置
+- private API の形
+- 当面の 1 手に影響しない将来論
+
+<!-- `Architecture Baseline` は TODO の前段に置くが、backlog そのものにはしない。 -->
+
+---
+
+## Open Questions
+
+<!-- `Open Questions` は独立した重い工程ではない。`Architecture Baseline` の中で見つかった未解決の重要論点である。 -->
+
+各 `Open Question` は次のどれかに分類する。
+
+- `blocking`
+  未決だと TODO の `Executable doc` が書けない
+- `risk-bearing`
+  今すぐ着手はできるが、後で大きく壊れる可能性がある
+- `non-blocking`
+  今は決めなくてよい
+
+処理方針は次。
+
+- `blocking`
+  TODO に進む前に必ず潰す
+- `risk-bearing`
+  破綻コストが高いものだけ先に潰す
+- `non-blocking`
+  TODO に持ち込まず、保留か削除する
+
+潰し方は 2 つだけに絞る。
+
+- `decision`
+  情報が揃っており、今決めればよい
+- `spike`
+  小さな実装、検証、ベンチ、試作をしてから決める
+
+`Open Question` を潰した結果のうち、未来の実装者が知らないと同じ議論を繰り返すものだけ ADR に残す。
+
+---
+
+## Theme Shape
+
+`TODO.md` の 1 `Theme` は最低でも次を持つ。
 
 - `Theme`
-  何を前進させる縦テーマかを書く。
+  何が前進するか。
 - `Outcome`
-  終わると外から何ができるようになるかを書く。
-- `Why now`
-  なぜ今この Theme を進めるのかを書く。
-- `Verification`
-  Theme に必要な required verification coverage を書く。`static | unit | integration | system` を使い、`system` には e2e を含む。
-- `Reject if`
-  何なら今は採用不可かを書く。各項目は `[static]`、`[unit]`、`[integration]`、`[system]` の owner tag を持つ。
-- `Why not split further?`
-  なぜこの粒度で止めるのかを書く。
+  終わると外から何が変わるか。
+- `Executable doc`
+  先に書く test / fixture / script / check command。
+- `Escalate if`
+  人間判断が必要になる条件。
 
 最小形は次。
 
 ```md
 - [ ] Theme: ...
   - Outcome: ...
-  - Why now: ...
-  - Verification: static + integration
-  - Reject if:
-    - [static] ...
-    - [integration] ...
-    - [integration] ...
-  - Why not split further?: ...
+  - Executable doc: `...`
+  - Acceptance (EARS):
+    - When ...
+    - If ...
+  - Escalate if: ...
 ```
 
+`Executable doc` が定まらない `Theme` は、まだ大きすぎるか曖昧すぎるか、`blocking` な `Open Question` が残っている。先に分割するか、`Open Question` を潰す。
+
 ---
 
-## Author Guide
+## Testing Policy
 
-### Roadmap Author
+テスト方針は `integration-first, system-when-needed` とする。
 
-- `Goal`
-  発散したアイデアを、`Design Doc` の起点になる縦テーマへ圧縮する。
+- 仕様の本体は `system` または `integration` に寄せる。
+- unit test は実装導入、局所補強、デバッグ隔離のために使う。
+- unit test を仕様の canonical source にしない。
+- private methods はテストしない。
+- bug fix では、まず失敗を再現する test か fixture を作る。
+- prose で説明した手順は、最終的に test / script / command に変換する。
+
+<!-- 言い換えると、自然言語ドキュメントを多重管理するのではなく、実行可能な形へ落としたものを document とみなす。 -->
+
+---
+
+## Gate Policy
+
+完全レビューは前提にしない。gate を強くする。
+
+最低 gate は `Theme` ごとに必要なものだけ選ぶ。
+
+- `static`
+  型、lint、format、禁止依存、schema check
+- `unit`
+  局所補強が必要なときだけ
+- `integration`
+  `public contract`、境界接続、状態遷移
+- `system`
+  主要シナリオ、e2e、stop-ship 条件
+
+基本は次。
+
+- 全 `Theme` で `static` は必須
+- `public contract` を触るなら `integration` は原則必須
+- ユーザー価値や運用シナリオを直接変えるなら `system` を追加
+- `unit` は追加コストに見合う場合だけ入れる
+
+gate は replay 可能でなければならない。結果だけ書かれた prose は evidence とみなさない。
+
+---
+
+## Review Policy
+
+review は「全部読む」から「危険箇所だけ見る」に変える。
+
+- default は full diff review ではなく gate 通過
+- 人間が見るのは public API、data loss、security、cost、migration、destructive operation などの高リスク境界
+- churn が大きいときは全文 review ではなく、変更境界と異常点を sampling する
+- AI には diff summary、risk summary、実行した gate、未解決の不確実性を返させる
+
+レビュー不能な量のコードが出ることを前提に、review で品質を担保しようとしない。品質は executable gate と rollback しやすい変更単位で担保する。
+
+---
+
+## Human Role
+
+人間の仕事は次に限定する。
+
+- 何を達成したいかを決める
+- 破ってはいけない constraints を決める
+- 危険な変更の許可/不許可を決める
+- escalation を裁く
+- milestone 単位で成果を評価する
+
+人間は、毎回の分解、毎回の実装順決め、毎回の diff 精読の担当にならない。
+
+---
+
+## ADR Policy
+
+ADR は「未来の実装者が、その判断を知らないと同じ議論をやり直す」場合だけ残す。
+
+<!-- 最低限次を書く。 -->
+
 - `Context`
-  実行時の active context を増やさず、後で `TODO.md` が横方向の分解チェックリストにならないようにする。
-- `Done when`
-  各項目が `Theme`、`Outcome`、`Why it matters`、`Vertical Tension` を持ち、縦テーマとして読める。`Vertical Tension` は `Design Doc` の `Goal`、`Architecture / Responsibility`、`Constraints`、`Verification Strategy` の少なくとも1つに展開できる。
-- `Constraints`
-  `Vertical Tension` は layer ごとの TODO 候補を書き並べる欄ではない。`parser`、`IR`、`renderer` のような横分解を誘発する書き方は避ける。新しい論点は追記で増築せず、必要なら全体を rewrite する。
+- `Decision`
+- `Rejected Alternatives`
+- `Consequence`
+- `Revisit trigger`
 
-### Design Doc Author
+次は ADR にしない。
 
-- `Goal`
-  `Roadmap` の縦テーマについて、open question を解消し、`TODO.md` に落とす前に必要な固定判断を明確にする。
-- `Context`
-  `Roadmap` よりは具体化するが、実装命令書にはしない。`TODO Input`、`Gate Input`、`Execution Input` を成立させるための source of truth に留める。
-- `Done when`
-  `Goal`、`Scope / Non-Scope`、`Architecture / Responsibility`、`ADR References`、`Constraints`、`Verification Strategy` が揃い、`TODO.md` に落とすために必要な固定判断が埋まっている。少なくとも、主要責務の置き場所、必要な ADR 判断、verification taxonomy、Theme 単位の required verification coverage が未確定ではない。
-- `Constraints`
-  `Reference Only` を原則残さない。open question を解消して固定した技術選定や採否判断は ADR に寄せ、`Design Doc` にはその判断の参照だけを残す。詳細実装順、細粒度タスク、`Reject if` は書かない。新しい論点は追記で増築せず、必要なら全体を `rewrite` する。
-
-### TODO Author
-
-`Design Doc` から直接実装タスクを作らず、まず外から観測できる前進として縦テーマ候補を出す。その後で `Architecture / Responsibility` と `Verification Strategy` を使って、その候補が成立するかを確かめる。
-
-TODO の単位は縦テーマとする。層、部品、内部実装都合だけでは切らない。
-
-- `Goal`
-  `Design Doc` の固定判断を、実装順ではなく複数の縦テーマへ分解して `TODO.md` の backlog にする。
-- `Context`
-  TODO は実行命令書ではなく、テーマ管理のハブである。横分解チェックリストではなく、縦テーマの backlog として保つ。
-- `Done when`
-  各 Theme について `Outcome`、`Why now`、`Verification`、`Reject if`、`Why not split further?` が具体化されている。`Goal` とつながり、`Outcome` から外からの前進が観測でき、`Why now` で着手理由を説明でき、required verification coverage と `Reject if` owner tag を決められ、未確定の ADR 判断に依存しない。さらに、required verification coverage の各 level について「何を示せば通過と言えるか」が `Reject if` から追える。
-- `Constraints`
-  実装量の最小ではなく、設計の妥当性を最も早く検証できる Theme を先に進める。`Why not split further?` が書けない Theme はまだ分割が悪く、TODO に置かない。required verification coverage は Verification Taxonomy の coverage 方針に従う。
-
-Evidence readiness:
-
-- required verification coverage の各 level に、少なくとも1つの `Reject if` owner tag を対応づける
-- `Reject if` は抽象語ではなく、fail 条件として観測可能に書く
-- `Verification` は level 名の列挙だけで終わらせず、その level で何を証明する必要があるかを `Outcome` と `Reject if` の組で読めるようにする
-- reviewer や gatekeeper が「どの evidence があれば十分か」を逆算できない Theme は、まだ TODO に置かない
-
-`Reject if` は最低でも次の型に寄せる。
-
-- `[integration]` 機能未達
-- `[static|integration|system]` 禁止違反
-- `[integration|system]` 回帰
-- `[static|integration]` 境界逸脱
-- `[static|unit|integration|system]` evidence 不足
+- 現状のコードを読めばわかること
+- 一時的な作業計画
+- 実行していない想像上の運用
+- test や script に落とせる手順
 
 ---
 
-## Reviewer Guide
+## Anti-Patterns
 
-`review` と `gate` は分ける。`review` は `Divergent Review` とし、甘く通さず厳しく見るが、採用可否は裁定しない。
-
-### What To Review
-
-- `Roadmap`
-  縦テーマとして読めるか。`Vertical Tension` が横分解の論点一覧になっていないか。
-- `Design Doc`
-  主要責務の置き場所、必要な ADR 判断、verification taxonomy、Theme 単位の required verification coverage など、`TODO.md` に進むための固定判断だけが残っているか。`Reference Only` や現状説明が紛れ込んでいないか。
-- `TODO.md`
-  `Theme` が縦テーマとして成立しているか。`Outcome`、`Verification`、`Reject if`、`Why not split further?` が弱くないか。特に `Why not split further?` が分割停止条件として具体的に機能しているか。
-- `実装`
-  コード変更そのものではなく、特定の `Theme` を満たす実装変更とその evidence bundle を review する。`Outcome`、`Verification`、`Reject if`、対応する `Design Doc` の `Architecture / Responsibility`、`Constraints`、ADR 判断と整合しているか、境界逸脱、回帰リスク、evidence の弱さがないかを見る。
-
-### Reviewer Output
-
-- 甘く通さず、問題になりうる点を厳しく指摘する
-- owner tag と verification level の候補があれば添える
-- `実装` については、関連する `Theme`、疑わしい `owner tag` / verification level、未充足の `Reject if` 候補、evidence gap を添える
-- `reject-now`、`need-evidence` の裁定はしない
+- 文書 review を通すための文書を書く
+- 実装前に詳細な計画を固定し、AI をその写経係にする
+- 横分解の task を backlog の主単位にする
+- 実行不能な手順書を残す
+- code と prose の二重管理を許す
+- private methods の unit test を増やす
+- 人間が毎回 task decomposition と diff review を抱える
 
 ---
 
-## Review and Gate Flow
+## One Line Summary
 
-1. `Divergent Review` が指摘候補を出す（全 artifact 共通）
-2. `Convergent Gate` が裁く
-   - `Roadmap` / `Design Doc`: 各 Quality Gate の `reject-now` 条件で裁く
-   - `TODO.md`: 各 Quality Gate の `reject-now` / `need-evidence` 条件で、文書構造と evidence readiness を裁く
-   - `実装`: `Theme identifier`、対応する `Verification` / `Reject if`、evidence mapping、verification evidence で裁く
-3. `reject-now` と `need-evidence` だけが採用可否に影響する
-4. `実装` の `Convergent Gate` は、対象 `Theme` の required verification coverage を次の順で実行する
-   1. `static`（常に必須）
-   2. `unit` / `integration` / `system`（Theme の required verification coverage に含まれるもの）
-
----
-
-## Gatekeeper Guide
-
-`gate` は `Convergent Gate` とし、`Reject if` と `Verification evidence` で裁定する。
-
-### Roadmap Quality Gate
-
-- `reject-now` if `Theme`、`Outcome`、`Why it matters`、`Vertical Tension` のいずれかが欠けている
-- `reject-now` if 横分解の論点一覧、実装順、細粒度タスク、固定技術選定が主になっている
-- `reject-now` if `Vertical Tension` から、固定すべき責務・制約・verification の論点を引けない
-
-### Design Doc Quality Gate
-
-- `reject-now` if 主要責務の置き場所が未確定
-- `reject-now` if 必要な ADR 判断が未確定
-- `reject-now` if verification taxonomy が未確定
-- `reject-now` if Theme 単位の required verification coverage が未確定
-- `reject-now` if `Reference Only` や現状説明が主になっている
-- `reject-now` if 対応する `Roadmap` 項目の `Theme`、`Outcome`、`Why it matters` をこの `Design Doc` で満たす構造になっていない
-- `reject-now` if 対応する `Roadmap` 項目の `Vertical Tension` に対して、固定すべき責務・制約・verification の論点が受け止められていない
-
-### TODO.md Quality Gate
-
-- `reject-now` if `Outcome`、`Verification`、`Reject if`、`Why not split further?` のいずれかが欠けている
-- `reject-now` if `Why not split further?` により、この `Theme` をこれ以上割らない理由が具体的に示されていない
-- `reject-now` if required verification coverage の各 level に対応する `Reject if` owner tag を置けない
-- `reject-now` if 対応する `Design Doc` の `Goal`、`Architecture / Responsibility`、`Constraints`、`Verification Strategy` をこの `TODO.md` の Theme 群で満たせない
-- `reject-now` if いずれかの Theme が未確定の ADR 判断や未固定の責務配置に依存している
-- `need-evidence` if required verification coverage の各 level について、何を示せば通過かを `Verification` と `Reject if` から引けない
-
-### Implementation Quality Gate
-
-- `reject-now` if 実装が対象 `Theme` の `Outcome` を満たさない
-- `reject-now` if 実装が対応する `Design Doc` の `Architecture / Responsibility`、`Constraints`、ADR 判断に反する
-- `reject-now` if required verification coverage に対応する実装または検証経路が存在しない
-- `reject-now` if 対象 `Theme` の `Reject if` のいずれかが実際に成立している
-- `need-evidence` if evidence が対象 `Theme` の required verification coverage、`Reject if` owner tag、pass/fail 判定に紐付かない
-- `need-evidence` if evidence が未実行、replay 不可能、または `executor/check identifier + case/suite/scenario identifier + pass/fail + replay handle` を満たさない
-- `need-evidence` if どの evidence がどの `Theme` のどの `Verification` / `Reject if` を満たすかを逆算できない
-
-### Gate Output
-
-- `pass`
-  現時点で gate を止める理由がなく、対象 artifact または実装を次へ進めてよい。
-- `reject-now`
-  今の状態では通せず、artifact 自体または実装の修正が必要である。
-- `need-evidence`
-  通過判断に必要な evidence が不足しており、追加の根拠が必要である。
-
-`need-evidence` は required verification coverage に対する evidence contract のいずれかが欠けているときに使う。未実行またはラベルだけの identifier は evidence とみなさない。`need-evidence` の適用範囲は `TODO.md Quality Gate` と `Implementation Quality Gate` に限る。`Roadmap Quality Gate` と `Design Doc Quality Gate` は構造・充足性の検査であり、verification evidence を伴わないため `reject-now` のみで裁定する。
-
-対象 `Theme` の required verification coverage の全 gate に `reject-now` と `need-evidence` がなければ `pass` として proceed してよい。
-
-owner tag は `static | unit | integration | system` のみとする。
+<!-- `Workflow` の目的は、文書を増やして人間が監督することではない。`code/tests/scripts` を中心に据え、AI が自走できる最小の縦テーマへ圧縮し、人間は `goal / constraints / escalation` だけを握ることにある。 -->
