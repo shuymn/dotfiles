@@ -6,6 +6,7 @@
     "commit",
     "create-pr",
     "handover",
-    "triage-review"
+    "triage-review",
+    "workflow"
   ]
 }
