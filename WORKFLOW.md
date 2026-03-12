@@ -83,13 +83,18 @@
 <!-- `Goal / Constraints` の初期置き場は会話である。 -->
 <!-- 最初の永続 artifact は `docs/roadmap.md`、`Architecture Baseline`、`TODO.md` のいずれかになる。 -->
 
+**Phase A: Stabilize (once per project/phase)**
+
 1. `Goal / Constraints` を定める。
-2. `IDEA.md` が大きいなら `docs/roadmap.md` に `Theme` 候補を圧縮する。
-3. 長距離で壊れやすい賭けがあるなら `Architecture Baseline` を作る。
+2. (if `IDEA.md` が大きい) `docs/roadmap.md` に `Theme` 候補を圧縮する。
+3. (if 長距離で壊れやすい賭けがある) `Architecture Baseline` を作る。
 4. `Open Questions` を `blocking | risk-bearing | non-blocking` に分類する。
 5. `blocking` を `decision` または `spike` で潰す。
 6. 再利用価値がある判断だけ ADR に残す。
-7. 安定した面の上で `TODO.md` から 1 つの縦テーマを切る。
+
+**Phase B: Execute (per Theme, repeat)**
+
+7. `TODO.md` から 1 つの縦テーマを切る。
 8. そのテーマを表す `Executable doc` を先に作る。
 9. AI に `Executable doc` を先に失敗させ、`Red -> Green -> Refactor` の順で実装と整理を進めさせる。
 10. gate が通るまで AI が自走する。
@@ -135,23 +140,14 @@
 
 <!-- `Open Questions` は独立した重い工程ではない。`Architecture Baseline` の中で見つかった未解決の重要論点である。 -->
 
-各 `Open Question` は次のどれかに分類する。
+各 `Open Question` は次のどれかに分類し、対応する処理方針に従う。
 
-- `blocking`
-  未決だと TODO の `Executable doc` が書けない
-- `risk-bearing`
-  今すぐ着手はできるが、後で大きく壊れる可能性がある
-- `non-blocking`
-  今は決めなくてよい
-
-処理方針は次。
-
-- `blocking`
-  TODO に進む前に必ず潰す
-- `risk-bearing`
-  破綻コストが高いものだけ先に潰す
-- `non-blocking`
-  TODO に持ち込まず、保留か削除する
+- `blocking` -- 未決だと TODO の `Executable doc` が書けない
+  - 処理: TODO に進む前に必ず潰す
+- `risk-bearing` -- 今すぐ着手はできるが、後で大きく壊れる可能性がある
+  - 処理: 破綻コストが高いものだけ先に潰す
+- `non-blocking` -- 今は決めなくてよい
+  - 処理: TODO に持ち込まず、保留か削除する
 
 潰し方は 2 つだけに絞る。
 
@@ -217,21 +213,14 @@
 
 最低 gate は `Theme` ごとに必要なものだけ選ぶ。
 
-- `static`
-  型、lint、format、禁止依存、schema check
-- `unit`
-  局所補強が必要なときだけ
-- `integration`
-  `public contract`、境界接続、状態遷移
-- `system`
-  主要シナリオ、e2e、stop-ship 条件
-
-基本は次。
-
-- 全 `Theme` で `static` は必須
-- `public contract` を触るなら `integration` は原則必須
-- ユーザー価値や運用シナリオを直接変えるなら `system` を追加
-- `unit` は追加コストに見合う場合だけ入れる
+- `static` -- 型、lint、format、禁止依存、schema check
+  - 選択条件: 全 `Theme` で必須
+- `integration` -- `public contract`、境界接続、状態遷移
+  - 選択条件: `public contract` を触るなら原則必須
+- `system` -- 主要シナリオ、e2e、stop-ship 条件
+  - 選択条件: ユーザー価値や運用シナリオを直接変えるなら追加
+- `unit` -- 局所補強が必要なときだけ
+  - 選択条件: 追加コストに見合う場合だけ入れる
 
 gate は replay 可能でなければならない。結果だけ書かれた prose は evidence とみなさない。
 
