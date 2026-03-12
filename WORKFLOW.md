@@ -174,6 +174,8 @@
   終わると外から何が変わるか。
 - `Executable doc`
   先に書く test / fixture / script / check command。
+- `Why not split vertically further?`
+  なぜこの粒度で止めるのか。
 - `Escalate if`
   人間判断が必要になる条件。
 
@@ -186,10 +188,11 @@
   - Acceptance (EARS):
     - When ...
     - If ...
+  - Why not split vertically further?: ...
   - Escalate if: ...
 ```
 
-`Executable doc` が定まらない `Theme` は、まだ大きすぎるか曖昧すぎるか、`blocking` な `Open Question` が残っている。先に分割するか、`Open Question` を潰す。
+`Executable doc` が定まらない `Theme` は、まだ大きすぎるか曖昧すぎるか、`blocking` な `Open Question` が残っている。`Why not split vertically further?` に答えられない `Theme` もまだ大きすぎる。先に分割するか、`Open Question` を潰す。
 
 ---
 
