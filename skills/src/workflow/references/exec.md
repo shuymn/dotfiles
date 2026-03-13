@@ -1,52 +1,50 @@
 # Workflow: Execute
 
-## Standard Loop Phase B: Execute (per Theme, repeat)
+## Execute Loop
 
-<!-- 重要なのは、自然言語の計画を厚くすることではなく、AI が 1 回の作業で扱える最小の実行単位に圧縮すること。 -->
-
-7. `TODO.md` から 1 つの縦テーマを切る。
-8. そのテーマを表す `Executable doc` を先に作る。
-9. AI に `Executable doc` を先に失敗させ、`Red -> Green -> Refactor` の順で実装と整理を進めさせる。
-10. gate が通るまで AI が自走する。
-11. 人間は escalation 条件に当たったときだけ介入する。
-12. 変更後、残す価値がある差分だけを `TODO.md` と ADR に反映する。
-13. 一時メモ、途中の計画、賞味期限切れの prose は削除する。
-
----
-
-## Theme Shape
-
-`TODO.md` の 1 `Theme` は最低でも次を持つ。
-
-- `Theme`
-  何が前進するか。
-- `Outcome`
-  終わると外から何が変わるか。
-- `Executable doc`
-  先に書く test / fixture / script / check command。
-- `Why not split vertically further?`
-  なぜこの粒度で止めるのか。
-- `Escalate if`
-  人間判断が必要になる条件。
-
-最小形は次。
-
-```md
-- [ ] Theme: ...
-  - Outcome: ...
-  - Executable doc: `...`
-  - Acceptance (EARS):
-    - When ...
-    - If ...
-  - Why not split vertically further?: ...
-  - Escalate if: ...
-```
-
-`Executable doc` が定まらない `Theme` は、まだ大きすぎるか曖昧すぎるか、`blocking` な `Open Question` が残っている。`Why not split vertically further?` に答えられない `Theme` もまだ大きすぎる。先に分割するか、`Open Question` を潰す。
+7. `TODO.md` から実行対象の縦テーマを選ぶ。
+8. そのテーマが [Theme Contract](../SKILL.md) を満たしていることを確認する。
+9. `Goal / Must Not Break / Non-goals / Acceptance / Evidence / Gates` が整合しており、`Gates` が [Gate Model](../SKILL.md) の最低要件を満たすことを確認する。
+10. AI に `Executable doc` をそのまま先に失敗させ、`Red -> Green -> Refactor` の順で実装と整理を進めさせる。
+11. gate が通るまで AI が自走する。
+12. 人間は escalation 条件に当たったときだけ介入する。
+13. review が `Closure Decision: closable` を返した `Theme` だけ `TODO.md` から外す。残す価値がある判断だけ ADR に反映する。
+14. 一時メモ、途中の計画、賞味期限切れの prose は削除する。
 
 ---
 
-## Testing Policy
+## Theme Preconditions
+
+実行前に対象 `Theme` が [Theme Contract](../SKILL.md) を満たしていることを確認する。
+
+- `Executable doc` が空なら plan に戻し、exec では 0 から発明しない
+- `Executable doc` が replay 可能な command / test / fixture になっていないなら plan に戻す
+- `Executable doc` が最初に fail する spec でないなら plan に戻す
+- `Gates` が空、または [Gate Model](../SKILL.md) の最低要件を満たさないなら plan に戻す
+- `Why not split vertically further?` に答えられないなら、先に分割する
+- `blocking` な `Open Question` が残っているなら、先に解消する
+
+---
+
+## Check Mapping
+
+各 `Theme` は最初に `Goal / Must Not Break / Non-goals / Acceptance / Evidence / Gates` を `checks` に写像する。
+
+- `Goal` → `system` または `integration`
+- `Must Not Break` → `integration`、`static`、必要なら `system`
+- `Non-goals` → test 追加対象から外す境界として明記
+- `Acceptance` → pass/fail 条件、閾値、停止条件
+- `Evidence` → replay 可能な command、test、metric、report
+- `Gates` → 採用した gate 名と最低要件の充足
+
+証拠にならないもの:
+
+- 結果だけを書いた prose
+- 再実行できない確認
+
+---
+
+## Testing Rules
 
 テスト方針は `integration-first, system-when-needed` とする。
 
@@ -57,23 +55,16 @@
 - bug fix では、まず失敗を再現する test か fixture を作る。
 - prose で説明した手順は、最終的に test / script / command に変換する。
 
-<!-- 言い換えると、自然言語ドキュメントを多重管理するのではなく、実行可能な形へ落としたものを document とみなす。 -->
-
 ---
 
-## Gate Policy
+## Gate Instantiation
 
-完全レビューは前提にしない。gate を強くする。
+gate 名と最低要件の正本は [Gate Model](../SKILL.md) を参照する。exec は plan で選ばれた `Gates` と `Executable doc` を replay する phase であり、gate 一覧や gate 選定を再定義しない。
+`Executable doc` は plan の出力であり、exec では次だけを行う。
 
-最低 gate は `Theme` ごとに必要なものだけ選ぶ。
+- `Gates` が shared vocabulary を使っていることを確認する
+- `Executable doc` と `Evidence` を replay して結果を埋める
+- `Evidence` と `Gates Run` に同じ gate 名を使える形へ揃える
+- review が `Closure Decision` を返せるよう `Gate -> Evidence` の対応を残す
 
-- `static` -- 型、lint、format、禁止依存、schema check
-  - 選択条件: 全 `Theme` で必須
-- `integration` -- `public contract`、境界接続、状態遷移
-  - 選択条件: `public contract` を触るなら原則必須
-- `system` -- 主要シナリオ、e2e、stop-ship 条件
-  - 選択条件: ユーザー価値や運用シナリオを直接変えるなら追加
-- `unit` -- 局所補強が必要なときだけ
-  - 選択条件: 追加コストに見合う場合だけ入れる
-
-gate は replay 可能でなければならない。結果だけ書かれた prose は evidence とみなさない。
+gate は replay 可能でなければならない。

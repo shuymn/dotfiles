@@ -1,104 +1,105 @@
 # Workflow: Plan
 
-<!-- 更新原則は append ではなく rewrite とする。新しい論点が出たら追記せず、全体を削って今の最小運用仕様だけを書き直す。 -->
-
-## Position
-
-<!-- この Workflow は、人間がローカルプランナーや常時レビュー担当になる前提を捨てる。 -->
+## Core Rules
 
 - `code + tests + scripts` を `source of truth` とする。
-- 実行も静的検査もできない自然言語文書は、原則として残さない。
-- テストコードを第一級のドキュメントとみなす。
-- 人間は `goal / constraints / escalation` を握り、局所探索と実装は AI に大きく委ねる。
+- prose は `constraints` とコードから復元しにくい判断だけに使う。
 - 全差分の精読は default にしない。通過条件は prose review ではなく executable gate で決める。
+- done 判定は要求ごとの観測可能な証拠で行い、`coverage` やテスト本数を主指標にしない。
 
 ---
 
-## Source of Truth
+## Persistent Artifacts
 
-永続 artifact は次に絞る。
-
-### 1. Code / Tests / Scripts
-
-これが唯一の一次情報である。
-
-- 現在の挙動
-- `public contract`
-- 再現手順
-- 受け入れ条件
-
-は、可能な限りコード、テスト、fixture、CLI、script に埋め込む。
-
-### 2. `TODO.md`
-
-未完了の縦テーマだけを持つ backlog。
-
-- 1 `Theme` = 1つの外から観測できる前進
-- 層、部品、工程都合の横分解を書かない
-- 実装メモではなく、AI に渡す実行単位の入口として使う
-
-### 3. `docs/roadmap.md`
-
-`IDEA.md` が大きく、いきなり `TODO.md` に落とすと粗すぎるときだけ作る。
-
-- `Theme` 候補
-- 大きな優先方向
-- まだ着手しない論点の圧縮
-
-実装詳細、task 分解、gate 詳細は書かない。
-
-### 4. ADR ( `docs/adr/<topic>.md` )
-
-コードから復元しにくい判断だけを書く。
-
-- なぜその制約や方針を採ったか
-- 何を捨てたか
-- どこで見直すか
-
-<!-- 実装詳細、現状説明、コードの言い換えは書かない。役目を終えた prose は残さず、置換か削除を優先する。 -->
-
-### 5. Architecture Baseline
-
-新規プロダクト、基盤変更、永続化、境界設計、技術選定のように、長距離で破綻しやすい賭けがあるときだけ作る。
-
-<!-- これは重い `Design Doc` ではない。目的は、最終ゴールまでの詳細設計を固定することではなく、先に露出すべき賭けと `Open Questions` を短く固定することにある。 -->
-
-<!-- 最低限次だけ持つ。 -->
-
-- `Goal`
-- `Non-goals`
-- `Constraints`
-- `Core boundaries`
-- `Key tech decisions`
-- `Open Questions`
-- `Revisit trigger`
-
-<!-- `docs/roadmap.md` は optional artifact とする。 -->
-<!-- 重い `Design Doc` は default artifact にしない。必要になったときだけ一時的に使い、役目を終えたら削除または ADR へ圧縮する。 -->
+- `Source of Truth`
+  - `code / tests / scripts`
+  - 現在の挙動、`public contract`、再現手順、受け入れ条件を入れる
+- `Theme Backlog`
+  - `TODO.md`
+  - 未完了の縦テーマだけを置く
+  - `1 Theme = 1つの外から観測できる前進`
+- `Roadmap`
+  - `docs/roadmap.md`
+  - `IDEA.md` が大きいときだけ作る
+  - `Theme` 候補と優先方向だけを圧縮する
+- `ADR`
+  - `docs/adr/<topic>.md`
+  - コードから復元しにくい判断だけを書く
+- `Architecture Baseline`
+  - `docs/architecture.md`
+  - 長距離で破綻しやすい賭けがあるときだけ作る
 
 ---
 
-## Standard Loop Phase A: Stabilize (once per project/phase)
+## Theme Contract Source
 
-<!-- `Goal / Constraints` の初期置き場は会話である。 -->
-<!-- 最初の永続 artifact は `docs/roadmap.md`、`Architecture Baseline`、`TODO.md` のいずれかになる。 -->
+`Theme` schema の正本は [Theme Contract](../SKILL.md) である。`plan.md` は field 定義を再掲せず、`TODO.md` にどう書くかだけを補足する。
+`Gates` と `Executable doc` も shared contract の必須 field であり、plan で最初に定義してから exec に渡す。
+`Executable doc` は exec に渡す前に runnable かつ最初に fail する spec でなければならない。
+
+---
+
+## ADR Policy
+
+ADR は「未来の実装者が、その判断を知らないと同じ議論をやり直す」場合だけ残す。
+
+書式は次に固定する。
+
+```md
+## Context
+## Decision
+## Rejected Alternatives
+## Consequence
+## Revisit trigger
+```
+
+次は ADR にしない。
+
+- 現状のコードを読めばわかること
+- 一時的な作業計画
+- 実行していない想像上の運用
+- test や script に落とせる手順
+
+---
+
+## Stabilize Loop
 
 1. `Goal / Constraints` を定める。
-2. (if `IDEA.md` が大きい) `docs/roadmap.md` に `Theme` 候補を圧縮する。
-3. (if 長距離で壊れやすい賭けがある) `Architecture Baseline` を作る。
+   - Artifact: `Theme Backlog` または `none`
+2. (if `IDEA.md` が大きい) `Theme` 候補を圧縮する。
+   - Artifact: `Roadmap` または `none`
+3. (if 長距離で壊れやすい賭けがある) 長距離の賭けを固定する。
+   - Artifact: `Architecture Baseline` または `none`
 4. `Open Questions` を `blocking | risk-bearing | non-blocking` に分類する。
-5. `blocking` を `decision` または `spike` で潰す。
+   - Artifact: `Architecture Baseline` の `Open Questions`、または `none`
+5. `blocking` は `decision` または `spike` で唯一解が得られたときだけ解消し、それ以外は escalation する。
+   - Artifact: 再利用価値がなければ `none`
 6. 再利用価値がある判断だけ ADR に残す。
+   - Artifact: `ADR` または `none`
+7. 実行に渡す `Theme Contract` を `TODO.md` に書く。`Gates` と `Executable doc` はこの step で最初に定義し、最低要件を満たすことを確認する。
+   - Artifact: `Theme Backlog` または `none`
+
+永続 artifact を書かない step では `Artifact: none` を選ぶ。`Theme Contract` は `Theme Backlog` の中に書き、別 artifact へ分けない。
 
 ---
 
 ## Architecture Baseline
 
-<!-- `Architecture Baseline` は、長距離で効く賭けだけを先に固定するための薄い初期設計である。 -->
+- 作るのは新規プロダクト、基盤変更、永続化、境界設計、技術選定のような長距離の賭けがあるときだけ。
+- `TODO.md` の前段に置く。backlog にはしない。
 
-<!-- ここで扱うのは、後から変えると高くつくものに限る。 -->
+書式は次に固定する。
 
-固定する項目:
+```md
+## Goal
+## Constraints
+## Core Boundaries
+## Key Tech Decisions
+## Open Questions
+## Revisit Trigger
+```
+
+固定する対象:
 
 - 技術選定
 - 実行環境
@@ -108,9 +109,7 @@
 - compatibility / migration 方針
 - fail-closed にする条件
 
-<!-- 逆に、次はここで固定しない。 -->
-
-固定しない項目:
+固定しない対象:
 
 - 実装詳細
 - モジュール細分
@@ -118,28 +117,35 @@
 - private API の形
 - 当面の 1 手に影響しない将来論
 
-<!-- `Architecture Baseline` は TODO の前段に置くが、backlog そのものにはしない。 -->
-
 ---
 
 ## Open Questions
 
-<!-- `Open Questions` は独立した重い工程ではない。`Architecture Baseline` の中で見つかった未解決の重要論点である。 -->
+分類:
 
-各 `Open Question` は次のどれかに分類し、対応する処理方針に従う。
+- `blocking` -- 未決だと `Executable doc` が書けない。`TODO.md` に進む前に解消する
+- `risk-bearing` -- 今すぐ進めるが後で大きく壊れる可能性がある。破綻コストが高いものだけ先に解消する
+- `non-blocking` -- 今は決めなくてよい。`TODO.md` に持ち込まない
 
-- `blocking` -- 未決だと TODO の `Executable doc` が書けない
-  - 処理: TODO に進む前に必ず潰す
-- `risk-bearing` -- 今すぐ着手はできるが、後で大きく壊れる可能性がある
-  - 処理: 破綻コストが高いものだけ先に潰す
-- `non-blocking` -- 今は決めなくてよい
-  - 処理: TODO に持ち込まず、保留か削除する
+解消手順は次に固定する。
 
-潰し方は 2 つだけに絞る。
+1. まず自分で最適解を検討する。
+2. `decision` または `spike` のどちらで解くかを決める。
+3. 「これ以外ありえない」と言える選択肢が得られたときだけ、その案で解消する。
+4. それ以外は escalation する。
 
-- `decision`
-  情報が揃っており、今決めればよい
-- `spike`
-  小さな実装、検証、ベンチ、試作をしてから決める
+解き方は `decision` か `spike` だけに絞る。
 
-`Open Question` を潰した結果のうち、未来の実装者が知らないと同じ議論を繰り返すものだけ ADR に残す。
+- `decision` -- 情報が揃っており今決めればよい
+- `spike` -- 小さな実装、検証、ベンチ、試作をしてから決める
+
+書式は次に固定する。
+
+```md
+- Question: ...
+  - Class: `blocking | risk-bearing | non-blocking`
+  - Resolution: `decision | spike`
+  - Status: `resolved | escalated`
+```
+
+結果のうち、未来の実装者が知らないと同じ議論を繰り返すものだけ ADR に残す。

@@ -1,63 +1,60 @@
 # Workflow: Review
 
-## Review Policy
-
-review は「全部読む」から「危険箇所だけ見る」に変える。
+## Review Rules
 
 - default は full diff review ではなく gate 通過
-- 人間が見るのは public API、data loss、security、cost、migration、destructive operation などの高リスク境界
 - churn が大きいときは全文 review ではなく、変更境界と異常点を sampling する
-- AI には diff summary、risk summary、実行した gate、未解決の不確実性を返させる
-
-レビュー不能な量のコードが出ることを前提に、review で品質を担保しようとしない。品質は executable gate と rollback しやすい変更単位で担保する。
-
----
-
-## Human Role
-
-人間の仕事は次に限定する。
-
-- 何を達成したいかを決める
-- 破ってはいけない constraints を決める
-- 危険な変更の許可/不許可を決める
-- escalation を裁く
-- milestone 単位で成果を評価する
-
-人間は、毎回の分解、毎回の実装順決め、毎回の diff 精読の担当にならない。
+- `independent AI review` は primary gate ではなく補助チェックとして扱う
+- 品質は [Gate Model](../SKILL.md) にある gate 名の正本と rollback しやすい変更単位で担保する
 
 ---
 
-## ADR Policy
+## Review Targets
 
-ADR は「未来の実装者が、その判断を知らないと同じ議論をやり直す」場合だけ残す。
+最低限見る対象は次に絞る。
 
-<!-- 最低限次を書く。 -->
+- `public contract` の差分
+- `data model` と migration の差分
+- `side effects` の差分
+- `security boundary` と permission の差分
+- `failure mode` と rollback 条件
 
-- `Context`
-- `Decision`
-- `Rejected Alternatives`
-- `Consequence`
-- `Revisit trigger`
-
-次は ADR にしない。
-
-- 現状のコードを読めばわかること
-- 一時的な作業計画
-- 実行していない想像上の運用
-- test や script に落とせる手順
+ここに当てはまらない差分は、まず [Gate Model](../SKILL.md) と summary で扱う。
 
 ---
 
-## Anti-Patterns
+## Required Output
 
-- 文書 review を通すための文書を書く
-- 実装前に詳細な計画を固定し、AI をその写経係にする
-- 横分解の task を backlog の主単位にする
-- 実行不能な手順書を残す
-- code と prose の二重管理を許す
-- private methods の unit test を増やす
-- 人間が毎回 task decomposition と diff review を抱える
+review では少なくとも次を返す。
 
----
+- diff summary
+- risk summary
+- gate を選んだ根拠
+- 実行した gate
+- gate と evidence の対応
+- 実行した evidence
+- closure decision
+- 残っている不確実性
+- 必要なら追加で見るべき高リスク境界
 
-<!-- `Workflow` の目的は、文書を増やして人間が監督することではない。`code/tests/scripts` を中心に据え、AI が自走できる最小の縦テーマへ圧縮し、人間は `goal / constraints / escalation` だけを握ることにある。 -->
+`Gates Run` では [Gate Model](../SKILL.md) の語彙だけを使う。
+`Gate Rationale` では `Goal / Must Not Break / Acceptance / public contract` からどの gate が必須になったかを短く示す。
+`Gate Trace` では各 gate をどの evidence が満たしたかを示す。
+`Evidence Run` では replay した command / test / report と結果を示す。
+`Closure Decision` は `closable | not closable` のどちらかを返し、`closable` のときだけ `Theme` を `TODO.md` から外せる。
+
+背景説明や一般論は返さない。
+
+書式は次に固定する。
+
+```md
+## Diff Summary
+## Risk Summary
+## Gate Rationale
+## Gates Run
+## Gate Trace
+## Evidence Run
+## Closure Decision
+## Remaining Uncertainty
+## Extra Review Needed
+```
