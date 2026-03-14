@@ -39,6 +39,13 @@
 `Gates` と `Executable doc` も shared contract の必須 field であり、plan で最初に定義してから exec に渡す。
 `Executable doc` は exec に渡す前に runnable かつ最初に fail する spec でなければならない。
 
+`Executable doc` の決め方:
+
+- `public contract` や user-facing behavior を触る `Theme` では、executable example、CLI replay、fixture replay、scenario test のような上位契約を直接 replay できる形を優先する
+- unit test 群だけを `Executable doc` にして上位契約の代替にしない
+- prose にしか存在しない手順は正本にせず、必要なら `test / script / command` に落としてから `Executable doc` に採用する
+- `independent AI review` は最低要件ではなく、主要シナリオや公開境界を別視点でなぞる補助 gate / evidence が必要なときだけ選ぶ
+
 ---
 
 ## ADR Policy

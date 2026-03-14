@@ -45,6 +45,7 @@ allowed-tools: [Read]
 これらは独立 artifact ではなく、`TODO.md` の各 `Theme` に入れる。
 この contract に入らない説明は残さない。
 `Gates` と `Executable doc` は plan で最初に定義して `TODO.md` に載せる。`Executable doc` は exec に渡す時点で runnable かつ最初に fail する spec でなければならない。exec は空欄や未実行形の `Theme` を受け取らず、既存の `Executable doc` をそのまま replay して実装を進める。
+`public contract` や user-facing behavior を触る `Theme` では、`Executable doc` は executable example、scenario test、CLI replay、fixture replay のような executable な上位契約を直接 replay できる形を優先する。
 
 書式は次に固定する。
 
@@ -77,6 +78,9 @@ allowed-tools: [Read]
 - gate は replay 可能な check 群であり、品質担保の主手段である。
 - 各 `Theme` は `Theme Contract` から必要な gate を 1 つではなく複数選ぶ。
 - `coverage` は補助指標であり、主指標ではない。
+- 第一級の契約は `public contract` と主要シナリオを表す `integration` / `system` に置く。
+- unit test は実装導入、局所補強、デバッグ隔離のために使い、契約の canonical source にはしない。
+- `benchmark`、`coverage`、`mutation`、`independent AI review` は取りこぼしや精度を補助確認するために使い、上位契約の代替にはしない。
 
 利用可能な gate:
 
@@ -103,6 +107,8 @@ allowed-tools: [Read]
 - 実装前に詳細な計画を固定し、AI をその写経係にする
 - 横分解の task を backlog の主単位にする
 - 実行不能な手順書を残す
-- code と prose の二重管理を許す
+- prose を正本にして code と二重管理する
+- executable な上位契約を unit test 群だけで代替しようとする
 - private methods の unit test を増やす
+- `coverage`、benchmark、AI review の通過だけで close したことにする
 - 人間が毎回 task decomposition と diff review を抱える

@@ -22,6 +22,7 @@
 - `Executable doc` が空なら plan に戻し、exec では 0 から発明しない
 - `Executable doc` が replay 可能な command / test / fixture になっていないなら plan に戻す
 - `Executable doc` が最初に fail する spec でないなら plan に戻す
+- `public contract` や user-facing behavior を触るのに `Executable doc` が unit test 群だけなら plan に戻す
 - `Gates` が空、または [Gate Model](../SKILL.md) の最低要件を満たさないなら plan に戻す
 - `Why not split vertically further?` に答えられないなら、先に分割する
 - `blocking` な `Open Question` が残っているなら、先に解消する
@@ -38,6 +39,7 @@
 - `Acceptance` → pass/fail 条件、閾値、停止条件
 - `Evidence` → replay 可能な command、test、metric、report
 - `Gates` → 採用した gate 名と最低要件の充足
+- `independent AI review` を使う場合、`Gates` に明示されていなければ `system` または `integration` の補助 evidence として扱う
 
 証拠にならないもの:
 
@@ -51,6 +53,7 @@
 テスト方針は `integration-first, system-when-needed` とする。
 
 - 仕様の本体は `system` または `integration` に寄せる。
+- `public contract` を担う `Executable doc` は executable な上位契約を先に replay し、その後に unit で局所補強する。
 - unit test は実装導入、局所補強、デバッグ隔離のために使う。
 - unit test を仕様の canonical source にしない。
 - private methods はテストしない。
@@ -66,6 +69,7 @@ gate 名と最低要件の正本は [Gate Model](../SKILL.md) を参照する。
 
 - `Gates` が shared vocabulary を使っていることを確認する
 - `Executable doc` と `Evidence` を replay して結果を埋める
+- `independent AI review` を使う場合、`Gates` に明示したときだけ gate として扱い、それ以外は `system` または `integration` の補助 evidence として残す
 - `Evidence` と `Gates Run` に同じ gate 名を使える形へ揃える
 - review が `Closure Decision` を返せるよう `Gate -> Evidence` の対応を残す
 
