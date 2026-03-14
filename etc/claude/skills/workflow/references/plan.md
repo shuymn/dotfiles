@@ -6,8 +6,6 @@
 
 - `code + tests + scripts` を `source of truth` とする。
 - prose は `constraints` とコードから復元しにくい判断だけに使う。
-- 全差分の精読は default にしない。通過条件は prose review ではなく executable gate で決める。
-- done 判定は要求ごとの観測可能な証拠で行い、`coverage` やテスト本数を主指標にしない。
 
 ---
 
@@ -36,15 +34,19 @@
 ## Theme Contract Source
 
 `Theme` schema の正本は [Theme Contract](../SKILL.md) である。`plan.md` は field 定義を再掲せず、`TODO.md` にどう書くかだけを補足する。
-`Gates` と `Executable doc` も shared contract の必須 field であり、plan で最初に定義してから exec に渡す。
-`Executable doc` は exec に渡す前に runnable かつ最初に fail する spec でなければならない。
 
 `Executable doc` の決め方:
 
 - `public contract` や user-facing behavior を触る `Theme` では、executable example、CLI replay、fixture replay、scenario test のような上位契約を直接 replay できる形を優先する
 - unit test 群だけを `Executable doc` にして上位契約の代替にしない
 - prose にしか存在しない手順は正本にせず、必要なら `test / script / command` に落としてから `Executable doc` に採用する
-- `independent AI review` は最低要件ではなく、主要シナリオや公開境界を別視点でなぞる補助 gate / evidence が必要なときだけ選ぶ
+- test を主要 evidence に使うなら、`Evidence.oracle` に期待値の根拠を、`Evidence.visibility` に `independent | implementation-visible` を、`Evidence.controls` / `Evidence.missing` に分離状況を、`Evidence.companion` に独立 evidence か `none` を書く
+- `mutation` と `independent AI review` は、test の独立性が弱いときに追加する補助 gate / evidence として選ぶ
+- `public contract` や主要シナリオを触る `Theme` では、exec が subagent / multiagent を自律的に使って test 生成や別視点 review を分離し、`Evidence.controls=[agent,context]` を狙う
+- subagent を使えない、または不要な `Theme` だけ `Evidence.visibility=implementation-visible` を選べるが、その場合も `Evidence.companion` を先に計画する
+- test 生成や別視点 review を分離するなら、`Evidence.controls` には担当 agent 分離と context 分離だけを `[]` 付き集合で入れる
+- 使えない control は `Evidence.missing` に残し、独立性の claim を弱める
+- `test agent isolation` / `context separation` は高リスク `Theme` での標準運用だが、workflow 全体の必須 phase にはしない
 
 ---
 

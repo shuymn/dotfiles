@@ -36,7 +36,7 @@ allowed-tools: [Read]
 - `Must Not Break` -- 壊してはいけない境界、契約、運用条件
 - `Non-goals` -- 今回保証しないこと、広げないこと
 - `Acceptance` -- 合格条件と閾値
-- `Evidence` -- どの test / script / metric / check で合否を見るか
+- `Evidence` -- どの test / script / metric / check で合否を見るか。その replay 手順と trust metadata の正本
 - `Gates` -- この `Theme` で使う gate 名。`Gate Model` の語彙だけを使い、最低要件を満たす
 - `Executable doc` -- plan で先に書く、実装前は失敗し実装後は通る replay 可能な test / fixture / script / check command
 - `Why not split vertically further?` -- これ以上縦に分けない理由
@@ -44,8 +44,7 @@ allowed-tools: [Read]
 
 これらは独立 artifact ではなく、`TODO.md` の各 `Theme` に入れる。
 この contract に入らない説明は残さない。
-`Gates` と `Executable doc` は plan で最初に定義して `TODO.md` に載せる。`Executable doc` は exec に渡す時点で runnable かつ最初に fail する spec でなければならない。exec は空欄や未実行形の `Theme` を受け取らず、既存の `Executable doc` をそのまま replay して実装を進める。
-`public contract` や user-facing behavior を触る `Theme` では、`Executable doc` は executable example、scenario test、CLI replay、fixture replay のような executable な上位契約を直接 replay できる形を優先する。
+`Evidence` は canonical home として `run`、`oracle`、`visibility`、`controls`、`missing`、`companion`、必要なら `notes` を持つ。`controls` と `missing` は常に `[]` 付きの集合表記で書き、空でも `[]` を使う。`controls` の語彙は `agent` と `context` だけに固定する。`companion` は常に明示し、`visibility=independent` なら `none`、`visibility=implementation-visible` なら replay 可能な独立 evidence を入れる。
 
 書式は次に固定する。
 
@@ -58,7 +57,7 @@ allowed-tools: [Read]
   - Acceptance (EARS):
     - When ...
     - If ...
-  - Evidence: `...`
+  - Evidence: `run=...; oracle=...; visibility=independent; controls=[agent,context]; missing=[]; companion=none; notes=...`
   - Gates: `static`, `integration`
   - Executable doc: `...`
   - Why not split vertically further?: ...
@@ -77,8 +76,11 @@ allowed-tools: [Read]
 
 - gate は replay 可能な check 群であり、品質担保の主手段である。
 - 各 `Theme` は `Theme Contract` から必要な gate を 1 つではなく複数選ぶ。
-- `coverage` は補助指標であり、主指標ではない。
+- `coverage` は補助指標であり、主指標ではない。test が実装をなぞると、高 coverage でも壊れた oracle のまま通る。
 - 第一級の契約は `public contract` と主要シナリオを表す `integration` / `system` に置く。
+- `public contract` を検証する evidence は、`Executable doc`、fixture、外部契約、期待値 table のような独立 oracle を持つものを優先する。
+- test は実装ではなく `Theme Contract`、`Executable doc`、`Acceptance`、`Evidence.oracle` を見て書く。
+- test や別視点 review の信頼度は `Evidence.controls` に載る担当 agent 分離と context 分離で上げる。
 - unit test は実装導入、局所補強、デバッグ隔離のために使い、契約の canonical source にはしない。
 - `benchmark`、`coverage`、`mutation`、`independent AI review` は取りこぼしや精度を補助確認するために使い、上位契約の代替にはしない。
 
@@ -89,7 +91,7 @@ allowed-tools: [Read]
 - `system` -- 主要シナリオ、e2e、stop-ship 条件
 - `benchmark` -- 性能制約、回帰閾値、処理量制約
 - `coverage` / `diff coverage` -- 到達確認、未検証領域の補助把握
-- `mutation` -- 検知力確認
+- `mutation` -- 検知力確認。高 coverage でも壊れた oracle を見抜く補助
 - `independent AI review` -- 独立視点の補助確認
 - `unit` -- 局所補強が必要なときだけ
 
@@ -108,7 +110,8 @@ allowed-tools: [Read]
 - 横分解の task を backlog の主単位にする
 - 実行不能な手順書を残す
 - prose を正本にして code と二重管理する
-- executable な上位契約を unit test 群だけで代替しようとする
+- 実装を見て public contract test を量産し、executable な上位契約や独立 oracle を unit test 群だけで代替しようとする
+- `Evidence` に trust metadata を残さず、test や review を independent と主張する
 - private methods の unit test を増やす
-- `coverage`、benchmark、AI review の通過だけで close したことにする
+- `coverage`、benchmark、test、AI review の通過だけで検知力を推定し、close したことにする
 - 人間が毎回 task decomposition と diff review を抱える
