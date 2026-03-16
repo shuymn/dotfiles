@@ -1,6 +1,6 @@
 ---
 name: adversarial-verify
-description: "Adversarial verification of a completed task — tries to break the implementation through edge cases, error paths, security probes, and concurrency attacks. Required for Critical/Sensitive tiers (conditionally for Standard with impl files). Use after execute-plan dod-recheck PASS."
+description: "Adversarial verification of code changes — probes target files for vulnerabilities through edge cases, error paths, security boundaries, and concurrency attacks. Use when you want to stress-test implementation correctness or validate defensive robustness before shipping."
 allowed-tools: [Read, Bash, Grep, Glob, Write]
 ---
 
@@ -12,17 +12,15 @@ allowed-tools: [Read, Bash, Grep, Glob, Write]
 
 ## Constraints
 
-- The adversarial agent must NOT have implemented or DoD-rechecked the task — triple independence is required. Reason: the implementing and rechecking agents share context and assumptions; a third independent perspective is needed to find the blind spots that confirmation bias hides.
-- Do NOT modify implementation code. Write only the adversarial report and attack test files. Reason: modifying code during adversarial verification would invalidate the DoD recheck evidence and conflate "finding vulnerabilities" with "fixing them."
+- Do NOT modify implementation code. Write only the adversarial report and attack test files. Reason: modifying code during adversarial verification would invalidate evidence and conflate "finding vulnerabilities" with "fixing them."
 - Attack test files must be clearly separated from production tests (use a dedicated directory or naming convention such as `*_adversarial_test.*`).
 
-## Gate
+## Precondition Check
 
-Before starting adversarial verification, verify the dod-recheck gate:
+Before starting adversarial verification, confirm preconditions:
 
-1. Run `skit gate-check <dod-recheck-file> <plan-file>`.
-2. The dod-recheck artifact must exist, contain `Overall Verdict: PASS`, and be fresh for the current task contract (task-scoped freshness, not whole-plan freshness).
-3. If the gate check fails, stop as `BLOCKED` and request the user to run `execute-plan dod-recheck` first.
+1. Verify all target files exist in the repository. If any target file is missing, stop as `BLOCKED`.
+2. Verify `<skill-root>/references/attack-vectors.md` exists. If missing, stop as `BLOCKED`.
 
 ## Tier-Based Invocation Policy
 
@@ -33,21 +31,23 @@ Before starting adversarial verification, verify the dod-recheck gate:
 | Standard (impl) | Conditional Mandatory | 1 | Most relevant 1 category |
 | Standard (non-impl) | Optional | — | User-selected |
 
-**Implementation file definition**: Use the repository-relative `Implementation Files` recorded in the Adversarial Verify Input / Recheck Input. Standard (impl) applies when at least one of those files is implementation code rather than docs/tests-only scaffolding.
+**Implementation file definition**: Standard (impl) applies when at least one target file is implementation code rather than docs/tests-only scaffolding.
 
 ## Input
 
-- Plan bundle path + task ID
-- Adversarial Verify Input block (from execute-plan implement mode's Step 3 output)
-- Implementation files listed in the input block
-
-For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Input block is not auto-generated. The user must manually provide equivalent information (Task ID, Change Areas, Implementation Files, DoD Evidence).
+- **Target files** (required): Repository-relative paths of files to verify.
+- **Change description** (required): Description of what changed, its impact scope, and the rationale behind the change.
+- **Risk tier** (optional): Critical / Sensitive / Standard. Defaults to Sensitive when omitted.
 
 ## Procedure
 
-1. **Generate Header**: Run `skit digest-stamp adversarial-verify <plan-file>` to produce the verification metadata header.
-2. **Load Context**: Read the Adversarial Verify Input block, all implementation files listed, and `<skill-root>/references/attack-vectors.md` (including the optional `## Maintainer-Curated Extension Vectors` section when present).
-3. **Select Attack Categories**: Based on the Change Areas and Change Rationale, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change. If `## Maintainer-Curated Extension Vectors` contains vectors matching the change characteristics, include them as additional probe targets regardless of the selected categories.
+1. **Generate Header**: Write verification metadata directly:
+   - **Mode**: adversarial-verify
+   - **Target Files**: list of target files
+   - **Risk Tier**: Critical / Sensitive / Standard
+   - **Verified At**: UTC timestamp (obtain via `date -u +"%Y-%m-%dT%H:%M:%SZ"`)
+2. **Load Context**: Read all user-provided target files and `<skill-root>/references/attack-vectors.md` (including the optional `## Maintainer-Curated Extension Vectors` section when present).
+3. **Select Attack Categories**: Based on the change description and the content of target files, select applicable attack categories from the reference. Do NOT blindly apply all categories — choose only those relevant to the actual change. If `## Maintainer-Curated Extension Vectors` contains vectors matching the change characteristics, include them as additional probe targets regardless of the selected categories.
 4. **Execute Attacks**: For each selected attack vector:
    - Design a concrete test or probe targeting the implementation.
    - Create the test file (naming: `*_adversarial_test.*` or in a dedicated `adversarial/` directory).
@@ -62,11 +62,13 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
      - Critical / Sensitive: cover **all** `[required]` vectors within selected categories. For each: (a) execute a probe, or (b) document why it is non-applicable. Uncovered `[required]` vectors without documented rationale → `Overall Verdict: FAIL`.
      - Standard (impl): cover the **single most relevant** `[required]` vector in the selected category.
      - Standard (non-impl): no `[required]` coverage obligation.
-5. **Coverage Gate**: Run `skit adversarial-coverage-check <report-file> <skill-root>/references/attack-vectors.md --tier <tier>`.
-   - `SKIP`: Standard tier (no [required] coverage obligation) — proceed.
-   - `FAIL`: one or more [required] vectors are uncovered without documented N/A rationale → `Overall Verdict: FAIL`.
+5. **Coverage Gate**: Verify `[required]` vector coverage procedurally:
+   - Identify all `[required]` vectors within selected categories from `attack-vectors.md`.
+   - Cross-reference each against the Attack Summary table entries.
+   - Standard: no `[required]` coverage obligation — proceed.
+   - Sensitive / Critical: if any `[required]` vector is uncovered without documented N/A rationale → `Overall Verdict: FAIL`.
 6. **Compute Verdict**: `Overall Verdict: PASS` only when ALL attack probes result in DEFENDED and the Coverage Gate is PASS. Any VULNERABLE or coverage FAIL → `Overall Verdict: FAIL`.
-7. **Write Report**: Output to `...-task-<N>.adversarial.md`.
+7. **Write Report**: Output to `adversarial-report.md`.
 8. Write file paths in repository-relative form. If you mention a skill helper command, render it as `scripts/<name>.sh`, never an absolute filesystem path.
 
 ## Edge Cases
@@ -76,7 +78,6 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
   - Standard (impl): category 1 (Input Boundary) only (1 probe minimum).
   - Standard (non-impl): user judgment (optional invocation).
   Record the rationale for limited applicability in the report.
-- **Standard (impl) invocation**: The Adversarial Verify Input block is auto-generated (same as Sensitive/Critical). Tier minimums and `[required]` coverage rules are defined in Step 4.
 - **Missing test infrastructure**: If the project lacks a test framework or runtime needed to execute attack probes, stop as `BLOCKED` and request the user to set up the necessary infrastructure. Do not skip attacks because tooling is absent.
 - **Attack probe budget**:
   - Critical: minimum 3 probes, target 3-8, cap at 15.
@@ -86,19 +87,21 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 
 ## On FAIL
 
-- Task completion is revoked — the task is not considered done.
-- The full chain must be re-executed: `execute-plan(implement)` → `execute-plan(dod-recheck)` → `adversarial-verify`.
 - Report specific vulnerabilities with reproduction steps.
+- The user is responsible for fixing identified vulnerabilities and re-running adversarial verification.
 - If the run reveals a reusable attack vector, record it in the adversarial report and propose a separate skill-maintenance task. Do NOT edit `<skill-root>/references/attack-vectors.md` during adversarial verification.
 
 ## Output Format
 
 ```markdown
-# <Topic> - Task <N> Adversarial Verification
+# Adversarial Verification Report
 
 ## Verification Metadata
 
-<digest-stamp output>
+- **Mode**: adversarial-verify
+- **Target Files**: [list]
+- **Risk Tier**: [tier]
+- **Verified At**: [UTC timestamp]
 - **Overall Verdict**: PASS | FAIL
 
 ## Attack Summary
@@ -117,18 +120,6 @@ For Standard (non-impl) tasks (optional invocation), the Adversarial Verify Inpu
 
 ## Decision
 
-- Task <N> adversarial verification: PASS/FAIL
+- Adversarial verification: PASS/FAIL
 - Reason: [rationale]
 ```
-
-## Task Completion Definition (with Adversarial Verification)
-
-For Critical-tier and Sensitive-tier tasks, completion requires ALL three conditions:
-
-1. **Implement mode**: All RED/GREEN/REFACTOR/DoD steps pass.
-2. **DoD Recheck mode**: Independent sub-agent confirms all DoD items pass.
-3. **Adversarial Verify**: Independent sub-agent confirms all attack probes are defended.
-
-If `adversarial-verify` returns FAIL, the implement completion is revoked and the full chain must be re-executed.
-
-For Standard (non-impl) tasks, adversarial verification remains optional unless explicitly required by the user or plan. For Standard (impl) tasks, adversarial verification (1 probe) is conditionally mandatory.
