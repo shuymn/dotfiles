@@ -1,6 +1,5 @@
 # Skills listed here (one per line) are excluded from build/sync.
 # Lines starting with # are comments.
-adversarial-verify
 completion-audit
 decompose-plan
 design-doc

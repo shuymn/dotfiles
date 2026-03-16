@@ -2,6 +2,7 @@
   "version": 1,
   "source_root": ".",
   "skills": [
+    "adversarial-verify",
     "audit-agents-md",
     "commit",
     "create-pr",
