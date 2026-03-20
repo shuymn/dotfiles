@@ -4,7 +4,6 @@ description: >-
   Use when the user invokes /workflow.
   Injects project workflow methodology as context.
   Accepts argument: plan, exec, review (default: all).
-disable-model-invocation: true
 allowed-tools: [Read]
 ---
 
