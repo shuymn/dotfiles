@@ -120,10 +120,15 @@ function set_terminal_title() {
 precmd_functions+=(set_terminal_title)
 
 # starship
-if has "starship"; then
-  export STARSHIP_CONFIG="${HOME}/.config/starship/starship.toml"
-  eval "$(starship init zsh)"
-  starship_precmd_user_func="set_terminal_title"
+# if has "starship"; then
+#   export STARSHIP_CONFIG="${HOME}/.config/starship/starship.toml"
+#   eval "$(starship init zsh)"
+#   starship_precmd_user_func="set_terminal_title"
+# fi
+
+# capsule
+if has "capsule"; then
+    eval "$(capsule init zsh)"
 fi
 
 # fzf

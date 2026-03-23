@@ -1,0 +1,128 @@
+[character.vicmd]
+style = { fg = "magenta" }
+
+[time]
+disabled = false
+
+[[module]]
+name = "rust"
+format = "v{version}[ ({nightly})]"
+icon = "󱘗"
+connector = "via"
+
+[module.when]
+files = ["Cargo.toml"]
+
+[[module.source]]
+name = "version"
+command = ["rustc", "--version"]
+regex = 'rustc\s+(\d+\.\d+\.\d+)'
+
+[[module.source]]
+name = "nightly"
+command = ["rustc", "--version"]
+regex = 'rustc\s+\d+\.\d+\.\d+-(nightly)'
+
+[module.style]
+fg = "red"
+
+[[module]]
+name = "bun"
+format = "v{version}"
+icon = ""
+connector = "via"
+
+[module.when]
+files = ["bun.lock", "bun.lockb", "bunfig.toml"]
+
+[[module.source]]
+name = "version"
+file = ".bun-version"
+
+[[module.source]]
+name = "version"
+command = ["bun", "--version"]
+regex = '(\d[\d.]*)'
+
+[module.style]
+fg = "red"
+
+[module.arbitration]
+group = "node.js"
+priority = 10
+
+[[module]]
+name = "node"
+format = "v{version}"
+icon = ""
+connector = "via"
+
+[module.when]
+files = ["package.json"]
+
+[[module.source]]
+name = "version"
+file = ".node-version"
+
+[[module.source]]
+name = "version"
+command = ["node", "--version"]
+regex = 'v?(\d[\d.]*)'
+
+[module.style]
+fg = "green"
+
+[module.arbitration]
+group = "node.js"
+priority = 20
+
+[[module]]
+name = "go"
+format = "v{version}"
+icon = ""
+connector = "via"
+
+[module.when]
+files = ["go.mod"]
+
+[[module.source]]
+name = "version"
+command = ["go", "version"]
+regex = 'go(\d[\d.]*)'
+
+[module.style]
+fg = "cyan"
+
+[[module]]
+name = "python"
+format = "v{version}"
+icon = ""
+connector = "via"
+
+[module.when]
+files = ["pyproject.toml", "setup.py"]
+
+[[module.source]]
+name = "version"
+command = ["python3", "--version"]
+regex = 'Python\s+(\S+)'
+
+[module.style]
+fg = "yellow"
+
+[[module]]
+name = "ruby"
+format = "v{version}"
+icon = ""
+connector = "via"
+
+[module.when]
+files = ["Gemfile"]
+
+[[module.source]]
+name = "version"
+command = ["ruby", "--version"]
+regex = 'ruby\s+(\d+\.\d+\.\d+)'
+
+[module.style]
+fg = "red"
