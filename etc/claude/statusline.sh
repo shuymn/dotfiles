@@ -3,12 +3,15 @@ set -Eeu -o pipefail
 
 # ── Icons (edit these to add Nerd Font glyphs) ──────────────────
 ICON_MODEL="󰚩"
-ICON_DIR=""
 ICON_BRANCH=""
 
 # ── Style constants ──────────────────────────────────────────────
 R='\033[0m'
 BOLD='\033[1m'
+RED='\033[31m'
+CYAN='\033[36m'
+YELLOW='\033[33m'
+MAGENTA='\033[35m'
 SEP=" | "
 
 # ── Primitives ───────────────────────────────────────────────────
@@ -90,13 +93,7 @@ append_rate() {
 
 # ── Components ───────────────────────────────────────────────────
 
-comp_model() {
-  local name
-  name=$(echo "$INPUT" | jq -r '.model.display_name')
-  echo "${ICON_MODEL:+${ICON_MODEL} }${name}"
-}
-
-comp_dir() {
+comp_location() {
   local dir
   dir=$(echo "$INPUT" | jq -r '.workspace.current_dir')
   local root
@@ -104,34 +101,33 @@ comp_dir() {
   if [ -n "$root" ]; then
     dir="$root"
   fi
-  echo "${ICON_DIR:+${ICON_DIR} }${dir##*/}"
-}
-
-comp_branch() {
-  git rev-parse &>/dev/null || return 0
-  local ref
-  ref=$(git branch --show-current)
-  if [ -z "$ref" ]; then
-    local hash
-    hash=$(git rev-parse --short HEAD 2>/dev/null)
-    if [ -n "$hash" ]; then
-      ref="HEAD ($hash)"
+  local now
+  now=$(date "+%H:%M:%S")
+  local out="${YELLOW}${now}${R}${SEP}${CYAN}${dir##*/}${R}"
+  if git rev-parse &>/dev/null; then
+    local ref
+    ref=$(git branch --show-current)
+    if [ -z "$ref" ]; then
+      local hash
+      hash=$(git rev-parse --short HEAD 2>/dev/null)
+      if [ -n "$hash" ]; then
+        ref="HEAD ($hash)"
+      fi
+    fi
+    if [ -n "$ref" ]; then
+      out+=" on ${MAGENTA}${ICON_BRANCH:+${ICON_BRANCH} }${ref}${R}"
     fi
   fi
-  if [ -n "$ref" ]; then
-    echo "${ICON_BRANCH:+${ICON_BRANCH} }${ref}"
-  fi
+  local name
+  name=$(echo "$INPUT" | jq -r '.model.display_name')
+  out+=" via ${RED}${ICON_MODEL:+${ICON_MODEL} }${name}${R}"
+  echo "$out"
 }
 
 # ── Main ─────────────────────────────────────────────────────────
 
 INPUT=$(cat)
-PARTS="$(comp_model)${SEP}$(comp_dir)"
-
-branch=$(comp_branch)
-if [ -n "$branch" ]; then
-  PARTS+="${SEP}${branch}"
-fi
+PARTS="$(comp_location)"
 
 append_dot "ctx" ".context_window.used_percentage" 80 30
 append_rate "5h" ".rate_limits.five_hour"
