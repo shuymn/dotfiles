@@ -81,6 +81,9 @@ remaining() {
 # Usage: append_rate <fallback_label> <base_jq_path> [cap]
 append_rate() {
   local fallback=$1 base_path=$2 cap=${3:-100}
+  if ! echo "$INPUT" | jq -e "${base_path}" >/dev/null 2>&1; then
+    return
+  fi
   local resets_at
   resets_at=$(echo "$INPUT" | jq -r "${base_path}.resets_at // empty")
   local label
