@@ -113,10 +113,10 @@ update() {
   fi
 
   # go
-  if has "gup"; then
-    echo "[update] Go"
-    gup -e golangci-lint,gostaticanalyzer update
-  fi
+#   if has "gup"; then
+    # echo "[update] Go"
+    # gup -e golangci-lint,gostaticanalyzer update
+#   fi
 }
 
 gomi() {
