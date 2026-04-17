@@ -179,6 +179,43 @@ Source: [file path, test/command output, and/or documentation/CVE/Benchmark URL]
 - Incorrect suggestions: Z
 ```
 
+### 7. Reply on AI reviewer threads (PR mode only — opt-in)
+
+**Do not post replies by default.** Posting on a PR is a public, hard-to-reverse action visible to teammates and bots, so wait for an explicit, unambiguous request before invoking the GitHub API. Triage and applying fixes never imply consent to post — those are separate steps.
+
+Trigger this section **only** when the user explicitly asks to reply or comment on the PR — e.g., "コメントしていって", "返信しといて", "reply on the PR", "post the replies". If the user only asked to triage, apply fixes, or produce a report, stop after the Final Report and say nothing about posting unless they bring it up. When the intent is ambiguous, ask first.
+
+Also skip in direct-input mode — there is no thread to reply to.
+
+```bash
+gh api -X POST repos/<owner>/<repo>/pulls/<pr_num>/comments/<comment_id>/replies \
+  -f body="<reply body>"
+```
+
+If the user says they have already edited an existing reply themselves, do not re-edit or overwrite it — only post replies for threads that still lack one.
+
+#### Reply structure
+
+One reply ≈ verdict + commit hash + at most one line of justification. Skip salutations, thanks ("指摘ありがとう", "thanks for the catch"), and sign-offs — they add noise for human reviewers scanning the thread, and the bot does not benefit from politeness. Lead with what was actually done.
+
+#### Commit hash references
+
+GitHub auto-links 7+ char hex hashes, but the autolinker fails when a hash sits directly against a full-width bracket `（）`. Insert a half-width space between the bracket and the hash so the link still renders.
+
+- ❌ `（abc1234）` — not linked
+- ✅ `（ abc1234 ）` — linked
+- ✅ `(abc1234)` — linked (half-width brackets work as-is)
+
+#### Tone — Japanese replies
+
+Default to 常体 (だ・である調) and run a quick `/proofread` pass mentally before posting. Reasoning: the thread reader is usually a human teammate, not the bot — robotic AI clichés and translation-flavored phrasing make the reply harder to skim.
+
+- 文体は常体。敬体 (です・ます調) は使わない。
+- 挨拶・謝意 (「指摘ありがとう」「ご確認ください」「お疲れ様」など) は省き、本題から書き出す。
+- 翻訳調・直訳調を避ける。例:「〜について」「〜に関して」「〜を行う」「対応しました」「いかがでしょうか」など AI クリシェの多用。
+- 結論ファースト。何をしたか／何をしないかを最初の一文で述べる。
+- 過剰に丁寧な締めくくりをつけない。
+
 ## Important Notes
 - Prefer the strongest available evidence for the claim: direct repo-local reproduction or contradiction beats speculation, and official external documentation beats secondary summaries.
 - Prioritize official documentation over blog posts; check publication dates to avoid outdated advice
