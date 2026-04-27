@@ -34,6 +34,7 @@ __pycache__/
 .config/gcloud/
 .config/gedit/
 .config/gh/
+.config/git/allowed_signers
 .config/github-copilot/
 .config/google-chrome/
 .config/granted/
@@ -68,6 +69,7 @@ __pycache__/
 .config/psysh/
 .config/pulse/
 .config/regend/
+.config/sekai/
 .config/stripe/
 .config/systemd/
 .config/TabNine/
