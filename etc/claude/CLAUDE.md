@@ -10,7 +10,7 @@
 - Never hardcode values. Use configuration, environment variables, or constants.
 - Use `uv run` for Python execution by default (including one-off scripts and tooling).
 - Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
-- For non-trivial changes, ask "Would a staff engineer accept this?" and document rationale, impact scope, and verification evidence (relevant tests/logs/repro steps) before marking done.
+- For non-trivial changes, ask myself "Would a staff engineer accept this?" and document rationale, impact scope, and verification evidence (relevant tests/logs/repro steps) before marking done.
 - Prefer the most elegant solution that stays in scope: for non-trivial changes with material trade-offs, compare up to 2 alternatives and choose the lowest-risk option.
 - If new findings invalidate the current plan, stop execution, update the plan, then continue.
 - Do not expand scope to adjacent features without explicit approval.
@@ -28,6 +28,7 @@
 - Separate state from logic.
 - Prioritize readability and maintainability.
 - Define the contract layer (APIs/types) strictly, and keep the implementation layer regenerable.
+- Express statically checkable rules in the environment's linter or ast-grep, not in prompts.
 
 ## Critical Recap
 
