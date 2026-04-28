@@ -6,9 +6,7 @@
     "audit-agents-md",
     "commit",
     "create-pr",
-    "handover",
     "proofread",
-    "triage-review",
-    "workflow"
+    "triage-review"
   ]
 }
