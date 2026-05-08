@@ -20,6 +20,7 @@ path=( \
   ~/.antigravity/antigravity/bin(N-/) \
   ~/.codeium/windsurf/bin(N-/) \
   ~/.opencode/bin(N-/) \
+  ~/.lmstudio/bin(N-/) \
   "$path[@]" \
 )
 
