@@ -23,6 +23,7 @@ __pycache__/
 .config/cursor/
 .config/Cypress/
 .config/dconf/
+.config/devin/
 .config/discord/
 .config/dlv/
 .config/enchant/
