@@ -15,7 +15,7 @@ const MAX_UNTRACKED_FILE_CHARS = 20_000;
 const MAX_PHASE_NOTE_CHARS = 20_000;
 const WORKFLOW_DIR = "review-workflow";
 const REVIEW_WIDGET_KEY = "review-workflow";
-const FIX_PHASE_INDEX = 6;
+const MAX_GAPFILL_LOOPS = 2;
 const MUTATING_TOOLS = new Set(["edit", "write"]);
 const INVESTIGATION_BLOCKED_TOOLS = new Set([
   ...MUTATING_TOOLS,
@@ -34,6 +34,17 @@ const WORKFLOW_PHASE_FILES = [
   "08-verify.md",
   "09-summary.md",
 ] as const;
+
+function workflowPhaseIndex(file: (typeof WORKFLOW_PHASE_FILES)[number]): number {
+  const index = WORKFLOW_PHASE_FILES.indexOf(file);
+  if (index < 0) throw new Error(`Workflow phase not found: ${file}`);
+  return index;
+}
+
+const FIX_PHASE_INDEX = workflowPhaseIndex("07-fix.md");
+const HUNT_PHASE_INDEX = workflowPhaseIndex("02-hunt.md");
+const GAPFILL_PHASE_INDEX = workflowPhaseIndex("04-gapfill.md");
+const DEDUPE_PHASE_INDEX = workflowPhaseIndex("05-dedupe.md");
 
 type ReviewOptions = {
   files: string[];
@@ -58,6 +69,10 @@ type PhaseOutput = {
   notes: string;
 };
 
+type ReviewControl = {
+  new_hunt_tasks?: unknown[];
+};
+
 type ActiveReviewRun = {
   id: string;
   cwd: string;
@@ -67,6 +82,7 @@ type ActiveReviewRun = {
   phases: WorkflowPhase[];
   phaseOutputs: PhaseOutput[];
   phaseInProgress: boolean;
+  gapfillLoopCount: number;
 };
 
 let activeRun: ActiveReviewRun | undefined;
@@ -227,6 +243,32 @@ function buildPreviousPhaseOutputs(run: ActiveReviewRun): string {
     .join("\n\n")}\n</previous_phase_outputs>`;
 }
 
+function buildControlInstructions(phaseIndex: number): string {
+  if (phaseIndex !== GAPFILL_PHASE_INDEX) return "";
+
+  return `
+
+## Required control block
+
+End the response with a machine-readable control block exactly in this shape:
+
+<review_control>
+{"new_hunt_tasks":[]}
+</review_control>
+
+Use this schema for each item in new_hunt_tasks:
+
+
+type NewHuntTask = {
+  question: string;          // Specific review question to investigate.
+  scope_hint: string;        // Small file/function/module scope. Keep it narrow.
+  evidence_to_check: string[]; // Concrete code paths, tests, callers, or assumptions to inspect.
+  why_it_matters: string;    // Why this gap could change the fix/skip decision.
+};
+
+Only add material follow-up tasks that require another Hunt pass. Use an empty array when no further hunt pass is needed.`;
+}
+
 function buildPhasePrompt(run: ActiveReviewRun, phaseIndex: number): string {
   const phase = run.phases[phaseIndex];
   const phaseNumber = phaseIndex + 1;
@@ -251,7 +293,7 @@ ${phase.instructions}
 
 - Complete only this phase.
 - Preserve concise notes needed by later phases in your response.
-- ${isLastPhase ? "This is the final phase; provide the final Japanese summary." : "Do not summarize the whole workflow yet."}`;
+- ${isLastPhase ? "This is the final phase; provide the final Japanese summary." : "Do not summarize the whole workflow yet."}${buildControlInstructions(phaseIndex)}`;
 }
 
 function collectTextParts(value: unknown, output: string[]): void {
@@ -354,6 +396,43 @@ function getLatestAssistantMessageText(messages: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function parseReviewControl(text: string | undefined): ReviewControl | undefined {
+  if (!text) return undefined;
+
+  const match = text.match(/<review_control>\s*([\s\S]*?)\s*<\/review_control>/);
+  if (!match?.[1]) return undefined;
+
+  try {
+    const parsed = JSON.parse(match[1]) as ReviewControl;
+    return parsed && typeof parsed === "object" ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function decideNextPhaseIndex(
+  run: ActiveReviewRun,
+  completedPhaseIndex: number,
+  latestAssistantText: string | undefined,
+): number | undefined {
+  if (completedPhaseIndex === GAPFILL_PHASE_INDEX) {
+    const control = parseReviewControl(latestAssistantText);
+    const hasNewHuntTasks =
+      Array.isArray(control?.new_hunt_tasks) &&
+      control.new_hunt_tasks.length > 0;
+
+    if (hasNewHuntTasks && run.gapfillLoopCount < MAX_GAPFILL_LOOPS) {
+      run.gapfillLoopCount += 1;
+      return HUNT_PHASE_INDEX;
+    }
+
+    return DEDUPE_PHASE_INDEX;
+  }
+
+  const next = completedPhaseIndex + 1;
+  return next < run.phases.length ? next : undefined;
 }
 
 async function execGit(pi: ExtensionAPI, cwd: string, args: string[]) {
@@ -533,6 +612,7 @@ async function createReviewRun(
     phases: await loadWorkflowPhases(),
     phaseOutputs: [],
     phaseInProgress: false,
+    gapfillLoopCount: 0,
   };
 }
 
@@ -636,6 +716,10 @@ export default function (pi: ExtensionAPI): void {
       };
     }
 
+    if (event.toolName === "spawn_subagent") {
+      (event.input as { readOnly?: boolean }).readOnly = true;
+    }
+
     if (event.toolName === "bash") {
       const command = (event.input as { command?: unknown }).command;
       if (typeof command === "string" && isMutatingBashCommand(command)) {
@@ -668,14 +752,21 @@ export default function (pi: ExtensionAPI): void {
 
     activeRun.phaseInProgress = false;
 
-    if (activeRun.nextPhaseIndex >= activeRun.phases.length) {
+    const nextPhaseIndex = decideNextPhaseIndex(
+      activeRun,
+      completedPhaseIndex,
+      latestAssistantText,
+    );
+
+    if (nextPhaseIndex === undefined) {
       const runId = activeRun.id;
       clearActiveRun(ctx);
       ctx.ui.notify(`/review: workflow ${runId} completed.`, "info");
       return;
     }
 
-    setPhaseWidget(ctx, "queued");
+    activeRun.nextPhaseIndex = nextPhaseIndex;
+    setPhaseWidget(ctx, "queued", nextPhaseIndex + 1);
     queueNextPhaseAfterCurrentTurn(pi, ctx);
   });
 
