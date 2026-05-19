@@ -47,9 +47,9 @@ async function selectFuzzy(
         return [
           border,
           theme.fg("accent", theme.bold(title)),
-          theme.fg("dim", `query: ${query || "(type to fuzzy-find)"}`),
+          theme.fg("dim", `検索: ${query || "(入力して絞り込み)"}`),
           ...list.render(width),
-          truncateToWidth(theme.fg("dim", "type search • ↑↓ navigate • enter select • esc cancel"), width, ""),
+          truncateToWidth(theme.fg("dim", "入力で検索 • ↑↓で移動 • enterで選択 • escでキャンセル"), width, ""),
           border,
         ].map((line) => truncateToWidth(line, width, ""));
       },
@@ -120,17 +120,17 @@ async function getBranches(pi: ExtensionAPI, defaultBranch?: string): Promise<Se
   return sorted.map((branch) => ({
     value: branch,
     label: branch,
-    description: branch === defaultBranch ? "default branch" : undefined,
+    description: branch === defaultBranch ? "デフォルトブランチ" : undefined,
   }));
 }
 
 async function collectCreatePrOptions(pi: ExtensionAPI, ctx: ExtensionContext): Promise<CreatePrOptions | null> {
   const language = (await selectFuzzy(
     ctx,
-    "Pull request language",
+    "Pull request の言語",
     [
-      { value: "english", label: "English", description: "default" },
-      { value: "japanese", label: "Japanese", description: "create PR title/body in Japanese" },
+      { value: "english", label: "英語", description: "デフォルト" },
+      { value: "japanese", label: "日本語", description: "PR タイトル/本文を日本語で作成する" },
     ],
     "english",
   )) as PrLanguage | null;
@@ -138,10 +138,10 @@ async function collectCreatePrOptions(pi: ExtensionAPI, ctx: ExtensionContext): 
 
   const mode = (await selectFuzzy(
     ctx,
-    "Create or update pull request?",
+    "Pull request を作成または更新しますか？",
     [
-      { value: "create", label: "Create", description: "create a new pull request" },
-      { value: "update", label: "Update", description: "update the open PR for the current branch" },
+      { value: "create", label: "作成", description: "新しい pull request を作成する" },
+      { value: "update", label: "更新", description: "現在のブランチの open PR を更新する" },
     ],
     "create",
   )) as PrMode | null;
@@ -153,8 +153,8 @@ async function collectCreatePrOptions(pi: ExtensionAPI, ctx: ExtensionContext): 
   const branches = await getBranches(pi, defaultBranch);
   const baseBranch = await selectFuzzy(
     ctx,
-    "Base branch for the pull request",
-    branches.length > 0 ? branches : [{ value: defaultBranch ?? "main", label: defaultBranch ?? "main", description: "fallback" }],
+    "Pull request のベースブランチ",
+    branches.length > 0 ? branches : [{ value: defaultBranch ?? "main", label: defaultBranch ?? "main", description: "フォールバック" }],
     defaultBranch,
   );
   if (!baseBranch) return null;
@@ -202,32 +202,32 @@ export default function (pi: ExtensionAPI) {
   let startupCreatePrLaunched = false;
 
   pi.registerFlag("create-pr", {
-    description: "Start pi by opening the interactive /create-pr workflow",
+    description: "対話式の /create-pr ワークフローを開いて pi を開始する",
     type: "boolean",
     default: false,
   });
 
   const startCreatePrWorkflow = async (ctx: ExtensionContext, notes: string, source: "command" | "flag") => {
     if (!ctx.isIdle()) {
-      ctx.ui.notify("Agent is busy. Run /create-pr again after the current turn finishes.", "warning");
+      ctx.ui.notify("エージェントが処理中です。現在のターンが完了してから /create-pr を再実行してください。", "warning");
       return;
     }
 
     if (!ctx.hasUI) {
-      ctx.ui.notify("/create-pr requires interactive UI", "warning");
+      ctx.ui.notify("/create-pr には対話式 UI が必要です", "warning");
       return;
     }
 
     const options = await collectCreatePrOptions(pi, ctx);
     if (!options) {
-      ctx.ui.notify("/create-pr cancelled", "info");
+      ctx.ui.notify("/create-pr をキャンセルしました", "info");
       return;
     }
 
     const snapshot = await gitSnapshot(pi, options);
     const selectedOptions = optionsForPrompt(options);
     pi.sendUserMessage(
-      `User invoked /create-pr via ${source} with interactive options: ${selectedOptions}\n\n${CREATE_PR_INSTRUCTIONS}\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
+      `User invoked /create-pr via ${source} with interactive options: ${selectedOptions}\n\n${CREATE_PR_INSTRUCTIONS}\n\n## 人間向けレスポンスの言語\n\nユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択された PR タイトル/本文の言語を変更しない。\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
         notes.trim() || "(none)"
       }\n\n## Initial Git/GitHub Snapshot (may be stale; verify with live commands)\n\n${snapshot}`,
     );
@@ -240,7 +240,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("create-pr", {
-    description: "Interactively create or update a GitHub pull request from committed changes.",
+    description: "コミット済みの変更から GitHub pull request を対話的に作成または更新する。",
     handler: async (args, ctx) => {
       await startCreatePrWorkflow(ctx, args, "command");
     },
