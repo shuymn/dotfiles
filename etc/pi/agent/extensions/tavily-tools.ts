@@ -7,17 +7,19 @@ type JsonValue = unknown;
 const SEARCH_DEPTHS = ["ultra-fast", "fast", "basic", "advanced"] as const;
 const TOPICS = ["general", "news", "finance"] as const;
 const TIME_RANGES = ["day", "week", "month", "year"] as const;
-const RAW_CONTENT_FORMATS = ["markdown", "text"] as const;
 const EXTRACT_DEPTHS = ["basic", "advanced"] as const;
 const CONTENT_FORMATS = ["markdown", "text"] as const;
 
 const MAX_CONTEXT_CHARS = 60_000;
+const SEARCH_TIMEOUT_MS = 120_000;
+const AUTH_TIMEOUT_MS = 20_000;
+const DEFAULT_EXTRACT_TIMEOUT_SECONDS = 60;
+const DEFAULT_SITE_TIMEOUT_SECONDS = 150;
+const TOOL_TIMEOUT_GRACE_MS = 10_000;
 
-function addOption(
-  args: string[],
-  flag: string,
-  value: string | number | boolean | string[] | undefined,
-) {
+type OptionValue = string | number | boolean | string[] | undefined;
+
+function addOption(args: string[], flag: string, value: OptionValue) {
   if (value === undefined || value === false) return;
   if (value === true) {
     args.push(flag);
@@ -27,6 +29,13 @@ function addOption(
     ? value.filter(Boolean).join(",")
     : String(value);
   if (rendered.length > 0) args.push(flag, rendered);
+}
+
+function addOptions(
+  args: string[],
+  options: readonly (readonly [flag: string, value: OptionValue])[],
+) {
+  for (const [flag, value] of options) addOption(args, flag, value);
 }
 
 function parseJson(stdout: string): JsonValue | undefined {
@@ -134,7 +143,7 @@ const searchSchema = Type.Object({
     }),
   ),
   includeRawContent: Type.Optional(
-    StringEnum(RAW_CONTENT_FORMATS, {
+    StringEnum(CONTENT_FORMATS, {
       description:
         "Include full page content as markdown or text. Use sparingly.",
     }),
@@ -188,7 +197,7 @@ const extractSchema = Type.Object({
   timeoutSeconds: Type.Optional(
     Type.Integer({
       minimum: 1,
-      maximum: 60,
+      maximum: DEFAULT_EXTRACT_TIMEOUT_SECONDS,
       description: "Tavily extraction timeout in seconds.",
     }),
   ),
@@ -222,7 +231,9 @@ const mapSchema = Type.Object({
   allowExternal: Type.Optional(
     Type.Boolean({ description: "Include external links." }),
   ),
-  timeoutSeconds: Type.Optional(Type.Integer({ minimum: 10, maximum: 150 })),
+  timeoutSeconds: Type.Optional(
+    Type.Integer({ minimum: 10, maximum: DEFAULT_SITE_TIMEOUT_SECONDS }),
+  ),
 });
 
 const crawlSchema = Type.Object({
@@ -283,7 +294,9 @@ const crawlSchema = Type.Object({
   includeImages: Type.Optional(
     Type.Boolean({ description: "Include images." }),
   ),
-  timeoutSeconds: Type.Optional(Type.Integer({ minimum: 10, maximum: 150 })),
+  timeoutSeconds: Type.Optional(
+    Type.Integer({ minimum: 10, maximum: DEFAULT_SITE_TIMEOUT_SECONDS }),
+  ),
 });
 
 export default function (pi: ExtensionAPI) {
@@ -314,24 +327,22 @@ export default function (pi: ExtensionAPI) {
         };
       }
       const args = ["search", query, "--json"];
-      addOption(args, "--depth", params.depth);
-      addOption(args, "--max-results", params.maxResults);
-      addOption(args, "--topic", params.topic);
-      addOption(args, "--time-range", params.timeRange);
-      addOption(args, "--start-date", params.startDate);
-      addOption(args, "--end-date", params.endDate);
-      addOption(args, "--include-domains", params.includeDomains);
-      addOption(args, "--exclude-domains", params.excludeDomains);
-      addOption(args, "--country", params.country);
-      addOption(args, "--include-answer", params.includeAnswer);
-      addOption(args, "--include-raw-content", params.includeRawContent);
-      addOption(args, "--include-images", params.includeImages);
-      addOption(
-        args,
-        "--include-image-descriptions",
-        params.includeImageDescriptions,
-      );
-      addOption(args, "--chunks-per-source", params.chunksPerSource);
+      addOptions(args, [
+        ["--depth", params.depth],
+        ["--max-results", params.maxResults],
+        ["--topic", params.topic],
+        ["--time-range", params.timeRange],
+        ["--start-date", params.startDate],
+        ["--end-date", params.endDate],
+        ["--include-domains", params.includeDomains],
+        ["--exclude-domains", params.excludeDomains],
+        ["--country", params.country],
+        ["--include-answer", params.includeAnswer],
+        ["--include-raw-content", params.includeRawContent],
+        ["--include-images", params.includeImages],
+        ["--include-image-descriptions", params.includeImageDescriptions],
+        ["--chunks-per-source", params.chunksPerSource],
+      ]);
       onUpdate?.({
         content: [
           {
@@ -340,7 +351,7 @@ export default function (pi: ExtensionAPI) {
           },
         ],
       });
-      return runTvly(pi, args, signal, 120_000);
+      return runTvly(pi, args, signal, SEARCH_TIMEOUT_MS);
     },
   });
 
@@ -369,12 +380,14 @@ export default function (pi: ExtensionAPI) {
         };
       }
       const args = ["extract", ...params.urls, "--json"];
-      addOption(args, "--query", params.query);
-      addOption(args, "--chunks-per-source", params.chunksPerSource);
-      addOption(args, "--extract-depth", params.extractDepth);
-      addOption(args, "--format", params.format);
-      addOption(args, "--include-images", params.includeImages);
-      addOption(args, "--timeout", params.timeoutSeconds);
+      addOptions(args, [
+        ["--query", params.query],
+        ["--chunks-per-source", params.chunksPerSource],
+        ["--extract-depth", params.extractDepth],
+        ["--format", params.format],
+        ["--include-images", params.includeImages],
+        ["--timeout", params.timeoutSeconds],
+      ]);
       onUpdate?.({
         content: [
           {
@@ -387,7 +400,8 @@ export default function (pi: ExtensionAPI) {
         pi,
         args,
         signal,
-        (params.timeoutSeconds ?? 60) * 1000 + 10_000,
+        (params.timeoutSeconds ?? DEFAULT_EXTRACT_TIMEOUT_SECONDS) * 1000 +
+          TOOL_TIMEOUT_GRACE_MS,
       );
     },
   });
@@ -406,14 +420,16 @@ export default function (pi: ExtensionAPI) {
     parameters: mapSchema,
     async execute(_toolCallId, params, signal, onUpdate) {
       const args = ["map", params.url, "--json"];
-      addOption(args, "--max-depth", params.maxDepth);
-      addOption(args, "--max-breadth", params.maxBreadth);
-      addOption(args, "--limit", params.limit);
-      addOption(args, "--instructions", params.instructions);
-      addOption(args, "--select-paths", params.selectPaths);
-      addOption(args, "--exclude-paths", params.excludePaths);
-      addOption(args, "--allow-external", params.allowExternal);
-      addOption(args, "--timeout", params.timeoutSeconds);
+      addOptions(args, [
+        ["--max-depth", params.maxDepth],
+        ["--max-breadth", params.maxBreadth],
+        ["--limit", params.limit],
+        ["--instructions", params.instructions],
+        ["--select-paths", params.selectPaths],
+        ["--exclude-paths", params.excludePaths],
+        ["--allow-external", params.allowExternal],
+        ["--timeout", params.timeoutSeconds],
+      ]);
       onUpdate?.({
         content: [
           { type: "text", text: `Mapping ${params.url} with Tavily...` },
@@ -423,7 +439,8 @@ export default function (pi: ExtensionAPI) {
         pi,
         args,
         signal,
-        (params.timeoutSeconds ?? 150) * 1000 + 10_000,
+        (params.timeoutSeconds ?? DEFAULT_SITE_TIMEOUT_SECONDS) * 1000 +
+          TOOL_TIMEOUT_GRACE_MS,
       );
     },
   });
@@ -453,20 +470,22 @@ export default function (pi: ExtensionAPI) {
         };
       }
       const args = ["crawl", params.url, "--json"];
-      addOption(args, "--max-depth", params.maxDepth);
-      addOption(args, "--max-breadth", params.maxBreadth);
-      addOption(args, "--limit", params.limit);
-      addOption(args, "--instructions", params.instructions);
-      addOption(args, "--chunks-per-source", params.chunksPerSource);
-      addOption(args, "--extract-depth", params.extractDepth);
-      addOption(args, "--format", params.format);
-      addOption(args, "--select-paths", params.selectPaths);
-      addOption(args, "--exclude-paths", params.excludePaths);
-      addOption(args, "--select-domains", params.selectDomains);
-      addOption(args, "--exclude-domains", params.excludeDomains);
-      addOption(args, "--allow-external", params.allowExternal);
-      addOption(args, "--include-images", params.includeImages);
-      addOption(args, "--timeout", params.timeoutSeconds);
+      addOptions(args, [
+        ["--max-depth", params.maxDepth],
+        ["--max-breadth", params.maxBreadth],
+        ["--limit", params.limit],
+        ["--instructions", params.instructions],
+        ["--chunks-per-source", params.chunksPerSource],
+        ["--extract-depth", params.extractDepth],
+        ["--format", params.format],
+        ["--select-paths", params.selectPaths],
+        ["--exclude-paths", params.excludePaths],
+        ["--select-domains", params.selectDomains],
+        ["--exclude-domains", params.excludeDomains],
+        ["--allow-external", params.allowExternal],
+        ["--include-images", params.includeImages],
+        ["--timeout", params.timeoutSeconds],
+      ]);
       onUpdate?.({
         content: [
           { type: "text", text: `Crawling ${params.url} with Tavily...` },
@@ -476,7 +495,8 @@ export default function (pi: ExtensionAPI) {
         pi,
         args,
         signal,
-        (params.timeoutSeconds ?? 150) * 1000 + 10_000,
+        (params.timeoutSeconds ?? DEFAULT_SITE_TIMEOUT_SECONDS) * 1000 +
+          TOOL_TIMEOUT_GRACE_MS,
       );
     },
   });
@@ -489,7 +509,7 @@ export default function (pi: ExtensionAPI) {
       "Check Tavily CLI installation/authentication status when Tavily tools fail.",
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, signal) {
-      return runTvly(pi, ["auth", "--json"], signal, 20_000);
+      return runTvly(pi, ["auth", "--json"], signal, AUTH_TIMEOUT_MS);
     },
   });
 }
