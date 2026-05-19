@@ -43,6 +43,7 @@ __pycache__/
 .config/gtk-3.0/
 .config/gtk-4.0/
 .config/gup/
+.config/helix/runtime/
 .config/ibus/
 .config/htop/
 .config/irb/
