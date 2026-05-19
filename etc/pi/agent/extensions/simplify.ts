@@ -73,6 +73,10 @@ function formatTarget(target: Target): string {
   return `- ${target.path} (${details})`;
 }
 
+function isExplicitFileMode(targets: Target[]): boolean {
+  return targets.length > 0 && targets.every((target) => target.source === "explicit");
+}
+
 async function execGit(pi: ExtensionAPI, cwd: string, args: string[]) {
   return pi.exec("git", args, { cwd, timeout: 10_000 });
 }
@@ -137,20 +141,18 @@ async function collectTargets(pi: ExtensionAPI, cwd: string, options: SimplifyOp
 }
 
 async function collectDiff(pi: ExtensionAPI, cwd: string, options: SimplifyOptions, targets: Target[]): Promise<string> {
-  if (targets.every((target) => target.source === "recent")) return "";
-
-  const paths = options.files.length > 0 ? ["--", ...options.files] : [];
+  if (isExplicitFileMode(targets) || targets.every((target) => target.source === "recent")) return "";
   const chunks: string[] = [];
   const addDiffChunk = (label: string, result: Awaited<ReturnType<typeof execGit>>) => {
     if (result.code === 0 && result.stdout.trim()) chunks.push(`## ${label}\n\n${result.stdout}`);
   };
 
   if (options.staged) {
-    addDiffChunk("Staged diff", await execGit(pi, cwd, ["diff", "--cached", ...paths]));
+    addDiffChunk("Staged diff", await execGit(pi, cwd, ["diff", "--cached"]));
   } else {
     const [unstaged, staged] = await Promise.all([
-      execGit(pi, cwd, ["diff", ...paths]),
-      execGit(pi, cwd, ["diff", "--cached", ...paths]),
+      execGit(pi, cwd, ["diff"]),
+      execGit(pi, cwd, ["diff", "--cached"]),
     ]);
 
     addDiffChunk("Unstaged diff", unstaged);
@@ -171,16 +173,23 @@ const REVIEW_FOCUS: Record<ReviewKind, string> = {
     "Focus: efficiency. Look for unnecessary computation/API/database calls, serial work that can safely be parallelized, full collection fetches when one item/count is enough, repeated parsing/allocation in hot paths, and waste introduced by the change. Only flag issues with practical impact.",
 };
 
-function buildReviewPrompt(kind: ReviewKind, targetList: string): string {
-  const shared = `You are one reviewer in a /simplify command. Review only; do not edit files.\n\nScope:\n${targetList}\n\nInspect the target files and use git diff/status as needed to focus on the recent changes.\n\nReturn concise, actionable findings. For every finding include: file/path, exact issue, why it matters, and suggested fix. If nothing worth changing, say so. Avoid speculative or stylistic-only findings.`;
+function buildReviewPrompt(kind: ReviewKind, targetList: string, scopeInstruction: string): string {
+  const shared = `You are one reviewer in a /simplify command. Review only; do not edit files.\n\nScope:\n${targetList}\n\n${scopeInstruction}\n\nReturn concise, actionable findings. For every finding include: file/path, exact issue, why it matters, and suggested fix. If nothing worth changing, say so. Avoid speculative or stylistic-only findings.`;
   return `${shared}\n\n${REVIEW_FOCUS[kind]}`;
 }
 
 function buildSimplifyPrompt(targets: Target[], diff: string): string {
   const targetList = targets.map(formatTarget).join("\n");
   const quotedTargets = targets.map((target) => shellQuote(target.path)).join(" ");
+  const explicitFileMode = isExplicitFileMode(targets);
+  const scopeInstruction = explicitFileMode
+    ? "The user explicitly passed file path(s). Ignore repository git status/diffs for scope selection. Review each listed file as a whole-file target, and do not inspect unrelated changed files just because git status/diff shows them."
+    : "Inspect the target files and use git diff/status as needed to focus on the recent changes.";
+  const diffContext = explicitFileMode
+    ? "[Explicit file mode: git diff is intentionally ignored; inspect the listed files directly as whole-file targets.]"
+    : diff || "[No git diff available for these targets; inspect the listed files directly.]";
 
-  return `Run a Claude Code-style /simplify pass for the current repository.\n\nPhase 1 is already prepared by the extension. Target files:\n${targetList}\n\nDiff context:\n\n${diff || "[No git diff available for these targets; inspect the listed files directly.]"}\n\nImportant rules:\n- Preserve exact behavior and public APIs unless a change is unquestionably internal and behavior-preserving.\n- Only modify target files unless a verified simplification requires a tiny adjacent change; explain any out-of-scope edit first.\n- Prefer readable, explicit code over clever line-count reduction.\n- Follow AGENTS.md/CLAUDE.md and existing project style.\n- Skip false positives. Do not make speculative changes.\n- Write the final response to the user in Japanese.\n\nPhase 2: spawn three subagents in parallel using spawn_subagent, one per review area. Use these exact delegated tasks:\n\n1. Code reuse review:\n${buildReviewPrompt("reuse", targetList)}\n\n2. Code quality review:\n${buildReviewPrompt("quality", targetList)}\n\n3. Efficiency review:\n${buildReviewPrompt("efficiency", targetList)}\n\nPhase 3: integrate the three review results. Directly apply only verified, behavior-preserving simplifications with read/edit/write/bash. If a finding is false positive or too risky, skip it. After editing, run the narrowest relevant formatter/test/typecheck/lint if discoverable. Summarize:\n- what changed\n- which subagent findings were applied\n- which findings were skipped and why\n\nFor quick inspection, target file shell arguments are: ${quotedTargets}`;
+  return `Run a Claude Code-style /simplify pass for the current repository.\n\nPhase 1 is already prepared by the extension. Target files:\n${targetList}\n\nScope guidance:\n${scopeInstruction}\n\nDiff context:\n\n${diffContext}\n\nImportant rules:\n- Preserve exact behavior and public APIs unless a change is unquestionably internal and behavior-preserving.\n- Only modify target files unless a verified simplification requires a tiny adjacent change; explain any out-of-scope edit first.\n- Prefer readable, explicit code over clever line-count reduction.\n- Follow AGENTS.md/CLAUDE.md and existing project style.\n- Skip false positives. Do not make speculative changes.\n- Write the final response to the user in Japanese.\n\nPhase 2: spawn three subagents in parallel using spawn_subagent, one per review area. Use these exact delegated tasks:\n\n1. Code reuse review:\n${buildReviewPrompt("reuse", targetList, scopeInstruction)}\n\n2. Code quality review:\n${buildReviewPrompt("quality", targetList, scopeInstruction)}\n\n3. Efficiency review:\n${buildReviewPrompt("efficiency", targetList, scopeInstruction)}\n\nPhase 3: integrate the three review results. Directly apply only verified, behavior-preserving simplifications with read/edit/write/bash. If a finding is false positive or too risky, skip it. After editing, run the narrowest relevant formatter/test/typecheck/lint if discoverable. Summarize:\n- what changed\n- which subagent findings were applied\n- which findings were skipped and why\n\nFor quick inspection, target file shell arguments are: ${quotedTargets}`;
 }
 
 export default function (pi: ExtensionAPI): void {
