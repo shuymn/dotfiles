@@ -36,17 +36,32 @@ function basename(path: string): string {
   return trimmed.split("/").pop() || trimmed || "/";
 }
 
-type ModelLike = { name?: unknown; displayName?: unknown; id?: unknown; provider?: unknown };
+type ModelLike = {
+  name?: unknown;
+  displayName?: unknown;
+  id?: unknown;
+  provider?: unknown;
+};
 
 function modelBaseName(model: unknown): string {
   if (!model || typeof model !== "object") return "no model";
   const m = model as ModelLike;
-  return typeof m.name === "string" ? m.name : typeof m.displayName === "string" ? m.displayName : typeof m.id === "string" ? m.id : "model";
+  return typeof m.name === "string"
+    ? m.name
+    : typeof m.displayName === "string"
+      ? m.displayName
+      : typeof m.id === "string"
+        ? m.id
+        : "model";
 }
 
-function modelName(model: unknown, ambiguousModelNames: ReadonlySet<string>): string {
+function modelName(
+  model: unknown,
+  ambiguousModelNames: ReadonlySet<string>,
+): string {
   const name = modelBaseName(model);
-  if (!model || typeof model !== "object" || !ambiguousModelNames.has(name)) return name;
+  if (!model || typeof model !== "object" || !ambiguousModelNames.has(name))
+    return name;
 
   const provider = (model as ModelLike).provider;
   return typeof provider === "string" ? `${provider}/${name}` : name;
@@ -55,7 +70,9 @@ function modelName(model: unknown, ambiguousModelNames: ReadonlySet<string>): st
 function contextWindow(model: unknown): number | undefined {
   if (!model || typeof model !== "object") return undefined;
   const value = (model as { contextWindow?: unknown }).contextWindow;
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
 }
 
 function formatTime(date: Date): string {
@@ -63,7 +80,7 @@ function formatTime(date: Date): string {
 }
 
 export default function (pi: ExtensionAPI) {
-  let projectName = basename(process.cwd());
+  let projectName = "";
   let lastReadyTime = formatTime(new Date());
   let requestFooterRender: (() => void) | undefined;
   let ambiguousModelNames = new Set<string>();
@@ -71,7 +88,9 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     if (!ctx.hasUI) return;
 
-    const root = await pi.exec("git", ["rev-parse", "--show-toplevel"], { timeout: 1000 }).catch(() => undefined);
+    const root = await pi
+      .exec("git", ["rev-parse", "--show-toplevel"], { timeout: 1000 })
+      .catch(() => undefined);
     const rootPath = root?.code === 0 ? root.stdout.trim() : "";
     projectName = basename(rootPath || ctx.cwd);
 
@@ -80,24 +99,35 @@ export default function (pi: ExtensionAPI) {
       const name = modelBaseName(model);
       modelNameCounts.set(name, (modelNameCounts.get(name) ?? 0) + 1);
     }
-    ambiguousModelNames = new Set([...modelNameCounts].filter(([, count]) => count > 1).map(([name]) => name));
+    ambiguousModelNames = new Set(
+      [...modelNameCounts]
+        .filter(([, count]) => count > 1)
+        .map(([name]) => name),
+    );
 
     ctx.ui.setFooter((tui, _theme, footerData) => {
       requestFooterRender = () => tui.requestRender();
-      const disposeBranchListener = footerData.onBranchChange(() => tui.requestRender());
+      const disposeBranchListener = footerData.onBranchChange(() =>
+        tui.requestRender(),
+      );
 
       return {
         invalidate() {},
         render(width: number): string[] {
-          const parts: string[] = [rgb(255, 200, 60, lastReadyTime), rgb(80, 220, 255, projectName)];
+          const parts: string[] = [
+            rgb(255, 200, 60, lastReadyTime),
+            rgb(80, 220, 255, projectName),
+          ];
 
           const branch = footerData.getGitBranch();
           if (branch) {
-            parts[parts.length - 1] += ` on ${rgb(220, 120, 255, `${ICON_BRANCH} ${branch}`)}`;
+            parts[parts.length - 1] +=
+              ` on ${rgb(220, 120, 255, `${ICON_BRANCH} ${branch}`)}`;
           }
 
           const effort = pi.getThinkingLevel();
-          parts[parts.length - 1] += ` via ${rgb(255, 80, 80, `${ICON_MODEL} ${modelName(ctx.model, ambiguousModelNames)} ${effort}`)}`;
+          parts[parts.length - 1] +=
+            ` via ${rgb(255, 80, 80, `${ICON_MODEL} ${modelName(ctx.model, ambiguousModelNames)} ${effort}`)}`;
 
           const usage = ctx.getContextUsage();
           const window = contextWindow(ctx.model);
@@ -120,11 +150,9 @@ export default function (pi: ExtensionAPI) {
     requestFooterRender?.();
   });
 
-  pi.on("model_select", async () => {
-    requestFooterRender?.();
-  });
-
-  pi.on("thinking_level_select", async () => {
-    requestFooterRender?.();
-  });
+  for (const event of ["model_select", "thinking_level_select"] as const) {
+    pi.on(event, async () => {
+      requestFooterRender?.();
+    });
+  }
 }
