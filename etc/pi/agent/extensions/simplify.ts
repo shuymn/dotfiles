@@ -4,8 +4,10 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 
 const COMMAND_NAME = "simplify";
+const TOOL_NAME = "simplify";
 const MAX_DIFF_CHARS = 60_000;
 const RECENT_FILE_LIMIT = 8;
 
@@ -290,6 +292,69 @@ export default function (pi: ExtensionAPI): void {
         `/simplify: queued review for ${targets.length} file(s).`,
         "info",
       );
+    },
+  });
+
+  pi.registerTool({
+    name: TOOL_NAME,
+    label: "Simplify",
+    description:
+      "Queue a /simplify pass for changed, staged, recent, or explicitly listed files using three parallel subagent reviews.",
+    promptSnippet:
+      "Queue a /simplify pass that reviews target files with reuse, quality, and efficiency subagents, then applies verified simplifications.",
+    promptGuidelines: [
+      "Use simplify when the user asks to simplify, clean up, reduce duplication, improve code reuse, or optimize recently changed code while preserving behavior.",
+      "Use simplify with explicit files when the user names file paths; otherwise let simplify target current git changes, or recent tracked files when there are no changes.",
+    ],
+    parameters: Type.Object({
+      files: Type.Optional(
+        Type.Array(
+          Type.String({
+            description: "File path to review as a whole-file target.",
+          }),
+          {
+            description:
+              "Explicit file paths to simplify. Omit to use git changes or recent files.",
+          },
+        ),
+      ),
+      staged: Type.Optional(
+        Type.Boolean({
+          description:
+            "When true and files is omitted, review only staged/cached git changes.",
+        }),
+      ),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const options: SimplifyOptions = {
+        files: params.files?.map(normalizeFileArg) ?? [],
+        staged: params.staged ?? false,
+      };
+      const targets = await queueSimplifyPass(pi, ctx.cwd, options);
+
+      if (targets.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No changed or recent files found for simplify.",
+            },
+          ],
+          details: { targets: [] },
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Queued simplify review for ${targets.length} file(s):\n${targets
+              .map(formatTarget)
+              .join("\n")}`,
+          },
+        ],
+        details: { targets },
+      };
     },
   });
 }
