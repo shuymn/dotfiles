@@ -13,7 +13,12 @@ import {
 import { Type } from "typebox";
 
 const SUBAGENT_TOOLS = ["read", "write", "edit", "bash"];
-type SubagentStatus = "running" | "completed" | "error" | "stopped";
+type SubagentStatus =
+  | "running"
+  | "stopping"
+  | "completed"
+  | "error"
+  | "stopped";
 
 type SubagentRecord = {
   id: string;
@@ -145,7 +150,7 @@ async function runSubagent(
     modelRegistry: ctx.modelRegistry,
     model: ctx.model,
     thinkingLevel: pi.getThinkingLevel(),
-    tools: readOnly ? ["read", "bash"] : SUBAGENT_TOOLS,
+    tools: readOnly ? ["read"] : SUBAGENT_TOOLS,
     resourceLoader: loader,
   });
 
@@ -236,7 +241,10 @@ export default function (pi: ExtensionAPI) {
                   onUpdate?.(
                     textResult(
                       `Subagent ${id} running...\n\n${truncate(text, 1200)}`,
-                      { id, status: "running" },
+                      {
+                        id,
+                        status: "running",
+                      },
                     ),
                   ),
             (session) => {
@@ -277,7 +285,10 @@ export default function (pi: ExtensionAPI) {
             })
           : textResult(
               `Subagent ${record.status}: ${record.error ?? "stopped"}`,
-              { id, status: record.status },
+              {
+                id,
+                status: record.status,
+              },
             );
       records.delete(id);
       return result;
@@ -303,7 +314,10 @@ export default function (pi: ExtensionAPI) {
       const record = records.get(params.id);
       if (!record) return textResult(`Subagent not found: ${params.id}`);
 
-      if (params.wait && record.status === "running") {
+      if (
+        params.wait &&
+        (record.status === "running" || record.status === "stopping")
+      ) {
         await record.promise;
       }
 
@@ -342,10 +356,10 @@ export default function (pi: ExtensionAPI) {
         );
       }
 
-      record.status = "stopped";
-      record.completedAt = Date.now();
+      record.status = "stopping";
       record.abortController.abort();
       await record.session?.abort?.().catch(() => {});
+      await record.promise;
 
       return textResult(`Stopped subagent ${record.id}.`, {
         id: record.id,
@@ -380,12 +394,17 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async () => {
-    for (const record of records.values()) {
-      if (record.status === "running") {
+    const activeRecords = [...records.values()];
+    for (const record of activeRecords) {
+      if (record.status === "running" || record.status === "stopping") {
+        record.status = "stopping";
         record.abortController.abort();
+        await record.session?.abort?.().catch(() => {});
       }
-      record.session?.dispose?.();
     }
+
+    await Promise.allSettled(activeRecords.map((record) => record.promise));
+    for (const record of activeRecords) record.session?.dispose?.();
     records.clear();
   });
 }
