@@ -16,12 +16,19 @@ const MAX_PHASE_NOTE_CHARS = 20_000;
 const WORKFLOW_DIR = "review-workflow";
 const REVIEW_WIDGET_KEY = "review-workflow";
 const MAX_GAPFILL_LOOPS = 2;
-const MUTATING_TOOLS = new Set(["edit", "write"]);
-const INVESTIGATION_BLOCKED_TOOLS = new Set([
-  ...MUTATING_TOOLS,
-  "coderabbit_review",
-  "review",
-  "simplify",
+const INVESTIGATION_ALLOWED_TOOLS = new Set([
+  "read",
+  "grep",
+  "find",
+  "ls",
+  "spawn_subagent",
+  "get_subagent_result",
+  "list_subagents",
+  "tavily_search",
+  "tavily_extract",
+  "tavily_map",
+  "tavily_crawl",
+  "tavily_auth_status",
 ]);
 const WORKFLOW_PHASE_FILES = [
   "01-recon.md",
@@ -35,7 +42,9 @@ const WORKFLOW_PHASE_FILES = [
   "09-summary.md",
 ] as const;
 
-function workflowPhaseIndex(file: (typeof WORKFLOW_PHASE_FILES)[number]): number {
+function workflowPhaseIndex(
+  file: (typeof WORKFLOW_PHASE_FILES)[number],
+): number {
   const index = WORKFLOW_PHASE_FILES.indexOf(file);
   if (index < 0) throw new Error(`Workflow phase not found: ${file}`);
   return index;
@@ -235,7 +244,7 @@ For quick inspection, target file shell arguments are: ${buildQuotedTargets(run.
 function buildPreviousPhaseOutputs(run: ActiveReviewRun): string {
   if (run.phaseOutputs.length === 0) return "No previous phase outputs yet.";
 
-  return `<previous_phase_outputs untrusted=\"true\">\n${run.phaseOutputs
+  return `<previous_phase_outputs untrusted="true">\n${run.phaseOutputs
     .map(
       (output) =>
         `## Completed phase ${output.phaseIndex + 1}: ${output.phaseFile}\n\n${output.notes}`,
@@ -352,44 +361,6 @@ function isInvestigationPhase(): boolean {
   return index !== undefined && index < FIX_PHASE_INDEX;
 }
 
-function stripQuotedShellText(command: string): string {
-  return command.replace(/'[^']*'|"(?:\\.|[^"\\])*"/g, "");
-}
-
-function hasShellRedirection(command: string): boolean {
-  return /(^|[^<])>>?\s*[^&\s]/.test(stripQuotedShellText(command));
-}
-
-function isSafeGitDryRun(command: string): boolean {
-  return /(^|[;&|()\s])git\s+apply\s+[^\n;&|]*--check\b/.test(command) ||
-    /(^|[;&|()\s])git\s+clean\s+[^\n;&|]*(?:-n|--dry-run)\b/.test(command);
-}
-
-function isMutatingBashCommand(command: string): boolean {
-  const gitMutation =
-    /(^|[;&|()\s])git\s+(add|checkout|restore|reset|apply|am|commit|merge|rebase|clean|switch|stash|cherry-pick)\b/.test(
-      command,
-    ) && !isSafeGitDryRun(command);
-
-  return /(^|[;&|()\s])(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|tee|truncate|patch|rsync|install)\b/.test(
-    command,
-  ) ||
-    gitMutation ||
-    /(^|[;&|()\s])find\b[^\n;&|]*\s-delete\b/.test(command) ||
-    /(^|[;&|()\s])dd\b[^\n;&|]*\bof=/.test(command) ||
-    /(^|[;&|()\s])(sed|perl)\s+[^\n;&|]*\s-[^\n;&|]*i\b/.test(command) ||
-    /(^|[;&|()\s])(npm|pnpm|yarn|bun|uv|pip|cargo|go)\s+(install|add|remove|update|sync|get)\b/.test(
-      command,
-    ) ||
-    /(^|[;&|()\s])(python|python3|node|ruby)\s+[^\n;&|]*(open\(|writeFile|writeFileSync|File\.write)/.test(
-      command,
-    ) ||
-    /(^|[;&|()\s])(curl|wget)\s+[^\n;&|]*(?:-o|-O|--output-document)\b/.test(
-      command,
-    ) ||
-    hasShellRedirection(command);
-}
-
 function getLatestAssistantMessageText(messages: unknown): string | undefined {
   try {
     return getAssistantMessageTexts(messages).at(-1);
@@ -398,10 +369,14 @@ function getLatestAssistantMessageText(messages: unknown): string | undefined {
   }
 }
 
-function parseReviewControl(text: string | undefined): ReviewControl | undefined {
+function parseReviewControl(
+  text: string | undefined,
+): ReviewControl | undefined {
   if (!text) return undefined;
 
-  const match = text.match(/<review_control>\s*([\s\S]*?)\s*<\/review_control>/);
+  const match = text.match(
+    /<review_control>\s*([\s\S]*?)\s*<\/review_control>/,
+  );
   if (!match?.[1]) return undefined;
 
   try {
@@ -656,7 +631,7 @@ function queueNextPhase(
 
   activeRun.nextPhaseIndex += 1;
   activeRun.phaseInProgress = true;
-  ctx && setPhaseWidget(ctx, "running", phaseIndex + 1);
+  if (ctx) setPhaseWidget(ctx, "running", phaseIndex + 1);
 
   try {
     pi.sendMessage(
@@ -708,27 +683,16 @@ export default function (pi: ExtensionAPI): void {
   pi.on("tool_call", async (event) => {
     if (!isInvestigationPhase()) return;
 
-    if (INVESTIGATION_BLOCKED_TOOLS.has(event.toolName)) {
+    if (!INVESTIGATION_ALLOWED_TOOLS.has(event.toolName)) {
       return {
         block: true,
         reason:
-          "/review investigation phases are read-only. File edits are allowed only in Stage 7: Fix.",
+          "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
       };
     }
 
     if (event.toolName === "spawn_subagent") {
       (event.input as { readOnly?: boolean }).readOnly = true;
-    }
-
-    if (event.toolName === "bash") {
-      const command = (event.input as { command?: unknown }).command;
-      if (typeof command === "string" && isMutatingBashCommand(command)) {
-        return {
-          block: true,
-          reason:
-            "/review investigation phases are read-only. Mutating shell commands are allowed only in Stage 7: Fix.",
-        };
-      }
     }
   });
 
@@ -775,7 +739,8 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerCommand(COMMAND_NAME, {
-    description: "Run a multi-stage code review workflow and apply verified fixes",
+    description:
+      "Run a multi-stage code review workflow and apply verified fixes",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       await ctx.waitForIdle();
 
@@ -784,14 +749,19 @@ export default function (pi: ExtensionAPI): void {
         const runId = activeRun?.id;
         clearActiveRun(ctx);
         ctx.ui.notify(
-          runId ? `/review: cancelled workflow ${runId}.` : "/review: no active workflow to cancel.",
+          runId
+            ? `/review: cancelled workflow ${runId}.`
+            : "/review: no active workflow to cancel.",
           "info",
         );
         return;
       }
 
       if (activeRun || runStarting) {
-        ctx.ui.notify("/review: another review workflow is already running.", "warning");
+        ctx.ui.notify(
+          "/review: another review workflow is already running.",
+          "warning",
+        );
         return;
       }
 
