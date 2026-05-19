@@ -1,4 +1,8 @@
-import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+  SettingsManager,
+  type ExtensionAPI,
+  type ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +19,11 @@ const UPDATE_FLAG = "update";
 type NotifyType = "info" | "error" | "success" | "warning";
 type UpdateContext = Pick<ExtensionContext, "hasUI" | "ui" | "shutdown">;
 
-type UpdateStep = "version check" | "audit" | "install" | "post-install version check";
+type UpdateStep =
+  | "version check"
+  | "audit"
+  | "install"
+  | "post-install version check";
 
 let quietStartupPatched = false;
 
@@ -27,14 +35,19 @@ function silenceStartupListingsForUpdateFlag() {
   if (quietStartupPatched || !hasUpdateFlagArg()) return;
 
   const originalGetQuietStartup = SettingsManager.prototype.getQuietStartup;
-  SettingsManager.prototype.getQuietStartup = function getQuietStartupForUpdateFlag() {
-    if (hasUpdateFlagArg()) return true;
-    return originalGetQuietStartup.call(this);
-  };
+  SettingsManager.prototype.getQuietStartup =
+    function getQuietStartupForUpdateFlag() {
+      if (hasUpdateFlagArg()) return true;
+      return originalGetQuietStartup.call(this);
+    };
   quietStartupPatched = true;
 }
 
-function notify(ctx: Pick<ExtensionContext, "hasUI" | "ui">, message: string, type: NotifyType = "info") {
+function notify(
+  ctx: Pick<ExtensionContext, "hasUI" | "ui">,
+  message: string,
+  type: NotifyType = "info",
+) {
   if (ctx.hasUI) {
     ctx.ui.notify(message, type);
     return;
@@ -44,7 +57,13 @@ function notify(ctx: Pick<ExtensionContext, "hasUI" | "ui">, message: string, ty
   stream(message);
 }
 
-async function exec(pi: ExtensionAPI, command: string, args: string[], timeout = 10_000, cwd?: string) {
+async function exec(
+  pi: ExtensionAPI,
+  command: string,
+  args: string[],
+  timeout = 10_000,
+  cwd?: string,
+) {
   try {
     return await pi.exec(command, args, { timeout, cwd });
   } catch (error) {
@@ -70,18 +89,26 @@ async function getLatestVersion(): Promise<string> {
   const timeout = setTimeout(() => controller.abort(), METADATA_TIMEOUT_MS);
 
   try {
-    const response = await fetch(PACKAGE_METADATA_URL, { signal: controller.signal });
-    if (!response.ok) throw new Error(`npm registry returned ${response.status}`);
+    const response = await fetch(PACKAGE_METADATA_URL, {
+      signal: controller.signal,
+    });
+    if (!response.ok)
+      throw new Error(`npm registry returned ${response.status}`);
 
     const metadata = (await response.json()) as { version?: unknown };
-    if (typeof metadata.version !== "string" || metadata.version.trim() === "") {
+    if (
+      typeof metadata.version !== "string" ||
+      metadata.version.trim() === ""
+    ) {
       throw new Error("npm registry response did not include a version");
     }
 
     return metadata.version;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`npm registry request to ${PACKAGE_METADATA_URL} timed out after ${METADATA_TIMEOUT_MS}ms`);
+      throw new Error(
+        `npm registry request to ${PACKAGE_METADATA_URL} timed out after ${METADATA_TIMEOUT_MS}ms`,
+      );
     }
     throw error;
   } finally {
@@ -90,7 +117,10 @@ async function getLatestVersion(): Promise<string> {
 }
 
 function summarize(result: Awaited<ReturnType<typeof exec>>): string {
-  return [result.stdout.trim(), result.stderr.trim()].filter(Boolean).join("\n") || `Command exited with code ${result.code}`;
+  return (
+    [result.stdout.trim(), result.stderr.trim()].filter(Boolean).join("\n") ||
+    `Command exited with code ${result.code}`
+  );
 }
 
 function formatSuccessSummary(details: {
@@ -99,9 +129,10 @@ function formatSuccessSummary(details: {
   pinnedPackage: string;
   registryUrl: string;
 }): string {
-  const versionLine = details.beforeVersion && details.afterVersion
-    ? `${details.beforeVersion} -> ${details.afterVersion}`
-    : details.afterVersion ?? "unknown";
+  const versionLine =
+    details.beforeVersion && details.afterVersion
+      ? `${details.beforeVersion} -> ${details.afterVersion}`
+      : (details.afterVersion ?? "unknown");
 
   return [
     "pi update completed",
@@ -139,7 +170,10 @@ function formatFailureSummary(step: UpdateStep, error: unknown): string {
   ].join("\n");
 }
 
-async function auditPinnedPackage(pi: ExtensionAPI, version: string): Promise<void> {
+async function auditPinnedPackage(
+  pi: ExtensionAPI,
+  version: string,
+): Promise<void> {
   const auditDir = await mkdtemp(join(tmpdir(), "pi-update-audit-"));
 
   try {
@@ -160,29 +194,60 @@ async function auditPinnedPackage(pi: ExtensionAPI, version: string): Promise<vo
     const lockfile = await exec(
       pi,
       "bun",
-      ["install", "--lockfile-only", "--ignore-scripts", "--no-progress", `--registry=${REGISTRY_URL}`],
+      [
+        "install",
+        "--lockfile-only",
+        "--ignore-scripts",
+        "--no-progress",
+        `--registry=${REGISTRY_URL}`,
+      ],
       AUDIT_TIMEOUT_MS,
       auditDir,
     );
-    if (lockfile.code !== 0) throw new Error(`Audit setup failed:\n${summarize(lockfile)}`);
+    if (lockfile.code !== 0)
+      throw new Error(`Audit setup failed:\n${summarize(lockfile)}`);
 
-    const audit = await exec(pi, "bun", ["audit", `--audit-level=${AUDIT_LEVEL}`], AUDIT_TIMEOUT_MS, auditDir);
+    const audit = await exec(
+      pi,
+      "bun",
+      ["audit", `--audit-level=${AUDIT_LEVEL}`],
+      AUDIT_TIMEOUT_MS,
+      auditDir,
+    );
     if (audit.code !== 0) throw new Error(`Audit failed:\n${summarize(audit)}`);
   } finally {
     await rm(auditDir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
-async function updatePi(pi: ExtensionAPI, ctx: UpdateContext, options: { shutdownWhenDone?: boolean } = {}) {
+async function updatePi(
+  pi: ExtensionAPI,
+  ctx: UpdateContext,
+  options: { shutdownWhenDone?: boolean } = {},
+) {
   let step: UpdateStep = "version check";
 
   try {
-    notify(ctx, `Checking latest ${PACKAGE_NAME} version from ${REGISTRY_URL}...`);
-    const [beforeVersion, latestVersion] = await Promise.all([getPiVersion(pi), getLatestVersion()]);
+    notify(
+      ctx,
+      `Checking latest ${PACKAGE_NAME} version from ${REGISTRY_URL}...`,
+    );
+    const [beforeVersion, latestVersion] = await Promise.all([
+      getPiVersion(pi),
+      getLatestVersion(),
+    ]);
     const pinnedPackage = `${PACKAGE_NAME}@${latestVersion}`;
 
     if (beforeVersion === latestVersion) {
-      notify(ctx, formatAlreadyCurrentSummary({ currentVersion: beforeVersion, pinnedPackage, registryUrl: REGISTRY_URL }), "success");
+      notify(
+        ctx,
+        formatAlreadyCurrentSummary({
+          currentVersion: beforeVersion,
+          pinnedPackage,
+          registryUrl: REGISTRY_URL,
+        }),
+        "success",
+      );
       return;
     }
 
@@ -192,12 +257,32 @@ async function updatePi(pi: ExtensionAPI, ctx: UpdateContext, options: { shutdow
 
     step = "install";
     notify(ctx, `Installing ${pinnedPackage} with bun...`);
-    const result = await exec(pi, "bun", ["install", "-g", pinnedPackage, `--registry=${REGISTRY_URL}`, "--ignore-scripts"], UPDATE_TIMEOUT_MS);
+    const result = await exec(
+      pi,
+      "bun",
+      [
+        "install",
+        "-g",
+        pinnedPackage,
+        `--registry=${REGISTRY_URL}`,
+        "--ignore-scripts",
+      ],
+      UPDATE_TIMEOUT_MS,
+    );
     if (result.code !== 0) throw new Error(summarize(result));
 
     step = "post-install version check";
     const afterVersion = await getPiVersion(pi);
-    notify(ctx, formatSuccessSummary({ beforeVersion, afterVersion, pinnedPackage, registryUrl: REGISTRY_URL }), "success");
+    notify(
+      ctx,
+      formatSuccessSummary({
+        beforeVersion,
+        afterVersion,
+        pinnedPackage,
+        registryUrl: REGISTRY_URL,
+      }),
+      "success",
+    );
   } catch (error) {
     notify(ctx, formatFailureSummary(step, error), "error");
   } finally {

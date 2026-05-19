@@ -124,7 +124,9 @@ async function getDefaultBranch(pi: ExtensionAPI): Promise<string | undefined> {
     .exec(
       "git",
       ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
-      { timeout: 3000 },
+      {
+        timeout: 3000,
+      },
     )
     .catch(() => undefined);
   if (symbolic?.code === 0)
@@ -135,7 +137,9 @@ async function getDefaultBranch(pi: ExtensionAPI): Promise<string | undefined> {
       .exec(
         "git",
         ["show-ref", "--verify", "--quiet", `refs/heads/${candidate}`],
-        { timeout: 3000 },
+        {
+          timeout: 3000,
+        },
       )
       .catch(() => undefined);
     if (exists?.code === 0) return candidate;
@@ -351,7 +355,11 @@ export default function (pi: ExtensionAPI) {
 
   const startCreatePrWorkflow = async (ctx: ExtensionContext) => {
     if (!ctx.isIdle()) {
-      notifyAndShutdown(ctx, "エージェントが処理中です。処理を終了します。", "warning");
+      notifyAndShutdown(
+        ctx,
+        "エージェントが処理中です。処理を終了します。",
+        "warning",
+      );
       return;
     }
 
@@ -386,7 +394,11 @@ export default function (pi: ExtensionAPI) {
     } catch (error) {
       createPrWorkflowActive = false;
       const message = error instanceof Error ? error.message : String(error);
-      notifyAndShutdown(ctx, `--create-pr の開始に失敗しました: ${message}`, "warning");
+      notifyAndShutdown(
+        ctx,
+        `--create-pr の開始に失敗しました: ${message}`,
+        "warning",
+      );
     }
   };
 

@@ -45,10 +45,7 @@ export default function (pi: ExtensionAPI) {
 
     const current = ctx.ui.getEditorText();
     if (current.length > 0) {
-      ctx.ui.notify(
-        "Prompt stash not restored because the editor is not empty.",
-        "warning",
-      );
+      ctx.ui.notify("Prompt stash not restored because the editor is not empty.", "warning");
       return;
     }
 

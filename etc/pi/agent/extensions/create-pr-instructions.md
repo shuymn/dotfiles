@@ -14,14 +14,17 @@ You are running the /create-pr extension. Create or update a GitHub pull request
 The extension asks for options interactively. The selected options shown in the prompt are authoritative.
 
 Language:
+
 - English: create PR title/body in English.
 - Japanese: create PR title/body in Japanese.
 
 Mode:
+
 - Create: create a new PR.
 - Update: update an existing open PR for the current branch. If no PR exists, notify the user and do not create a new one.
 
 Base branch:
+
 - In create mode, use the selected base branch.
 - In update mode, use the existing PR's base branch.
 
@@ -83,28 +86,35 @@ cat README.md 2>/dev/null | head -50 || echo "No README"
 
 ```markdown
 ## Summary
+
 [2-3 sentences explaining purpose and background of commits]
 
 ## Changes
+
 - [Major change from commits]
 - [Major change from commits]
 
 ## Motivation
+
 [Why these commits were necessary]
 
 ## Technical Details
+
 [Implementation approach from commits]
 
 ## Impact
+
 - Affected features: [Features affected by commits]
 - Affected files: [Major files changed]
 - Breaking changes: [Yes/No]
 
 ## Testing
+
 1. [Test step 1]
 2. [Test step 2]
 
 ## Checklist
+
 - [ ] Code works as expected
 - [ ] Tests have been added/updated
 - [ ] Documentation has been updated (if necessary)
@@ -112,6 +122,7 @@ cat README.md 2>/dev/null | head -50 || echo "No README"
 - [ ] Breaking changes are clearly documented
 
 ## Additional Notes
+
 [Additional information for reviewers]
 ```
 
@@ -119,28 +130,35 @@ cat README.md 2>/dev/null | head -50 || echo "No README"
 
 ```markdown
 ## 概要
+
 [コミットの目的と背景を2-3文で説明]
 
 ## 変更内容
+
 - [コミットからの主な変更]
 - [コミットからの主な変更]
 
 ## 変更理由
+
 [これらのコミットが必要だった理由]
 
 ## 技術的詳細
+
 [コミットからの実装アプローチ]
 
 ## 影響範囲
+
 - 影響を受ける機能:[コミットにより影響を受ける機能]
 - 影響を受けるファイル:[変更された主要ファイル]
 - 破壊的変更:[あり/なし]
 
 ## テスト方法
+
 1. [テスト手順1]
 2. [テスト手順2]
 
 ## チェックリスト
+
 - [ ] コードは正常に動作することを確認した
 - [ ] 適切なテストを追加/更新した
 - [ ] ドキュメントを更新した(必要な場合)
@@ -148,18 +166,21 @@ cat README.md 2>/dev/null | head -50 || echo "No README"
 - [ ] 破壊的変更がある場合は明記した
 
 ## その他
+
 [レビュアーへの追加情報]
 ```
 
 ## Writing Guidelines
 
 English:
+
 - Use clear, concise English.
 - Keep code references and file paths as-is.
 - Be direct and professional.
 - Wrap @ symbols in code/paths with backticks to prevent mentions: `@import`, `path/@file`.
 
 Japanese:
+
 - Use appropriate technical Japanese.
 - Keep English proper nouns, libraries, functions, and paths as-is.
 - Use clear Japanese without honorifics.
@@ -168,6 +189,7 @@ Japanese:
 - Omit final punctuation in bullet points (no `。`).
 
 Escaping:
+
 - Prefer `gh pr create --body-file <file>` and `gh pr edit --body-file <file>` to avoid shell escaping issues.
 - If inline body is unavoidable, use a single-quoted heredoc (`<<'EOF'`) so backticks are preserved as-is.
 - Do not escape Markdown backticks unnecessarily.
@@ -175,54 +197,54 @@ Escaping:
 ## Create Flow
 
 1. Determine current branch:
-   ```bash
-   git branch --show-current
-   ```
+    ```bash
+    git branch --show-current
+    ```
 2. Use the selected base branch.
 3. Ensure there are commits to include:
-   ```bash
-   git log origin/<base>..HEAD --oneline
-   ```
+    ```bash
+    git log origin/<base>..HEAD --oneline
+    ```
 4. Push current branch:
-   ```bash
-   rtk git push -u origin <current-branch>
-   ```
-   If `rtk` is unavailable, use:
-   ```bash
-   git push -u origin <current-branch>
-   ```
+    ```bash
+    rtk git push -u origin <current-branch>
+    ```
+    If `rtk` is unavailable, use:
+    ```bash
+    git push -u origin <current-branch>
+    ```
 5. Generate PR title and body from committed changes.
 6. Create the PR, preferably with GitHub CLI:
-   ```bash
-   gh pr create --base <base> --head <current-branch> --title "<title>" --body-file <body-file>
-   ```
+    ```bash
+    gh pr create --base <base> --head <current-branch> --title "<title>" --body-file <body-file>
+    ```
 7. Provide the PR URL and summarize success.
 
 ## Update Flow
 
 1. Determine current branch:
-   ```bash
-   git branch --show-current
-   ```
+    ```bash
+    git branch --show-current
+    ```
 2. Find the existing open PR for the current branch:
-   ```bash
-   gh pr view --json number,url,baseRefName,headRefName,title,state
-   ```
-   If no open PR exists, notify the user and do not create a new PR.
+    ```bash
+    gh pr view --json number,url,baseRefName,headRefName,title,state
+    ```
+    If no open PR exists, notify the user and do not create a new PR.
 3. Push latest changes:
-   ```bash
-   rtk git push origin <current-branch>
-   ```
-   If `rtk` is unavailable, use:
-   ```bash
-   git push origin <current-branch>
-   ```
+    ```bash
+    rtk git push origin <current-branch>
+    ```
+    If `rtk` is unavailable, use:
+    ```bash
+    git push origin <current-branch>
+    ```
 4. Analyze all commits against the PR's base branch.
 5. Generate updated title and body from committed changes.
 6. Update the PR:
-   ```bash
-   gh pr edit <number> --title "<title>" --body-file <body-file>
-   ```
+    ```bash
+    gh pr edit <number> --title "<title>" --body-file <body-file>
+    ```
 7. Provide the PR URL and summarize success.
 
 ## Important Notes
