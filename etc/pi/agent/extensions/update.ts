@@ -206,6 +206,8 @@ async function updatePi(pi: ExtensionAPI, ctx: UpdateContext, options: { shutdow
 }
 
 export default function updateExtension(pi: ExtensionAPI) {
+  let startupUpdateLaunched = false;
+
   silenceStartupListingsForUpdateFlag();
 
   pi.registerFlag(UPDATE_FLAG, {
@@ -214,8 +216,15 @@ export default function updateExtension(pi: ExtensionAPI) {
     default: false,
   });
 
-  pi.on("session_start", async (_event, ctx) => {
-    if (pi.getFlag(UPDATE_FLAG) !== true) return;
+  pi.on("session_start", async (event, ctx) => {
+    if (
+      event.reason !== "startup" ||
+      startupUpdateLaunched ||
+      pi.getFlag(UPDATE_FLAG) !== true
+    )
+      return;
+
+    startupUpdateLaunched = true;
     await updatePi(pi, ctx, { shutdownWhenDone: true });
   });
 }
