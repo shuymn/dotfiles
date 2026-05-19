@@ -18,7 +18,6 @@ type SubagentStatus = "running" | "completed" | "error" | "stopped";
 type SubagentRecord = {
   id: string;
   description: string;
-  prompt: string;
   status: SubagentStatus;
   startedAt: number;
   completedAt?: number;
@@ -204,7 +203,6 @@ export default function (pi: ExtensionAPI) {
       const record: SubagentRecord = {
         id,
         description,
-        prompt: params.prompt,
         status: "running",
         startedAt: Date.now(),
         promise: Promise.resolve(),
