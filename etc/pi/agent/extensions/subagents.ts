@@ -90,7 +90,11 @@ function collectAssistantText(
   };
 }
 
-function buildSystemPrompt(parentSystemPrompt: string, cwd: string): string {
+function buildSystemPrompt(
+  parentSystemPrompt: string,
+  cwd: string,
+  readOnly: boolean,
+): string {
   return `${parentSystemPrompt}
 
 <subagent_context>
@@ -103,7 +107,7 @@ Operational rules:
 - Be concise but complete in your final answer.
 - Do not ask the parent agent to do work you can do yourself.
 - Do not call or simulate subagents recursively.
-
+${readOnly ? "- This subagent is read-only: do not edit files or run mutating shell commands.\n" : ""}
 Working directory: ${cwd}
 </subagent_context>`;
 }
@@ -114,6 +118,7 @@ async function runSubagent(
   id: string,
   prompt: string,
   abortSignal: AbortSignal,
+  readOnly: boolean,
   onTextUpdate?: (text: string) => void,
   onSessionCreated?: (session: AgentSession) => void,
 ): Promise<{ session: AgentSession; result: string }> {
@@ -127,7 +132,7 @@ async function runSubagent(
     noThemes: true,
     noContextFiles: true,
     systemPromptOverride: () =>
-      buildSystemPrompt(ctx.getSystemPrompt(), ctx.cwd),
+      buildSystemPrompt(ctx.getSystemPrompt(), ctx.cwd, readOnly),
     appendSystemPromptOverride: () => [],
   });
   await loader.reload();
@@ -140,7 +145,7 @@ async function runSubagent(
     modelRegistry: ctx.modelRegistry,
     model: ctx.model,
     thinkingLevel: pi.getThinkingLevel(),
-    tools: SUBAGENT_TOOLS,
+    tools: readOnly ? ["read", "bash"] : SUBAGENT_TOOLS,
     resourceLoader: loader,
   });
 
@@ -190,6 +195,12 @@ export default function (pi: ExtensionAPI) {
             "Run in background and return immediately. Default: false.",
         }),
       ),
+      readOnly: Type.Optional(
+        Type.Boolean({
+          description:
+            "When true, run the subagent with read and bash tools only, without file editing tools. Default: false.",
+        }),
+      ),
     }),
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const id = makeId();
@@ -218,6 +229,7 @@ export default function (pi: ExtensionAPI) {
             id,
             params.prompt,
             abortController.signal,
+            params.readOnly ?? false,
             params.background
               ? undefined
               : (text) =>
@@ -257,16 +269,18 @@ export default function (pi: ExtensionAPI) {
       }
 
       await record.promise;
-      if (record.status === "completed") {
-        return textResult(record.result ?? "No output.", {
-          id,
-          status: record.status,
-        });
-      }
-      return textResult(
-        `Subagent ${record.status}: ${record.error ?? "stopped"}`,
-        { id, status: record.status },
-      );
+      const result =
+        record.status === "completed"
+          ? textResult(record.result ?? "No output.", {
+              id,
+              status: record.status,
+            })
+          : textResult(
+              `Subagent ${record.status}: ${record.error ?? "stopped"}`,
+              { id, status: record.status },
+            );
+      records.delete(id);
+      return result;
     },
   });
 
