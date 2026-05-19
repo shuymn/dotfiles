@@ -50,7 +50,7 @@ export LC_ALL="${LANGUAGE}"
 export LC_TYPE="${LANGUAGE}"
 
 # Editor
-export EDITOR=nvim
+export EDITOR=hx
 export CVSEDITOR="${EDITOR}"
 export SVN_EDITOR="${EDITOR}"
 export GIT_EDITOR="${EDITOR}"

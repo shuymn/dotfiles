@@ -3,11 +3,6 @@ bindkey '^n' down-line-or-history
 bindkey '^k' up-line-or-history
 bindkey '^j' down-line-or-history
 
-# neovim
-if has "nvim"; then
-  export EDITOR=nvim
-fi
-
 # version manager
 if has "anyenv"; then
   eval "$(anyenv init -)"
