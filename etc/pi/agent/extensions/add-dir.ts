@@ -196,18 +196,19 @@ export default function (pi: ExtensionAPI) {
       dirs = data.dirs.filter(isAddedDir);
     }
 
-    const existingDirs: AddedDir[] = [];
-    for (const dir of dirs) {
-      try {
-        const stats = await stat(dir.path);
-        if (stats.isDirectory()) existingDirs.push(dir);
-      } catch {
-        // Drop stale temporary paths from previous sessions.
-        if (!dir.temporary) existingDirs.push(dir);
-      }
-    }
-
-    dirs = existingDirs;
+    dirs = (
+      await Promise.all(
+        dirs.map(async (dir) => {
+          try {
+            const stats = await stat(dir.path);
+            return stats.isDirectory() ? dir : undefined;
+          } catch {
+            // Drop stale temporary paths from previous sessions.
+            return dir.temporary ? undefined : dir;
+          }
+        }),
+      )
+    ).filter((dir): dir is AddedDir => dir !== undefined);
     tempRoots = dirs
       .filter((dir) => dir.temporary && dir.tempRoot)
       .map((dir) => dir.tempRoot as string);
@@ -290,7 +291,8 @@ export default function (pi: ExtensionAPI) {
       const tempRoot = await mkdtemp(join(tmpdir(), GITHUB_CLONE_PREFIX));
       tempRoots = [...tempRoots, tempRoot];
 
-      const repoUrl = `https://github.com/${parsed.owner}/${parsed.repo}.git`;
+      const displayUrl = `https://github.com/${parsed.owner}/${parsed.repo}`;
+      const repoUrl = `${displayUrl}.git`;
       const targetPath = join(tempRoot, directoryName);
 
       try {
@@ -302,7 +304,7 @@ export default function (pi: ExtensionAPI) {
           "",
           `name: ${dir.name}`,
           `path: ${dir.path}`,
-          `url: https://github.com/${parsed.owner}/${parsed.repo}`,
+          `url: ${displayUrl}`,
         ];
         if (parsed.ref) lines.push(`ref: ${parsed.ref}`);
         lines.push("", "Use the absolute path above when reading, searching, or running read-only commands in this repository.");
@@ -312,7 +314,7 @@ export default function (pi: ExtensionAPI) {
           details: {
             name: dir.name,
             path: dir.path,
-            url: `https://github.com/${parsed.owner}/${parsed.repo}`,
+            url: displayUrl,
             ref: parsed.ref,
             tempRoot,
             alreadyAdded,
