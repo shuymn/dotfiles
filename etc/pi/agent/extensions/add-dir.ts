@@ -1,13 +1,29 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { stat, realpath } from "node:fs/promises";
-import { basename, resolve } from "node:path";
-import { homedir } from "node:os";
+import { Type } from "typebox";
+import { execFile } from "node:child_process";
+import { mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { basename, join, resolve } from "node:path";
 
 const STATE_TYPE = "add-dir-state";
+const GITHUB_CLONE_PREFIX = "pi-github-workspace-";
+const GITHUB_CLONE_TIMEOUT_MS = 30_000;
+
+const SAFE_GITHUB_PART = /^[A-Za-z0-9_.-]+$/;
+const SAFE_REF = /^[A-Za-z0-9._/-]+$/;
+const SAFE_DIR_NAME = /^[A-Za-z0-9_.-]+$/;
 
 type AddedDir = {
   name: string;
   path: string;
+  temporary?: boolean;
+  tempRoot?: string;
+};
+
+type ParsedGitHubUrl = {
+  owner: string;
+  repo: string;
+  ref?: string;
 };
 
 function expandHome(path: string): string {
@@ -37,7 +53,9 @@ function isAddedDir(value: unknown): value is AddedDir {
     typeof value === "object" &&
     value !== null &&
     typeof (value as AddedDir).name === "string" &&
-    typeof (value as AddedDir).path === "string"
+    typeof (value as AddedDir).path === "string" &&
+    ((value as AddedDir).temporary === undefined || typeof (value as AddedDir).temporary === "boolean") &&
+    ((value as AddedDir).tempRoot === undefined || typeof (value as AddedDir).tempRoot === "string")
   );
 }
 
@@ -45,15 +63,129 @@ function formatDirs(dirs: AddedDir[]): string {
   return dirs.map((dir) => `- ${dir.name}: ${dir.path}`).join("\n");
 }
 
+function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    throw new Error("github_clone_workspace only accepts full https://github.com/owner/repo URLs.");
+  }
+
+  if (url.protocol !== "https:" || url.hostname !== "github.com") {
+    throw new Error("github_clone_workspace only accepts https://github.com URLs.");
+  }
+
+  const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return segment;
+    }
+  });
+
+  if (segments.length < 2) {
+    throw new Error("GitHub URL must include owner and repository name.");
+  }
+
+  const owner = segments[0];
+  const repo = segments[1].replace(/\.git$/, "");
+
+  if (!SAFE_GITHUB_PART.test(owner) || !SAFE_GITHUB_PART.test(repo)) {
+    throw new Error("GitHub owner and repository name contain unsupported characters.");
+  }
+
+  let ref: string | undefined;
+  const action = segments[2];
+  if (action === "tree" || action === "blob") {
+    ref = segments[3];
+    if (!ref) throw new Error(`GitHub ${action} URL must include a ref.`);
+  } else if (action !== undefined) {
+    throw new Error("Only GitHub repository, /tree/<ref>, and /blob/<ref>/... URLs are supported.");
+  }
+
+  if (ref !== undefined && !SAFE_REF.test(ref)) {
+    throw new Error("GitHub ref contains unsupported characters.");
+  }
+
+  return { owner, repo, ref };
+}
+
+function sanitizeDirectoryName(input: string): string {
+  const name = input.trim();
+  if (!name) throw new Error("Directory name must not be empty.");
+  if (name === "." || name === ".." || name.includes("/") || !SAFE_DIR_NAME.test(name)) {
+    throw new Error("Directory name may only contain letters, numbers, '.', '_', and '-'.");
+  }
+  return name;
+}
+
+function cloneGitHubRepo(repoUrl: string, targetPath: string, ref: string | undefined, signal?: AbortSignal): Promise<void> {
+  const args = ["clone", "--depth", "1", "--filter=blob:none", "--single-branch"];
+  if (ref) args.push("--branch", ref);
+  args.push(repoUrl, targetPath);
+
+  return new Promise((resolvePromise, reject) => {
+    const child = execFile(
+      "git",
+      args,
+      {
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+        timeout: GITHUB_CLONE_TIMEOUT_MS,
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const details = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
+          reject(new Error(details || error.message));
+          return;
+        }
+        resolvePromise();
+      },
+    );
+
+    if (signal) {
+      const onAbort = () => child.kill();
+      signal.addEventListener("abort", onAbort, { once: true });
+      child.on("exit", () => signal.removeEventListener("abort", onAbort));
+    }
+  });
+}
+
 export default function (pi: ExtensionAPI) {
   let dirs: AddedDir[] = [];
+  let tempRoots: string[] = [];
 
   function persist() {
     pi.appendEntry(STATE_TYPE, { dirs });
   }
 
+  async function addDirectory(
+    input: string,
+    cwd: string,
+    metadata: Pick<AddedDir, "temporary" | "tempRoot"> = {},
+  ): Promise<{ dir: AddedDir; alreadyAdded: boolean }> {
+    const resolvedDir = await resolveExistingDirectory(input, cwd);
+    const dir: AddedDir = { ...resolvedDir, ...metadata };
+
+    const samePath = dirs.find((existing) => existing.path === dir.path);
+    if (samePath) {
+      return { dir: samePath, alreadyAdded: true };
+    }
+
+    const sameName = dirs.find((existing) => existing.name === dir.name);
+    if (sameName) {
+      throw new Error(
+        `Cannot add ${dir.path}: directory name "${dir.name}" is already registered for ${sameName.path}. Remove it first with /remove-dir ${dir.name}.`,
+      );
+    }
+
+    dirs = [...dirs, dir];
+    persist();
+    return { dir, alreadyAdded: false };
+  }
+
   pi.on("session_start", async (_event, ctx) => {
     dirs = [];
+    tempRoots = [];
 
     for (const entry of ctx.sessionManager.getEntries()) {
       if (entry.type !== "custom" || entry.customType !== STATE_TYPE) continue;
@@ -63,6 +195,22 @@ export default function (pi: ExtensionAPI) {
 
       dirs = data.dirs.filter(isAddedDir);
     }
+
+    const existingDirs: AddedDir[] = [];
+    for (const dir of dirs) {
+      try {
+        const stats = await stat(dir.path);
+        if (stats.isDirectory()) existingDirs.push(dir);
+      } catch {
+        // Drop stale temporary paths from previous sessions.
+        if (!dir.temporary) existingDirs.push(dir);
+      }
+    }
+
+    dirs = existingDirs;
+    tempRoots = dirs
+      .filter((dir) => dir.temporary && dir.tempRoot)
+      .map((dir) => dir.tempRoot as string);
   });
 
   pi.registerCommand("add-dir", {
@@ -74,33 +222,16 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      let dir: AddedDir;
       try {
-        dir = await resolveExistingDirectory(input, ctx.cwd);
+        const { dir, alreadyAdded } = await addDirectory(input, ctx.cwd);
+        ctx.ui.notify(
+          alreadyAdded ? `Already registered: ${dir.name}: ${dir.path}` : `Added directory: ${dir.name}: ${dir.path}`,
+          "info",
+        );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         ctx.ui.notify(message, "error");
-        return;
       }
-
-      const samePath = dirs.find((existing) => existing.path === dir.path);
-      if (samePath) {
-        ctx.ui.notify(`Already registered: ${samePath.name}: ${samePath.path}`, "info");
-        return;
-      }
-
-      const sameName = dirs.find((existing) => existing.name === dir.name);
-      if (sameName) {
-        ctx.ui.notify(
-          `Cannot add ${dir.path}: directory name "${dir.name}" is already registered for ${sameName.path}. Remove it first with /remove-dir ${dir.name}.`,
-          "error",
-        );
-        return;
-      }
-
-      dirs = [...dirs, dir];
-      persist();
-      ctx.ui.notify(`Added directory: ${dir.name}: ${dir.path}`, "info");
     },
   });
 
@@ -138,6 +269,69 @@ export default function (pi: ExtensionAPI) {
       persist();
       ctx.ui.notify(dirs.length === 0 ? "Removed directory. No additional directories remain." : `Removed directory. Remaining:\n${formatDirs(dirs)}`, "info");
     },
+  });
+
+  pi.registerTool({
+    name: "github_clone_workspace",
+    label: "GitHub Clone Workspace",
+    description: "Clone a public GitHub repository URL into a temporary directory and register it as an additional named directory for this session. Only https://github.com/owner/repo URLs are allowed. Clones are shallow, blob-filtered, do not fetch submodules, time out after 30 seconds, and are removed when the session shuts down.",
+    promptSnippet: "Clone a GitHub repository URL into a temporary workspace and register it as an additional directory.",
+    promptGuidelines: [
+      "Use github_clone_workspace when the user asks about code in a GitHub repository URL and local code inspection would help.",
+      "After github_clone_workspace returns, use the returned absolute path with read, grep, find, ls, or bash to inspect the cloned repository.",
+    ],
+    parameters: Type.Object({
+      url: Type.String({ description: "A public https://github.com/owner/repo URL. /tree/<ref> and /blob/<ref>/... URLs are also accepted to select a ref." }),
+      directoryName: Type.Optional(Type.String({ description: "Optional registered directory name. Defaults to the repository name. Must contain only letters, numbers, '.', '_', and '-'." })),
+    }),
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      const parsed = parseGitHubRepoUrl(params.url);
+      const directoryName = sanitizeDirectoryName(params.directoryName ?? parsed.repo);
+      const tempRoot = await mkdtemp(join(tmpdir(), GITHUB_CLONE_PREFIX));
+      tempRoots = [...tempRoots, tempRoot];
+
+      const repoUrl = `https://github.com/${parsed.owner}/${parsed.repo}.git`;
+      const targetPath = join(tempRoot, directoryName);
+
+      try {
+        await cloneGitHubRepo(repoUrl, targetPath, parsed.ref, signal);
+        const { dir, alreadyAdded } = await addDirectory(targetPath, ctx.cwd, { temporary: true, tempRoot });
+
+        const lines = [
+          alreadyAdded ? "GitHub repository was already registered." : "Cloned and registered GitHub workspace.",
+          "",
+          `name: ${dir.name}`,
+          `path: ${dir.path}`,
+          `url: https://github.com/${parsed.owner}/${parsed.repo}`,
+        ];
+        if (parsed.ref) lines.push(`ref: ${parsed.ref}`);
+        lines.push("", "Use the absolute path above when reading, searching, or running read-only commands in this repository.");
+
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+          details: {
+            name: dir.name,
+            path: dir.path,
+            url: `https://github.com/${parsed.owner}/${parsed.repo}`,
+            ref: parsed.ref,
+            tempRoot,
+            alreadyAdded,
+          },
+        };
+      } catch (error) {
+        await rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
+        tempRoots = tempRoots.filter((path) => path !== tempRoot);
+        throw error;
+      }
+    },
+  });
+
+  pi.on("session_shutdown", async (event) => {
+    if (event.reason === "reload") return;
+
+    const roots = [...new Set(tempRoots)];
+    tempRoots = [];
+    await Promise.all(roots.map((root) => rm(root, { recursive: true, force: true }).catch(() => undefined)));
   });
 
   pi.on("before_agent_start", async (event) => {
