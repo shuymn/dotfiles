@@ -26,10 +26,10 @@ if has "procs"; then
   alias ps='procs'
 fi
 
-if has "nvim"; then
-  alias vi='nvim'
-  alias vim='nvim'
-  alias zshrc="nvim ${XDG_CONFIG_HOME}/zsh/.zshrc"
+if has "hx"; then
+  alias vi='hx'
+  alias vim='hx'
+  alias zshrc="hx ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
 if has "$(brew --prefix)/bin/gomi"; then
