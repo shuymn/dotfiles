@@ -266,37 +266,37 @@ async function gitSnapshot(
   options: CreatePrOptions,
 ): Promise<string> {
   const base = options.baseBranch ?? "<existing PR base>";
-  const commands: Array<[label: string, command: string]> = [
-    ["Current branch", "git branch --show-current"],
-    ["Remote branches", "git branch -r"],
+  const baseRange = `origin/${base}..HEAD`;
+  const commands: Array<[label: string, command: string, args: string[]]> = [
+    ["Current branch", "git", ["branch", "--show-current"]],
+    ["Remote branches", "git", ["branch", "-r"]],
     [
       "Default branch",
-      "git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@' || true",
+      "git",
+      ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
     ],
-    ["Repository root", "git rev-parse --show-toplevel"],
-    ["Push status", "git status -sb | head -1"],
+    ["Repository root", "git", ["rev-parse", "--show-toplevel"]],
+    ["Push status", "git", ["status", "-sb"]],
     [
       "Committed changes",
+      "git",
       options.mode === "create"
-        ? `git log origin/${base}..HEAD --oneline`
-        : "git log --oneline -10",
+        ? ["log", baseRange, "--oneline"]
+        : ["log", "--oneline", "-10"],
     ],
     [
       "Files changed",
+      "git",
       options.mode === "create"
-        ? `git diff --name-status origin/${base}..HEAD`
-        : "git show --stat --oneline -5",
-    ],
-    [
-      "PR template",
-      "cat .github/pull_request_template.md 2>/dev/null || cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo 'No GitHub template'",
+        ? ["diff", "--name-status", baseRange]
+        : ["show", "--stat", "--oneline", "-5"],
     ],
   ];
 
   const results = await Promise.all(
-    commands.map(async ([label, command]) => {
+    commands.map(async ([label, command, args]) => {
       const result = await pi
-        .exec("bash", ["-lc", command], { timeout: 5000 })
+        .exec(command, args, { timeout: 5000 })
         .catch((error: unknown) => ({
           code: 1,
           stdout: "",
@@ -304,9 +304,28 @@ async function gitSnapshot(
         }));
       const output =
         `${result.stdout}${result.stderr ? `\n${result.stderr}` : ""}`.trim();
-      return `### ${label}\n${output || "(empty)"}`;
+      const normalizedOutput =
+        label === "Default branch"
+          ? output.replace(/^origin\//, "") || "No default branch"
+          : output;
+      return `### ${label}\n${normalizedOutput || "(empty)"}`;
     }),
   );
+
+  const templateCommand =
+    "cat .github/pull_request_template.md 2>/dev/null || " +
+    "cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || " +
+    "echo 'No GitHub template'";
+  const template = await pi
+    .exec("bash", ["-lc", templateCommand], { timeout: 5000 })
+    .catch((error: unknown) => ({
+      code: 1,
+      stdout: "",
+      stderr: error instanceof Error ? error.message : String(error),
+    }));
+  const templateOutput =
+    `${template.stdout}${template.stderr ? `\n${template.stderr}` : ""}`.trim();
+  results.push(`### PR template\n${templateOutput || "(empty)"}`);
 
   return results.join("\n\n");
 }
