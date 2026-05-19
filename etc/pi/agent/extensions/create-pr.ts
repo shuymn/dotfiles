@@ -17,6 +17,9 @@ const CREATE_PR_INSTRUCTIONS = readFileSync(
   new URL("./create-pr-instructions.md", import.meta.url),
   "utf8",
 );
+const HUMAN_RESPONSE_LANGUAGE_INSTRUCTION = `## 人間向けレスポンスの言語
+
+ユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択された PR タイトル/本文の言語を変更しない。`;
 
 type PrLanguage = "english" | "japanese";
 type PrMode = "create" | "update";
@@ -309,45 +312,63 @@ async function gitSnapshot(
 }
 
 export default function (pi: ExtensionAPI) {
+  let createPrWorkflowActive = false;
   let startupCreatePrLaunched = false;
 
   pi.registerFlag("create-pr", {
-    description: "対話式の /create-pr ワークフローを開いて pi を開始する",
+    description: "対話式の create-pr ワークフローを実行して pi を終了する",
     type: "boolean",
     default: false,
   });
 
-  const startCreatePrWorkflow = async (
+  const notifyAndShutdown = (
     ctx: ExtensionContext,
-    notes: string,
-    source: "command" | "flag",
+    message: string,
+    level: "info" | "warning",
   ) => {
+    ctx.ui.notify(message, level);
+    ctx.shutdown();
+  };
+
+  const startCreatePrWorkflow = async (ctx: ExtensionContext) => {
     if (!ctx.isIdle()) {
-      ctx.ui.notify(
-        "エージェントが処理中です。現在のターンが完了してから /create-pr を再実行してください。",
-        "warning",
-      );
+      notifyAndShutdown(ctx, "エージェントが処理中です。処理を終了します。", "warning");
       return;
     }
 
     if (!ctx.hasUI) {
-      ctx.ui.notify("/create-pr には対話式 UI が必要です", "warning");
+      notifyAndShutdown(ctx, "--create-pr には対話式 UI が必要です", "warning");
       return;
     }
 
     const options = await collectCreatePrOptions(pi, ctx);
     if (!options) {
-      ctx.ui.notify("/create-pr をキャンセルしました", "info");
+      notifyAndShutdown(ctx, "--create-pr をキャンセルしました", "info");
       return;
     }
 
-    const snapshot = await gitSnapshot(pi, options);
-    const selectedOptions = optionsForPrompt(options);
-    pi.sendUserMessage(
-      `User invoked /create-pr via ${source} with interactive options: ${selectedOptions}\n\n${CREATE_PR_INSTRUCTIONS}\n\n## 人間向けレスポンスの言語\n\nユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択された PR タイトル/本文の言語を変更しない。\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
-        notes.trim() || "(none)"
-      }\n\n## Initial Git/GitHub Snapshot (may be stale; verify with live commands)\n\n${snapshot}`,
-    );
+    try {
+      const snapshot = await gitSnapshot(pi, options);
+      const selectedOptions = optionsForPrompt(options);
+      const prompt = [
+        `User invoked --create-pr with interactive options: ${selectedOptions}`,
+        CREATE_PR_INSTRUCTIONS,
+        HUMAN_RESPONSE_LANGUAGE_INSTRUCTION,
+        "## Interactive Options",
+        selectedOptions,
+        "## Additional User Notes",
+        "(none)",
+        "## Initial Git/GitHub Snapshot (may be stale; verify with live commands)",
+        snapshot,
+      ].join("\n\n");
+
+      createPrWorkflowActive = true;
+      pi.sendUserMessage(prompt);
+    } catch (error) {
+      createPrWorkflowActive = false;
+      const message = error instanceof Error ? error.message : String(error);
+      notifyAndShutdown(ctx, `--create-pr の開始に失敗しました: ${message}`, "warning");
+    }
   };
 
   pi.on("session_start", async (event, ctx) => {
@@ -358,14 +379,12 @@ export default function (pi: ExtensionAPI) {
     )
       return;
     startupCreatePrLaunched = true;
-    await startCreatePrWorkflow(ctx, "", "flag");
+    await startCreatePrWorkflow(ctx);
   });
 
-  pi.registerCommand("create-pr", {
-    description:
-      "コミット済みの変更から GitHub pull request を対話的に作成または更新する。",
-    handler: async (args, ctx) => {
-      await startCreatePrWorkflow(ctx, args, "command");
-    },
+  pi.on("agent_end", async (_event, ctx) => {
+    if (!createPrWorkflowActive) return;
+    createPrWorkflowActive = false;
+    ctx.shutdown();
   });
 }
