@@ -1,4 +1,4 @@
-import { lstat, readFile, readlink } from "node:fs/promises";
+import { lstat, open, readFile, readlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
@@ -161,7 +161,7 @@ function buildTargetList(targets: Target[]): string {
 }
 
 function buildQuotedTargets(targets: Target[]): string {
-  return targets.map((target) => formatPathForPrompt(shellQuote(target.path))).join(" ");
+  return targets.map((target) => shellQuote(target.path)).join(" ");
 }
 
 function buildScopeInstruction(targets: Target[]): string {
@@ -410,6 +410,18 @@ async function collectTargets(
   return uniqueTargets(targets);
 }
 
+async function readTextPrefix(path: string, maxChars: number): Promise<string> {
+  const file = await open(path, "r");
+  try {
+    const buffer = Buffer.alloc(maxChars + 1);
+    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    const text = buffer.subarray(0, bytesRead).toString("utf8");
+    return bytesRead > maxChars ? truncate(text, maxChars) : text;
+  } finally {
+    await file.close();
+  }
+}
+
 async function collectUntrackedFileChunk(
   cwd: string,
   target: Target,
@@ -426,7 +438,10 @@ async function collectUntrackedFileChunk(
       return `${heading}\n\n[Skipped symlink -> ${formatPathForPrompt(linkTarget)}]`;
     }
 
-    const content = await readFile(absolutePath, "utf8");
+    const content =
+      info.size > MAX_UNTRACKED_FILE_CHARS
+        ? await readTextPrefix(absolutePath, MAX_UNTRACKED_FILE_CHARS)
+        : await readFile(absolutePath, "utf8");
     if (content.includes("\0")) {
       return `${heading}\n\n[Skipped binary-looking file content]`;
     }
