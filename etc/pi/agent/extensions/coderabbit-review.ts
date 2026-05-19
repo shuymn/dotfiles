@@ -400,15 +400,10 @@ export default function (pi: ExtensionAPI): void {
     }),
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       let options: ReviewOptions | undefined;
-      let stopIndicator: (() => void) | undefined;
       let stopHeartbeat: (() => void) | undefined;
 
       try {
         options = normalizeToolOptions(params);
-        stopIndicator = startCoderabbitIndicator(
-          ctx,
-          REVIEW_RUNNING_MESSAGE,
-        );
         onUpdate?.({
           content: [
             {
@@ -463,7 +458,6 @@ export default function (pi: ExtensionAPI): void {
         };
       } finally {
         stopHeartbeat?.();
-        stopIndicator?.();
       }
     },
   });
