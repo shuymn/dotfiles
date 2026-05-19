@@ -10,7 +10,7 @@
   "show_edit_predictions": false,
   "agent_ui_font_size": 15.0,
   "terminal": {
-    "font_size": 12.0,
+    "font_size": 11.0,
   },
   "agent_buffer_font_size": 12.0,
   "cli_default_open_behavior": "new_window",
