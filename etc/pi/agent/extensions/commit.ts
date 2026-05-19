@@ -4,6 +4,9 @@ import { getSelectListTheme, isToolCallEventType } from "@earendil-works/pi-codi
 import { fuzzyFilter, Key, matchesKey, SelectList, truncateToWidth, type SelectItem } from "@earendil-works/pi-tui";
 
 const COMMIT_INSTRUCTIONS = readFileSync(new URL("./commit-instructions.md", import.meta.url), "utf8");
+const HUMAN_RESPONSE_LANGUAGE_INSTRUCTION = `## 人間向けレスポンスの言語
+
+ユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択されたコミットメッセージ言語を変更しない。`;
 
 type CommitLanguage = "auto" | "english" | "japanese";
 
@@ -149,7 +152,7 @@ async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Pr
     "先に新しいブランチを作成しますか？",
     [
       { value: "no", label: "いいえ", description: "現在のブランチにコミットする" },
-      { value: "yes", label: "はい", description: "コミット前に生成したブランチを作成する" },
+      { value: "yes", label: "はい", description: "コミット前に新しいブランチを作成する" },
     ],
     "no",
   );
@@ -236,7 +239,7 @@ export default function (pi: ExtensionAPI) {
     const snapshot = await gitSnapshot(pi);
     const selectedOptions = optionsForPrompt(options);
     pi.sendUserMessage(
-      `User invoked /commit via ${source} with interactive options: ${selectedOptions}\n\n${COMMIT_INSTRUCTIONS}\n\n## 人間向けレスポンスの言語\n\nユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択されたコミットメッセージ言語を変更しない。\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
+      `User invoked /commit via ${source} with interactive options: ${selectedOptions}\n\n${COMMIT_INSTRUCTIONS}\n\n${HUMAN_RESPONSE_LANGUAGE_INSTRUCTION}\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
         notes.trim() || "(none)"
       }\n\n## Initial Git Snapshot (may be stale; verify with live commands)\n\n${snapshot}`,
     );
