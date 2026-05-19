@@ -124,7 +124,6 @@ class MessageHistoryPicker implements Component, Focusable {
     private input = new Input();
     private selectedIndex = 0;
     private filtered: HistoryMessage[];
-    private focusedValue = false;
 
     constructor(
         private readonly items: HistoryMessage[],
@@ -140,11 +139,10 @@ class MessageHistoryPicker implements Component, Focusable {
     }
 
     get focused(): boolean {
-        return this.focusedValue;
+        return this.input.focused;
     }
 
     set focused(value: boolean) {
-        this.focusedValue = value;
         this.input.focused = value;
     }
 
