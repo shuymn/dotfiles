@@ -69,11 +69,17 @@ function getLastAssistantText(session: AgentSession): string {
   return "";
 }
 
-function collectAssistantText(session: AgentSession, onUpdate?: (text: string) => void) {
+function collectAssistantText(
+  session: AgentSession,
+  onUpdate?: (text: string) => void,
+) {
   let current = "";
   const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
     if (event.type === "message_start") current = "";
-    if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
+    if (
+      event.type === "message_update" &&
+      event.assistantMessageEvent.type === "text_delta"
+    ) {
       current += event.assistantMessageEvent.delta;
       onUpdate?.(current);
     }
@@ -121,7 +127,8 @@ async function runSubagent(
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
-    systemPromptOverride: () => buildSystemPrompt(ctx.getSystemPrompt(), ctx.cwd),
+    systemPromptOverride: () =>
+      buildSystemPrompt(ctx.getSystemPrompt(), ctx.cwd),
     appendSystemPromptOverride: () => [],
   });
   await loader.reload();
@@ -169,9 +176,21 @@ export default function (pi: ExtensionAPI) {
       "Use this for self-contained investigation or implementation work that benefits from an isolated context. " +
       "Foreground mode returns the result inline; background mode returns an id and notifies when complete.",
     parameters: Type.Object({
-      prompt: Type.String({ description: "The complete task for the subagent to perform autonomously." }),
-      description: Type.Optional(Type.String({ description: "Short description shown in status/result messages." })),
-      background: Type.Optional(Type.Boolean({ description: "Run in background and return immediately. Default: false." })),
+      prompt: Type.String({
+        description:
+          "The complete task for the subagent to perform autonomously.",
+      }),
+      description: Type.Optional(
+        Type.String({
+          description: "Short description shown in status/result messages.",
+        }),
+      ),
+      background: Type.Optional(
+        Type.Boolean({
+          description:
+            "Run in background and return immediately. Default: false.",
+        }),
+      ),
     }),
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const id = makeId();
@@ -179,7 +198,8 @@ export default function (pi: ExtensionAPI) {
       const abortController = new AbortController();
       const parentAbort = () => abortController.abort();
       const attachParentAbort = !params.background;
-      if (attachParentAbort) signal?.addEventListener("abort", parentAbort, { once: true });
+      if (attachParentAbort)
+        signal?.addEventListener("abort", parentAbort, { once: true });
 
       const record: SubagentRecord = {
         id,
@@ -202,11 +222,21 @@ export default function (pi: ExtensionAPI) {
             abortController.signal,
             params.background
               ? undefined
-              : (text) => onUpdate?.(textResult(`Subagent ${id} running...\n\n${truncate(text, 1200)}`, { id, status: "running" })),
-            (session) => { record.session = session; },
+              : (text) =>
+                  onUpdate?.(
+                    textResult(
+                      `Subagent ${id} running...\n\n${truncate(text, 1200)}`,
+                      { id, status: "running" },
+                    ),
+                  ),
+            (session) => {
+              record.session = session;
+            },
           );
           record.session = session;
-          record.status = abortController.signal.aborted ? "stopped" : "completed";
+          record.status = abortController.signal.aborted
+            ? "stopped"
+            : "completed";
           record.result = result;
           record.completedAt = Date.now();
         } catch (error) {
@@ -218,7 +248,8 @@ export default function (pi: ExtensionAPI) {
             record.session?.dispose?.();
             record.session = undefined;
           }
-          if (attachParentAbort) signal?.removeEventListener("abort", parentAbort);
+          if (attachParentAbort)
+            signal?.removeEventListener("abort", parentAbort);
         }
       })();
 
@@ -231,19 +262,32 @@ export default function (pi: ExtensionAPI) {
 
       await record.promise;
       if (record.status === "completed") {
-        return textResult(record.result ?? "No output.", { id, status: record.status });
+        return textResult(record.result ?? "No output.", {
+          id,
+          status: record.status,
+        });
       }
-      return textResult(`Subagent ${record.status}: ${record.error ?? "stopped"}`, { id, status: record.status });
+      return textResult(
+        `Subagent ${record.status}: ${record.error ?? "stopped"}`,
+        { id, status: record.status },
+      );
     },
   });
 
   pi.registerTool({
     name: "get_subagent_result",
     label: "Get Subagent Result",
-    description: "Check status and retrieve the result of a background subagent.",
+    description:
+      "Check status and retrieve the result of a background subagent.",
     parameters: Type.Object({
-      id: Type.String({ description: "The subagent id returned by the subagent tool." }),
-      wait: Type.Optional(Type.Boolean({ description: "Wait for completion before returning. Default: false." })),
+      id: Type.String({
+        description: "The subagent id returned by the subagent tool.",
+      }),
+      wait: Type.Optional(
+        Type.Boolean({
+          description: "Wait for completion before returning. Default: false.",
+        }),
+      ),
     }),
     async execute(_toolCallId, params) {
       const record = records.get(params.id);
@@ -271,16 +315,21 @@ export default function (pi: ExtensionAPI) {
     label: "Stop Subagent",
     description: "Stop a running background subagent by ID.",
     parameters: Type.Object({
-      id: Type.String({ description: "The subagent id returned by spawn_subagent." }),
+      id: Type.String({
+        description: "The subagent id returned by spawn_subagent.",
+      }),
     }),
     async execute(_toolCallId, params) {
       const record = records.get(params.id);
       if (!record) return textResult(`Subagent not found: ${params.id}`);
       if (record.status !== "running") {
-        return textResult(`Subagent ${record.id} is not running (status: ${record.status}).`, {
-          id: record.id,
-          status: record.status,
-        });
+        return textResult(
+          `Subagent ${record.id} is not running (status: ${record.status}).`,
+          {
+            id: record.id,
+            status: record.status,
+          },
+        );
       }
 
       record.status = "stopped";
@@ -288,25 +337,35 @@ export default function (pi: ExtensionAPI) {
       record.abortController.abort();
       await record.session?.abort?.().catch(() => {});
 
-      return textResult(`Stopped subagent ${record.id}.`, { id: record.id, status: record.status });
+      return textResult(`Stopped subagent ${record.id}.`, {
+        id: record.id,
+        status: record.status,
+      });
     },
   });
 
   pi.registerTool({
     name: "list_subagents",
     label: "List Subagents",
-    description: "List subagents created in this session with their current status and IDs.",
+    description:
+      "List subagents created in this session with their current status and IDs.",
     parameters: Type.Object({}),
     async execute() {
-      const list = [...records.values()].sort((a, b) => b.startedAt - a.startedAt);
-      if (list.length === 0) return textResult("No subagents in this session.", { count: 0 });
+      const list = [...records.values()].sort(
+        (a, b) => b.startedAt - a.startedAt,
+      );
+      if (list.length === 0)
+        return textResult("No subagents in this session.", { count: 0 });
 
       const lines = list.map((record) => {
-        const durationMs = (record.completedAt ?? Date.now()) - record.startedAt;
+        const durationMs =
+          (record.completedAt ?? Date.now()) - record.startedAt;
         return `- ${record.id} | ${record.status} | ${durationMs}ms | ${record.description}`;
       });
 
-      return textResult(`Subagents (${list.length}):\n${lines.join("\n")}`, { count: list.length });
+      return textResult(`Subagents (${list.length}):\n${lines.join("\n")}`, {
+        count: list.length,
+      });
     },
   });
 

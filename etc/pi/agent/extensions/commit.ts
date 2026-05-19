@@ -1,9 +1,25 @@
 import { readFileSync } from "node:fs";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { getSelectListTheme, isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { fuzzyFilter, Key, matchesKey, SelectList, truncateToWidth, type SelectItem } from "@earendil-works/pi-tui";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
+import {
+  getSelectListTheme,
+  isToolCallEventType,
+} from "@earendil-works/pi-coding-agent";
+import {
+  fuzzyFilter,
+  Key,
+  matchesKey,
+  SelectList,
+  truncateToWidth,
+  type SelectItem,
+} from "@earendil-works/pi-tui";
 
-const COMMIT_INSTRUCTIONS = readFileSync(new URL("./commit-instructions.md", import.meta.url), "utf8");
+const COMMIT_INSTRUCTIONS = readFileSync(
+  new URL("./commit-instructions.md", import.meta.url),
+  "utf8",
+);
 const HUMAN_RESPONSE_LANGUAGE_INSTRUCTION = `## 人間向けレスポンスの言語
 
 ユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択されたコミットメッセージ言語を変更しない。`;
@@ -25,7 +41,12 @@ const PROHIBITED_GIT_PATTERNS = [
 ];
 
 function isPrintableInput(data: string): boolean {
-  return data.length > 0 && !data.startsWith("\x1b") && !data.startsWith("\x7f") && !data.startsWith("\r");
+  return (
+    data.length > 0 &&
+    !data.startsWith("\x1b") &&
+    !data.startsWith("\x7f") &&
+    !data.startsWith("\r")
+  );
 }
 
 async function selectFuzzy(
@@ -34,74 +55,120 @@ async function selectFuzzy(
   items: SelectItem[],
   initialValue?: string,
 ): Promise<string | null> {
-  return await ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
-    let query = "";
-    let filteredItems = items;
-    let list: SelectList;
+  return await ctx.ui.custom<string | null>(
+    (tui, theme, _keybindings, done) => {
+      let query = "";
+      let filteredItems = items;
+      let list: SelectList;
 
-    const makeList = () => {
-      filteredItems = query.trim() ? fuzzyFilter(items, query.trim(), (item) => `${item.label} ${item.value} ${item.description ?? ""}`) : items;
-      list = new SelectList(filteredItems, Math.min(Math.max(filteredItems.length, 1), 12), getSelectListTheme());
-      const initialIndex = filteredItems.findIndex((item) => item.value === initialValue);
-      if (initialIndex >= 0) list.setSelectedIndex(initialIndex);
-      list.onSelect = (item) => done(item.value);
-      list.onCancel = () => done(null);
-    };
+      const makeList = () => {
+        filteredItems = query.trim()
+          ? fuzzyFilter(
+              items,
+              query.trim(),
+              (item) => `${item.label} ${item.value} ${item.description ?? ""}`,
+            )
+          : items;
+        list = new SelectList(
+          filteredItems,
+          Math.min(Math.max(filteredItems.length, 1), 12),
+          getSelectListTheme(),
+        );
+        const initialIndex = filteredItems.findIndex(
+          (item) => item.value === initialValue,
+        );
+        if (initialIndex >= 0) list.setSelectedIndex(initialIndex);
+        list.onSelect = (item) => done(item.value);
+        list.onCancel = () => done(null);
+      };
 
-    makeList();
+      makeList();
 
-    return {
-      invalidate: () => list.invalidate(),
-      render: (width: number) => {
-        const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
-        return [
-          border,
-          theme.fg("accent", theme.bold(title)),
-          theme.fg("dim", `検索: ${query || "(入力して絞り込み)"}`),
-          ...list.render(width),
-          truncateToWidth(theme.fg("dim", "入力で検索 • ↑↓で移動 • enterで選択 • escでキャンセル"), width, ""),
-          border,
-        ].map((line) => truncateToWidth(line, width, ""));
-      },
-      handleInput: (data: string) => {
-        if (matchesKey(data, Key.backspace)) {
-          query = query.slice(0, -1);
-          makeList();
+      return {
+        invalidate: () => list.invalidate(),
+        render: (width: number) => {
+          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
+          return [
+            border,
+            theme.fg("accent", theme.bold(title)),
+            theme.fg("dim", `検索: ${query || "(入力して絞り込み)"}`),
+            ...list.render(width),
+            truncateToWidth(
+              theme.fg(
+                "dim",
+                "入力で検索 • ↑↓で移動 • enterで選択 • escでキャンセル",
+              ),
+              width,
+              "",
+            ),
+            border,
+          ].map((line) => truncateToWidth(line, width, ""));
+        },
+        handleInput: (data: string) => {
+          if (matchesKey(data, Key.backspace)) {
+            query = query.slice(0, -1);
+            makeList();
+            tui.requestRender();
+            return;
+          }
+          if (matchesKey(data, Key.escape)) {
+            done(null);
+            return;
+          }
+          if (isPrintableInput(data)) {
+            query += data;
+            makeList();
+            tui.requestRender();
+            return;
+          }
+          list.handleInput(data);
           tui.requestRender();
-          return;
-        }
-        if (matchesKey(data, Key.escape)) {
-          done(null);
-          return;
-        }
-        if (isPrintableInput(data)) {
-          query += data;
-          makeList();
-          tui.requestRender();
-          return;
-        }
-        list.handleInput(data);
-        tui.requestRender();
-      },
-    };
-  });
+        },
+      };
+    },
+  );
 }
 
 async function getDefaultBranch(pi: ExtensionAPI): Promise<string | undefined> {
-  const symbolic = await pi.exec("git", ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"], { timeout: 3000 }).catch(() => undefined);
-  if (symbolic?.code === 0) return symbolic.stdout.trim().replace(/^origin\//, "") || undefined;
+  const symbolic = await pi
+    .exec(
+      "git",
+      ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+      { timeout: 3000 },
+    )
+    .catch(() => undefined);
+  if (symbolic?.code === 0)
+    return symbolic.stdout.trim().replace(/^origin\//, "") || undefined;
 
   for (const candidate of ["main", "master"]) {
-    const exists = await pi.exec("git", ["show-ref", "--verify", "--quiet", `refs/heads/${candidate}`], { timeout: 3000 }).catch(() => undefined);
+    const exists = await pi
+      .exec(
+        "git",
+        ["show-ref", "--verify", "--quiet", `refs/heads/${candidate}`],
+        { timeout: 3000 },
+      )
+      .catch(() => undefined);
     if (exists?.code === 0) return candidate;
   }
 
   return undefined;
 }
 
-async function getBranches(pi: ExtensionAPI, defaultBranch?: string): Promise<SelectItem[]> {
+async function getBranches(
+  pi: ExtensionAPI,
+  defaultBranch?: string,
+): Promise<SelectItem[]> {
   const result = await pi
-    .exec("git", ["for-each-ref", "--format=%(refname)%09%(refname:short)", "refs/heads", "refs/remotes"], { timeout: 5000 })
+    .exec(
+      "git",
+      [
+        "for-each-ref",
+        "--format=%(refname)%09%(refname:short)",
+        "refs/heads",
+        "refs/remotes",
+      ],
+      { timeout: 5000 },
+    )
     .catch(() => undefined);
 
   const seen = new Set<string>();
@@ -134,12 +201,19 @@ async function getBranches(pi: ExtensionAPI, defaultBranch?: string): Promise<Se
   }));
 }
 
-async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Promise<CommitOptions | null> {
+async function collectCommitOptions(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+): Promise<CommitOptions | null> {
   const language = (await selectFuzzy(
     ctx,
     "コミットメッセージの言語",
     [
-      { value: "auto", label: "自動", description: "直近のコミット履歴に合わせる。不明なら確認する" },
+      {
+        value: "auto",
+        label: "自動",
+        description: "直近のコミット履歴に合わせる。不明なら確認する",
+      },
       { value: "english", label: "英語", description: "--english 相当" },
       { value: "japanese", label: "日本語", description: "--japanese 相当" },
     ],
@@ -151,8 +225,16 @@ async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Pr
     ctx,
     "先に新しいブランチを作成しますか？",
     [
-      { value: "no", label: "いいえ", description: "現在のブランチにコミットする" },
-      { value: "yes", label: "はい", description: "コミット前に新しいブランチを作成する" },
+      {
+        value: "no",
+        label: "いいえ",
+        description: "現在のブランチにコミットする",
+      },
+      {
+        value: "yes",
+        label: "はい",
+        description: "コミット前に新しいブランチを作成する",
+      },
     ],
     "no",
   );
@@ -165,7 +247,15 @@ async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Pr
   const baseBranch = await selectFuzzy(
     ctx,
     "新しいブランチのベースブランチ",
-    branches.length > 0 ? branches : [{ value: defaultBranch ?? "main", label: defaultBranch ?? "main", description: "フォールバック" }],
+    branches.length > 0
+      ? branches
+      : [
+          {
+            value: defaultBranch ?? "main",
+            label: defaultBranch ?? "main",
+            description: "フォールバック",
+          },
+        ],
     defaultBranch,
   );
   if (!baseBranch) return null;
@@ -195,12 +285,15 @@ async function gitSnapshot(pi: ExtensionAPI): Promise<string> {
 
   const results = await Promise.all(
     commands.map(async ([label, args]) => {
-      const result = await pi.exec("git", args, { timeout: 5000 }).catch((error: unknown) => ({
-        code: 1,
-        stdout: "",
-        stderr: error instanceof Error ? error.message : String(error),
-      }));
-      const output = `${result.stdout}${result.stderr ? `\n${result.stderr}` : ""}`.trim();
+      const result = await pi
+        .exec("git", args, { timeout: 5000 })
+        .catch((error: unknown) => ({
+          code: 1,
+          stdout: "",
+          stderr: error instanceof Error ? error.message : String(error),
+        }));
+      const output =
+        `${result.stdout}${result.stderr ? `\n${result.stderr}` : ""}`.trim();
       return `### ${label}\n${output || "(empty)"}`;
     }),
   );
@@ -218,9 +311,16 @@ export default function (pi: ExtensionAPI) {
     default: false,
   });
 
-  const startCommitWorkflow = async (ctx: ExtensionContext, notes: string, source: "command" | "flag") => {
+  const startCommitWorkflow = async (
+    ctx: ExtensionContext,
+    notes: string,
+    source: "command" | "flag",
+  ) => {
     if (!ctx.isIdle()) {
-      ctx.ui.notify("エージェントが処理中です。現在のターンが完了してから /commit を再実行してください。", "warning");
+      ctx.ui.notify(
+        "エージェントが処理中です。現在のターンが完了してから /commit を再実行してください。",
+        "warning",
+      );
       return;
     }
 
@@ -246,7 +346,12 @@ export default function (pi: ExtensionAPI) {
   };
 
   pi.on("session_start", async (event, ctx) => {
-    if (event.reason !== "startup" || startupCommitLaunched || pi.getFlag("commit") !== true) return;
+    if (
+      event.reason !== "startup" ||
+      startupCommitLaunched ||
+      pi.getFlag("commit") !== true
+    )
+      return;
     startupCommitLaunched = true;
     await startCommitWorkflow(ctx, "", "flag");
   });
@@ -272,7 +377,11 @@ export default function (pi: ExtensionAPI) {
     }
 
     if (/(^|[;&|]\s*)git\s+push\b/.test(command)) {
-      return { block: true, reason: "/commit extension によりブロックしました: /commit はローカルコミットのみを作成します。push しないでください。" };
+      return {
+        block: true,
+        reason:
+          "/commit extension によりブロックしました: /commit はローカルコミットのみを作成します。push しないでください。",
+      };
     }
 
     return undefined;

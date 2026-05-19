@@ -32,7 +32,10 @@ function expandHome(path: string): string {
   return path;
 }
 
-async function resolveExistingDirectory(input: string, cwd: string): Promise<AddedDir> {
+async function resolveExistingDirectory(
+  input: string,
+  cwd: string,
+): Promise<AddedDir> {
   const expanded = expandHome(input.trim());
   const absolute = resolve(cwd, expanded);
   const canonical = await realpath(absolute);
@@ -54,8 +57,10 @@ function isAddedDir(value: unknown): value is AddedDir {
     value !== null &&
     typeof (value as AddedDir).name === "string" &&
     typeof (value as AddedDir).path === "string" &&
-    ((value as AddedDir).temporary === undefined || typeof (value as AddedDir).temporary === "boolean") &&
-    ((value as AddedDir).tempRoot === undefined || typeof (value as AddedDir).tempRoot === "string")
+    ((value as AddedDir).temporary === undefined ||
+      typeof (value as AddedDir).temporary === "boolean") &&
+    ((value as AddedDir).tempRoot === undefined ||
+      typeof (value as AddedDir).tempRoot === "string")
   );
 }
 
@@ -68,20 +73,27 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
   try {
     url = new URL(input);
   } catch {
-    throw new Error("github_clone_workspace only accepts full https://github.com/owner/repo URLs.");
+    throw new Error(
+      "github_clone_workspace only accepts full https://github.com/owner/repo URLs.",
+    );
   }
 
   if (url.protocol !== "https:" || url.hostname !== "github.com") {
-    throw new Error("github_clone_workspace only accepts https://github.com URLs.");
+    throw new Error(
+      "github_clone_workspace only accepts https://github.com URLs.",
+    );
   }
 
-  const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
-    try {
-      return decodeURIComponent(segment);
-    } catch {
-      return segment;
-    }
-  });
+  const segments = url.pathname
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    });
 
   if (segments.length < 2) {
     throw new Error("GitHub URL must include owner and repository name.");
@@ -91,7 +103,9 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
   const repo = segments[1].replace(/\.git$/, "");
 
   if (!SAFE_GITHUB_PART.test(owner) || !SAFE_GITHUB_PART.test(repo)) {
-    throw new Error("GitHub owner and repository name contain unsupported characters.");
+    throw new Error(
+      "GitHub owner and repository name contain unsupported characters.",
+    );
   }
 
   let ref: string | undefined;
@@ -100,7 +114,9 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
     ref = segments[3];
     if (!ref) throw new Error(`GitHub ${action} URL must include a ref.`);
   } else if (action !== undefined) {
-    throw new Error("Only GitHub repository, /tree/<ref>, and /blob/<ref>/... URLs are supported.");
+    throw new Error(
+      "Only GitHub repository, /tree/<ref>, and /blob/<ref>/... URLs are supported.",
+    );
   }
 
   if (ref !== undefined && !SAFE_REF.test(ref)) {
@@ -113,14 +129,32 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
 function sanitizeDirectoryName(input: string): string {
   const name = input.trim();
   if (!name) throw new Error("Directory name must not be empty.");
-  if (name === "." || name === ".." || name.includes("/") || !SAFE_DIR_NAME.test(name)) {
-    throw new Error("Directory name may only contain letters, numbers, '.', '_', and '-'.");
+  if (
+    name === "." ||
+    name === ".." ||
+    name.includes("/") ||
+    !SAFE_DIR_NAME.test(name)
+  ) {
+    throw new Error(
+      "Directory name may only contain letters, numbers, '.', '_', and '-'.",
+    );
   }
   return name;
 }
 
-function cloneGitHubRepo(repoUrl: string, targetPath: string, ref: string | undefined, signal?: AbortSignal): Promise<void> {
-  const args = ["clone", "--depth", "1", "--filter=blob:none", "--single-branch"];
+function cloneGitHubRepo(
+  repoUrl: string,
+  targetPath: string,
+  ref: string | undefined,
+  signal?: AbortSignal,
+): Promise<void> {
+  const args = [
+    "clone",
+    "--depth",
+    "1",
+    "--filter=blob:none",
+    "--single-branch",
+  ];
   if (ref) args.push("--branch", ref);
   args.push(repoUrl, targetPath);
 
@@ -134,7 +168,9 @@ function cloneGitHubRepo(repoUrl: string, targetPath: string, ref: string | unde
       },
       (error, stdout, stderr) => {
         if (error) {
-          const details = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
+          const details = [stderr.trim(), stdout.trim()]
+            .filter(Boolean)
+            .join("\n");
           reject(new Error(details || error.message));
           return;
         }
@@ -226,7 +262,9 @@ export default function (pi: ExtensionAPI) {
       try {
         const { dir, alreadyAdded } = await addDirectory(input, ctx.cwd);
         ctx.ui.notify(
-          alreadyAdded ? `Already registered: ${dir.name}: ${dir.path}` : `Added directory: ${dir.name}: ${dir.path}`,
+          alreadyAdded
+            ? `Already registered: ${dir.name}: ${dir.path}`
+            : `Added directory: ${dir.name}: ${dir.path}`,
           "info",
         );
       } catch (error) {
@@ -260,7 +298,10 @@ export default function (pi: ExtensionAPI) {
       const expanded = expandHome(input);
       const resolved = resolve(ctx.cwd, expanded);
       const before = dirs.length;
-      dirs = dirs.filter((dir) => dir.name !== input && dir.path !== input && dir.path !== resolved);
+      dirs = dirs.filter(
+        (dir) =>
+          dir.name !== input && dir.path !== input && dir.path !== resolved,
+      );
 
       if (dirs.length === before) {
         ctx.ui.notify(`No registered directory matched: ${input}`, "error");
@@ -268,26 +309,43 @@ export default function (pi: ExtensionAPI) {
       }
 
       persist();
-      ctx.ui.notify(dirs.length === 0 ? "Removed directory. No additional directories remain." : `Removed directory. Remaining:\n${formatDirs(dirs)}`, "info");
+      ctx.ui.notify(
+        dirs.length === 0
+          ? "Removed directory. No additional directories remain."
+          : `Removed directory. Remaining:\n${formatDirs(dirs)}`,
+        "info",
+      );
     },
   });
 
   pi.registerTool({
     name: "github_clone_workspace",
     label: "GitHub Clone Workspace",
-    description: "Clone a public GitHub repository URL into a temporary directory and register it as an additional named directory for this session. Only https://github.com/owner/repo URLs are allowed. Clones are shallow, blob-filtered, do not fetch submodules, time out after 30 seconds, and are removed when the session shuts down.",
-    promptSnippet: "Clone a GitHub repository URL into a temporary workspace and register it as an additional directory.",
+    description:
+      "Clone a public GitHub repository URL into a temporary directory and register it as an additional named directory for this session. Only https://github.com/owner/repo URLs are allowed. Clones are shallow, blob-filtered, do not fetch submodules, time out after 30 seconds, and are removed when the session shuts down.",
+    promptSnippet:
+      "Clone a GitHub repository URL into a temporary workspace and register it as an additional directory.",
     promptGuidelines: [
       "Use github_clone_workspace when the user asks about code in a GitHub repository URL and local code inspection would help.",
       "After github_clone_workspace returns, use the returned absolute path with read, grep, find, ls, or bash to inspect the cloned repository.",
     ],
     parameters: Type.Object({
-      url: Type.String({ description: "A public https://github.com/owner/repo URL. /tree/<ref> and /blob/<ref>/... URLs are also accepted to select a ref." }),
-      directoryName: Type.Optional(Type.String({ description: "Optional registered directory name. Defaults to the repository name. Must contain only letters, numbers, '.', '_', and '-'." })),
+      url: Type.String({
+        description:
+          "A public https://github.com/owner/repo URL. /tree/<ref> and /blob/<ref>/... URLs are also accepted to select a ref.",
+      }),
+      directoryName: Type.Optional(
+        Type.String({
+          description:
+            "Optional registered directory name. Defaults to the repository name. Must contain only letters, numbers, '.', '_', and '-'.",
+        }),
+      ),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const parsed = parseGitHubRepoUrl(params.url);
-      const directoryName = sanitizeDirectoryName(params.directoryName ?? parsed.repo);
+      const directoryName = sanitizeDirectoryName(
+        params.directoryName ?? parsed.repo,
+      );
       const tempRoot = await mkdtemp(join(tmpdir(), GITHUB_CLONE_PREFIX));
       tempRoots = [...tempRoots, tempRoot];
 
@@ -297,17 +355,25 @@ export default function (pi: ExtensionAPI) {
 
       try {
         await cloneGitHubRepo(repoUrl, targetPath, parsed.ref, signal);
-        const { dir, alreadyAdded } = await addDirectory(targetPath, ctx.cwd, { temporary: true, tempRoot });
+        const { dir, alreadyAdded } = await addDirectory(targetPath, ctx.cwd, {
+          temporary: true,
+          tempRoot,
+        });
 
         const lines = [
-          alreadyAdded ? "GitHub repository was already registered." : "Cloned and registered GitHub workspace.",
+          alreadyAdded
+            ? "GitHub repository was already registered."
+            : "Cloned and registered GitHub workspace.",
           "",
           `name: ${dir.name}`,
           `path: ${dir.path}`,
           `url: ${displayUrl}`,
         ];
         if (parsed.ref) lines.push(`ref: ${parsed.ref}`);
-        lines.push("", "Use the absolute path above when reading, searching, or running read-only commands in this repository.");
+        lines.push(
+          "",
+          "Use the absolute path above when reading, searching, or running read-only commands in this repository.",
+        );
 
         return {
           content: [{ type: "text", text: lines.join("\n") }],
@@ -321,7 +387,9 @@ export default function (pi: ExtensionAPI) {
           },
         };
       } catch (error) {
-        await rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
+        await rm(tempRoot, { recursive: true, force: true }).catch(
+          () => undefined,
+        );
         tempRoots = tempRoots.filter((path) => path !== tempRoot);
         throw error;
       }
@@ -333,7 +401,11 @@ export default function (pi: ExtensionAPI) {
 
     const roots = [...new Set(tempRoots)];
     tempRoots = [];
-    await Promise.all(roots.map((root) => rm(root, { recursive: true, force: true }).catch(() => undefined)));
+    await Promise.all(
+      roots.map((root) =>
+        rm(root, { recursive: true, force: true }).catch(() => undefined),
+      ),
+    );
   });
 
   pi.on("before_agent_start", async (event) => {

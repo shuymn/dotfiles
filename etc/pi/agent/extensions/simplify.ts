@@ -1,6 +1,9 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@earendil-works/pi-coding-agent";
 
 const COMMAND_NAME = "simplify";
 const MAX_DIFF_CHARS = 60_000;
@@ -48,7 +51,8 @@ function parseNameStatus(stdout: string, source: Target["source"]): Target[] {
     if (!line.trim()) continue;
     const parts = line.split("\t");
     const status = parts[0] ?? "modified";
-    const path = status.startsWith("R") || status.startsWith("C") ? parts[2] : parts[1];
+    const path =
+      status.startsWith("R") || status.startsWith("C") ? parts[2] : parts[1];
     if (path) targets.push({ path, status, source });
   }
 
@@ -69,19 +73,28 @@ function uniqueTargets(targets: Target[]): Target[] {
 }
 
 function formatTarget(target: Target): string {
-  const details = target.status === target.source ? target.status : `${target.status}; ${target.source}`;
+  const details =
+    target.status === target.source
+      ? target.status
+      : `${target.status}; ${target.source}`;
   return `- ${target.path} (${details})`;
 }
 
 function isExplicitFileMode(targets: Target[]): boolean {
-  return targets.length > 0 && targets.every((target) => target.source === "explicit");
+  return (
+    targets.length > 0 &&
+    targets.every((target) => target.source === "explicit")
+  );
 }
 
 async function execGit(pi: ExtensionAPI, cwd: string, args: string[]) {
   return pi.exec("git", args, { cwd, timeout: 10_000 });
 }
 
-async function getRecentTrackedFiles(pi: ExtensionAPI, cwd: string): Promise<Target[]> {
+async function getRecentTrackedFiles(
+  pi: ExtensionAPI,
+  cwd: string,
+): Promise<Target[]> {
   const result = await execGit(pi, cwd, ["ls-files", "-z"]);
   if (result.code !== 0) return [];
 
@@ -100,15 +113,29 @@ async function getRecentTrackedFiles(pi: ExtensionAPI, cwd: string): Promise<Tar
   );
 
   return candidates
-    .filter((candidate): candidate is { path: string; mtimeMs: number } => Boolean(candidate))
+    .filter((candidate): candidate is { path: string; mtimeMs: number } =>
+      Boolean(candidate),
+    )
     .sort((a, b) => b.mtimeMs - a.mtimeMs)
     .slice(0, RECENT_FILE_LIMIT)
-    .map((candidate) => ({ path: candidate.path, status: "recent", source: "recent" as const }));
+    .map((candidate) => ({
+      path: candidate.path,
+      status: "recent",
+      source: "recent" as const,
+    }));
 }
 
-async function collectTargets(pi: ExtensionAPI, cwd: string, options: SimplifyOptions): Promise<Target[]> {
+async function collectTargets(
+  pi: ExtensionAPI,
+  cwd: string,
+  options: SimplifyOptions,
+): Promise<Target[]> {
   if (options.files.length > 0) {
-    return options.files.map((path) => ({ path, status: "explicit", source: "explicit" as const }));
+    return options.files.map((path) => ({
+      path,
+      status: "explicit",
+      source: "explicit" as const,
+    }));
   }
 
   const unstagedArgs = ["diff", "--name-status"];
@@ -117,7 +144,8 @@ async function collectTargets(pi: ExtensionAPI, cwd: string, options: SimplifyOp
 
   if (options.staged) {
     const staged = await execGit(pi, cwd, stagedArgs);
-    if (staged.code === 0) targets.push(...parseNameStatus(staged.stdout, "diff"));
+    if (staged.code === 0)
+      targets.push(...parseNameStatus(staged.stdout, "diff"));
   } else {
     const [unstaged, staged, status] = await Promise.all([
       execGit(pi, cwd, unstagedArgs),
@@ -125,13 +153,19 @@ async function collectTargets(pi: ExtensionAPI, cwd: string, options: SimplifyOp
       execGit(pi, cwd, ["status", "--porcelain"]),
     ]);
 
-    if (unstaged.code === 0) targets.push(...parseNameStatus(unstaged.stdout, "diff"));
-    if (staged.code === 0) targets.push(...parseNameStatus(staged.stdout, "diff"));
+    if (unstaged.code === 0)
+      targets.push(...parseNameStatus(unstaged.stdout, "diff"));
+    if (staged.code === 0)
+      targets.push(...parseNameStatus(staged.stdout, "diff"));
 
     if (status.code === 0) {
       for (const line of status.stdout.split("\n")) {
         if (!line.startsWith("?? ")) continue;
-        targets.push({ path: line.slice(3).trim(), status: "untracked", source: "diff" });
+        targets.push({
+          path: line.slice(3).trim(),
+          status: "untracked",
+          source: "diff",
+        });
       }
     }
   }
@@ -140,11 +174,24 @@ async function collectTargets(pi: ExtensionAPI, cwd: string, options: SimplifyOp
   return unique.length > 0 ? unique : getRecentTrackedFiles(pi, cwd);
 }
 
-async function collectDiff(pi: ExtensionAPI, cwd: string, options: SimplifyOptions, targets: Target[]): Promise<string> {
-  if (isExplicitFileMode(targets) || targets.every((target) => target.source === "recent")) return "";
+async function collectDiff(
+  pi: ExtensionAPI,
+  cwd: string,
+  options: SimplifyOptions,
+  targets: Target[],
+): Promise<string> {
+  if (
+    isExplicitFileMode(targets) ||
+    targets.every((target) => target.source === "recent")
+  )
+    return "";
   const chunks: string[] = [];
-  const addDiffChunk = (label: string, result: Awaited<ReturnType<typeof execGit>>) => {
-    if (result.code === 0 && result.stdout.trim()) chunks.push(`## ${label}\n\n${result.stdout}`);
+  const addDiffChunk = (
+    label: string,
+    result: Awaited<ReturnType<typeof execGit>>,
+  ) => {
+    if (result.code === 0 && result.stdout.trim())
+      chunks.push(`## ${label}\n\n${result.stdout}`);
   };
 
   if (options.staged) {
@@ -173,28 +220,36 @@ const REVIEW_FOCUS: Record<ReviewKind, string> = {
     "Focus: efficiency. Look for unnecessary computation/API/database calls, serial work that can safely be parallelized, full collection fetches when one item/count is enough, repeated parsing/allocation in hot paths, and waste introduced by the change. Only flag issues with practical impact.",
 };
 
-function buildReviewPrompt(kind: ReviewKind, targetList: string, scopeInstruction: string): string {
+function buildReviewPrompt(
+  kind: ReviewKind,
+  targetList: string,
+  scopeInstruction: string,
+): string {
   const shared = `You are one reviewer in a /simplify command. Review only; do not edit files.\n\nScope:\n${targetList}\n\n${scopeInstruction}\n\nReturn concise, actionable findings. For every finding include: file/path, exact issue, why it matters, and suggested fix. If nothing worth changing, say so. Avoid speculative or stylistic-only findings.`;
   return `${shared}\n\n${REVIEW_FOCUS[kind]}`;
 }
 
 function buildSimplifyPrompt(targets: Target[], diff: string): string {
   const targetList = targets.map(formatTarget).join("\n");
-  const quotedTargets = targets.map((target) => shellQuote(target.path)).join(" ");
+  const quotedTargets = targets
+    .map((target) => shellQuote(target.path))
+    .join(" ");
   const explicitFileMode = isExplicitFileMode(targets);
   const scopeInstruction = explicitFileMode
     ? "The user explicitly passed file path(s). Ignore repository git status/diffs for scope selection. Review each listed file as a whole-file target, and do not inspect unrelated changed files just because git status/diff shows them."
     : "Inspect the target files and use git diff/status as needed to focus on the recent changes.";
   const diffContext = explicitFileMode
     ? "[Explicit file mode: git diff is intentionally ignored; inspect the listed files directly as whole-file targets.]"
-    : diff || "[No git diff available for these targets; inspect the listed files directly.]";
+    : diff ||
+      "[No git diff available for these targets; inspect the listed files directly.]";
 
   return `Run a Claude Code-style /simplify pass for the current repository.\n\nPhase 1 is already prepared by the extension. Target files:\n${targetList}\n\nScope guidance:\n${scopeInstruction}\n\nDiff context:\n\n${diffContext}\n\nImportant rules:\n- Preserve exact behavior and public APIs unless a change is unquestionably internal and behavior-preserving.\n- Only modify target files unless a verified simplification requires a tiny adjacent change; explain any out-of-scope edit first.\n- Prefer readable, explicit code over clever line-count reduction.\n- Follow AGENTS.md/CLAUDE.md and existing project style.\n- Skip false positives. Do not make speculative changes.\n- Write the final response to the user in Japanese.\n\nPhase 2: spawn three subagents in parallel using spawn_subagent, one per review area. Use these exact delegated tasks:\n\n1. Code reuse review:\n${buildReviewPrompt("reuse", targetList, scopeInstruction)}\n\n2. Code quality review:\n${buildReviewPrompt("quality", targetList, scopeInstruction)}\n\n3. Efficiency review:\n${buildReviewPrompt("efficiency", targetList, scopeInstruction)}\n\nPhase 3: integrate the three review results. Directly apply only verified, behavior-preserving simplifications with read/edit/write/bash. If a finding is false positive or too risky, skip it. After editing, run the narrowest relevant formatter/test/typecheck/lint if discoverable. Summarize:\n- what changed\n- which subagent findings were applied\n- which findings were skipped and why\n\nFor quick inspection, target file shell arguments are: ${quotedTargets}`;
 }
 
 export default function (pi: ExtensionAPI): void {
   pi.registerCommand(COMMAND_NAME, {
-    description: "Simplify recently changed code using three parallel subagent reviews",
+    description:
+      "Simplify recently changed code using three parallel subagent reviews",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       await ctx.waitForIdle();
 
@@ -208,7 +263,10 @@ export default function (pi: ExtensionAPI): void {
       const diff = await collectDiff(pi, ctx.cwd, options, targets);
       const prompt = buildSimplifyPrompt(targets, diff);
 
-      ctx.ui.notify(`/simplify: queued review for ${targets.length} file(s).`, "info");
+      ctx.ui.notify(
+        `/simplify: queued review for ${targets.length} file(s).`,
+        "info",
+      );
       pi.sendMessage(
         {
           customType: "simplify-command",
