@@ -13,7 +13,8 @@ CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 SKILLS_PROJECT := $(abspath skills)
 PI_BASE := etc/pi
 PI_HOME := $(HOME)/.pi
-PI_CANDIDATES := $(shell find $(PI_BASE) -type f 2>/dev/null)
+PI_EXCLUSIONS := $(PI_BASE)/README.md
+PI_CANDIDATES := $(filter-out $(PI_EXCLUSIONS),$(shell find $(PI_BASE) -type f 2>/dev/null))
 PI_TARGETS := $(patsubst $(PI_BASE)/%,$(PI_HOME)/%,$(PI_CANDIDATES))
 
 .DEFAULT_GOAL := help
