@@ -11,6 +11,10 @@ CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
 CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 
 SKILLS_PROJECT := $(abspath skills)
+PI_BASE := etc/pi
+PI_HOME := $(HOME)/.pi
+PI_CANDIDATES := $(shell find $(PI_BASE) -type f 2>/dev/null)
+PI_TARGETS := $(patsubst $(PI_BASE)/%,$(PI_HOME)/%,$(PI_CANDIDATES))
 
 .DEFAULT_GOAL := help
 
@@ -46,6 +50,15 @@ link-claude: ## Create symlinks to the claude directory (excluding skills)
 		mkdir -p $(dir $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file))) && \
 		ln -sfnv $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
 	@echo 'Finish linking claude files'
+
+.PHONY: link-pi
+link-pi: ## Create symlinks to the pi agent directory
+	@echo 'Start to link pi files'
+	@echo ''
+	@$(foreach file,$(PI_CANDIDATES), \
+		mkdir -p $(dir $(patsubst etc/pi/%,$(PI_HOME)/%,$(file))) && \
+		ln -sfnv $(abspath $(file)) $(patsubst etc/pi/%,$(PI_HOME)/%,$(file));)
+	@echo 'Finish linking pi files'
 
 .PHONY: sync-skills
 sync-skills: ## Build, sync, prune codex duplicates, and sync Codex AGENTS.md

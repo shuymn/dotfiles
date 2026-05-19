@@ -8,13 +8,15 @@ I am the bone of my dotfiles.
 git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles && ~/.dotfiles/install.sh
 ```
 
-## Claude and Skills setup
+## Agent setup
 
 For Claude-related setup, run **both** `link-claude` and `sync-skills`.
+For pi extensions, run `link-pi`.
 
 ```bash
 make link-claude
 make sync-skills
+make link-pi
 ```
 
 - `make link-claude`
@@ -26,6 +28,9 @@ make sync-skills
   - Reconciles stale managed skills while preserving external/manual skills.
   - Treats `~/.agents/skills` as canonical and prunes only duplicates from `~/.codex/skills`.
   - Syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
+- `make link-pi`
+  - Symlinks `etc/pi/**` into `~/.pi/**`.
+  - Installs pi extensions such as `/commit`.
 - For local skills development commands such as build/test/fmt/lint, use `make -C skills ...`.
 
 ## Install commands via Cargo
