@@ -46,8 +46,12 @@ function parseJson(stdout: string): JsonValue | undefined {
   }
 }
 
-function renderForModel(stdout: string, stderr: string, code: number) {
-  const parsed = parseJson(stdout);
+function renderForModel(
+  stdout: string,
+  stderr: string,
+  code: number,
+  parsed: JsonValue | undefined,
+) {
   const body =
     parsed === undefined ? stdout.trim() : JSON.stringify(parsed, null, 2);
   const prefix =
@@ -68,10 +72,13 @@ async function runTvly(
 ) {
   try {
     const result = await pi.exec("tvly", commandArgs, { signal, timeout });
+    const stdout = result.stdout ?? "";
+    const parsed = parseJson(stdout);
     const text = renderForModel(
-      result.stdout ?? "",
+      stdout,
       result.stderr ?? "",
       result.code ?? 0,
+      parsed,
     );
     return {
       content: [{ type: "text" as const, text }],
@@ -80,7 +87,7 @@ async function runTvly(
         exitCode: result.code,
         stdout: result.stdout,
         stderr: result.stderr,
-        json: parseJson(result.stdout ?? ""),
+        json: parsed,
       },
       isError: (result.code ?? 0) !== 0,
     };
