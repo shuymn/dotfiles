@@ -13,18 +13,7 @@ const INDICATOR_KEY = "coderabbit-review";
 const INDICATOR_INTERVAL_MS = 500;
 const REVIEW_HEARTBEAT_INTERVAL_MS = 30_000;
 const REVIEW_RUNNING_MESSAGE = "CodeRabbit review running";
-const INDICATOR_FRAMES = [
-  "⠋",
-  "⠙",
-  "⠹",
-  "⠸",
-  "⠼",
-  "⠴",
-  "⠦",
-  "⠧",
-  "⠇",
-  "⠏",
-];
+const INDICATOR_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const REVIEW_TYPES = ["all", "uncommitted", "committed"] as const;
 const COMPARISON_MODES = ["No base", "Base branch", "Base commit"] as const;
 
@@ -431,6 +420,7 @@ export default function (pi: ExtensionAPI): void {
 
         const review = await runCoderabbitReview(pi, ctx.cwd, options, signal);
         const text = `CodeRabbit review finished with exit code ${review.exitCode}.\n\n${truncateReviewOutput(review.output)}`;
+        if (review.exitCode !== 0) throw new Error(text);
 
         return {
           content: [{ type: "text", text }],
@@ -447,15 +437,7 @@ export default function (pi: ExtensionAPI): void {
           ],
         });
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `CodeRabbit review failed: ${message}`,
-            },
-          ],
-          details: { options, exitCode: 1, error: message },
-        };
+        throw error;
       } finally {
         stopHeartbeat?.();
       }

@@ -64,6 +64,10 @@ function renderForModel(
   return `${full.slice(0, MAX_CONTEXT_CHARS)}\n\n[truncated by tavily-tools extension: ${full.length - MAX_CONTEXT_CHARS} chars omitted]`;
 }
 
+function errorFromToolText(text: string): Error {
+  return new Error(text);
+}
+
 async function runTvly(
   pi: ExtensionAPI,
   commandArgs: string[],
@@ -80,6 +84,8 @@ async function runTvly(
       result.code ?? 0,
       parsed,
     );
+    if ((result.code ?? 0) !== 0) throw errorFromToolText(text);
+
     return {
       content: [{ type: "text" as const, text }],
       details: {
@@ -89,20 +95,12 @@ async function runTvly(
         stderr: result.stderr,
         json: parsed,
       },
-      isError: (result.code ?? 0) !== 0,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Failed to execute tvly. Ensure the Tavily CLI is installed and authenticated (tvly auth).\n\n${message}`,
-        },
-      ],
-      details: { command: ["tvly", ...commandArgs], error: message },
-      isError: true,
-    };
+    throw new Error(
+      `Failed to execute tvly. Ensure the Tavily CLI is installed and authenticated (tvly auth).\n\n${message}`,
+    );
   }
 }
 
@@ -323,15 +321,9 @@ export default function (pi: ExtensionAPI) {
     async execute(_toolCallId, params, signal, onUpdate) {
       const query = params.query.trim();
       if (query.length > 400) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "tavily_search query must be 400 characters or fewer. Split complex questions into focused sub-queries.",
-            },
-          ],
-          isError: true,
-        };
+        throw new Error(
+          "tavily_search query must be 400 characters or fewer. Split complex questions into focused sub-queries.",
+        );
       }
       const args = ["search", query, "--json"];
       addOptions(args, [
@@ -376,15 +368,7 @@ export default function (pi: ExtensionAPI) {
     parameters: extractSchema,
     async execute(_toolCallId, params, signal, onUpdate) {
       if (params.chunksPerSource !== undefined && !params.query) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "tavily_extract chunksPerSource requires a query.",
-            },
-          ],
-          isError: true,
-        };
+        throw new Error("tavily_extract chunksPerSource requires a query.");
       }
       const args = ["extract", ...params.urls, "--json"];
       addOptions(args, [
@@ -466,15 +450,7 @@ export default function (pi: ExtensionAPI) {
     parameters: crawlSchema,
     async execute(_toolCallId, params, signal, onUpdate) {
       if (params.chunksPerSource !== undefined && !params.instructions) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "tavily_crawl chunksPerSource requires instructions.",
-            },
-          ],
-          isError: true,
-        };
+        throw new Error("tavily_crawl chunksPerSource requires instructions.");
       }
       const args = ["crawl", params.url, "--json"];
       addOptions(args, [
