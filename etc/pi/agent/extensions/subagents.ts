@@ -242,10 +242,8 @@ export default function (pi: ExtensionAPI) {
           record.error = error instanceof Error ? error.message : String(error);
           record.completedAt = Date.now();
         } finally {
-          if (record.status !== "running") {
-            record.session?.dispose?.();
-            record.session = undefined;
-          }
+          record.session?.dispose?.();
+          record.session = undefined;
           if (attachParentAbort)
             signal?.removeEventListener("abort", parentAbort);
         }
