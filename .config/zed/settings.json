@@ -7,29 +7,31 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "show_edit_predictions": false,
   "agent_ui_font_size": 15.0,
   "terminal": {
-    "font_size": 12.0
+    "font_size": 12.0,
   },
   "agent_buffer_font_size": 12.0,
   "cli_default_open_behavior": "new_window",
   "language_models": {
     "opencode": {
       "show_free_models": false,
-      "show_zen_models": false
-    }
+      "show_zen_models": false,
+    },
   },
   "diff_view_style": "unified",
   "icon_theme": "Material Icon Theme",
   "edit_predictions": {
-    "provider": "copilot"
+    "allow_data_collection": "no",
+    "provider": "none",
   },
   "proxy": "",
   "disable_ai": false,
   "agent_servers": {
     "codex-acp": {
-      "type": "registry"
-    }
+      "type": "registry",
+    },
   },
   "git_panel": {
     "diff_stats": true,
@@ -39,76 +41,77 @@
     "sort_by_path": false,
     "status_style": "label_color",
     "tree_view": true,
-    "dock": "left"
+    "dock": "left",
   },
   "agent": {
+    "enabled": false,
     "flexible": true,
     "default_profile": "ask",
     "default_model": {
       "provider": "opencode",
       "model": "go/deepseek-v4-pro",
       "enable_thinking": true,
-      "effort": "max"
+      "effort": "max",
     },
     "sidebar_side": "left",
     "dock": "right",
     "button": true,
     "favorite_models": [],
     "model_parameters": [],
-    "enable_feedback": false
+    "enable_feedback": false,
   },
   "collaboration_panel": {
-    "button": false
+    "button": false,
   },
   "outline_panel": {
-    "button": true
+    "button": true,
   },
   "use_system_window_tabs": false,
   "bottom_dock_layout": "contained",
   "tabs": {
     "file_icons": true,
-    "git_status": true
+    "git_status": true,
   },
   "title_bar": {
     "button_layout": "platform_default",
     "show_menus": false,
-    "show_branch_status_icon": true
+    "show_branch_status_icon": true,
   },
   "status_bar": {
-    "cursor_position_button": true
+    "cursor_position_button": true,
   },
   "diagnostics": {
     "inline": {
-      "enabled": true
-    }
+      "enabled": true,
+    },
   },
   "document_folding_ranges": "off",
   "document_symbols": "off",
   "semantic_tokens": "off",
   "colorize_brackets": true,
   "tasks": {
-    "enabled": true
+    "enabled": true,
   },
   "code_lens": "off",
   "inlay_hints": {
     "show_background": false,
-    "enabled": false
+    "enabled": false,
   },
   "indent_guides": {
     "background_coloring": "disabled",
-    "coloring": "fixed"
+    "coloring": "fixed",
   },
   "vim": {
-    "toggle_relative_line_numbers": false
+    "toggle_relative_line_numbers": false,
   },
   "toolbar": {
     "code_actions": false,
     "selections_menu": true,
     "quick_actions": false,
-    "breadcrumbs": false
+    "breadcrumbs": false,
   },
   "sticky_scroll": {
-    "enabled": true
+    "enabled": true,
   },
   "project_panel": {
     "hide_hidden": false,
@@ -118,14 +121,14 @@
     "bold_folder_labels": false,
     "entry_spacing": "standard",
     "button": true,
-    "dock": "left"
+    "dock": "left",
   },
   "buffer_font_family": "UDEV Gothic 35NF",
   "buffer_line_height": "standard",
   "auto_update": true,
   "telemetry": {
     "diagnostics": false,
-    "metrics": false
+    "metrics": false,
   },
   "vim_mode": true,
   "base_keymap": "VSCode",
@@ -134,6 +137,6 @@
   "theme": {
     "mode": "system",
     "light": "One Light",
-    "dark": "Catppuccin Mocha",
+    "dark": "One Dark",
   },
 }
