@@ -20,6 +20,10 @@ type Target = {
   source: "diff" | "explicit" | "recent";
 };
 
+function normalizeFileArg(file: string): string {
+  return file.replace(/^@/, "");
+}
+
 function parseArgs(args: string): SimplifyOptions {
   const files: string[] = [];
   let staged = false;
@@ -28,7 +32,7 @@ function parseArgs(args: string): SimplifyOptions {
     if (token === "--staged" || token === "--cached") {
       staged = true;
     } else {
-      files.push(token.replace(/^@/, ""));
+      files.push(normalizeFileArg(token));
     }
   }
 
@@ -246,6 +250,28 @@ function buildSimplifyPrompt(targets: Target[], diff: string): string {
   return `Run a Claude Code-style /simplify pass for the current repository.\n\nPhase 1 is already prepared by the extension. Target files:\n${targetList}\n\nScope guidance:\n${scopeInstruction}\n\nDiff context:\n\n${diffContext}\n\nImportant rules:\n- Preserve exact behavior and public APIs unless a change is unquestionably internal and behavior-preserving.\n- Only modify target files unless a verified simplification requires a tiny adjacent change; explain any out-of-scope edit first.\n- Prefer readable, explicit code over clever line-count reduction.\n- Follow AGENTS.md/CLAUDE.md and existing project style.\n- Skip false positives. Do not make speculative changes.\n- Write the final response to the user in Japanese.\n\nPhase 2: spawn three subagents in parallel using spawn_subagent, one per review area. Use these exact delegated tasks:\n\n1. Code reuse review:\n${buildReviewPrompt("reuse", targetList, scopeInstruction)}\n\n2. Code quality review:\n${buildReviewPrompt("quality", targetList, scopeInstruction)}\n\n3. Efficiency review:\n${buildReviewPrompt("efficiency", targetList, scopeInstruction)}\n\nPhase 3: integrate the three review results. Directly apply only verified, behavior-preserving simplifications with read/edit/write/bash. If a finding is false positive or too risky, skip it. After editing, run the narrowest relevant formatter/test/typecheck/lint if discoverable. Summarize:\n- what changed\n- which subagent findings were applied\n- which findings were skipped and why\n\nFor quick inspection, target file shell arguments are: ${quotedTargets}`;
 }
 
+async function queueSimplifyPass(
+  pi: ExtensionAPI,
+  cwd: string,
+  options: SimplifyOptions,
+): Promise<Target[]> {
+  const targets = await collectTargets(pi, cwd, options);
+  if (targets.length === 0) return targets;
+
+  const diff = await collectDiff(pi, cwd, options, targets);
+
+  pi.sendMessage(
+    {
+      customType: "simplify-command",
+      content: buildSimplifyPrompt(targets, diff),
+      display: false,
+    },
+    { deliverAs: "followUp", triggerTurn: true },
+  );
+
+  return targets;
+}
+
 export default function (pi: ExtensionAPI): void {
   pi.registerCommand(COMMAND_NAME, {
     description:
@@ -254,26 +280,15 @@ export default function (pi: ExtensionAPI): void {
       await ctx.waitForIdle();
 
       const options = parseArgs(args);
-      const targets = await collectTargets(pi, ctx.cwd, options);
+      const targets = await queueSimplifyPass(pi, ctx.cwd, options);
       if (targets.length === 0) {
         ctx.ui.notify("/simplify: no changed or recent files found.", "info");
         return;
       }
 
-      const diff = await collectDiff(pi, ctx.cwd, options, targets);
-      const prompt = buildSimplifyPrompt(targets, diff);
-
       ctx.ui.notify(
         `/simplify: queued review for ${targets.length} file(s).`,
         "info",
-      );
-      pi.sendMessage(
-        {
-          customType: "simplify-command",
-          content: prompt,
-          display: false,
-        },
-        { deliverAs: "followUp", triggerTurn: true },
       );
     },
   });
