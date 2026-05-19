@@ -65,12 +65,14 @@ __pycache__/
 .config/nixpkgs/
 .config/obs-studio/
 .config/op/
+.config/opencode/
 .config/pipr/
 .config/raycast/
 .config/psysh/
 .config/pulse/
 .config/regend/
 .config/sekai/
+.config/sops/
 .config/stripe/
 .config/systemd/
 .config/TabNine/
@@ -80,7 +82,8 @@ __pycache__/
 .config/vlc/
 .config/wireshark/
 .config/yarn/
-.config/zed/
+.config/zed/**/*
+!.config/zed/settings.json
 .config/zsh/.zcompcache
 .config/zsh/.zcompdump
 .config/zsh/.zprofile
