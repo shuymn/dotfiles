@@ -4,8 +4,6 @@
   "skills": [
     "adversarial-verify",
     "audit-agents-md",
-    "commit",
-    "create-pr",
     "proofread",
     "triage-review"
   ]
