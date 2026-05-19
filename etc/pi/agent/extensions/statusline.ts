@@ -1,7 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 
-const ICON_MODEL = "󰚩";
 const ICON_BRANCH = "";
 const SEP = " | ";
 
@@ -127,7 +126,7 @@ export default function (pi: ExtensionAPI) {
 
           const effort = pi.getThinkingLevel();
           parts[parts.length - 1] +=
-            ` via ${rgb(255, 80, 80, `${ICON_MODEL} ${modelName(ctx.model, ambiguousModelNames)} • ${effort}`)}`;
+            ` via ${rgb(255, 80, 80, `${modelName(ctx.model, ambiguousModelNames)} • ${effort}`)}`;
 
           const usage = ctx.getContextUsage();
           const window = contextWindow(ctx.model);
