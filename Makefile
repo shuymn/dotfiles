@@ -59,6 +59,8 @@ link-pi: ## Create symlinks to the pi agent directory
 	@$(foreach file,$(PI_CANDIDATES), \
 		mkdir -p $(dir $(patsubst etc/pi/%,$(PI_HOME)/%,$(file))) && \
 		ln -sfnv $(abspath $(file)) $(patsubst etc/pi/%,$(PI_HOME)/%,$(file));)
+	@mkdir -p $(PI_HOME)/agent
+	@ln -sfnv $(abspath $(CLAUDE_BASE)/CLAUDE.md) $(PI_HOME)/agent/AGENTS.md
 	@echo 'Finish linking pi files'
 
 .PHONY: sync-skills
