@@ -306,43 +306,59 @@ export default function (pi: ExtensionAPI) {
   let startupCommitLaunched = false;
 
   pi.registerFlag("commit", {
-    description: "対話式の /commit ワークフローを開いて pi を開始する",
+    description: "対話式の commit ワークフローを実行して pi を終了する",
     type: "boolean",
     default: false,
   });
 
-  const startCommitWorkflow = async (
+  const notifyAndShutdown = (
     ctx: ExtensionContext,
-    notes: string,
-    source: "command" | "flag",
+    message: string,
+    level: "info" | "warning",
   ) => {
+    ctx.ui.notify(message, level);
+    ctx.shutdown();
+  };
+
+  const startCommitWorkflow = async (ctx: ExtensionContext) => {
     if (!ctx.isIdle()) {
-      ctx.ui.notify(
-        "エージェントが処理中です。現在のターンが完了してから /commit を再実行してください。",
-        "warning",
-      );
+      notifyAndShutdown(ctx, "エージェントが処理中です。処理を終了します。", "warning");
       return;
     }
 
     if (!ctx.hasUI) {
-      ctx.ui.notify("/commit には対話式 UI が必要です", "warning");
+      notifyAndShutdown(ctx, "--commit には対話式 UI が必要です", "warning");
       return;
     }
 
     const options = await collectCommitOptions(pi, ctx);
     if (!options) {
-      ctx.ui.notify("/commit をキャンセルしました", "info");
+      notifyAndShutdown(ctx, "--commit をキャンセルしました", "info");
       return;
     }
 
-    commitWorkflowActive = true;
-    const snapshot = await gitSnapshot(pi);
-    const selectedOptions = optionsForPrompt(options);
-    pi.sendUserMessage(
-      `User invoked /commit via ${source} with interactive options: ${selectedOptions}\n\n${COMMIT_INSTRUCTIONS}\n\n${HUMAN_RESPONSE_LANGUAGE_INSTRUCTION}\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
-        notes.trim() || "(none)"
-      }\n\n## Initial Git Snapshot (may be stale; verify with live commands)\n\n${snapshot}`,
-    );
+    try {
+      const snapshot = await gitSnapshot(pi);
+      const selectedOptions = optionsForPrompt(options);
+      const prompt = [
+        `User invoked --commit with interactive options: ${selectedOptions}`,
+        COMMIT_INSTRUCTIONS,
+        HUMAN_RESPONSE_LANGUAGE_INSTRUCTION,
+        "## Interactive Options",
+        selectedOptions,
+        "## Additional User Notes",
+        "(none)",
+        "## Initial Git Snapshot (may be stale; verify with live commands)",
+        snapshot,
+      ].join("\n\n");
+
+      commitWorkflowActive = true;
+      pi.sendUserMessage(prompt);
+    } catch (error) {
+      commitWorkflowActive = false;
+      const message = error instanceof Error ? error.message : String(error);
+      notifyAndShutdown(ctx, `--commit の開始に失敗しました: ${message}`, "warning");
+    }
   };
 
   pi.on("session_start", async (event, ctx) => {
@@ -353,14 +369,7 @@ export default function (pi: ExtensionAPI) {
     )
       return;
     startupCommitLaunched = true;
-    await startCommitWorkflow(ctx, "", "flag");
-  });
-
-  pi.registerCommand("commit", {
-    description: "意味のある単位でローカル git コミットを対話的に作成する。",
-    handler: async (args, ctx) => {
-      await startCommitWorkflow(ctx, args, "command");
-    },
+    await startCommitWorkflow(ctx);
   });
 
   pi.on("tool_call", async (event) => {
@@ -387,7 +396,9 @@ export default function (pi: ExtensionAPI) {
     return undefined;
   });
 
-  pi.on("agent_end", async () => {
+  pi.on("agent_end", async (_event, ctx) => {
+    if (!commitWorkflowActive) return;
     commitWorkflowActive = false;
+    ctx.shutdown();
   });
 }
