@@ -24,6 +24,7 @@ type ParsedGitHubUrl = {
   owner: string;
   repo: string;
   ref?: string;
+  blobPathSegments?: string[];
 };
 
 function expandHome(path: string): string {
@@ -109,10 +110,16 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
   }
 
   let ref: string | undefined;
+  let blobPathSegments: string[] | undefined;
   const action = segments[2];
-  if (action === "tree" || action === "blob") {
-    ref = segments[3];
-    if (!ref) throw new Error(`GitHub ${action} URL must include a ref.`);
+  if (action === "tree") {
+    ref = segments.slice(3).join("/");
+    if (!ref) throw new Error("GitHub tree URL must include a ref.");
+  } else if (action === "blob") {
+    blobPathSegments = segments.slice(3);
+    if (blobPathSegments.length === 0) {
+      throw new Error("GitHub blob URL must include a ref.");
+    }
   } else if (action !== undefined) {
     throw new Error(
       "Only GitHub repository, /tree/<ref>, and /blob/<ref>/... URLs are supported.",
@@ -123,7 +130,7 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
     throw new Error("GitHub ref contains unsupported characters.");
   }
 
-  return { owner, repo, ref };
+  return { owner, repo, ref, blobPathSegments };
 }
 
 function sanitizeDirectoryName(input: string): string {
@@ -142,6 +149,69 @@ function sanitizeDirectoryName(input: string): string {
   return name;
 }
 
+function runGit(
+  args: string[],
+  signal?: AbortSignal,
+  timeout = GITHUB_CLONE_TIMEOUT_MS,
+): Promise<string> {
+  return new Promise((resolvePromise, reject) => {
+    const child = execFile(
+      "git",
+      args,
+      {
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+        timeout,
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const details = [stderr.trim(), stdout.trim()]
+            .filter(Boolean)
+            .join("\n");
+          reject(new Error(details || error.message));
+          return;
+        }
+        resolvePromise(stdout);
+      },
+    );
+
+    if (signal) {
+      const onAbort = () => child.kill();
+      signal.addEventListener("abort", onAbort, { once: true });
+      child.on("exit", () => signal.removeEventListener("abort", onAbort));
+    }
+  });
+}
+
+async function resolveBlobRef(
+  repoUrl: string,
+  segments: string[],
+  signal?: AbortSignal,
+): Promise<string> {
+  const stdout = await runGit(
+    ["ls-remote", "--heads", "--tags", repoUrl],
+    signal,
+  );
+  const refs = new Set(
+    stdout
+      .split("\n")
+      .map((line) => line.trim().split(/\s+/)[1])
+      .filter((ref): ref is string => Boolean(ref))
+      .flatMap((ref) => [
+        ref.replace(/^refs\/heads\//, ""),
+        ref.replace(/^refs\/tags\//, ""),
+      ]),
+  );
+
+  for (let length = segments.length; length > 0; length -= 1) {
+    const candidate = segments.slice(0, length).join("/");
+    if (refs.has(candidate)) return candidate;
+  }
+
+  throw new Error(
+    "Could not resolve the GitHub blob URL ref. Use a repository URL or /tree/<ref> URL instead.",
+  );
+}
+
 function cloneGitHubRepo(
   repoUrl: string,
   targetPath: string,
@@ -158,32 +228,7 @@ function cloneGitHubRepo(
   if (ref) args.push("--branch", ref);
   args.push(repoUrl, targetPath);
 
-  return new Promise((resolvePromise, reject) => {
-    const child = execFile(
-      "git",
-      args,
-      {
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-        timeout: GITHUB_CLONE_TIMEOUT_MS,
-      },
-      (error, stdout, stderr) => {
-        if (error) {
-          const details = [stderr.trim(), stdout.trim()]
-            .filter(Boolean)
-            .join("\n");
-          reject(new Error(details || error.message));
-          return;
-        }
-        resolvePromise();
-      },
-    );
-
-    if (signal) {
-      const onAbort = () => child.kill();
-      signal.addEventListener("abort", onAbort, { once: true });
-      child.on("exit", () => signal.removeEventListener("abort", onAbort));
-    }
-  });
+  return runGit(args, signal).then(() => undefined);
 }
 
 export default function (pi: ExtensionAPI) {
@@ -354,7 +399,14 @@ export default function (pi: ExtensionAPI) {
       const targetPath = join(tempRoot, directoryName);
 
       try {
-        await cloneGitHubRepo(repoUrl, targetPath, parsed.ref, signal);
+        const ref = parsed.blobPathSegments
+          ? await resolveBlobRef(repoUrl, parsed.blobPathSegments, signal)
+          : parsed.ref;
+        if (ref !== undefined && !SAFE_REF.test(ref)) {
+          throw new Error("GitHub ref contains unsupported characters.");
+        }
+
+        await cloneGitHubRepo(repoUrl, targetPath, ref, signal);
         const { dir, alreadyAdded } = await addDirectory(targetPath, ctx.cwd, {
           temporary: true,
           tempRoot,
@@ -369,7 +421,7 @@ export default function (pi: ExtensionAPI) {
           `path: ${dir.path}`,
           `url: ${displayUrl}`,
         ];
-        if (parsed.ref) lines.push(`ref: ${parsed.ref}`);
+        if (ref) lines.push(`ref: ${ref}`);
         lines.push(
           "",
           "Use the absolute path above when reading, searching, or running read-only commands in this repository.",
@@ -381,7 +433,7 @@ export default function (pi: ExtensionAPI) {
             name: dir.name,
             path: dir.path,
             url: displayUrl,
-            ref: parsed.ref,
+            ref,
             tempRoot,
             alreadyAdded,
           },
