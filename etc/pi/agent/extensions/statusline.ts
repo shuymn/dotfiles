@@ -127,7 +127,7 @@ export default function (pi: ExtensionAPI) {
 
           const effort = pi.getThinkingLevel();
           parts[parts.length - 1] +=
-            ` via ${rgb(255, 80, 80, `${ICON_MODEL} ${modelName(ctx.model, ambiguousModelNames)} ${effort}`)}`;
+            ` via ${rgb(255, 80, 80, `${ICON_MODEL} ${modelName(ctx.model, ambiguousModelNames)} • ${effort}`)}`;
 
           const usage = ctx.getContextUsage();
           const window = contextWindow(ctx.model);
