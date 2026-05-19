@@ -209,7 +209,14 @@ export default function (pi: ExtensionAPI): void {
       const prompt = buildSimplifyPrompt(targets, diff);
 
       ctx.ui.notify(`/simplify: queued review for ${targets.length} file(s).`, "info");
-      pi.sendUserMessage(prompt, { deliverAs: "followUp" });
+      pi.sendMessage(
+        {
+          customType: "simplify-command",
+          content: prompt,
+          display: false,
+        },
+        { deliverAs: "followUp", triggerTurn: true },
+      );
     },
   });
 }
