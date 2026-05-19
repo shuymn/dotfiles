@@ -1,3 +1,5 @@
 {
-  "app.session.rename": []
+  "app.session.rename": [],
+  "app.models.save": [],
+  "app.session.toggleSort": []
 }
