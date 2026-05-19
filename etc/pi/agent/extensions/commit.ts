@@ -54,9 +54,9 @@ async function selectFuzzy(
         return [
           border,
           theme.fg("accent", theme.bold(title)),
-          theme.fg("dim", `query: ${query || "(type to fuzzy-find)"}`),
+          theme.fg("dim", `検索: ${query || "(入力して絞り込み)"}`),
           ...list.render(width),
-          truncateToWidth(theme.fg("dim", "type search • ↑↓ navigate • enter select • esc cancel"), width, ""),
+          truncateToWidth(theme.fg("dim", "入力で検索 • ↑↓で移動 • enterで選択 • escでキャンセル"), width, ""),
           border,
         ].map((line) => truncateToWidth(line, width, ""));
       },
@@ -127,18 +127,18 @@ async function getBranches(pi: ExtensionAPI, defaultBranch?: string): Promise<Se
   return sorted.map((branch) => ({
     value: branch,
     label: branch,
-    description: branch === defaultBranch ? "default branch" : undefined,
+    description: branch === defaultBranch ? "デフォルトブランチ" : undefined,
   }));
 }
 
 async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Promise<CommitOptions | null> {
   const language = (await selectFuzzy(
     ctx,
-    "Commit message language",
+    "コミットメッセージの言語",
     [
-      { value: "auto", label: "Auto", description: "match recent commit history; ask if unclear" },
-      { value: "english", label: "English", description: "equivalent to --english" },
-      { value: "japanese", label: "Japanese", description: "equivalent to --japanese" },
+      { value: "auto", label: "自動", description: "直近のコミット履歴に合わせる。不明なら確認する" },
+      { value: "english", label: "英語", description: "--english 相当" },
+      { value: "japanese", label: "日本語", description: "--japanese 相当" },
     ],
     "auto",
   )) as CommitLanguage | null;
@@ -146,10 +146,10 @@ async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Pr
 
   const branchMode = await selectFuzzy(
     ctx,
-    "Create a new branch first?",
+    "先に新しいブランチを作成しますか？",
     [
-      { value: "no", label: "No", description: "commit on the current branch" },
-      { value: "yes", label: "Yes", description: "create a generated branch before committing" },
+      { value: "no", label: "いいえ", description: "現在のブランチにコミットする" },
+      { value: "yes", label: "はい", description: "コミット前に生成したブランチを作成する" },
     ],
     "no",
   );
@@ -161,8 +161,8 @@ async function collectCommitOptions(pi: ExtensionAPI, ctx: ExtensionContext): Pr
   const branches = await getBranches(pi, defaultBranch);
   const baseBranch = await selectFuzzy(
     ctx,
-    "Base branch for the new branch",
-    branches.length > 0 ? branches : [{ value: defaultBranch ?? "main", label: defaultBranch ?? "main", description: "fallback" }],
+    "新しいブランチのベースブランチ",
+    branches.length > 0 ? branches : [{ value: defaultBranch ?? "main", label: defaultBranch ?? "main", description: "フォールバック" }],
     defaultBranch,
   );
   if (!baseBranch) return null;
@@ -210,25 +210,25 @@ export default function (pi: ExtensionAPI) {
   let startupCommitLaunched = false;
 
   pi.registerFlag("commit", {
-    description: "Start pi by opening the interactive /commit workflow",
+    description: "対話式の /commit ワークフローを開いて pi を開始する",
     type: "boolean",
     default: false,
   });
 
   const startCommitWorkflow = async (ctx: ExtensionContext, notes: string, source: "command" | "flag") => {
     if (!ctx.isIdle()) {
-      ctx.ui.notify("Agent is busy. Run /commit again after the current turn finishes.", "warning");
+      ctx.ui.notify("エージェントが処理中です。現在のターンが完了してから /commit を再実行してください。", "warning");
       return;
     }
 
     if (!ctx.hasUI) {
-      ctx.ui.notify("/commit requires interactive UI", "warning");
+      ctx.ui.notify("/commit には対話式 UI が必要です", "warning");
       return;
     }
 
     const options = await collectCommitOptions(pi, ctx);
     if (!options) {
-      ctx.ui.notify("/commit cancelled", "info");
+      ctx.ui.notify("/commit をキャンセルしました", "info");
       return;
     }
 
@@ -236,7 +236,7 @@ export default function (pi: ExtensionAPI) {
     const snapshot = await gitSnapshot(pi);
     const selectedOptions = optionsForPrompt(options);
     pi.sendUserMessage(
-      `User invoked /commit via ${source} with interactive options: ${selectedOptions}\n\n${COMMIT_INSTRUCTIONS}\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
+      `User invoked /commit via ${source} with interactive options: ${selectedOptions}\n\n${COMMIT_INSTRUCTIONS}\n\n## 人間向けレスポンスの言語\n\nユーザーへの返答・確認・エラー説明など、人間に見せるメッセージは日本語で書くこと。これは選択されたコミットメッセージ言語を変更しない。\n\n## Interactive Options\n\n${selectedOptions}\n\n## Additional User Notes\n\n${
         notes.trim() || "(none)"
       }\n\n## Initial Git Snapshot (may be stale; verify with live commands)\n\n${snapshot}`,
     );
@@ -249,7 +249,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("commit", {
-    description: "Interactively create local git commits in meaningful units.",
+    description: "意味のある単位でローカル git コミットを対話的に作成する。",
     handler: async (args, ctx) => {
       await startCommitWorkflow(ctx, args, "command");
     },
@@ -264,12 +264,12 @@ export default function (pi: ExtensionAPI) {
       return {
         block: true,
         reason:
-          "Blocked by /commit extension: destructive git cleanup/reset commands are prohibited during commit preparation. Ask the user for explicit direction instead.",
+          "/commit extension によりブロックしました: コミット準備中の破壊的な git cleanup/reset コマンドは禁止されています。代わりにユーザーへ明示的な指示を確認してください。",
       };
     }
 
     if (/(^|[;&|]\s*)git\s+push\b/.test(command)) {
-      return { block: true, reason: "Blocked by /commit extension: /commit creates local commits only; do not push." };
+      return { block: true, reason: "/commit extension によりブロックしました: /commit はローカルコミットのみを作成します。push しないでください。" };
     }
 
     return undefined;
