@@ -141,4 +141,7 @@
     "light": "One Light",
     "dark": "One Dark",
   },
+  "debugger": {
+    "button": false,
+  },
 }
