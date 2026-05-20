@@ -1,6 +1,6 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
+import { type Static, type TSchema, Type } from "typebox";
 
 import { cliResultForTool, runCli, toCliExec } from "../lib/cli";
 
@@ -278,173 +278,267 @@ const crawlSchema = Type.Object({
   ),
 });
 
+type SearchParams = Static<typeof searchSchema>;
+type ExtractParams = Static<typeof extractSchema>;
+type MapParams = Static<typeof mapSchema>;
+type CrawlParams = Static<typeof crawlSchema>;
+
+type AuthParams = Record<string, never>;
+
+type TavilyToolSpec<TParams extends object> = {
+  name: string;
+  label: string;
+  description: string;
+  promptSnippet: string;
+  promptGuidelines?: string[];
+  parameters: TSchema;
+  buildArgs: (params: TParams) => string[];
+  validate?: (params: TParams) => void;
+  progressText?: (params: TParams) => string;
+  timeoutMs: (params: TParams) => number;
+};
+
+type RegisteredTavilyToolSpec = {
+  name: string;
+  label: string;
+  description: string;
+  promptSnippet: string;
+  promptGuidelines?: string[];
+  parameters: TSchema;
+  buildArgs: (params: unknown) => string[];
+  validate?: (params: unknown) => void;
+  progressText?: (params: unknown) => string;
+  timeoutMs: (params: unknown) => number;
+};
+
+function defineTavilyToolSpec<TParams extends object>(
+  spec: TavilyToolSpec<TParams>,
+): RegisteredTavilyToolSpec {
+  return {
+    name: spec.name,
+    label: spec.label,
+    description: spec.description,
+    promptSnippet: spec.promptSnippet,
+    promptGuidelines: spec.promptGuidelines,
+    parameters: spec.parameters,
+    buildArgs: (params) => spec.buildArgs(params as TParams),
+    validate: spec.validate
+      ? (params) => spec.validate?.(params as TParams)
+      : undefined,
+    progressText: spec.progressText
+      ? (params) => spec.progressText?.(params as TParams) ?? ""
+      : undefined,
+    timeoutMs: (params) => spec.timeoutMs(params as TParams),
+  };
+}
+
+function registerTavilyTool(pi: ExtensionAPI, spec: RegisteredTavilyToolSpec) {
+  pi.registerTool({
+    name: spec.name,
+    label: spec.label,
+    description: spec.description,
+    promptSnippet: spec.promptSnippet,
+    promptGuidelines: spec.promptGuidelines,
+    parameters: spec.parameters,
+    async execute(_toolCallId, params, signal, onUpdate) {
+      spec.validate?.(params);
+      const args = spec.buildArgs(params);
+      const progress = spec.progressText?.(params);
+      if (progress) sendStatus(onUpdate, progress);
+      return runTvly(pi, args, signal, spec.timeoutMs(params));
+    },
+  });
+}
+
+const searchSpec = defineTavilyToolSpec<SearchParams>({
+  name: "tavily_search",
+  label: "Tavily Search",
+  description:
+    "Search the web with LLM-optimized Tavily results via the tvly CLI.",
+  promptSnippet:
+    "Search the web for current information, sources, news, or pages to inspect.",
+  promptGuidelines: [
+    "Use tavily_search when the user asks for current web information, recent news, source discovery, or external facts not available in the repository.",
+    "Keep tavily_search queries under 400 characters; split complex prompts into focused sub-queries.",
+    "Prefer tavily_search before tavily_extract when you do not already know the target URL.",
+  ],
+  parameters: searchSchema,
+  validate(params) {
+    if (params.query.trim().length > 400) {
+      throw new Error(
+        "tavily_search query must be 400 characters or fewer. Split complex questions into focused sub-queries.",
+      );
+    }
+  },
+  buildArgs(params) {
+    const args = ["search", params.query.trim(), "--json"];
+    addOptions(args, [
+      ["--depth", params.depth],
+      ["--max-results", params.maxResults],
+      ["--topic", params.topic],
+      ["--time-range", params.timeRange],
+      ["--start-date", params.startDate],
+      ["--end-date", params.endDate],
+      ["--include-domains", params.includeDomains],
+      ["--exclude-domains", params.excludeDomains],
+      ["--country", params.country],
+      ["--include-answer", params.includeAnswer],
+      ["--include-raw-content", params.includeRawContent],
+      ["--include-images", params.includeImages],
+      ["--include-image-descriptions", params.includeImageDescriptions],
+      ["--chunks-per-source", params.chunksPerSource],
+    ]);
+    return args;
+  },
+  progressText(params) {
+    return `Running tvly search ${params.query.trim()} ...`;
+  },
+  timeoutMs() {
+    return SEARCH_TIMEOUT_MS;
+  },
+});
+
+const extractSpec = defineTavilyToolSpec<ExtractParams>({
+  name: "tavily_extract",
+  label: "Tavily Extract",
+  description:
+    "Extract clean markdown/text content from one or more known URLs via the tvly CLI.",
+  promptSnippet:
+    "Extract readable content from specific URLs, including JS-rendered pages with advanced depth.",
+  promptGuidelines: [
+    "Use tavily_extract when you already have specific URLs and need page content, quotations, or details beyond search snippets.",
+    "Use tavily_extract query and chunksPerSource to target a specific part of long pages.",
+  ],
+  parameters: extractSchema,
+  validate(params) {
+    if (params.chunksPerSource !== undefined && !params.query) {
+      throw new Error("tavily_extract chunksPerSource requires a query.");
+    }
+  },
+  buildArgs(params) {
+    const args = ["extract", ...params.urls, "--json"];
+    addOptions(args, [
+      ["--query", params.query],
+      ["--chunks-per-source", params.chunksPerSource],
+      ["--extract-depth", params.extractDepth],
+      ["--format", params.format],
+      ["--include-images", params.includeImages],
+      ["--timeout", params.timeoutSeconds],
+    ]);
+    return args;
+  },
+  progressText(params) {
+    return `Extracting ${params.urls.length} URL(s) with Tavily...`;
+  },
+  timeoutMs(params) {
+    return cliTimeoutMs(params.timeoutSeconds, DEFAULT_EXTRACT_TIMEOUT_SECONDS);
+  },
+});
+
+const mapSpec = defineTavilyToolSpec<MapParams>({
+  name: "tavily_map",
+  label: "Tavily Map",
+  description:
+    "Discover URLs on a website without extracting page content via the tvly CLI.",
+  promptSnippet:
+    "Map a website to discover relevant URLs before extracting or crawling.",
+  promptGuidelines: [
+    "Use tavily_map when you need URL discovery for a site; it is faster than crawl and does not extract content.",
+    "Prefer tavily_map then tavily_extract when only a few discovered pages are needed.",
+  ],
+  parameters: mapSchema,
+  buildArgs(params) {
+    const args = ["map", params.url, "--json"];
+    addOptions(args, [
+      ["--max-depth", params.maxDepth],
+      ["--max-breadth", params.maxBreadth],
+      ["--limit", params.limit],
+      ["--instructions", params.instructions],
+      ["--select-paths", params.selectPaths],
+      ["--exclude-paths", params.excludePaths],
+      ["--allow-external", params.allowExternal],
+      ["--timeout", params.timeoutSeconds],
+    ]);
+    return args;
+  },
+  progressText(params) {
+    return `Mapping ${params.url} with Tavily...`;
+  },
+  timeoutMs(params) {
+    return cliTimeoutMs(params.timeoutSeconds, DEFAULT_SITE_TIMEOUT_SECONDS);
+  },
+});
+
+const crawlSpec = defineTavilyToolSpec<CrawlParams>({
+  name: "tavily_crawl",
+  label: "Tavily Crawl",
+  description:
+    "Crawl a website and extract content from multiple pages via the tvly CLI.",
+  promptSnippet:
+    "Crawl site sections for bulk content extraction with depth, breadth, path, and semantic filters.",
+  promptGuidelines: [
+    "Use tavily_crawl for bulk extraction from a site section; use tavily_map first if you only need URL discovery.",
+    "Constrain tavily_crawl with instructions, selectPaths, excludePaths, maxDepth, and limit to avoid noisy or oversized results.",
+  ],
+  parameters: crawlSchema,
+  validate(params) {
+    if (params.chunksPerSource !== undefined && !params.instructions) {
+      throw new Error("tavily_crawl chunksPerSource requires instructions.");
+    }
+  },
+  buildArgs(params) {
+    const args = ["crawl", params.url, "--json"];
+    addOptions(args, [
+      ["--max-depth", params.maxDepth],
+      ["--max-breadth", params.maxBreadth],
+      ["--limit", params.limit],
+      ["--instructions", params.instructions],
+      ["--chunks-per-source", params.chunksPerSource],
+      ["--extract-depth", params.extractDepth],
+      ["--format", params.format],
+      ["--select-paths", params.selectPaths],
+      ["--exclude-paths", params.excludePaths],
+      ["--select-domains", params.selectDomains],
+      ["--exclude-domains", params.excludeDomains],
+      ["--allow-external", params.allowExternal],
+      ["--include-images", params.includeImages],
+      ["--timeout", params.timeoutSeconds],
+    ]);
+    return args;
+  },
+  progressText(params) {
+    return `Crawling ${params.url} with Tavily...`;
+  },
+  timeoutMs(params) {
+    return cliTimeoutMs(params.timeoutSeconds, DEFAULT_SITE_TIMEOUT_SECONDS);
+  },
+});
+
+const authSpec = defineTavilyToolSpec<AuthParams>({
+  name: "tavily_auth_status",
+  label: "Tavily Auth Status",
+  description: "Check whether the tvly CLI is installed and authenticated.",
+  promptSnippet:
+    "Check Tavily CLI installation/authentication status when Tavily tools fail.",
+  parameters: Type.Object({}),
+  buildArgs() {
+    return ["auth", "--json"];
+  },
+  timeoutMs() {
+    return AUTH_TIMEOUT_MS;
+  },
+});
+
+const TAVILY_TOOL_SPECS = [
+  searchSpec,
+  extractSpec,
+  mapSpec,
+  crawlSpec,
+  authSpec,
+] as const;
+
 export default function (pi: ExtensionAPI) {
-  pi.registerTool({
-    name: "tavily_search",
-    label: "Tavily Search",
-    description:
-      "Search the web with LLM-optimized Tavily results via the tvly CLI.",
-    promptSnippet:
-      "Search the web for current information, sources, news, or pages to inspect.",
-    promptGuidelines: [
-      "Use tavily_search when the user asks for current web information, recent news, source discovery, or external facts not available in the repository.",
-      "Keep tavily_search queries under 400 characters; split complex prompts into focused sub-queries.",
-      "Prefer tavily_search before tavily_extract when you do not already know the target URL.",
-    ],
-    parameters: searchSchema,
-    async execute(_toolCallId, params, signal, onUpdate) {
-      const query = params.query.trim();
-      if (query.length > 400) {
-        throw new Error(
-          "tavily_search query must be 400 characters or fewer. Split complex questions into focused sub-queries.",
-        );
-      }
-      const args = ["search", query, "--json"];
-      addOptions(args, [
-        ["--depth", params.depth],
-        ["--max-results", params.maxResults],
-        ["--topic", params.topic],
-        ["--time-range", params.timeRange],
-        ["--start-date", params.startDate],
-        ["--end-date", params.endDate],
-        ["--include-domains", params.includeDomains],
-        ["--exclude-domains", params.excludeDomains],
-        ["--country", params.country],
-        ["--include-answer", params.includeAnswer],
-        ["--include-raw-content", params.includeRawContent],
-        ["--include-images", params.includeImages],
-        ["--include-image-descriptions", params.includeImageDescriptions],
-        ["--chunks-per-source", params.chunksPerSource],
-      ]);
-      sendStatus(onUpdate, `Running tvly ${args.slice(0, 2).join(" ")} ...`);
-      return runTvly(pi, args, signal, SEARCH_TIMEOUT_MS);
-    },
-  });
-
-  pi.registerTool({
-    name: "tavily_extract",
-    label: "Tavily Extract",
-    description:
-      "Extract clean markdown/text content from one or more known URLs via the tvly CLI.",
-    promptSnippet:
-      "Extract readable content from specific URLs, including JS-rendered pages with advanced depth.",
-    promptGuidelines: [
-      "Use tavily_extract when you already have specific URLs and need page content, quotations, or details beyond search snippets.",
-      "Use tavily_extract query and chunksPerSource to target a specific part of long pages.",
-    ],
-    parameters: extractSchema,
-    async execute(_toolCallId, params, signal, onUpdate) {
-      if (params.chunksPerSource !== undefined && !params.query) {
-        throw new Error("tavily_extract chunksPerSource requires a query.");
-      }
-      const args = ["extract", ...params.urls, "--json"];
-      addOptions(args, [
-        ["--query", params.query],
-        ["--chunks-per-source", params.chunksPerSource],
-        ["--extract-depth", params.extractDepth],
-        ["--format", params.format],
-        ["--include-images", params.includeImages],
-        ["--timeout", params.timeoutSeconds],
-      ]);
-      sendStatus(
-        onUpdate,
-        `Extracting ${params.urls.length} URL(s) with Tavily...`,
-      );
-      return runTvly(
-        pi,
-        args,
-        signal,
-        cliTimeoutMs(params.timeoutSeconds, DEFAULT_EXTRACT_TIMEOUT_SECONDS),
-      );
-    },
-  });
-
-  pi.registerTool({
-    name: "tavily_map",
-    label: "Tavily Map",
-    description:
-      "Discover URLs on a website without extracting page content via the tvly CLI.",
-    promptSnippet:
-      "Map a website to discover relevant URLs before extracting or crawling.",
-    promptGuidelines: [
-      "Use tavily_map when you need URL discovery for a site; it is faster than crawl and does not extract content.",
-      "Prefer tavily_map then tavily_extract when only a few discovered pages are needed.",
-    ],
-    parameters: mapSchema,
-    async execute(_toolCallId, params, signal, onUpdate) {
-      const args = ["map", params.url, "--json"];
-      addOptions(args, [
-        ["--max-depth", params.maxDepth],
-        ["--max-breadth", params.maxBreadth],
-        ["--limit", params.limit],
-        ["--instructions", params.instructions],
-        ["--select-paths", params.selectPaths],
-        ["--exclude-paths", params.excludePaths],
-        ["--allow-external", params.allowExternal],
-        ["--timeout", params.timeoutSeconds],
-      ]);
-      sendStatus(onUpdate, `Mapping ${params.url} with Tavily...`);
-      return runTvly(
-        pi,
-        args,
-        signal,
-        cliTimeoutMs(params.timeoutSeconds, DEFAULT_SITE_TIMEOUT_SECONDS),
-      );
-    },
-  });
-
-  pi.registerTool({
-    name: "tavily_crawl",
-    label: "Tavily Crawl",
-    description:
-      "Crawl a website and extract content from multiple pages via the tvly CLI.",
-    promptSnippet:
-      "Crawl site sections for bulk content extraction with depth, breadth, path, and semantic filters.",
-    promptGuidelines: [
-      "Use tavily_crawl for bulk extraction from a site section; use tavily_map first if you only need URL discovery.",
-      "Constrain tavily_crawl with instructions, selectPaths, excludePaths, maxDepth, and limit to avoid noisy or oversized results.",
-    ],
-    parameters: crawlSchema,
-    async execute(_toolCallId, params, signal, onUpdate) {
-      if (params.chunksPerSource !== undefined && !params.instructions) {
-        throw new Error("tavily_crawl chunksPerSource requires instructions.");
-      }
-      const args = ["crawl", params.url, "--json"];
-      addOptions(args, [
-        ["--max-depth", params.maxDepth],
-        ["--max-breadth", params.maxBreadth],
-        ["--limit", params.limit],
-        ["--instructions", params.instructions],
-        ["--chunks-per-source", params.chunksPerSource],
-        ["--extract-depth", params.extractDepth],
-        ["--format", params.format],
-        ["--select-paths", params.selectPaths],
-        ["--exclude-paths", params.excludePaths],
-        ["--select-domains", params.selectDomains],
-        ["--exclude-domains", params.excludeDomains],
-        ["--allow-external", params.allowExternal],
-        ["--include-images", params.includeImages],
-        ["--timeout", params.timeoutSeconds],
-      ]);
-      sendStatus(onUpdate, `Crawling ${params.url} with Tavily...`);
-      return runTvly(
-        pi,
-        args,
-        signal,
-        cliTimeoutMs(params.timeoutSeconds, DEFAULT_SITE_TIMEOUT_SECONDS),
-      );
-    },
-  });
-
-  pi.registerTool({
-    name: "tavily_auth_status",
-    label: "Tavily Auth Status",
-    description: "Check whether the tvly CLI is installed and authenticated.",
-    promptSnippet:
-      "Check Tavily CLI installation/authentication status when Tavily tools fail.",
-    parameters: Type.Object({}),
-    async execute(_toolCallId, _params, signal) {
-      return runTvly(pi, ["auth", "--json"], signal, AUTH_TIMEOUT_MS);
-    },
-  });
+  for (const spec of TAVILY_TOOL_SPECS) {
+    registerTavilyTool(pi, spec);
+  }
 }
