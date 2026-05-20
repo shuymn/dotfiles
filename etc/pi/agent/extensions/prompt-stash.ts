@@ -85,4 +85,9 @@ export default function (pi: ExtensionAPI) {
     if (stack.length === 0) return;
     restoreLatest(ctx);
   });
+
+  pi.on("user_bash", (_event, ctx) => {
+    if (stack.length === 0) return;
+    restoreLatest(ctx);
+  });
 }
