@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -24,6 +25,15 @@ type HistoryMessage = {
   sessionName?: string;
   sessionPath?: string;
 };
+
+type SearchScope = "all" | "cwd" | "session";
+
+function sameResolvedPath(
+  a: string | undefined,
+  b: string,
+): boolean {
+  return Boolean(a) && resolve(a) === b;
+}
 
 function userMessageText(message: unknown): string | undefined {
   const msg = message as { role?: string; content?: unknown };
@@ -90,20 +100,10 @@ function collectFromEntries(
 async function collectHistoryMessages(
   ctx: ExtensionContext,
 ): Promise<HistoryMessage[]> {
-  const byText = new Map<string, HistoryMessage>();
+  const messages: HistoryMessage[] = [];
 
-  const add = (items: HistoryMessage[]) => {
-    for (const item of items) {
-      const key = item.text.trim();
-      if (!key) continue;
-      const existing = byText.get(key);
-      if (!existing || item.timestamp > existing.timestamp)
-        byText.set(key, item);
-    }
-  };
-
-  add(
-    collectFromEntries(ctx.sessionManager.getEntries(), {
+  messages.push(
+    ...collectFromEntries(ctx.sessionManager.getEntries(), {
       cwd: ctx.cwd,
       sessionName: ctx.sessionManager.getSessionName(),
       sessionPath: ctx.sessionManager.getSessionFile(),
@@ -118,8 +118,8 @@ async function collectHistoryMessages(
       if (session.path === ctx.sessionManager.getSessionFile()) continue;
       try {
         const sm = SessionManager.open(session.path);
-        add(
-          collectFromEntries(sm.getEntries(), {
+        messages.push(
+          ...collectFromEntries(sm.getEntries(), {
             cwd: session.cwd,
             sessionName: session.name,
             sessionPath: session.path,
@@ -133,7 +133,7 @@ async function collectHistoryMessages(
     // Fall back to the current session only.
   }
 
-  return [...byText.values()]
+  return messages
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, MAX_MESSAGES_TO_SHOW);
 }
@@ -142,9 +142,15 @@ class MessageHistoryPicker implements Component, Focusable {
   private input = new Input();
   private selectedIndex = 0;
   private filtered: HistoryMessage[];
+  private scope: SearchScope = "all";
+  private readonly currentCwdResolved: string;
+  private readonly currentSessionPathResolved: string;
+  private readonly scopedItemsCache = new Map<SearchScope, HistoryMessage[]>();
 
   constructor(
     private readonly items: HistoryMessage[],
+    currentCwd: string,
+    currentSessionPath: string,
     private readonly theme: {
       fg(color: string, text: string): string;
       bold(text: string): string;
@@ -155,6 +161,8 @@ class MessageHistoryPicker implements Component, Focusable {
     private readonly done: (value: string | null) => void,
     private readonly requestRender: () => void,
   ) {
+    this.currentCwdResolved = resolve(currentCwd);
+    this.currentSessionPathResolved = resolve(currentSessionPath);
     this.filtered = items;
   }
 
@@ -184,6 +192,12 @@ class MessageHistoryPicker implements Component, Focusable {
           this.theme.bold("Search previous user messages"),
         ),
         width,
+      ),
+    );
+    lines.push(
+      this.theme.fg(
+        "dim",
+        `  Scope: ${this.scope === "all" ? "all messages" : this.scope === "cwd" ? "current directory only" : "current session only"} · Tab cycle`,
       ),
     );
     lines.push(...this.input.render(width));
@@ -253,16 +267,23 @@ class MessageHistoryPicker implements Component, Focusable {
   }
 
   handleInput(data: string): void {
+    if (matchesKey(data, Key.tab)) {
+      this.scope =
+        this.scope === "all"
+          ? "cwd"
+          : this.scope === "cwd"
+            ? "session"
+            : "all";
+      this.applyFilter();
+      this.requestRender();
+      return;
+    }
+
     if (
       this.keybindings.matches(data, "tui.select.up") ||
       matchesKey(data, Key.ctrl("k"))
     ) {
-      if (this.filtered.length > 0) {
-        this.selectedIndex =
-          this.selectedIndex === 0
-            ? this.filtered.length - 1
-            : this.selectedIndex - 1;
-      }
+      this.moveSelection(-1);
       this.requestRender();
       return;
     }
@@ -271,12 +292,7 @@ class MessageHistoryPicker implements Component, Focusable {
       this.keybindings.matches(data, "tui.select.down") ||
       matchesKey(data, Key.ctrl("j"))
     ) {
-      if (this.filtered.length > 0) {
-        this.selectedIndex =
-          this.selectedIndex === this.filtered.length - 1
-            ? 0
-            : this.selectedIndex + 1;
-      }
+      this.moveSelection(1);
       this.requestRender();
       return;
     }
@@ -297,12 +313,51 @@ class MessageHistoryPicker implements Component, Focusable {
     this.requestRender();
   }
 
+  private moveSelection(delta: number): void {
+    if (this.filtered.length === 0) return;
+    const next = this.selectedIndex + delta;
+    this.selectedIndex =
+      next < 0
+        ? this.filtered.length - 1
+        : next >= this.filtered.length
+          ? 0
+          : next;
+  }
+
+  private getScopedItems(): HistoryMessage[] {
+    const cached = this.scopedItemsCache.get(this.scope);
+    if (cached) return cached;
+
+    const scopedItems = this.items.filter((item) => {
+      if (this.scope === "cwd") {
+        return sameResolvedPath(item.cwd, this.currentCwdResolved);
+      }
+      if (this.scope === "session") {
+        return sameResolvedPath(item.sessionPath, this.currentSessionPathResolved);
+      }
+      return true;
+    });
+
+    const uniqueItems: HistoryMessage[] = [];
+    const seen = new Set<string>();
+    for (const item of scopedItems) {
+      const key = item.text.trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      uniqueItems.push(item);
+    }
+
+    this.scopedItemsCache.set(this.scope, uniqueItems);
+    return uniqueItems;
+  }
+
   private applyFilter(): void {
     const query = this.input.getValue().trim();
+    const scopedItems = this.getScopedItems();
     this.filtered =
       query.length === 0
-        ? this.items
-        : fuzzyFilter(this.items, query, (item) => item.text);
+        ? scopedItems
+        : fuzzyFilter(scopedItems, query, (item) => item.text);
     this.selectedIndex = 0;
   }
 }
@@ -319,8 +374,14 @@ async function openMessageHistory(ctx: ExtensionContext): Promise<void> {
 
   const selected = await ctx.ui.custom<string | null>(
     (tui, theme, keybindings, done) => {
-      return new MessageHistoryPicker(messages, theme, keybindings, done, () =>
-        tui.requestRender(),
+      return new MessageHistoryPicker(
+        messages,
+        ctx.cwd,
+        ctx.sessionManager.getSessionFile(),
+        theme,
+        keybindings,
+        done,
+        () => tui.requestRender(),
       );
     },
     {
