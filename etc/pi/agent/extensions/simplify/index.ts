@@ -52,13 +52,18 @@ function shellQuote(value: string): string {
 
 function parseNameStatus(stdout: string, source: Target["source"]): Target[] {
   const targets: Target[] = [];
+  const fields = stdout.split("\0").filter(Boolean);
 
-  for (const line of stdout.split("\n")) {
-    if (!line.trim()) continue;
-    const parts = line.split("\t");
-    const status = parts[0] ?? "modified";
-    const path =
-      status.startsWith("R") || status.startsWith("C") ? parts[2] : parts[1];
+  for (let index = 0; index < fields.length; ) {
+    const status = fields[index++] ?? "modified";
+    if (status.startsWith("R") || status.startsWith("C")) {
+      index += 1;
+      const path = fields[index++];
+      if (path) targets.push({ path, status, source });
+      continue;
+    }
+
+    const path = fields[index++];
     if (path) targets.push({ path, status, source });
   }
 
@@ -144,8 +149,8 @@ async function collectTargets(
     }));
   }
 
-  const unstagedArgs = ["diff", "--name-status"];
-  const stagedArgs = ["diff", "--cached", "--name-status"];
+  const unstagedArgs = ["diff", "--name-status", "-z"];
+  const stagedArgs = ["diff", "--cached", "--name-status", "-z"];
   const targets: Target[] = [];
 
   if (options.staged) {
@@ -156,7 +161,7 @@ async function collectTargets(
     const [unstaged, staged, status] = await Promise.all([
       execGit(pi, cwd, unstagedArgs),
       execGit(pi, cwd, stagedArgs),
-      execGit(pi, cwd, ["status", "--porcelain"]),
+      execGit(pi, cwd, ["ls-files", "--others", "--exclude-standard", "-z"]),
     ]);
 
     if (unstaged.code === 0)
@@ -165,10 +170,9 @@ async function collectTargets(
       targets.push(...parseNameStatus(staged.stdout, "diff"));
 
     if (status.code === 0) {
-      for (const line of status.stdout.split("\n")) {
-        if (!line.startsWith("?? ")) continue;
+      for (const path of status.stdout.split("\0").filter(Boolean)) {
         targets.push({
-          path: line.slice(3).trim(),
+          path,
           status: "untracked",
           source: "diff",
         });
