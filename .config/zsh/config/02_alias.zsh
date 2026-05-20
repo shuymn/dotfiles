@@ -32,10 +32,6 @@ if has "hx"; then
   alias zshrc="hx ${XDG_CONFIG_HOME}/zsh/.zshrc"
 fi
 
-if has "$(brew --prefix)/bin/gomi"; then
-  alias rm="$(brew --prefix)/bin/gomi"
-fi
-
 if has "fzf"; then
   change-branch() {
     local all && all=false
