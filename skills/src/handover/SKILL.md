@@ -32,10 +32,10 @@ Generate a `HANDOVER.md` file in the current project folder so the next session 
 1. Gather session context.
    - Review completed work, pending work, and user goals from the conversation.
    - Inspect repository context when available:
-     - `rtk git status`
+     - `git status`
      - `git branch --show-current`
-     - `rtk git log -n 15`
-     - `rtk git diff`
+     - `git log -n 15`
+     - `git diff`
 2. Extract handover essentials.
    - What was completed.
    - What is still in progress.

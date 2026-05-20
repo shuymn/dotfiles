@@ -63,7 +63,7 @@ Count lines that contain actual instructions (exclude blank lines, comments, hea
 
 Flag any instruction that the agent can infer from the codebase itself:
 
-- Directory structure descriptions (agent can run `rtk ls` / `rtk find`)
+- Directory structure descriptions (agent can run `ls` / `find`)
 - Full codebase overviews that mostly restate discoverable paths/files
 - Code style rules already enforced by linters (eslint, prettier, rustfmt, etc.)
 - Dependency lists (agent can read package.json, Cargo.toml, etc.)
@@ -133,7 +133,7 @@ Check for:
 1. Resolve the source-of-truth relationship for the target file
 2. Read the target file and the editable source if it is different
 3. If the file is in a project, also read:
-   - Available skills by inspecting the skills directories or manifests that actually exist in the current environment; do not assume `.claude-plugin` or `rtk ls`
+   - Available skills by inspecting the skills directories or manifests that actually exist in the current environment; do not assume `.claude-plugin` or `ls`
    - Project structure (top-level files and directories)
    - README/docs and CI workflows to detect documentation and command redundancy
    - Linter configs (`.eslintrc*`, `.prettierrc*`, `rustfmt.toml`, etc.)

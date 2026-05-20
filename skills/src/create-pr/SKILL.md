@@ -134,7 +134,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 
 1. **Ensure changes are pushed**:
    ```bash
-   rtk git push -u origin [current branch name]
+   git push -u origin [current branch name]
    ```
 
 2. **Prepare PR content**:
@@ -177,7 +177,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 
 3. **Ensure latest changes are pushed**:
    ```bash
-   rtk git push origin [current branch name]
+   git push origin [current branch name]
    ```
 
 4. **Prepare updated PR content**:

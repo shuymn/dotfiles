@@ -207,10 +207,6 @@ Escaping:
     ```
 4. Push current branch:
     ```bash
-    rtk git push -u origin <current-branch>
-    ```
-    If `rtk` is unavailable, use:
-    ```bash
     git push -u origin <current-branch>
     ```
 5. Generate PR title and body from committed changes.
@@ -232,10 +228,6 @@ Escaping:
     ```
     If no open PR exists, notify the user and do not create a new PR.
 3. Push latest changes:
-    ```bash
-    rtk git push origin <current-branch>
-    ```
-    If `rtk` is unavailable, use:
     ```bash
     git push origin <current-branch>
     ```
