@@ -278,14 +278,52 @@ function optionsForPrompt(options: CommitOptions): string {
   return flags.join(" ") || "(none)";
 }
 
+function escapeGitAuthorPattern(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function getGitConfigValue(
+  pi: ExtensionAPI,
+  key: string,
+): Promise<string | undefined> {
+  const result = await pi
+    .exec("git", ["config", "--get", key], { timeout: 3000 })
+    .catch(() => undefined);
+  if (result?.code !== 0) return undefined;
+  return result.stdout.trim() || undefined;
+}
+
+async function getSelfAuthorPattern(
+  pi: ExtensionAPI,
+): Promise<string | undefined> {
+  const email = await getGitConfigValue(pi, "user.email");
+  if (email) return escapeGitAuthorPattern(email);
+
+  const name = await getGitConfigValue(pi, "user.name");
+  if (name) return escapeGitAuthorPattern(name);
+
+  return undefined;
+}
+
 async function gitSnapshot(pi: ExtensionAPI): Promise<string> {
+  const selfAuthorPattern = await getSelfAuthorPattern(pi);
   const commands: Array<[label: string, args: string[]]> = [
     ["Status", ["status", "--short"]],
     ["Branch", ["branch", "--show-current"]],
-    ["Recent", ["log", "--oneline", "-10"]],
+  ];
+
+  if (selfAuthorPattern) {
+    commands.push([
+      "Recent Self Commits (primary for auto language)",
+      ["log", `--author=${selfAuthorPattern}`, "--format=%s", "-10"],
+    ]);
+  }
+
+  commands.push(
+    ["Recent All Commits (fallback for auto language)", ["log", "--format=%s", "-10"]],
     ["Unstaged", ["diff", "--stat"]],
     ["Staged", ["diff", "--cached", "--stat"]],
-  ];
+  );
 
   const results = await Promise.all(
     commands.map(async ([label, args]) => {

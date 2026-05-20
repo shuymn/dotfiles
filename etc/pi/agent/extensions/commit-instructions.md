@@ -32,9 +32,11 @@ The extension asks for language interactively. The selected options shown in the
 
 **Auto**:
 
-- Inspect recent commit subjects with `git log --format='%s' -10`.
-- Match the dominant recent description language in this repository.
-- If recent commits do not show a clear preference, ask the user before committing.
+- First inspect your own recent commit subjects using your configured `user.email` (or `user.name` if no email is configured), for example `git log --author="$(git config user.email)" --format='%s' -10`.
+- Match the dominant description language in your own recent commits.
+- If your own recent commits are unavailable or empty in this repository, inspect all recent commit subjects with `git log --format='%s' -10` as a fallback.
+- Match the dominant description language in the fallback history.
+- If the applicable recent commits do not show a clear preference, ask the user before committing.
 
 ## Branch Support
 
