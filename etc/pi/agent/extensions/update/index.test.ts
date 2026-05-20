@@ -208,7 +208,7 @@ describe("update extension", () => {
         "Version: 1.0.0",
         "Action: skipped audit and install.",
       ].join("\n"),
-      level: "success",
+      level: "info",
     });
     expect(ctx.shutdownCount).toBe(1);
   });
@@ -275,7 +275,7 @@ describe("update extension", () => {
       "info",
       "info",
       "info",
-      "success",
+      "info",
     ]);
     expect(ctx.notifications.at(-1)!.message).toBe(
       [

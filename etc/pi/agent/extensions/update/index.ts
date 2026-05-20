@@ -49,7 +49,7 @@ function notify(
   type: NotifyType = "info",
 ) {
   if (ctx.hasUI) {
-    ctx.ui.notify(message, type);
+    ctx.ui.notify(message, type === "success" ? "info" : type);
     return;
   }
 
