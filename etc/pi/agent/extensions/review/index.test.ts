@@ -524,6 +524,117 @@ describe("review extension", () => {
     }
   });
 
+  test("normal-mode summary phase is read-only", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createRunContext();
+    await pi.tools
+      .get("review")
+      ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
+
+    for (let index = 1; index <= 8; index += 1) {
+      await pi.events.get("agent_end")?.[0](
+        { messages: [{ role: "assistant", content: `phase ${index}` }] },
+        ctx,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("09-summary.md");
+    await expect(
+      pi.events.get("tool_call")?.[0]({
+        toolName: "bash",
+        input: { command: "echo hi" },
+      }),
+    ).resolves.toEqual({
+      block: true,
+      reason:
+        "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
+    });
+  });
+
+  test("sendMessage failure clears active run during initial dispatch", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const originalSendMessage = pi.sendMessage;
+    pi.sendMessage = () => {
+      throw new Error("send failed");
+    };
+    const ctx = createRunContext();
+
+    await expect(
+      pi.tools
+        .get("review")
+        ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx),
+    ).rejects.toThrow("send failed");
+
+    expect(ctx.ui.notifications).toContainEqual({
+      message: "/review: failed to queue workflow phase.",
+      level: "error",
+    });
+    expect(ctx.ui.widgets.at(-1)).toEqual({
+      key: "review-workflow",
+      lines: undefined,
+      options: undefined,
+    });
+
+    pi.sendMessage = originalSendMessage;
+    const retry = await pi.tools
+      .get("review")
+      ?.execute(
+        "call",
+        { files: ["src/retry.ts"] },
+        undefined,
+        undefined,
+        createRunContext(),
+      );
+    expect(retry?.content[0].text).toContain("Queued review workflow");
+  });
+
+  test("sendMessage failure clears active run during timer dispatch", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createRunContext();
+    await pi.tools
+      .get("review")
+      ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
+
+    const originalSendMessage = pi.sendMessage;
+    pi.sendMessage = () => {
+      throw new Error("send failed");
+    };
+    await pi.events.get("agent_end")?.[0](
+      { messages: [{ role: "assistant", content: "recon" }] },
+      ctx,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(ctx.ui.notifications).toContainEqual({
+      message: "/review: failed to queue next workflow phase.",
+      level: "error",
+    });
+    expect(ctx.ui.widgets.at(-1)).toEqual({
+      key: "review-workflow",
+      lines: undefined,
+      options: undefined,
+    });
+
+    pi.sendMessage = originalSendMessage;
+    const retry = await pi.tools
+      .get("review")
+      ?.execute(
+        "call",
+        { files: ["src/retry.ts"] },
+        undefined,
+        undefined,
+        createRunContext(),
+      );
+    expect(retry?.content[0].text).toContain("Queued review workflow");
+  });
+
   test("no-fix mode skips fix phases and keeps every phase read-only", async () => {
     const extension = await loadExtension();
     const pi = createFakePi();
