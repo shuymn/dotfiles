@@ -61,7 +61,7 @@ function renderForModel(
   const diagnostic = stderr.trim() ? `\n\nstderr:\n${stderr.trim()}` : "";
   const full = `${prefix}\n\n${body}${diagnostic}`.trim();
   if (full.length <= MAX_CONTEXT_CHARS) return full;
-  return `${full.slice(0, MAX_CONTEXT_CHARS)}\n\n[truncated by tavily-tools extension: ${full.length - MAX_CONTEXT_CHARS} chars omitted]`;
+  return `${full.slice(0, MAX_CONTEXT_CHARS)}\n\n[truncated by tavily extension: ${full.length - MAX_CONTEXT_CHARS} chars omitted]`;
 }
 
 function errorFromToolText(text: string): Error {
