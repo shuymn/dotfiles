@@ -49,7 +49,7 @@ export default function (pi: ExtensionAPI) {
     const current = ctx.ui.getEditorText();
     if (current.length > 0) {
       ctx.ui.notify(
-        "Prompt stash not restored because the editor is not empty.",
+        "エディタが空でないため stash を復元しませんでした。",
         "warning",
       );
       return;
@@ -58,10 +58,7 @@ export default function (pi: ExtensionAPI) {
     stack.pop();
     ctx.ui.setEditorText(text);
     persist();
-    ctx.ui.notify(
-      `Restored stashed prompt: ${truncateForNotice(text)}`,
-      "info",
-    );
+    ctx.ui.notify(`stash を復元しました: ${truncateForNotice(text)}`, "info");
   };
 
   pi.on("session_start", (_event, ctx) => {
@@ -78,7 +75,7 @@ export default function (pi: ExtensionAPI) {
 
       const text = ctx.ui.getEditorText();
       if (!text.trim()) {
-        ctx.ui.notify("Nothing to stash", "info");
+        ctx.ui.notify("stash する内容がありません。", "info");
         return;
       }
 
@@ -86,7 +83,10 @@ export default function (pi: ExtensionAPI) {
       stack = stack.slice(-MAX_STASHES);
       ctx.ui.setEditorText("");
       persist();
-      ctx.ui.notify(`Stashed prompt: ${truncateForNotice(text)}`, "info");
+      ctx.ui.notify(
+        `プロンプトを stash しました: ${truncateForNotice(text)}`,
+        "info",
+      );
     },
   });
 

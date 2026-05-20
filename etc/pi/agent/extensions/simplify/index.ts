@@ -211,12 +211,15 @@ export default function (pi: ExtensionAPI): void {
       const options = parseArgs(args);
       const targets = await queueSimplifyPass(pi, ctx.cwd, options);
       if (targets.length === 0) {
-        ctx.ui.notify("/simplify: no changed or recent files found.", "info");
+        ctx.ui.notify(
+          "/simplify: 変更または最近のファイルが見つかりませんでした。",
+          "info",
+        );
         return;
       }
 
       ctx.ui.notify(
-        `/simplify: queued review for ${targets.length} file(s).`,
+        `/simplify: ${targets.length} 件のファイルのレビューをキューに追加しました。`,
         "info",
       );
     },

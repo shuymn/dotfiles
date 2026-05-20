@@ -3,7 +3,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { DynamicBorder, SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
   type Component,
   type Focusable,
@@ -13,6 +13,7 @@ import {
   matchesKey,
   truncateToWidth,
 } from "@earendil-works/pi-tui";
+import { accentBorder, truncateLines } from "../lib/tui";
 
 const MAX_SESSIONS_TO_SCAN = 200;
 const MAX_MESSAGES_TO_SHOW = 1000;
@@ -187,16 +188,12 @@ class MessageHistoryPicker implements Component, Focusable {
 
   render(width: number): string[] {
     const lines: string[] = [];
-    lines.push(
-      ...new DynamicBorder((s: string) => this.theme.fg("accent", s)).render(
-        width,
-      ),
-    );
+    lines.push(accentBorder(this.theme, width));
     lines.push(
       truncateToWidth(
         this.theme.fg(
           "accent",
-          this.theme.bold("Search previous user messages"),
+          this.theme.bold("過去のユーザーメッセージを検索"),
         ),
         width,
       ),
@@ -204,14 +201,14 @@ class MessageHistoryPicker implements Component, Focusable {
     lines.push(
       this.theme.fg(
         "dim",
-        `  Scope: ${this.scope === "all" ? "all messages" : this.scope === "cwd" ? "current directory only" : "current session only"} · Tab cycle`,
+        `  範囲: ${this.scope === "all" ? "すべてのメッセージ" : this.scope === "cwd" ? "現在のディレクトリのみ" : "現在のセッションのみ"} · Tabで切替`,
       ),
     );
     lines.push(...this.input.render(width));
     lines.push("");
 
     if (this.filtered.length === 0) {
-      lines.push(this.theme.fg("warning", "  No matching messages"));
+      lines.push(this.theme.fg("warning", "  一致するメッセージがありません"));
     } else {
       const maxVisible = Math.max(1, Math.min(12, this.filtered.length));
       const start = Math.max(
@@ -263,15 +260,11 @@ class MessageHistoryPicker implements Component, Focusable {
     lines.push(
       this.theme.fg(
         "dim",
-        "  Type to fuzzy-search · ↑↓/Ctrl-JK navigate · Enter insert · Esc cancel",
+        "  入力で絞り込み · ↑↓/Ctrl-JKで移動 · Enterで挿入 · Escでキャンセル",
       ),
     );
-    lines.push(
-      ...new DynamicBorder((s: string) => this.theme.fg("accent", s)).render(
-        width,
-      ),
-    );
-    return lines.map((line) => truncateToWidth(line, width));
+    lines.push(accentBorder(this.theme, width));
+    return truncateLines(lines, width);
   }
 
   handleInput(data: string): void {
@@ -372,10 +365,10 @@ class MessageHistoryPicker implements Component, Focusable {
 async function openMessageHistory(ctx: ExtensionContext): Promise<void> {
   if (!ctx.hasUI) return;
 
-  ctx.ui.notify("Loading message history...", "info");
+  ctx.ui.notify("メッセージ履歴を読み込んでいます...", "info");
   const messages = await collectHistoryMessages(ctx);
   if (messages.length === 0) {
-    ctx.ui.notify("No previous user messages found", "warning");
+    ctx.ui.notify("過去のユーザーメッセージが見つかりませんでした", "warning");
     return;
   }
 
@@ -401,8 +394,8 @@ async function openMessageHistory(ctx: ExtensionContext): Promise<void> {
     const current = ctx.ui.getEditorText().trim();
     if (current.length > 0 && current !== selected.trim()) {
       const replace = await ctx.ui.confirm(
-        "Replace editor text?",
-        "The editor already contains text. Replace it with the selected history entry?",
+        "エディタのテキストを置き換えますか？",
+        "エディタには既にテキストがあります。選択した履歴で置き換えますか？",
       );
       if (!replace) return;
     }

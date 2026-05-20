@@ -141,7 +141,7 @@ describe("add-dir extension", () => {
 
     expect(notifications).toEqual([
       {
-        message: `Added directory: project: ${canonicalProject}`,
+        message: `ディレクトリを追加しました: project: ${canonicalProject}`,
         level: "info",
       },
     ]);
@@ -187,7 +187,7 @@ describe("add-dir extension", () => {
     await pi.commands.get("add-dir")!.handler(canonicalProject, ctx);
 
     expect(notifications.at(-1)).toEqual({
-      message: `Already registered: project: ${canonicalProject}`,
+      message: `すでに登録済みです: project: ${canonicalProject}`,
       level: "info",
     });
     expect(pi.appendedEntries).toHaveLength(1);
@@ -244,7 +244,7 @@ describe("add-dir extension", () => {
     await pi.commands.get("remove-dir")!.handler("alpha", ctx);
 
     expect(notifications.at(-1)).toEqual({
-      message: `Removed directory. Remaining:\n- beta: ${canonicalBeta}`,
+      message: `ディレクトリを削除しました。残り:\n- beta: ${canonicalBeta}`,
       level: "info",
     });
     expect(pi.appendedEntries.at(-1)).toEqual({
@@ -254,7 +254,7 @@ describe("add-dir extension", () => {
 
     await pi.commands.get("remove-dir")!.handler(canonicalBeta, ctx);
     expect(notifications.at(-1)).toEqual({
-      message: "Removed directory. No additional directories remain.",
+      message: "ディレクトリを削除しました。追加ディレクトリはありません。",
       level: "info",
     });
     expect(canonicalAlpha).toEndWith("alpha");

@@ -97,7 +97,7 @@ describe("prompt-stash extension", () => {
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
     expect(ctx.notifications).toEqual([
-      { message: "Nothing to stash", level: "info" },
+      { message: "stash する内容がありません。", level: "info" },
     ]);
     expect(ctx.setEditorTexts).toEqual([]);
     expect(pi.appendedEntries).toEqual([]);
@@ -113,7 +113,10 @@ describe("prompt-stash extension", () => {
 
     expect(ctx.setEditorTexts).toEqual([""]);
     expect(ctx.notifications).toEqual([
-      { message: "Stashed prompt: Please implement feature X", level: "info" },
+      {
+        message: "プロンプトを stash しました: Please implement feature X",
+        level: "info",
+      },
     ]);
     expect(pi.appendedEntries).toEqual([
       {
@@ -126,7 +129,7 @@ describe("prompt-stash extension", () => {
 
     expect(ctx.setEditorTexts).toEqual(["", "Please implement feature X"]);
     expect(ctx.notifications.at(-1)).toEqual({
-      message: "Restored stashed prompt: Please implement feature X",
+      message: "stash を復元しました: Please implement feature X",
       level: "info",
     });
     expect(pi.appendedEntries.at(-1)).toEqual({
@@ -188,7 +191,7 @@ describe("prompt-stash extension", () => {
 
     expect(ctx.notifications).toEqual([
       {
-        message: "Prompt stash not restored because the editor is not empty.",
+        message: "エディタが空でないため stash を復元しませんでした。",
         level: "warning",
       },
     ]);
@@ -282,7 +285,7 @@ describe("prompt-stash extension", () => {
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
     expect(ctx.notifications[0].message).toBe(
-      `Stashed prompt: first line ${"x".repeat(66)}...`,
+      `プロンプトを stash しました: first line ${"x".repeat(66)}...`,
     );
   });
 });

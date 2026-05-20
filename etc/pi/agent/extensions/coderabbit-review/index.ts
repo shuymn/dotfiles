@@ -2,22 +2,30 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
-  ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
 import { execCli, toCliExec } from "../lib/cli";
+import {
+  inputOptional,
+  normalizeOptional,
+  selectFuzzy,
+  startSpinnerWidget,
+} from "../lib/tui";
 
 const COMMAND_NAME = "coderabbit-review";
 const TOOL_NAME = "coderabbit_review";
 const MAX_REVIEW_OUTPUT_CHARS = 80_000;
 const INDICATOR_KEY = "coderabbit-review";
-const INDICATOR_INTERVAL_MS = 500;
 const REVIEW_HEARTBEAT_INTERVAL_MS = 30_000;
 const REVIEW_RUNNING_MESSAGE = "CodeRabbit review running";
-const INDICATOR_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const REVIEW_TYPES = ["all", "uncommitted", "committed"] as const;
-const COMPARISON_MODES = ["No base", "Base branch", "Base commit"] as const;
+const MANUAL_BRANCH_VALUE = "__manual__";
+const COMPARISON_ITEMS = [
+  { value: "none", label: "ベースなし" },
+  { value: "branch", label: "ベースブランチ" },
+  { value: "commit", label: "ベースコミット" },
+] as const;
 
 type ReviewType = (typeof REVIEW_TYPES)[number];
 
@@ -48,27 +56,6 @@ function startInterval(
   return () => clearInterval(timer);
 }
 
-function startCoderabbitIndicator(
-  ctx: Pick<ExtensionContext, "ui">,
-  message: string,
-): () => void {
-  let frame = 0;
-  const startedAt = Date.now();
-  const stop = startInterval(() => {
-    const spinner = INDICATOR_FRAMES[frame++ % INDICATOR_FRAMES.length];
-    ctx.ui.setWidget(
-      INDICATOR_KEY,
-      [`${spinner} ${message} (${elapsedSecondsSince(startedAt)}s)`],
-      { placement: "belowEditor" },
-    );
-  }, INDICATOR_INTERVAL_MS);
-
-  return () => {
-    stop();
-    ctx.ui.setWidget(INDICATOR_KEY, undefined);
-  };
-}
-
 function truncateReviewOutput(text: string): string {
   if (text.length <= MAX_REVIEW_OUTPUT_CHARS) return text;
   return `${text.slice(0, MAX_REVIEW_OUTPUT_CHARS)}\n\n[CodeRabbit output truncated at ${MAX_REVIEW_OUTPUT_CHARS} chars. Re-run the command or inspect terminal logs if you need the full output.]`;
@@ -80,10 +67,6 @@ function buildReviewArgs(options: ReviewOptions): string[] {
   if (options.baseCommit) args.push("--base-commit", options.baseCommit);
   if (options.dir) args.push("--dir", options.dir);
   return args;
-}
-
-function normalizeOptional(value?: string): string | undefined {
-  return value?.trim() || undefined;
 }
 
 function normalizeDir(value?: string): string | undefined {
@@ -166,27 +149,40 @@ async function promptReviewOptions(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
 ): Promise<ReviewOptions | undefined> {
-  const type = await ctx.ui.select("CodeRabbit review type", [...REVIEW_TYPES]);
-  if (!type) return undefined;
+  const type = await selectFuzzy(ctx, {
+    title: "CodeRabbit レビュー種別",
+    items: REVIEW_TYPES.map((value) => ({ value, label: value })),
+  });
+  if (!type || !isReviewType(type)) return undefined;
 
-  const comparisonMode = await ctx.ui.select("Comparison base", [
-    ...COMPARISON_MODES,
-  ]);
+  const comparisonMode = await selectFuzzy(ctx, {
+    title: "比較ベース",
+    items: COMPARISON_ITEMS.map((item) => ({
+      value: item.value,
+      label: item.label,
+    })),
+  });
   if (!comparisonMode) return undefined;
-
-  if (!isReviewType(type)) return undefined;
 
   const options: ReviewOptions = { type };
 
-  if (comparisonMode === "Base branch") {
+  if (comparisonMode === "branch") {
     const branchChoices = await collectBaseBranchChoices(pi, ctx.cwd);
-    const choice = await ctx.ui.select("Base branch", [
-      ...branchChoices,
-      "Manual input...",
-    ]);
+    const choice = await selectFuzzy(ctx, {
+      title: "ベースブランチ",
+      items: [
+        ...branchChoices.map((branch) => ({ value: branch, label: branch })),
+        { value: MANUAL_BRANCH_VALUE, label: "手動入力..." },
+      ],
+    });
     if (!choice) return undefined;
-    if (choice === "Manual input...") {
-      const base = normalizeOptional(await ctx.ui.input("Base branch", "main"));
+    if (choice === MANUAL_BRANCH_VALUE) {
+      const base = normalizeOptional(
+        (await inputOptional(ctx, {
+          title: "ベースブランチ",
+          placeholder: "main",
+        })) ?? undefined,
+      );
       if (!base) return undefined;
       options.base = base;
     } else {
@@ -194,20 +190,28 @@ async function promptReviewOptions(
     }
   }
 
-  if (comparisonMode === "Base commit") {
+  if (comparisonMode === "commit") {
     const baseCommit = normalizeOptional(
-      await ctx.ui.input("Base commit hash", "abc123"),
+      (await inputOptional(ctx, {
+        title: "ベースコミットのハッシュ",
+        placeholder: "abc123",
+      })) ?? undefined,
     );
     if (!baseCommit) return undefined;
     options.baseCommit = baseCommit;
   }
 
   const useDir = await ctx.ui.confirm(
-    "Review directory",
-    "Limit review to a specific Git repository directory?",
+    "レビュー対象ディレクトリ",
+    "特定の Git リポジトリディレクトリにレビューを限定しますか？",
   );
   if (useDir) {
-    const dir = normalizeDir(await ctx.ui.input("Review directory", "."));
+    const dir = normalizeDir(
+      (await inputOptional(ctx, {
+        title: "レビュー対象ディレクトリ",
+        placeholder: ".",
+      })) ?? undefined,
+    );
     if (!dir) return undefined;
     options.dir = dir;
   }
@@ -309,25 +313,26 @@ export default function (pi: ExtensionAPI): void {
 
       if (args.trim()) {
         ctx.ui.notify(
-          "/coderabbit-review is interactive; command arguments are ignored.",
+          "/coderabbit-review は対話的に実行します。コマンド引数は無視されます。",
           "warning",
         );
       }
 
       const options = await promptReviewOptions(pi, ctx);
       if (!options) {
-        ctx.ui.notify("/coderabbit-review: cancelled.", "info");
+        ctx.ui.notify("/coderabbit-review: キャンセルしました。", "info");
         return;
       }
 
-      const stopIndicator = startCoderabbitIndicator(
+      const stopIndicator = startSpinnerWidget(
         ctx,
+        INDICATOR_KEY,
         REVIEW_RUNNING_MESSAGE,
       );
 
       try {
         ctx.ui.notify(
-          "/coderabbit-review: checking prerequisites and running CodeRabbit review...",
+          "/coderabbit-review: 前提条件を確認し CodeRabbit レビューを実行しています...",
           "info",
         );
         const review = await runCoderabbitReview(
@@ -339,12 +344,12 @@ export default function (pi: ExtensionAPI): void {
 
         if (review.exitCode !== 0) {
           ctx.ui.notify(
-            `/coderabbit-review failed (exit ${review.exitCode}). Queuing output for analysis.`,
+            `/coderabbit-review が失敗しました (exit ${review.exitCode})。出力を解析用にキューします。`,
             "error",
           );
         } else {
           ctx.ui.notify(
-            "/coderabbit-review: review complete; queuing verified fix pass...",
+            "/coderabbit-review: レビュー完了。検証済みの修正パスをキューします...",
             "info",
           );
         }

@@ -14,6 +14,13 @@ mock.module("@earendil-works/pi-ai", () => ({
   }),
 }));
 
+// selectFuzzy (used by the interactive command) dynamically imports
+// getSelectListTheme from pi-coding-agent. Provide a stub so the real module
+// (and its pi-ai dependency) is not loaded during tests.
+mock.module("@earendil-works/pi-coding-agent", () => ({
+  getSelectListTheme: () => ({}),
+}));
+
 installTypeboxMock();
 type ToolDefinition = {
   name: string;
@@ -104,6 +111,7 @@ function createCommandContext(
     selects?: Array<string | undefined>;
     inputs?: Array<string | undefined>;
     confirms?: boolean[];
+    customs?: unknown[];
   } = {},
 ): FakeCommandContext & {
   notifications: Array<{ message: string; level: string }>;
@@ -286,8 +294,10 @@ describe("coderabbit-review extension", () => {
     });
     extension(pi as never);
     const ctx = createCommandContext({
-      selects: ["committed", "Base branch", "Manual input..."],
-      inputs: [" release ", " @repo "],
+      // selectFuzzy / inputOptional read from the custom queue in call order:
+      // review type, comparison base, base branch (manual sentinel),
+      // manual branch text, then review directory text.
+      customs: ["committed", "branch", "__manual__", " release ", " @repo "],
       confirms: [true],
     });
 
@@ -296,12 +306,12 @@ describe("coderabbit-review extension", () => {
     expect(ctx.waited.value).toBe(true);
     expect(ctx.notifications[0]).toEqual({
       message:
-        "/coderabbit-review is interactive; command arguments are ignored.",
+        "/coderabbit-review は対話的に実行します。コマンド引数は無視されます。",
       level: "warning",
     });
     expect(ctx.notifications).toContainEqual({
       message:
-        "/coderabbit-review: review complete; queuing verified fix pass...",
+        "/coderabbit-review: レビュー完了。検証済みの修正パスをキューします...",
       level: "info",
     });
     expect(ctx.widgets[0]).toMatchObject({
@@ -365,12 +375,12 @@ describe("coderabbit-review extension", () => {
     const extension = await loadExtension();
     const pi = createFakePi();
     extension(pi as never);
-    const ctx = createCommandContext({ selects: [undefined] });
+    const ctx = createCommandContext({ customs: [undefined] });
 
     await pi.commands.get("coderabbit-review")!.handler("", ctx);
 
     expect(ctx.notifications).toEqual([
-      { message: "/coderabbit-review: cancelled.", level: "info" },
+      { message: "/coderabbit-review: キャンセルしました。", level: "info" },
     ]);
     expect(pi.execCalls).toEqual([]);
     expect(pi.sentMessages).toEqual([]);

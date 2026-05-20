@@ -300,7 +300,7 @@ export default function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const input = args.trim();
       if (!input) {
-        ctx.ui.notify("Usage: /add-dir <path>", "error");
+        ctx.ui.notify("使い方: /add-dir <path>", "error");
         return;
       }
 
@@ -308,8 +308,8 @@ export default function (pi: ExtensionAPI) {
         const { dir, alreadyAdded } = await addDirectory(input, ctx.cwd);
         ctx.ui.notify(
           alreadyAdded
-            ? `Already registered: ${dir.name}: ${dir.path}`
-            : `Added directory: ${dir.name}: ${dir.path}`,
+            ? `すでに登録済みです: ${dir.name}: ${dir.path}`
+            : `ディレクトリを追加しました: ${dir.name}: ${dir.path}`,
           "info",
         );
       } catch (error) {
@@ -323,7 +323,7 @@ export default function (pi: ExtensionAPI) {
     description: "List additional directories registered for this session",
     handler: async (_args, ctx) => {
       if (dirs.length === 0) {
-        ctx.ui.notify("No additional directories registered.", "info");
+        ctx.ui.notify("追加ディレクトリは登録されていません。", "info");
         return;
       }
 
@@ -336,7 +336,7 @@ export default function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const input = args.trim();
       if (!input) {
-        ctx.ui.notify("Usage: /remove-dir <directory-name-or-path>", "error");
+        ctx.ui.notify("使い方: /remove-dir <directory-name-or-path>", "error");
         return;
       }
 
@@ -349,15 +349,18 @@ export default function (pi: ExtensionAPI) {
       );
 
       if (dirs.length === before) {
-        ctx.ui.notify(`No registered directory matched: ${input}`, "error");
+        ctx.ui.notify(
+          `一致する登録ディレクトリがありません: ${input}`,
+          "error",
+        );
         return;
       }
 
       persist();
       ctx.ui.notify(
         dirs.length === 0
-          ? "Removed directory. No additional directories remain."
-          : `Removed directory. Remaining:\n${formatDirs(dirs)}`,
+          ? "ディレクトリを削除しました。追加ディレクトリはありません。"
+          : `ディレクトリを削除しました。残り:\n${formatDirs(dirs)}`,
         "info",
       );
     },

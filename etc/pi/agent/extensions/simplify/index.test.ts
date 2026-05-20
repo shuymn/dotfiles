@@ -374,7 +374,10 @@ describe("simplify extension", () => {
       "- src/app.ts (explicit)",
     );
     expect(ctx.notifications).toEqual([
-      { message: "/simplify: queued review for 1 file(s).", level: "info" },
+      {
+        message: "/simplify: 1 件のファイルのレビューをキューに追加しました。",
+        level: "info",
+      },
     ]);
   });
 
@@ -388,7 +391,7 @@ describe("simplify extension", () => {
 
     expect(ctx.notifications).toEqual([
       {
-        message: "/simplify: no changed or recent files found.",
+        message: "/simplify: 変更または最近のファイルが見つかりませんでした。",
         level: "info",
       },
     ]);

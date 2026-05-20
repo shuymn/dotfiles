@@ -16,6 +16,7 @@ import {
   targetPathsForDiff,
   truncate,
 } from "../lib/git";
+import { clearWidget, notifyIfUI, setBelowEditorWidget } from "../lib/tui";
 import { loadWorkflowPhases } from "./phases";
 import { buildPhasePrompt } from "./prompts";
 import {
@@ -286,7 +287,7 @@ function clearActiveRun(ctx?: Pick<ExtensionContext, "ui">): void {
   clearQueuedPhaseTimer();
   workflow.cancel();
   runStarting = false;
-  ctx?.ui.setWidget(REVIEW_WIDGET_KEY, undefined);
+  if (ctx) clearWidget(ctx, REVIEW_WIDGET_KEY);
 }
 
 function setPhaseWidget(
@@ -296,11 +297,9 @@ function setPhaseWidget(
 ): void {
   const run = activeRun();
   if (!run) return;
-  ctx.ui.setWidget(
-    REVIEW_WIDGET_KEY,
-    [`/review: phase ${phaseNumber}/${run.phases.length} ${state}`],
-    { placement: "belowEditor" },
-  );
+  setBelowEditorWidget(ctx, REVIEW_WIDGET_KEY, [
+    `/review: phase ${phaseNumber}/${run.phases.length} ${state}`,
+  ]);
 }
 
 function failActiveRun(
@@ -308,7 +307,7 @@ function failActiveRun(
   message: string,
 ): void {
   clearActiveRun(ctx);
-  ctx.ui.notify(message, "error");
+  notifyIfUI(ctx, message, "error");
 }
 
 function sendQueuedPhase(
@@ -344,7 +343,10 @@ function startReviewRun(
   try {
     sendQueuedPhase(pi, queued, ctx);
   } catch (error) {
-    failActiveRun(ctx, "/review: failed to queue workflow phase.");
+    failActiveRun(
+      ctx,
+      "/review: ワークフローの phase をキューに追加できませんでした。",
+    );
     throw error;
   }
   return queued.run;
@@ -364,7 +366,10 @@ function queueNextPhaseAfterCurrentTurn(
     try {
       sendQueuedPhase(pi, queued, ctx);
     } catch {
-      failActiveRun(ctx, "/review: failed to queue next workflow phase.");
+      failActiveRun(
+        ctx,
+        "/review: 次の phase をキューに追加できませんでした。",
+      );
     }
   }, 0);
 }
@@ -398,8 +403,12 @@ export default function (pi: ExtensionAPI): void {
     if (decision.kind === "completed") {
       clearQueuedPhaseTimer();
       runStarting = false;
-      ctx.ui.setWidget(REVIEW_WIDGET_KEY, undefined);
-      ctx.ui.notify(`/review: workflow ${decision.runId} completed.`, "info");
+      clearWidget(ctx, REVIEW_WIDGET_KEY);
+      notifyIfUI(
+        ctx,
+        `/review: ワークフロー ${decision.runId} が完了しました。`,
+        "info",
+      );
       return;
     }
 
@@ -423,8 +432,8 @@ export default function (pi: ExtensionAPI): void {
         clearActiveRun(ctx);
         ctx.ui.notify(
           runId
-            ? `/review: cancelled workflow ${runId}.`
-            : "/review: no active workflow to cancel.",
+            ? `/review: ワークフロー ${runId} をキャンセルしました。`
+            : "/review: キャンセルできるワークフローがありません。",
           "info",
         );
         return;
@@ -432,7 +441,7 @@ export default function (pi: ExtensionAPI): void {
 
       if (activeRun() || runStarting) {
         ctx.ui.notify(
-          "/review: another review workflow is already running.",
+          "/review: 別のレビューワークフローが既に実行中です。",
           "warning",
         );
         return;
@@ -442,7 +451,7 @@ export default function (pi: ExtensionAPI): void {
       const run = await createReviewRunWithStartGuard(pi, ctx.cwd, options);
       if (!run) {
         ctx.ui.notify(
-          "/review: no changed files found. Pass explicit file paths to review whole files.",
+          "/review: 変更ファイルが見つかりませんでした。ファイル全体をレビューするにはパスを明示してください。",
           "info",
         );
         return;
@@ -450,7 +459,7 @@ export default function (pi: ExtensionAPI): void {
 
       const active = startReviewRun(pi, run, ctx);
       ctx.ui.notify(
-        `/review: queued phase 1/${active.phases.length} for ${active.targets.length} file(s).`,
+        `/review: ${active.targets.length} 件のファイルについて phase 1/${active.phases.length} をキューに追加しました。`,
         "info",
       );
     },

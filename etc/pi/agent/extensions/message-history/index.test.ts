@@ -52,6 +52,9 @@ mock.module("@earendil-works/pi-tui", () => ({
     items.filter((item) =>
       getText(item).toLowerCase().includes(query.toLowerCase()),
     ),
+  // Imported (but unused at runtime here) by lib/tui's selectFuzzy; provide a
+  // stub so the static named import resolves.
+  SelectList: class {},
   truncateToWidth: (text: string, width: number) => text.slice(0, width),
 }));
 
@@ -260,8 +263,11 @@ describe("message-history extension", () => {
     await pi.shortcuts.get("ctrl+r")!.handler(ctx);
 
     expect(ctx.notifications).toEqual([
-      { message: "Loading message history...", level: "info" },
-      { message: "No previous user messages found", level: "warning" },
+      { message: "メッセージ履歴を読み込んでいます...", level: "info" },
+      {
+        message: "過去のユーザーメッセージが見つかりませんでした",
+        level: "warning",
+      },
     ]);
     expect(ctx.customOptions).toEqual([]);
   });

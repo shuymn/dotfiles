@@ -368,7 +368,7 @@ describe("review extension", () => {
     }
 
     expect(ctx.ui.notifications.at(-1)?.message).toMatch(
-      /^\/review: workflow \d+ completed\.$/,
+      /^\/review: ワークフロー \d+ が完了しました。$/,
     );
     expect(ctx.ui.widgets.at(-1)).toEqual({
       key: "review-workflow",
@@ -486,7 +486,7 @@ describe("review extension", () => {
     ).rejects.toThrow("send failed");
 
     expect(ctx.ui.notifications).toContainEqual({
-      message: "/review: failed to queue workflow phase.",
+      message: "/review: ワークフローの phase をキューに追加できませんでした。",
       level: "error",
     });
     expect(ctx.ui.widgets.at(-1)).toEqual({
@@ -528,7 +528,7 @@ describe("review extension", () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
 
     expect(ctx.ui.notifications).toContainEqual({
-      message: "/review: failed to queue next workflow phase.",
+      message: "/review: 次の phase をキューに追加できませんでした。",
       level: "error",
     });
     expect(ctx.ui.widgets.at(-1)).toEqual({
@@ -605,7 +605,8 @@ describe("review extension", () => {
 
     expect(ctx.waited.value).toBe(true);
     expect(ctx.ui.notifications).toContainEqual({
-      message: "/review: queued phase 1/7 for 1 file(s).",
+      message:
+        "/review: 1 件のファイルについて phase 1/7 をキューに追加しました。",
       level: "info",
     });
 
@@ -613,7 +614,7 @@ describe("review extension", () => {
     await pi.commands.get("review")?.handler("src/other.ts", busyCtx);
     expect(busyCtx.ui.notifications).toEqual([
       {
-        message: "/review: another review workflow is already running.",
+        message: "/review: 別のレビューワークフローが既に実行中です。",
         level: "warning",
       },
     ]);
@@ -621,7 +622,7 @@ describe("review extension", () => {
     const cancelCtx = createCommandContext();
     await pi.commands.get("review")?.handler("cancel", cancelCtx);
     expect(cancelCtx.ui.notifications[0].message).toMatch(
-      /^\/review: cancelled workflow \d+\.$/,
+      /^\/review: ワークフロー \d+ をキャンセルしました。$/,
     );
     expect(cancelCtx.ui.widgets.at(-1)).toEqual({
       key: "review-workflow",
