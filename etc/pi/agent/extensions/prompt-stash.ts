@@ -62,6 +62,11 @@ export default function (pi: ExtensionAPI) {
   pi.registerShortcut("ctrl+s", {
     description: "Stash current prompt buffer and clear the editor",
     handler: (ctx) => {
+      if (stack.length > 0) {
+        restoreLatest(ctx);
+        return;
+      }
+
       const text = ctx.ui.getEditorText();
       if (!text.trim()) {
         ctx.ui.notify("Nothing to stash", "info");
