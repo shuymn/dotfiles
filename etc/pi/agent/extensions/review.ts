@@ -42,18 +42,21 @@ const WORKFLOW_PHASE_FILES = [
   "09-summary.md",
 ] as const;
 
-function workflowPhaseIndex(
-  file: (typeof WORKFLOW_PHASE_FILES)[number],
-): number {
-  const index = WORKFLOW_PHASE_FILES.indexOf(file);
-  if (index < 0) throw new Error(`Workflow phase not found: ${file}`);
-  return index;
-}
+type WorkflowPhaseFile = (typeof WORKFLOW_PHASE_FILES)[number];
 
-const FIX_PHASE_INDEX = workflowPhaseIndex("07-fix.md");
-const HUNT_PHASE_INDEX = workflowPhaseIndex("02-hunt.md");
-const GAPFILL_PHASE_INDEX = workflowPhaseIndex("04-gapfill.md");
-const DEDUPE_PHASE_INDEX = workflowPhaseIndex("05-dedupe.md");
+const HUNT_PHASE_FILE = "02-hunt.md" satisfies WorkflowPhaseFile;
+const GAPFILL_PHASE_FILE = "04-gapfill.md" satisfies WorkflowPhaseFile;
+const DEDUPE_PHASE_FILE = "05-dedupe.md" satisfies WorkflowPhaseFile;
+const FIX_PHASE_FILE = "07-fix.md" satisfies WorkflowPhaseFile;
+const VERIFY_PHASE_FILE = "08-verify.md" satisfies WorkflowPhaseFile;
+const READ_ONLY_PHASE_FILES = new Set<WorkflowPhaseFile>([
+  "01-recon.md",
+  HUNT_PHASE_FILE,
+  "03-validate.md",
+  GAPFILL_PHASE_FILE,
+  DEDUPE_PHASE_FILE,
+  "06-trace.md",
+]);
 
 type ReviewOptions = {
   files: string[];
@@ -68,7 +71,7 @@ type Target = {
 };
 
 type WorkflowPhase = {
-  file: string;
+  file: WorkflowPhaseFile;
   instructions: string;
 };
 
@@ -252,8 +255,8 @@ function buildPreviousPhaseOutputs(run: ActiveReviewRun): string {
     .join("\n\n")}\n</previous_phase_outputs>`;
 }
 
-function buildControlInstructions(phaseIndex: number): string {
-  if (phaseIndex !== GAPFILL_PHASE_INDEX) return "";
+function buildControlInstructions(phaseFile: WorkflowPhaseFile): string {
+  if (phaseFile !== GAPFILL_PHASE_FILE) return "";
 
   return `
 
@@ -302,7 +305,7 @@ ${phase.instructions}
 
 - Complete only this phase.
 - Preserve concise notes needed by later phases in your response.
-- ${isLastPhase ? "This is the final phase; provide the final Japanese summary." : "Do not summarize the whole workflow yet."}${buildControlInstructions(phaseIndex)}`;
+- ${isLastPhase ? "This is the final phase; provide the final Japanese summary." : "Do not summarize the whole workflow yet."}${buildControlInstructions(phase.file)}`;
 }
 
 function collectTextParts(value: unknown, output: string[]): void {
@@ -323,47 +326,48 @@ function collectTextParts(value: unknown, output: string[]): void {
   }
 }
 
-function collectAssistantMessageText(value: unknown, output: string[]): void {
-  if (!value || typeof value !== "object") return;
+function findLatestAssistantMessageText(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
 
   if (Array.isArray(value)) {
-    for (const item of value) collectAssistantMessageText(item, output);
-    return;
+    for (let index = value.length - 1; index >= 0; index -= 1) {
+      const text = findLatestAssistantMessageText(value[index]);
+      if (text) return text;
+    }
+    return undefined;
   }
 
   const record = value as Record<string, unknown>;
   if (record.role === "assistant") {
     const textParts: string[] = [];
     collectTextParts(record.content, textParts);
-    if (textParts.length > 0) output.push(textParts.join("\n"));
-    return;
+    return textParts.length > 0 ? textParts.join("\n") : undefined;
   }
 
-  for (const child of Object.values(record)) {
-    collectAssistantMessageText(child, output);
+  const children = Object.values(record);
+  for (let index = children.length - 1; index >= 0; index -= 1) {
+    const text = findLatestAssistantMessageText(children[index]);
+    if (text) return text;
   }
+
+  return undefined;
 }
 
-function getAssistantMessageTexts(messages: unknown): string[] {
-  const assistantTexts: string[] = [];
-  collectAssistantMessageText(messages, assistantTexts);
-  return assistantTexts;
-}
-
-function currentPhaseIndex(): number | undefined {
+function currentPhaseFile(): WorkflowPhaseFile | undefined {
   if (!activeRun?.phaseInProgress) return undefined;
   const index = activeRun.nextPhaseIndex - 1;
-  return index >= 0 ? index : undefined;
+  return index >= 0 ? activeRun.phases[index]?.file : undefined;
 }
 
-function isInvestigationPhase(): boolean {
-  const index = currentPhaseIndex();
-  return index !== undefined && index < FIX_PHASE_INDEX;
+function isReadOnlyPhase(): boolean {
+  const phaseFile = currentPhaseFile();
+  if (!phaseFile) return false;
+  return READ_ONLY_PHASE_FILES.has(phaseFile);
 }
 
 function getLatestAssistantMessageText(messages: unknown): string | undefined {
   try {
-    return getAssistantMessageTexts(messages).at(-1);
+    return findLatestAssistantMessageText(messages);
   } catch {
     return undefined;
   }
@@ -387,12 +391,24 @@ function parseReviewControl(
   }
 }
 
+function findPhaseIndex(
+  run: ActiveReviewRun,
+  phaseFile: WorkflowPhaseFile,
+): number {
+  const index = run.phases.findIndex((phase) => phase.file === phaseFile);
+  if (index < 0)
+    throw new Error(`Workflow phase not found in run: ${phaseFile}`);
+  return index;
+}
+
 function decideNextPhaseIndex(
   run: ActiveReviewRun,
   completedPhaseIndex: number,
   latestAssistantText: string | undefined,
 ): number | undefined {
-  if (completedPhaseIndex === GAPFILL_PHASE_INDEX) {
+  const completedPhaseFile = run.phases[completedPhaseIndex]?.file;
+
+  if (completedPhaseFile === GAPFILL_PHASE_FILE) {
     const control = parseReviewControl(latestAssistantText);
     const hasNewHuntTasks =
       Array.isArray(control?.new_hunt_tasks) &&
@@ -400,10 +416,10 @@ function decideNextPhaseIndex(
 
     if (hasNewHuntTasks && run.gapfillLoopCount < MAX_GAPFILL_LOOPS) {
       run.gapfillLoopCount += 1;
-      return HUNT_PHASE_INDEX;
+      return findPhaseIndex(run, HUNT_PHASE_FILE);
     }
 
-    return DEDUPE_PHASE_INDEX;
+    return findPhaseIndex(run, DEDUPE_PHASE_FILE);
   }
 
   const next = completedPhaseIndex + 1;
@@ -681,7 +697,7 @@ function startReviewRun(
 
 export default function (pi: ExtensionAPI): void {
   pi.on("tool_call", async (event) => {
-    if (!isInvestigationPhase()) return;
+    if (!isReadOnlyPhase()) return;
 
     if (!INVESTIGATION_ALLOWED_TOOLS.has(event.toolName)) {
       return {
