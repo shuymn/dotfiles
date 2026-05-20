@@ -30,6 +30,7 @@ type CommitOptions = {
   language: CommitLanguage;
   createBranch: boolean;
   baseBranch?: string;
+  additionalNotes?: string;
 };
 
 const PROHIBITED_GIT_PATTERNS = [
@@ -39,6 +40,10 @@ const PROHIBITED_GIT_PATTERNS = [
   /(^|[;&|]\s*)git\s+switch\b[^\n;|&]*\s--discard-changes\b/,
   /(^|[;&|]\s*)git\s+clean\b/,
 ];
+
+function normalizeOptional(value?: string): string | undefined {
+  return value?.trim() || undefined;
+}
 
 function isPrintableInput(data: string): boolean {
   return (
@@ -205,6 +210,17 @@ async function getBranches(
   }));
 }
 
+async function collectAdditionalNotes(
+  ctx: ExtensionContext,
+): Promise<string | undefined> {
+  return normalizeOptional(
+    await ctx.ui.input(
+      "追加指示",
+      "例: package-lock.json は無視してください。空 Enter でなし",
+    ),
+  );
+}
+
 async function collectCommitOptions(
   pi: ExtensionAPI,
   ctx: ExtensionContext,
@@ -244,27 +260,33 @@ async function collectCommitOptions(
   );
   if (!branchMode) return null;
 
-  if (branchMode === "no") return { language, createBranch: false };
+  let options: CommitOptions;
 
-  const defaultBranch = await getDefaultBranch(pi);
-  const branches = await getBranches(pi, defaultBranch);
-  const baseBranch = await selectFuzzy(
-    ctx,
-    "新しいブランチのベースブランチ",
-    branches.length > 0
-      ? branches
-      : [
-          {
-            value: defaultBranch ?? "main",
-            label: defaultBranch ?? "main",
-            description: "フォールバック",
-          },
-        ],
-    defaultBranch,
-  );
-  if (!baseBranch) return null;
+  if (branchMode === "no") {
+    options = { language, createBranch: false };
+  } else {
+    const defaultBranch = await getDefaultBranch(pi);
+    const branches = await getBranches(pi, defaultBranch);
+    const baseBranch = await selectFuzzy(
+      ctx,
+      "新しいブランチのベースブランチ",
+      branches.length > 0
+        ? branches
+        : [
+            {
+              value: defaultBranch ?? "main",
+              label: defaultBranch ?? "main",
+              description: "フォールバック",
+            },
+          ],
+      defaultBranch,
+    );
+    if (!baseBranch) return null;
+    options = { language, createBranch: true, baseBranch };
+  }
 
-  return { language, createBranch: true, baseBranch };
+  const additionalNotes = await collectAdditionalNotes(ctx);
+  return { ...options, additionalNotes };
 }
 
 function optionsForPrompt(options: CommitOptions): string {
@@ -393,7 +415,7 @@ export default function (pi: ExtensionAPI) {
         "## Interactive Options",
         selectedOptions,
         "## Additional User Notes",
-        "(none)",
+        options.additionalNotes ?? "(none)",
         "## Initial Git Snapshot (may be stale; verify with live commands)",
         snapshot,
       ].join("\n\n");
