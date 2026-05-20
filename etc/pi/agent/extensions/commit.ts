@@ -9,6 +9,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import {
   fuzzyFilter,
+  Input,
   Key,
   matchesKey,
   SelectList,
@@ -101,7 +102,7 @@ async function selectFuzzy(
             truncateToWidth(
               theme.fg(
                 "dim",
-                "入力で検索 • ↑↓で移動 • enterで選択 • escでキャンセル",
+                "入力で検索 • ↑↓で移動 • enterで選択 • escで戻る/キャンセル",
               ),
               width,
               "",
@@ -210,14 +211,51 @@ async function getBranches(
   }));
 }
 
+async function inputOptional(
+  ctx: ExtensionContext,
+  title: string,
+  placeholder: string,
+): Promise<string | null | undefined> {
+  return await ctx.ui.custom<string | null | undefined>(
+    (tui, theme, _keybindings, done) => {
+      const input = new Input();
+      input.focused = true;
+      input.onSubmit = (value) => done(normalizeOptional(value));
+      input.onEscape = () => done(null);
+
+      return {
+        invalidate: () => input.invalidate(),
+        render: (width: number) => {
+          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
+          return [
+            border,
+            theme.fg("accent", theme.bold(title)),
+            theme.fg("dim", placeholder),
+            ...input.render(width),
+            truncateToWidth(
+              theme.fg("dim", "enterで確定 • escで戻る"),
+              width,
+              "",
+            ),
+            border,
+          ].map((line) => truncateToWidth(line, width, ""));
+        },
+        handleInput: (data: string) => {
+          input.handleInput(data);
+          tui.requestRender();
+        },
+      };
+    },
+  );
+}
+
 async function collectAdditionalNotes(
   ctx: ExtensionContext,
-): Promise<string | undefined> {
-  return normalizeOptional(
-    await ctx.ui.input(
-      "追加指示",
-      "例: package-lock.json は無視してください。空 Enter でなし",
-    ),
+): Promise<string | null | undefined> {
+  return await inputOptional(
+    ctx,
+    "追加指示",
+    "例: package-lock.json は無視してください。空 Enter でなし",
   );
 }
 
@@ -225,68 +263,105 @@ async function collectCommitOptions(
   pi: ExtensionAPI,
   ctx: ExtensionContext,
 ): Promise<CommitOptions | null> {
-  const language = (await selectFuzzy(
-    ctx,
-    "コミットメッセージの言語",
-    [
-      {
-        value: "auto",
-        label: "自動",
-        description: "直近のコミット履歴に合わせる。不明なら確認する",
-      },
-      { value: "english", label: "英語", description: "--english 相当" },
-      { value: "japanese", label: "日本語", description: "--japanese 相当" },
-    ],
-    "auto",
-  )) as CommitLanguage | null;
-  if (!language) return null;
+  let step: "language" | "branchMode" | "baseBranch" | "additionalNotes" =
+    "language";
+  let language: CommitLanguage = "auto";
+  let branchMode: "yes" | "no" = "no";
+  let baseBranch: string | undefined;
+  let defaultBranch: string | undefined;
+  let branches: SelectItem[] | undefined;
 
-  const branchMode = await selectFuzzy(
-    ctx,
-    "先に新しいブランチを作成しますか？",
-    [
-      {
-        value: "no",
-        label: "いいえ",
-        description: "現在のブランチにコミットする",
-      },
-      {
-        value: "yes",
-        label: "はい",
-        description: "コミット前に新しいブランチを作成する",
-      },
-    ],
-    "no",
-  );
-  if (!branchMode) return null;
+  while (true) {
+    if (step === "language") {
+      const selectedLanguage = (await selectFuzzy(
+        ctx,
+        "コミットメッセージの言語",
+        [
+          {
+            value: "auto",
+            label: "自動",
+            description: "直近のコミット履歴に合わせる。不明なら確認する",
+          },
+          { value: "english", label: "英語", description: "--english 相当" },
+          {
+            value: "japanese",
+            label: "日本語",
+            description: "--japanese 相当",
+          },
+        ],
+        language,
+      )) as CommitLanguage | null;
+      if (!selectedLanguage) return null;
+      language = selectedLanguage;
+      step = "branchMode";
+      continue;
+    }
 
-  let options: CommitOptions;
+    if (step === "branchMode") {
+      const selectedBranchMode = (await selectFuzzy(
+        ctx,
+        "先に新しいブランチを作成しますか？",
+        [
+          {
+            value: "no",
+            label: "いいえ",
+            description: "現在のブランチにコミットする",
+          },
+          {
+            value: "yes",
+            label: "はい",
+            description: "コミット前に新しいブランチを作成する",
+          },
+        ],
+        branchMode,
+      )) as "yes" | "no" | null;
+      if (!selectedBranchMode) {
+        step = "language";
+        continue;
+      }
+      branchMode = selectedBranchMode;
+      step = branchMode === "yes" ? "baseBranch" : "additionalNotes";
+      continue;
+    }
 
-  if (branchMode === "no") {
-    options = { language, createBranch: false };
-  } else {
-    const defaultBranch = await getDefaultBranch(pi);
-    const branches = await getBranches(pi, defaultBranch);
-    const baseBranch = await selectFuzzy(
-      ctx,
-      "新しいブランチのベースブランチ",
-      branches.length > 0
-        ? branches
-        : [
-            {
-              value: defaultBranch ?? "main",
-              label: defaultBranch ?? "main",
-              description: "フォールバック",
-            },
-          ],
-      defaultBranch,
-    );
-    if (!baseBranch) return null;
-    options = { language, createBranch: true, baseBranch };
+    if (step === "baseBranch") {
+      if (!branches) {
+        defaultBranch = await getDefaultBranch(pi);
+        branches = await getBranches(pi, defaultBranch);
+      }
+      const selectedBaseBranch = await selectFuzzy(
+        ctx,
+        "新しいブランチのベースブランチ",
+        branches.length > 0
+          ? branches
+          : [
+              {
+                value: defaultBranch ?? "main",
+                label: defaultBranch ?? "main",
+                description: "フォールバック",
+              },
+            ],
+        baseBranch ?? defaultBranch,
+      );
+      if (!selectedBaseBranch) {
+        step = "branchMode";
+        continue;
+      }
+      baseBranch = selectedBaseBranch;
+      step = "additionalNotes";
+      continue;
+    }
+
+    const additionalNotes = await collectAdditionalNotes(ctx);
+    if (additionalNotes === null) {
+      step = branchMode === "yes" ? "baseBranch" : "branchMode";
+      continue;
+    }
+
+    return branchMode === "yes"
+      ? { language, createBranch: true, baseBranch, additionalNotes }
+      : { language, createBranch: false, additionalNotes };
   }
-
-  const additionalNotes = await collectAdditionalNotes(ctx);
-  return { ...options, additionalNotes };
 }
 
 function optionsForPrompt(options: CommitOptions): string {
