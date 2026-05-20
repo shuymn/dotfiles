@@ -1,36 +1,17 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  createFakePi as createSharedFakePi,
+  type ExecCall,
+  type ExecResult,
+} from "../test-support/fake-pi";
+import { createFakeUi } from "../test-support/fake-ui";
+import { installTypeboxMock } from "../test-support/typebox-mock";
 
-mock.module("typebox", () => {
-  const Type = {
-    Object: (properties: Record<string, unknown>, options = {}) => ({
-      type: "object",
-      properties,
-      ...options,
-    }),
-    String: (options = {}) => ({ type: "string", ...options }),
-    Boolean: (options = {}) => ({ type: "boolean", ...options }),
-    Array: (items: unknown, options = {}) => ({
-      type: "array",
-      items,
-      ...options,
-    }),
-    Optional: (schema: Record<string, unknown>) => ({
-      ...schema,
-      optional: true,
-    }),
-  };
-  return { Type };
-});
+installTypeboxMock();
 
-type ExecCall = {
-  command: string;
-  args: string[];
-  options: Record<string, unknown>;
-};
-type ExecResult = { code: number; stdout: string; stderr: string };
 type CommandHandler = (
   args: string,
   ctx: FakeCommandContext,
@@ -96,67 +77,36 @@ function createFakePi(
     call: ExecCall,
   ) => ExecResult | Promise<ExecResult> = defaultExec,
 ) {
-  const tools = new Map<string, ToolDefinition>();
-  const commands = new Map<
-    string,
+  return createSharedFakePi<
+    ToolDefinition,
     { description: string; handler: CommandHandler }
-  >();
-  const execCalls: ExecCall[] = [];
-  const sentMessages: Array<{ message: any; options: unknown }> = [];
-
-  return {
-    tools,
-    commands,
-    execCalls,
-    sentMessages,
-    registerTool(definition: ToolDefinition) {
-      tools.set(definition.name, definition);
-    },
-    registerCommand(
-      name: string,
-      definition: { description: string; handler: CommandHandler },
-    ) {
-      commands.set(name, definition);
-    },
-    async exec(
-      command: string,
-      args: string[],
-      options: Record<string, unknown>,
-    ) {
-      if (command === "git") {
-        expect(options).toMatchObject({
+  >({
+    exec: (call) => {
+      if (call.command === "git") {
+        expect(call.options).toMatchObject({
           cwd: expect.any(String),
           timeout: 10_000,
         });
       }
-      const call = { command, args, options };
-      execCalls.push(call);
       return execHandler(call);
     },
-    sendMessage(message: any, options: unknown) {
-      sentMessages.push({ message, options });
-    },
-  };
+  });
 }
 
 function createCommandContext(cwd = "/repo") {
-  const notifications: Array<{ message: string; level: string }> = [];
+  const ui = createFakeUi();
   const waited = { value: false };
   const ctx: FakeCommandContext & {
-    notifications: typeof notifications;
+    notifications: typeof ui.notifications;
     waited: typeof waited;
   } = {
     cwd,
-    notifications,
+    notifications: ui.notifications,
     waited,
     async waitForIdle() {
       waited.value = true;
     },
-    ui: {
-      notify(message: string, level: string) {
-        notifications.push({ message, level });
-      },
-    },
+    ui,
   };
   return ctx;
 }

@@ -1,4 +1,10 @@
 import { describe, expect, mock, test } from "bun:test";
+import {
+  createFakePi as createSharedFakePi,
+  type ExecCall,
+  type ExecResult,
+} from "../test-support/fake-pi";
+import { installTypeboxMock } from "../test-support/typebox-mock";
 
 mock.module("@earendil-works/pi-ai", () => ({
   StringEnum: (values: readonly string[], options = {}) => ({
@@ -7,35 +13,7 @@ mock.module("@earendil-works/pi-ai", () => ({
   }),
 }));
 
-mock.module("typebox", () => {
-  const Type = {
-    Object: (properties: Record<string, unknown>, options = {}) => ({
-      type: "object",
-      properties,
-      ...options,
-    }),
-    String: (options = {}) => ({ type: "string", ...options }),
-    Boolean: (options = {}) => ({ type: "boolean", ...options }),
-    Integer: (options = {}) => ({ type: "integer", ...options }),
-    Array: (items: unknown, options = {}) => ({
-      type: "array",
-      items,
-      ...options,
-    }),
-    Optional: (schema: Record<string, unknown>) => ({
-      ...schema,
-      optional: true,
-    }),
-  };
-  return { Type };
-});
-
-type ExecCall = {
-  command: string;
-  args: string[];
-  options: Record<string, unknown>;
-};
-type ExecResult = { code: number; stdout: string; stderr: string };
+installTypeboxMock();
 type ToolDefinition = {
   name: string;
   label: string;
@@ -61,24 +39,7 @@ function createFakePi(
     call: ExecCall,
   ) => ExecResult | Promise<ExecResult> = defaultExec,
 ) {
-  const tools = new Map<string, ToolDefinition>();
-  const execCalls: ExecCall[] = [];
-  return {
-    tools,
-    execCalls,
-    registerTool(definition: ToolDefinition) {
-      tools.set(definition.name, definition);
-    },
-    async exec(
-      command: string,
-      args: string[],
-      options: Record<string, unknown>,
-    ) {
-      const call = { command, args, options };
-      execCalls.push(call);
-      return execHandler(call);
-    },
-  };
+  return createSharedFakePi<ToolDefinition>({ exec: execHandler });
 }
 
 function defaultExec(call: ExecCall): ExecResult {

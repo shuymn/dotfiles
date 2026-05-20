@@ -1,37 +1,18 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  createFakePi as createSharedFakePi,
+  type ExecCall,
+  type ExecResult,
+  type FakePi,
+  shutdownFakePis,
+} from "../test-support/fake-pi";
+import { createFakeUi, type FakeUi } from "../test-support/fake-ui";
+import { installTypeboxMock } from "../test-support/typebox-mock";
 
-mock.module("typebox", () => {
-  const Type = {
-    Object: (properties: Record<string, unknown>, options = {}) => ({
-      type: "object",
-      properties,
-      ...options,
-    }),
-    String: (options = {}) => ({ type: "string", ...options }),
-    Boolean: (options = {}) => ({ type: "boolean", ...options }),
-    Array: (items: unknown, options = {}) => ({
-      type: "array",
-      items,
-      ...options,
-    }),
-    Optional: (schema: Record<string, unknown>) => ({
-      ...schema,
-      optional: true,
-    }),
-  };
-  return { Type };
-});
-
-type ExecCall = {
-  command: string;
-  args: string[];
-  options: Record<string, unknown>;
-};
-type ExecResult = { code: number; stdout: string; stderr: string };
-type EventHandler = (event: any, ctx?: any) => Promise<any> | any;
+installTypeboxMock();
 type CommandHandler = (
   args: string,
   ctx: FakeCommandContext,
@@ -55,23 +36,8 @@ type ToolDefinition = {
 };
 type FakeRunContext = { cwd: string; ui: FakeUi };
 type FakeCommandContext = FakeRunContext & { waitForIdle: () => Promise<void> };
-type FakeUi = {
-  notifications: Array<{ message: string; level: string }>;
-  widgets: Array<{
-    key: string;
-    lines: string[] | undefined;
-    options?: unknown;
-  }>;
-  notify: (message: string, level: string) => void;
-  setWidget: (
-    key: string,
-    lines: string[] | undefined,
-    options?: unknown,
-  ) => void;
-};
-
 const tempDirs: string[] = [];
-const createdPis: any[] = [];
+const createdPis: FakePi[] = [];
 
 function defaultExec(call: ExecCall): ExecResult {
   const args = call.args.join(" ");
@@ -113,73 +79,26 @@ function createFakePi(
     call: ExecCall,
   ) => ExecResult | Promise<ExecResult> = defaultExec,
 ) {
-  const tools = new Map<string, ToolDefinition>();
-  const commands = new Map<
-    string,
+  const pi = createSharedFakePi<
+    ToolDefinition,
     { description: string; handler: CommandHandler }
-  >();
-  const events = new Map<string, EventHandler[]>();
-  const execCalls: ExecCall[] = [];
-  const sentMessages: Array<{ message: any; options: unknown }> = [];
-
-  const pi = {
-    tools,
-    commands,
-    events,
-    execCalls,
-    sentMessages,
-    registerTool(definition: ToolDefinition) {
-      tools.set(definition.name, definition);
-    },
-    registerCommand(
-      name: string,
-      definition: { description: string; handler: CommandHandler },
-    ) {
-      commands.set(name, definition);
-    },
-    on(eventName: string, handler: EventHandler) {
-      events.set(eventName, [...(events.get(eventName) ?? []), handler]);
-    },
-    async exec(
-      command: string,
-      args: string[],
-      options: Record<string, unknown>,
-    ) {
-      if (command === "git") {
-        expect(options).toMatchObject({
+  >({
+    exec: (call) => {
+      if (call.command === "git") {
+        expect(call.options).toMatchObject({
           cwd: expect.any(String),
           timeout: 10_000,
         });
       }
-      const call = { command, args, options };
-      execCalls.push(call);
       return execHandler(call);
     },
-    sendMessage(message: any, options: unknown) {
-      sentMessages.push({ message, options });
-    },
-  };
+  });
   createdPis.push(pi);
   return pi;
 }
 
 function createUi(): FakeUi {
-  const notifications: Array<{ message: string; level: string }> = [];
-  const widgets: Array<{
-    key: string;
-    lines: string[] | undefined;
-    options?: unknown;
-  }> = [];
-  return {
-    notifications,
-    widgets,
-    notify(message: string, level: string) {
-      notifications.push({ message, level });
-    },
-    setWidget(key: string, lines: string[] | undefined, options?: unknown) {
-      widgets.push({ key, lines, options });
-    },
-  };
+  return createFakeUi();
 }
 
 function createRunContext(cwd = "/repo"): FakeRunContext {
@@ -210,11 +129,7 @@ async function createTempDir() {
 }
 
 async function shutdownAllRuns() {
-  for (const pi of createdPis) {
-    const handler = pi.events.get("session_shutdown")?.[0];
-    if (handler) await handler({}, createRunContext());
-  }
-  createdPis.splice(0);
+  await shutdownFakePis(createdPis, createRunContext());
 }
 
 afterEach(async () => {

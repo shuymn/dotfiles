@@ -1,4 +1,11 @@
 import { describe, expect, mock, test } from "bun:test";
+import {
+  createFakePi as createSharedFakePi,
+  type ExecCall,
+  type ExecResult,
+} from "../test-support/fake-pi";
+import { createFakeUi } from "../test-support/fake-ui";
+import { installTypeboxMock } from "../test-support/typebox-mock";
 
 mock.module("@earendil-works/pi-ai", () => ({
   StringEnum: (values: readonly string[], options = {}) => ({
@@ -7,28 +14,7 @@ mock.module("@earendil-works/pi-ai", () => ({
   }),
 }));
 
-mock.module("typebox", () => {
-  const Type = {
-    Object: (properties: Record<string, unknown>, options = {}) => ({
-      type: "object",
-      properties,
-      ...options,
-    }),
-    String: (options = {}) => ({ type: "string", ...options }),
-    Optional: (schema: Record<string, unknown>) => ({
-      ...schema,
-      optional: true,
-    }),
-  };
-  return { Type };
-});
-
-type ExecResult = { code: number; stdout: string; stderr: string };
-type ExecCall = {
-  command: string;
-  args: string[];
-  options: Record<string, unknown>;
-};
+installTypeboxMock();
 type ToolDefinition = {
   name: string;
   label: string;
@@ -58,8 +44,8 @@ type FakeCommandContext = {
   signal?: AbortSignal;
   waitForIdle: () => Promise<void>;
   ui: {
-    select: (title: string, choices: string[]) => Promise<string | undefined>;
-    input: (title: string, defaultValue: string) => Promise<string | undefined>;
+    select: (title: string, choices: string[]) => Promise<unknown>;
+    input: (title: string, defaultValue: string) => Promise<unknown>;
     confirm: (title: string, message: string) => Promise<boolean>;
     notify: (message: string, level: string) => void;
     setWidget: (
@@ -75,35 +61,9 @@ function createFakePi(
     call: ExecCall,
   ) => ExecResult | Promise<ExecResult> = defaultExecHandler,
 ) {
-  const tools = new Map<string, ToolDefinition>();
-  const commands = new Map<string, CommandDefinition>();
-  const execCalls: ExecCall[] = [];
-  const sentMessages: Array<{ message: unknown; options: unknown }> = [];
-
-  return {
-    tools,
-    commands,
-    execCalls,
-    sentMessages,
-    registerTool(definition: ToolDefinition) {
-      tools.set(definition.name, definition);
-    },
-    registerCommand(name: string, definition: CommandDefinition) {
-      commands.set(name, definition);
-    },
-    async exec(
-      command: string,
-      args: string[],
-      options: Record<string, unknown>,
-    ) {
-      const call = { command, args, options };
-      execCalls.push(call);
-      return execHandler(call);
-    },
-    sendMessage(message: unknown, options: unknown) {
-      sentMessages.push({ message, options });
-    },
-  };
+  return createSharedFakePi<ToolDefinition, CommandDefinition>({
+    exec: execHandler,
+  });
 }
 
 function defaultExecHandler(call: ExecCall): ExecResult {
@@ -154,46 +114,18 @@ function createCommandContext(
   }>;
   waited: { value: boolean };
 } {
-  const selects = [...(options.selects ?? [])];
-  const inputs = [...(options.inputs ?? [])];
-  const confirms = [...(options.confirms ?? [])];
-  const notifications: Array<{ message: string; level: string }> = [];
-  const widgets: Array<{
-    key: string;
-    lines: string[] | undefined;
-    options?: unknown;
-  }> = [];
+  const ui = createFakeUi(options);
   const waited = { value: false };
 
   return {
     cwd: "/repo",
-    notifications,
-    widgets,
+    notifications: ui.notifications,
+    widgets: ui.widgets,
     waited,
     async waitForIdle() {
       waited.value = true;
     },
-    ui: {
-      async select() {
-        return selects.shift();
-      },
-      async input() {
-        return inputs.shift();
-      },
-      async confirm() {
-        return confirms.shift() ?? false;
-      },
-      notify(message: string, level: string) {
-        notifications.push({ message, level });
-      },
-      setWidget(
-        key: string,
-        lines: string[] | undefined,
-        widgetOptions?: unknown,
-      ) {
-        widgets.push({ key, lines, options: widgetOptions });
-      },
-    },
+    ui,
   };
 }
 
