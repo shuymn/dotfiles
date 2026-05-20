@@ -15,9 +15,14 @@ PI_BASE := etc/pi
 PI_HOME := $(HOME)/.pi
 PI_EXCLUSIONS := \
 	$(PI_BASE)/README.md \
+	$(PI_BASE)/agent/extensions/biome.json \
+	$(PI_BASE)/agent/extensions/bun.lock \
+	$(PI_BASE)/agent/extensions/package.json \
+	$(PI_BASE)/agent/extensions/tsconfig.json \
 	$(PI_BASE)/agent/extensions/node_modules/% \
-	$(PI_BASE)/agent/extensions/%.test.ts
-PI_CANDIDATES := $(filter-out $(PI_EXCLUSIONS),$(shell find $(PI_BASE) -type f 2>/dev/null))
+	$(PI_BASE)/agent/extensions/%.test.ts \
+	$(PI_BASE)/agent/extensions/test-support/%
+PI_CANDIDATES := $(filter-out $(PI_EXCLUSIONS),$(shell find $(PI_BASE) \( -path '$(PI_BASE)/agent/extensions/node_modules' -o -path '$(PI_BASE)/agent/extensions/test-support' \) -prune -o -type f -print 2>/dev/null))
 PI_TARGETS := $(patsubst $(PI_BASE)/%,$(PI_HOME)/%,$(PI_CANDIDATES))
 
 .DEFAULT_GOAL := help
@@ -59,6 +64,18 @@ link-claude: ## Create symlinks to the claude directory (excluding skills)
 link-pi: ## Create symlinks to the pi agent directory
 	@echo 'Start to link pi files'
 	@echo ''
+	@if [ -d "$(PI_HOME)" ]; then \
+		find "$(PI_HOME)" -type l -print | while IFS= read -r link; do \
+			target=$$(readlink "$$link"); \
+			case "$$target" in \
+				$(abspath $(PI_BASE))/*) \
+					rel=$${target#$(abspath $(PI_BASE))/}; \
+					source="$(PI_BASE)/$$rel"; \
+					case " $(PI_CANDIDATES) " in *" $$source "*) ;; *) rm -v "$$link" ;; esac; \
+					;; \
+			esac; \
+		done; \
+	fi
 	@$(foreach file,$(PI_CANDIDATES), \
 		mkdir -p $(dir $(patsubst etc/pi/%,$(PI_HOME)/%,$(file))) && \
 		ln -sfnv $(abspath $(file)) $(patsubst etc/pi/%,$(PI_HOME)/%,$(file));)
