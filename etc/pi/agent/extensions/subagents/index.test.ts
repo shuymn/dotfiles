@@ -30,7 +30,7 @@ type SessionBehavior = {
   blockPrompt?: boolean;
   initialMessages?: Array<{ role: string; content: unknown }>;
 };
-type CreatedSession = ReturnType<typeof createSession>;
+type CreatedSession = any;
 
 type ToolDefinition = {
   name: string;
@@ -59,7 +59,7 @@ type FakeContext = ReturnType<typeof createContext>;
 const createAgentSessionCalls: any[] = [];
 const loaderInstances: any[] = [];
 const createdSessions: CreatedSession[] = [];
-const createdPis: ReturnType<typeof createFakePi>[] = [];
+const createdPis: any[] = [];
 let nextBehaviors: SessionBehavior[] = [];
 
 function createSession(behavior: SessionBehavior) {
@@ -100,18 +100,18 @@ function createSession(behavior: SessionBehavior) {
     async prompt(prompt: string) {
       (session as any).lastPrompt = prompt;
       promptStarted.resolve();
-      subscribers.forEach((subscriber) =>
-        subscriber({ type: "message_start" }),
-      );
+      for (const subscriber of subscribers) {
+        subscriber({ type: "message_start" });
+      }
       for (const chunk of (behavior.resultText ?? "subagent result").match(
         /.{1,600}/gs,
       ) ?? []) {
-        subscribers.forEach((subscriber) =>
+        for (const subscriber of subscribers) {
           subscriber({
             type: "message_update",
             assistantMessageEvent: { type: "text_delta", delta: chunk },
-          }),
-        );
+          });
+        }
       }
       if (behavior.blockPrompt) {
         await new Promise<void>((resolve) => {
@@ -263,7 +263,8 @@ describe("subagents extension", () => {
         "call",
         { prompt: "Investigate this", description: "Investigation" },
         undefined,
-        (update) => updates.push(update.content[0].text),
+        (update: { content: Array<{ type: "text"; text: string }> }) =>
+          updates.push(update.content[0].text),
         createContext(),
       );
 
@@ -575,7 +576,8 @@ describe("subagents extension", () => {
         "call",
         { prompt: "Long output" },
         undefined,
-        (update) => updates.push(update.content[0].text),
+        (update: { content: Array<{ type: "text"; text: string }> }) =>
+          updates.push(update.content[0].text),
         createContext(),
       );
 

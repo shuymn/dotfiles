@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
+import type { TSchema } from "typebox";
 import {
   cancelledResult,
   completedResult,
@@ -15,7 +16,7 @@ import {
   type QuestionnaireResult,
   TYPE_SOMETHING_LABEL,
 } from "./types";
-import { createQuestionnaireComponent } from "./ui";
+import { type AskUiResult, createQuestionnaireComponent } from "./ui";
 import { validateAskUserQuestionParams } from "./validation";
 
 const ERROR_NO_UI = "Error: UI not available (running in non-interactive mode)";
@@ -43,7 +44,7 @@ Usage notes:
       `If the user selects ${CHAT_ABOUT_THIS_LABEL}, stop the questionnaire flow and discuss normally. Do not immediately call ask_user_question again.`,
       "When resuming after a paused ask_user_question result, reuse details.pendingQuestions; do not regenerate all questions from memory.",
     ],
-    parameters: AskUserQuestionParamsSchema as any,
+    parameters: AskUserQuestionParamsSchema as unknown as TSchema,
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const validation = validateAskUserQuestionParams(params);
@@ -53,8 +54,9 @@ Usage notes:
       const typed = params as AskUserQuestionParams;
       if (!ctx.hasUI) return errorResult(typed, ERROR_NO_UI, "no_ui", "no_ui");
 
-      const result = await ctx.ui.custom((tui, theme, _keybindings, done) =>
-        createQuestionnaireComponent(typed, tui, theme, done),
+      const result = await ctx.ui.custom<AskUiResult | null>(
+        (tui, theme, _keybindings, done) =>
+          createQuestionnaireComponent(typed, tui, theme, done),
       );
 
       if (!result || result.status === "cancelled")

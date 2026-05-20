@@ -34,8 +34,11 @@ type Model = {
   contextWindow?: number;
 };
 
+const ESCAPE = String.fromCharCode(0x1b);
+const ANSI_SEQUENCE = new RegExp(`${ESCAPE}\\[[0-9;]*m`, "g");
+
 function stripAnsi(text: string): string {
-  return text.replace(/\x1b\[[0-9;]*m/g, "");
+  return text.replace(ANSI_SEQUENCE, "");
 }
 
 function createFakePi(

@@ -24,12 +24,16 @@ type HistoryMessage = {
   cwd?: string;
   sessionName?: string;
   sessionPath?: string;
+  isCurrentSession?: boolean;
 };
 
 type SearchScope = "all" | "cwd" | "session";
 
-function sameResolvedPath(a: string | undefined, b: string): boolean {
-  return Boolean(a) && resolve(a) === b;
+function sameResolvedPath(
+  a: string | undefined,
+  b: string | undefined,
+): boolean {
+  return a !== undefined && b !== undefined && resolve(a) === b;
 }
 
 function userMessageText(message: unknown): string | undefined {
@@ -72,7 +76,10 @@ function formatDescription(item: HistoryMessage): string {
 
 function collectFromEntries(
   entries: ReturnType<ExtensionContext["sessionManager"]["getEntries"]>,
-  meta: Pick<HistoryMessage, "cwd" | "sessionName" | "sessionPath"> = {},
+  meta: Pick<
+    HistoryMessage,
+    "cwd" | "sessionName" | "sessionPath" | "isCurrentSession"
+  > = {},
 ): HistoryMessage[] {
   const messages: HistoryMessage[] = [];
   for (const entry of entries) {
@@ -104,6 +111,7 @@ async function collectHistoryMessages(
       cwd: ctx.cwd,
       sessionName: ctx.sessionManager.getSessionName(),
       sessionPath: ctx.sessionManager.getSessionFile(),
+      isCurrentSession: true,
     }),
   );
 
@@ -141,13 +149,13 @@ class MessageHistoryPicker implements Component, Focusable {
   private filtered: HistoryMessage[];
   private scope: SearchScope = "all";
   private readonly currentCwdResolved: string;
-  private readonly currentSessionPathResolved: string;
+  private readonly currentSessionPathResolved: string | undefined;
   private readonly scopedItemsCache = new Map<SearchScope, HistoryMessage[]>();
 
   constructor(
     private readonly items: HistoryMessage[],
     currentCwd: string,
-    currentSessionPath: string,
+    currentSessionPath: string | undefined,
     private readonly theme: {
       fg(color: string, text: string): string;
       bold(text: string): string;
@@ -159,7 +167,9 @@ class MessageHistoryPicker implements Component, Focusable {
     private readonly requestRender: () => void,
   ) {
     this.currentCwdResolved = resolve(currentCwd);
-    this.currentSessionPathResolved = resolve(currentSessionPath);
+    this.currentSessionPathResolved = currentSessionPath
+      ? resolve(currentSessionPath)
+      : undefined;
     this.filtered = items;
   }
 
@@ -214,7 +224,8 @@ class MessageHistoryPicker implements Component, Focusable {
       const end = Math.min(start + maxVisible, this.filtered.length);
 
       for (let i = start; i < end; i++) {
-        const item = this.filtered[i]!;
+        const item = this.filtered[i];
+        if (!item) continue;
         const selected = i === this.selectedIndex;
         const prefix = selected ? "→ " : "  ";
         const snippet = displaySnippet(item.text);
@@ -326,9 +337,9 @@ class MessageHistoryPicker implements Component, Focusable {
         return sameResolvedPath(item.cwd, this.currentCwdResolved);
       }
       if (this.scope === "session") {
-        return sameResolvedPath(
-          item.sessionPath,
-          this.currentSessionPathResolved,
+        return (
+          item.isCurrentSession ||
+          sameResolvedPath(item.sessionPath, this.currentSessionPathResolved)
         );
       }
       return true;

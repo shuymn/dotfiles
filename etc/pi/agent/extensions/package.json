@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "biome check .",
-    "test": "bun test",
+    "test": "find . -name '*.test.ts' -not -path './node_modules/*' -print0 | xargs -0 -n1 bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

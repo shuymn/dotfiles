@@ -103,12 +103,15 @@ function messageEntry(
 function createSessionManager(options: {
   entries: Entry[];
   name?: string;
-  file?: string;
+  file?: string | null;
 }) {
   return {
     getEntries: () => options.entries,
     getSessionName: () => options.name,
-    getSessionFile: () => options.file ?? "/sessions/current.json",
+    getSessionFile: () =>
+      options.file === null
+        ? undefined
+        : (options.file ?? "/sessions/current.json"),
   };
 }
 
@@ -484,6 +487,31 @@ describe("message-history extension", () => {
     await pi.shortcuts.get("ctrl+r")!.handler(ctx);
 
     expect(ctx.setEditorTexts).toEqual(["current session target"]);
+  });
+
+  test("current-session scope includes fileless current session messages", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createContext({
+      sessionManager: createSessionManager({
+        entries: [messageEntry("fileless current target", 1000)],
+        file: null,
+      }),
+      drivePicker: (component) => {
+        component.handleInput("target");
+        component.handleInput("tab");
+        component.handleInput("tab");
+        const rendered = component.render(120).join("\n");
+        expect(rendered).toContain("fileless current target");
+        component.handleInput("enter");
+        return undefined;
+      },
+    });
+
+    await pi.shortcuts.get("ctrl+r")!.handler(ctx);
+
+    expect(ctx.setEditorTexts).toEqual(["fileless current target"]);
   });
 
   test("falls back to current session if listing all sessions fails", async () => {

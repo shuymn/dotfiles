@@ -83,7 +83,7 @@ type ExecCall = {
   options: Record<string, unknown>;
 };
 type ExecResult = { code: number; stdout: string; stderr: string };
-type EventHandler = (event: any, ctx: any) => Promise<any> | any;
+type EventHandler = (event: any, ctx?: any) => Promise<any> | any;
 type CustomAction =
   | { kind: "select"; value: string | null }
   | { kind: "input"; value: string | null };

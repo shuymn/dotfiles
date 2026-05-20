@@ -8,8 +8,8 @@ import {
 } from "./types";
 
 type ThemeLike = {
-  fg: (name: string, text: string) => string;
-  bold: (text: string) => string;
+  fg(name: string, text: string): string;
+  bold(text: string): string;
 };
 
 type TuiLike = { requestRender: () => void };
@@ -28,10 +28,18 @@ export type AskUiResult =
 
 type Mode = "select" | "custom" | "chat" | "summary";
 
+const ESCAPE = String.fromCharCode(0x1b);
+const BRACKETED_PASTE_START = `${ESCAPE}[200~`;
+const BRACKETED_PASTE_END = `${ESCAPE}[201~`;
+
 function printableInput(data: string): string | null {
-  const bracketedPaste = data.match(/^\x1b\[200~([\s\S]*)\x1b\[201~$/);
-  const raw = bracketedPaste ? bracketedPaste[1] : data;
-  if (!bracketedPaste && raw.includes("\x1b")) return null;
+  const isBracketedPaste =
+    data.startsWith(BRACKETED_PASTE_START) &&
+    data.endsWith(BRACKETED_PASTE_END);
+  const raw = isBracketedPaste
+    ? data.slice(BRACKETED_PASTE_START.length, -BRACKETED_PASTE_END.length)
+    : data;
+  if (!isBracketedPaste && raw.includes(ESCAPE)) return null;
 
   const text = [...raw]
     .filter((char) => {
@@ -165,6 +173,14 @@ export function createQuestionnaireComponent(
     });
   }
 
+  function toggleSelectedMultiOption() {
+    const set = getMultiSet();
+    notice = undefined;
+    if (set.has(selectedIndex)) set.delete(selectedIndex);
+    else set.add(selectedIndex);
+    refresh();
+  }
+
   function handleSelectEnter() {
     const q = currentQuestion();
     if (!q) return;
@@ -173,11 +189,7 @@ export function createQuestionnaireComponent(
       const submitIndex = q.options.length;
       const chatIndex = q.options.length + 1;
       if (selectedIndex < q.options.length) {
-        const set = getMultiSet();
-        notice = undefined;
-        if (set.has(selectedIndex)) set.delete(selectedIndex);
-        else set.add(selectedIndex);
-        refresh();
+        toggleSelectedMultiOption();
         return;
       }
       if (selectedIndex === submitIndex) saveMulti();
@@ -244,11 +256,7 @@ export function createQuestionnaireComponent(
       currentQuestion()?.multiSelect === true &&
       selectedIndex < currentQuestion().options.length
     ) {
-      const set = getMultiSet();
-      notice = undefined;
-      if (set.has(selectedIndex)) set.delete(selectedIndex);
-      else set.add(selectedIndex);
-      refresh();
+      toggleSelectedMultiOption();
       return;
     }
     if (matchesKey(data, Key.enter)) handleSelectEnter();
@@ -341,7 +349,7 @@ export function createQuestionnaireComponent(
 
     if (q.multiSelect === true) {
       const set = getMultiSet();
-      q.options.forEach((option, index) =>
+      for (const [index, option] of q.options.entries()) {
         lines.push(
           ...renderOptionLine(
             width,
@@ -350,8 +358,8 @@ export function createQuestionnaireComponent(
             option.description,
             set.has(index),
           ),
-        ),
-      );
+        );
+      }
       lines.push(
         ...renderOptionLine(
           width,

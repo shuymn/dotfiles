@@ -26,7 +26,7 @@ type CommandHandler = (
   args: string,
   ctx: FakeCommandContext,
 ) => Promise<void> | void;
-type EventHandler = (event: any, ctx: any) => Promise<any> | any;
+type EventHandler = (event: any, ctx?: any) => Promise<any> | any;
 type ToolDefinition = {
   name: string;
   execute: (

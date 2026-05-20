@@ -32,7 +32,7 @@ export function validateAskUserQuestionParams(
     );
   }
 
-  const typed = params as AskUserQuestionParams;
+  const typed = params as unknown as AskUserQuestionParams;
 
   if (typed.questions.length === 0) {
     return {

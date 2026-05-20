@@ -130,7 +130,7 @@ export default function (pi: ExtensionAPI) {
 
           const usage = ctx.getContextUsage();
           const window = contextWindow(ctx.model);
-          if (usage && window) {
+          if (usage && window && typeof usage.tokens === "number") {
             parts.push(`ctx ${dot((usage.tokens / window) * 100, 80, 30)}`);
           }
 
@@ -149,9 +149,11 @@ export default function (pi: ExtensionAPI) {
     requestFooterRender?.();
   });
 
-  for (const event of ["model_select", "thinking_level_select"] as const) {
-    pi.on(event, async () => {
-      requestFooterRender?.();
-    });
-  }
+  pi.on("model_select", async () => {
+    requestFooterRender?.();
+  });
+
+  pi.on("thinking_level_select", async () => {
+    requestFooterRender?.();
+  });
 }

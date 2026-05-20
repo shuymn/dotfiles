@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -31,7 +31,7 @@ type ExecCall = {
   options: Record<string, unknown>;
 };
 type ExecResult = { code: number; stdout: string; stderr: string };
-type EventHandler = (event: any, ctx: any) => Promise<any> | any;
+type EventHandler = (event: any, ctx?: any) => Promise<any> | any;
 type CommandHandler = (
   args: string,
   ctx: FakeCommandContext,
@@ -71,7 +71,7 @@ type FakeUi = {
 };
 
 const tempDirs: string[] = [];
-const createdPis: ReturnType<typeof createFakePi>[] = [];
+const createdPis: any[] = [];
 
 function defaultExec(call: ExecCall): ExecResult {
   const args = call.args.join(" ");
@@ -232,7 +232,7 @@ describe("review extension", () => {
     extension(pi as never);
 
     expect([...pi.commands.keys()]).toEqual(["review"]);
-    expect(pi.commands.get("review")!.description).toContain(
+    expect(pi.commands.get("review")?.description).toContain(
       "multi-stage code review workflow",
     );
     expect([...pi.events.keys()].sort()).toEqual([
@@ -338,8 +338,8 @@ describe("review extension", () => {
     extension(pi as never);
 
     await pi.tools
-      .get("review")!
-      .execute(
+      .get("review")
+      ?.execute(
         "call",
         { staged: true },
         undefined,
@@ -356,8 +356,8 @@ describe("review extension", () => {
     const emptyPi = createFakePi(() => ({ code: 0, stdout: "", stderr: "" }));
     extension(emptyPi as never);
     const result = await emptyPi.tools
-      .get("review")!
-      .execute("call", {}, undefined, undefined, createRunContext());
+      .get("review")
+      ?.execute("call", {}, undefined, undefined, createRunContext());
 
     expect(result).toEqual({
       content: [
@@ -376,8 +376,8 @@ describe("review extension", () => {
     const pi = createFakePi();
     extension(pi as never);
     await pi.tools
-      .get("review")!
-      .execute(
+      .get("review")
+      ?.execute(
         "call",
         { files: ["src/app.ts"] },
         undefined,
@@ -386,18 +386,19 @@ describe("review extension", () => {
       );
 
     await expect(
-      pi.events.get("tool_call")![0]({ toolName: "read", input: {} }),
+      pi.events.get("tool_call")?.[0]({ toolName: "read", input: {} }),
     ).resolves.toBeUndefined();
-    const subagentEvent = {
-      toolName: "spawn_subagent",
-      input: { prompt: "inspect" },
-    };
+    const subagentEvent: { toolName: string; input: Record<string, unknown> } =
+      {
+        toolName: "spawn_subagent",
+        input: { prompt: "inspect" },
+      };
     await expect(
-      pi.events.get("tool_call")![0](subagentEvent),
+      pi.events.get("tool_call")?.[0](subagentEvent),
     ).resolves.toBeUndefined();
     expect(subagentEvent.input).toEqual({ prompt: "inspect", readOnly: true });
     await expect(
-      pi.events.get("tool_call")![0]({
+      pi.events.get("tool_call")?.[0]({
         toolName: "bash",
         input: { command: "echo hi" },
       }),
@@ -414,10 +415,10 @@ describe("review extension", () => {
     extension(pi as never);
     const ctx = createRunContext();
     await pi.tools
-      .get("review")!
-      .execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
+      .get("review")
+      ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
 
-    await pi.events.get("agent_end")![0](
+    await pi.events.get("agent_end")?.[0](
       {
         messages: [
           {
@@ -444,14 +445,14 @@ describe("review extension", () => {
     });
 
     for (let index = 2; index <= 9; index += 1) {
-      await pi.events.get("agent_end")![0](
+      await pi.events.get("agent_end")?.[0](
         { messages: [{ role: "assistant", content: `phase ${index} done` }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
 
-    expect(ctx.ui.notifications.at(-1)!.message).toMatch(
+    expect(ctx.ui.notifications.at(-1)?.message).toMatch(
       /^\/review: workflow \d+ completed\.$/,
     );
     expect(ctx.ui.widgets.at(-1)).toEqual({
@@ -467,18 +468,18 @@ describe("review extension", () => {
     extension(pi as never);
     const ctx = createRunContext();
     await pi.tools
-      .get("review")!
-      .execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
+      .get("review")
+      ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
 
     // Finish Recon, Hunt, Validate, then Gapfill with new tasks.
     for (const text of ["recon", "hunt", "validate"]) {
-      await pi.events.get("agent_end")![0](
+      await pi.events.get("agent_end")?.[0](
         { messages: [{ role: "assistant", content: text }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
-    await pi.events.get("agent_end")![0](
+    await pi.events.get("agent_end")?.[0](
       {
         messages: [
           {
@@ -492,21 +493,21 @@ describe("review extension", () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 5));
 
-    expect(pi.sentMessages.at(-1)!.message.details.phase).toBe("02-hunt.md");
+    expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("02-hunt.md");
 
     // Second gapfill loop is still allowed; third one advances to Dedupe.
     for (const expected of ["02-hunt.md", "05-dedupe.md"]) {
-      await pi.events.get("agent_end")![0](
+      await pi.events.get("agent_end")?.[0](
         { messages: [{ role: "assistant", content: "hunt again" }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
-      await pi.events.get("agent_end")![0](
+      await pi.events.get("agent_end")?.[0](
         { messages: [{ role: "assistant", content: "validate again" }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
-      await pi.events.get("agent_end")![0](
+      await pi.events.get("agent_end")?.[0](
         {
           messages: [
             {
@@ -519,7 +520,7 @@ describe("review extension", () => {
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
-      expect(pi.sentMessages.at(-1)!.message.details.phase).toBe(expected);
+      expect(pi.sentMessages.at(-1)?.message.details.phase).toBe(expected);
     }
   });
 
@@ -530,8 +531,8 @@ describe("review extension", () => {
     const ctx = createRunContext();
 
     await pi.tools
-      .get("review")!
-      .execute(
+      .get("review")
+      ?.execute(
         "call",
         { files: ["src/app.ts"], noFix: true },
         undefined,
@@ -544,7 +545,7 @@ describe("review extension", () => {
       "No-fix mode is enabled: do not edit files",
     );
     await expect(
-      pi.events.get("tool_call")![0]({
+      pi.events.get("tool_call")?.[0]({
         toolName: "bash",
         input: { command: "echo hi" },
       }),
@@ -555,15 +556,15 @@ describe("review extension", () => {
     });
 
     for (let index = 1; index <= 6; index += 1) {
-      await pi.events.get("agent_end")![0](
+      await pi.events.get("agent_end")?.[0](
         { messages: [{ role: "assistant", content: `phase ${index}` }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
 
-    expect(pi.sentMessages.at(-1)!.message.details.phase).toBe("09-summary.md");
-    expect(pi.sentMessages.at(-1)!.message.content).toContain(
+    expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("09-summary.md");
+    expect(pi.sentMessages.at(-1)?.message.content).toContain(
       "No-fix mode: consolidate the validated findings into a Japanese report.",
     );
   });
@@ -574,7 +575,7 @@ describe("review extension", () => {
     extension(pi as never);
     const ctx = createCommandContext();
 
-    await pi.commands.get("review")!.handler("--no-fix @src/app.ts", ctx);
+    await pi.commands.get("review")?.handler("--no-fix @src/app.ts", ctx);
 
     expect(ctx.waited.value).toBe(true);
     expect(ctx.ui.notifications).toContainEqual({
@@ -583,7 +584,7 @@ describe("review extension", () => {
     });
 
     const busyCtx = createCommandContext();
-    await pi.commands.get("review")!.handler("src/other.ts", busyCtx);
+    await pi.commands.get("review")?.handler("src/other.ts", busyCtx);
     expect(busyCtx.ui.notifications).toEqual([
       {
         message: "/review: another review workflow is already running.",
@@ -592,7 +593,7 @@ describe("review extension", () => {
     ]);
 
     const cancelCtx = createCommandContext();
-    await pi.commands.get("review")!.handler("cancel", cancelCtx);
+    await pi.commands.get("review")?.handler("cancel", cancelCtx);
     expect(cancelCtx.ui.notifications[0].message).toMatch(
       /^\/review: cancelled workflow \d+\.$/,
     );
