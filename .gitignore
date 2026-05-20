@@ -5,6 +5,8 @@
 .ruff_cache/
 __pycache__/
 
+etc/pi/agent/extensions/node_modules/
+
 .config/.copilot/
 .config/.semgrep/
 .config/.wrangler/
