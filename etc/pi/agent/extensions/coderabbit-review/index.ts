@@ -6,6 +6,8 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
+import { execCli, toCliExec } from "../lib/cli";
+
 const COMMAND_NAME = "coderabbit-review";
 const TOOL_NAME = "coderabbit_review";
 const MAX_REVIEW_OUTPUT_CHARS = 80_000;
@@ -133,17 +135,18 @@ async function collectBaseBranchChoices(
   pi: ExtensionAPI,
   cwd: string,
 ): Promise<string[]> {
-  const result = await pi.exec(
-    "git",
-    [
+  const result = await execCli(toCliExec(pi), {
+    command: "git",
+    args: [
       "for-each-ref",
       "--format=%(refname)%09%(refname:short)",
       "refs/heads",
       "refs/remotes",
     ],
-    { cwd, timeout: 10_000 },
-  );
-  if (result.code !== 0) return ["main", "master"];
+    cwd,
+    timeout: 10_000,
+  });
+  if (result.exitCode !== 0) return ["main", "master"];
 
   const branches = result.stdout
     .split("\n")
@@ -221,8 +224,14 @@ async function ensureGitRepository(
   const args = dir
     ? ["-C", dir, "rev-parse", "--is-inside-work-tree"]
     : ["rev-parse", "--is-inside-work-tree"];
-  const result = await pi.exec("git", args, { cwd, signal, timeout: 10_000 });
-  if (result.code !== 0 || !result.stdout.includes("true")) {
+  const result = await execCli(toCliExec(pi), {
+    command: "git",
+    args,
+    cwd,
+    signal,
+    timeout: 10_000,
+  });
+  if (result.exitCode !== 0 || !result.stdout.includes("true")) {
     throw new Error(
       dir
         ? `Selected directory is not an initialized Git repository: ${dir}`
@@ -236,25 +245,29 @@ async function ensureCoderabbitReady(
   cwd: string,
   signal?: AbortSignal,
 ): Promise<void> {
-  const version = await pi.exec("coderabbit", ["--version"], {
+  const version = await execCli(toCliExec(pi), {
+    command: "coderabbit",
+    args: ["--version"],
     cwd,
     signal,
     timeout: 10_000,
   });
-  if (version.code !== 0) {
+  if (version.exitCode !== 0) {
     throw new Error(
       "CodeRabbit CLI is not available. Install it from https://www.coderabbit.ai/cli and restart your shell.",
     );
   }
 
-  const auth = await pi.exec("coderabbit", ["auth", "status"], {
+  const auth = await execCli(toCliExec(pi), {
+    command: "coderabbit",
+    args: ["auth", "status"],
     cwd,
     signal,
     timeout: 20_000,
   });
   const authText = `${auth.stdout}\n${auth.stderr}`;
   if (
-    auth.code !== 0 ||
+    auth.exitCode !== 0 ||
     /not logged in|not authenticated|login required/i.test(authText)
   ) {
     throw new Error(
@@ -272,7 +285,9 @@ async function runCoderabbitReview(
   await ensureGitRepository(pi, cwd, options.dir, signal);
   await ensureCoderabbitReady(pi, cwd, signal);
 
-  const review = await pi.exec("coderabbit", buildReviewArgs(options), {
+  const review = await execCli(toCliExec(pi), {
+    command: "coderabbit",
+    args: buildReviewArgs(options),
     cwd,
     signal,
     timeout: 10 * 60 * 1000,
@@ -281,7 +296,7 @@ async function runCoderabbitReview(
     output:
       [review.stdout, review.stderr].filter(Boolean).join("\n") ||
       "[No output]",
-    exitCode: review.code,
+    exitCode: review.exitCode,
   };
 }
 
