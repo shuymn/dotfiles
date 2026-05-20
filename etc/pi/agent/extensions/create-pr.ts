@@ -28,7 +28,12 @@ type CreatePrOptions = {
   language: PrLanguage;
   mode: PrMode;
   baseBranch?: string;
+  additionalNotes?: string;
 };
+
+function normalizeOptional(value?: string): string | undefined {
+  return value?.trim() || undefined;
+}
 
 function isPrintableInput(data: string): boolean {
   return (
@@ -195,6 +200,17 @@ async function getBranches(
   }));
 }
 
+async function collectAdditionalNotes(
+  ctx: ExtensionContext,
+): Promise<string | undefined> {
+  return normalizeOptional(
+    await ctx.ui.input(
+      "追加指示",
+      "例: README の変更は無視してください。空 Enter でなし",
+    ),
+  );
+}
+
 async function collectCreatePrOptions(
   pi: ExtensionAPI,
   ctx: ExtensionContext,
@@ -233,27 +249,33 @@ async function collectCreatePrOptions(
   )) as PrMode | null;
   if (!mode) return null;
 
-  if (mode === "update") return { language, mode };
+  let options: CreatePrOptions;
 
-  const defaultBranch = await getDefaultBranch(pi);
-  const branches = await getBranches(pi, defaultBranch);
-  const baseBranch = await selectFuzzy(
-    ctx,
-    "Pull request のベースブランチ",
-    branches.length > 0
-      ? branches
-      : [
-          {
-            value: defaultBranch ?? "main",
-            label: defaultBranch ?? "main",
-            description: "フォールバック",
-          },
-        ],
-    defaultBranch,
-  );
-  if (!baseBranch) return null;
+  if (mode === "update") {
+    options = { language, mode };
+  } else {
+    const defaultBranch = await getDefaultBranch(pi);
+    const branches = await getBranches(pi, defaultBranch);
+    const baseBranch = await selectFuzzy(
+      ctx,
+      "Pull request のベースブランチ",
+      branches.length > 0
+        ? branches
+        : [
+            {
+              value: defaultBranch ?? "main",
+              label: defaultBranch ?? "main",
+              description: "フォールバック",
+            },
+          ],
+      defaultBranch,
+    );
+    if (!baseBranch) return null;
+    options = { language, mode, baseBranch };
+  }
 
-  return { language, mode, baseBranch };
+  const additionalNotes = await collectAdditionalNotes(ctx);
+  return { ...options, additionalNotes };
 }
 
 function optionsForPrompt(options: CreatePrOptions): string {
@@ -381,7 +403,7 @@ export default function (pi: ExtensionAPI) {
         "## Interactive Options",
         selectedOptions,
         "## Additional User Notes",
-        "(none)",
+        options.additionalNotes ?? "(none)",
         "## Initial Git/GitHub Snapshot (may be stale; verify with live commands)",
         snapshot,
       ].join("\n\n");
