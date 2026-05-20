@@ -6,6 +6,7 @@ import type {
 import { getSelectListTheme } from "@earendil-works/pi-coding-agent";
 import {
   fuzzyFilter,
+  Input,
   Key,
   matchesKey,
   SelectList,
@@ -91,7 +92,7 @@ async function selectFuzzy(
             truncateToWidth(
               theme.fg(
                 "dim",
-                "入力で検索 • ↑↓で移動 • enterで選択 • escでキャンセル",
+                "入力で検索 • ↑↓で移動 • enterで選択 • escで戻る/キャンセル",
               ),
               width,
               "",
@@ -200,14 +201,51 @@ async function getBranches(
   }));
 }
 
+async function inputOptional(
+  ctx: ExtensionContext,
+  title: string,
+  placeholder: string,
+): Promise<string | null | undefined> {
+  return await ctx.ui.custom<string | null | undefined>(
+    (tui, theme, _keybindings, done) => {
+      const input = new Input();
+      input.focused = true;
+      input.onSubmit = (value) => done(normalizeOptional(value));
+      input.onEscape = () => done(null);
+
+      return {
+        invalidate: () => input.invalidate(),
+        render: (width: number) => {
+          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
+          return [
+            border,
+            theme.fg("accent", theme.bold(title)),
+            theme.fg("dim", placeholder),
+            ...input.render(width),
+            truncateToWidth(
+              theme.fg("dim", "enterで確定 • escで戻る"),
+              width,
+              "",
+            ),
+            border,
+          ].map((line) => truncateToWidth(line, width, ""));
+        },
+        handleInput: (data: string) => {
+          input.handleInput(data);
+          tui.requestRender();
+        },
+      };
+    },
+  );
+}
+
 async function collectAdditionalNotes(
   ctx: ExtensionContext,
-): Promise<string | undefined> {
-  return normalizeOptional(
-    await ctx.ui.input(
-      "追加指示",
-      "例: README の変更は無視してください。空 Enter でなし",
-    ),
+): Promise<string | null | undefined> {
+  return await inputOptional(
+    ctx,
+    "追加指示",
+    "例: README の変更は無視してください。空 Enter でなし",
   );
 }
 
@@ -215,67 +253,100 @@ async function collectCreatePrOptions(
   pi: ExtensionAPI,
   ctx: ExtensionContext,
 ): Promise<CreatePrOptions | null> {
-  const language = (await selectFuzzy(
-    ctx,
-    "Pull request の言語",
-    [
-      { value: "english", label: "英語", description: "デフォルト" },
-      {
-        value: "japanese",
-        label: "日本語",
-        description: "PR タイトル/本文を日本語で作成する",
-      },
-    ],
-    "english",
-  )) as PrLanguage | null;
-  if (!language) return null;
+  let step: "language" | "mode" | "baseBranch" | "additionalNotes" =
+    "language";
+  let language: PrLanguage = "english";
+  let mode: PrMode = "create";
+  let baseBranch: string | undefined;
+  let defaultBranch: string | undefined;
+  let branches: SelectItem[] | undefined;
 
-  const mode = (await selectFuzzy(
-    ctx,
-    "Pull request を作成または更新しますか？",
-    [
-      {
-        value: "create",
-        label: "作成",
-        description: "新しい pull request を作成する",
-      },
-      {
-        value: "update",
-        label: "更新",
-        description: "現在のブランチの open PR を更新する",
-      },
-    ],
-    "create",
-  )) as PrMode | null;
-  if (!mode) return null;
+  while (true) {
+    if (step === "language") {
+      const selectedLanguage = (await selectFuzzy(
+        ctx,
+        "Pull request の言語",
+        [
+          { value: "english", label: "英語", description: "デフォルト" },
+          {
+            value: "japanese",
+            label: "日本語",
+            description: "PR タイトル/本文を日本語で作成する",
+          },
+        ],
+        language,
+      )) as PrLanguage | null;
+      if (!selectedLanguage) return null;
+      language = selectedLanguage;
+      step = "mode";
+      continue;
+    }
 
-  let options: CreatePrOptions;
+    if (step === "mode") {
+      const selectedMode = (await selectFuzzy(
+        ctx,
+        "Pull request を作成または更新しますか？",
+        [
+          {
+            value: "create",
+            label: "作成",
+            description: "新しい pull request を作成する",
+          },
+          {
+            value: "update",
+            label: "更新",
+            description: "現在のブランチの open PR を更新する",
+          },
+        ],
+        mode,
+      )) as PrMode | null;
+      if (!selectedMode) {
+        step = "language";
+        continue;
+      }
+      mode = selectedMode;
+      step = mode === "create" ? "baseBranch" : "additionalNotes";
+      continue;
+    }
 
-  if (mode === "update") {
-    options = { language, mode };
-  } else {
-    const defaultBranch = await getDefaultBranch(pi);
-    const branches = await getBranches(pi, defaultBranch);
-    const baseBranch = await selectFuzzy(
-      ctx,
-      "Pull request のベースブランチ",
-      branches.length > 0
-        ? branches
-        : [
-            {
-              value: defaultBranch ?? "main",
-              label: defaultBranch ?? "main",
-              description: "フォールバック",
-            },
-          ],
-      defaultBranch,
-    );
-    if (!baseBranch) return null;
-    options = { language, mode, baseBranch };
+    if (step === "baseBranch") {
+      if (!branches) {
+        defaultBranch = await getDefaultBranch(pi);
+        branches = await getBranches(pi, defaultBranch);
+      }
+      const selectedBaseBranch = await selectFuzzy(
+        ctx,
+        "Pull request のベースブランチ",
+        branches.length > 0
+          ? branches
+          : [
+              {
+                value: defaultBranch ?? "main",
+                label: defaultBranch ?? "main",
+                description: "フォールバック",
+              },
+            ],
+        baseBranch ?? defaultBranch,
+      );
+      if (!selectedBaseBranch) {
+        step = "mode";
+        continue;
+      }
+      baseBranch = selectedBaseBranch;
+      step = "additionalNotes";
+      continue;
+    }
+
+    const additionalNotes = await collectAdditionalNotes(ctx);
+    if (additionalNotes === null) {
+      step = mode === "create" ? "baseBranch" : "mode";
+      continue;
+    }
+
+    return mode === "create"
+      ? { language, mode, baseBranch, additionalNotes }
+      : { language, mode, additionalNotes };
   }
-
-  const additionalNotes = await collectAdditionalNotes(ctx);
-  return { ...options, additionalNotes };
 }
 
 function optionsForPrompt(options: CreatePrOptions): string {
