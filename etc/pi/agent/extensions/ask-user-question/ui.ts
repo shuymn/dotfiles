@@ -1,4 +1,5 @@
 import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import { printableInput } from "../lib/tui";
 import {
   type AskUserQuestionParams,
   CHAT_ABOUT_THIS_LABEL,
@@ -10,6 +11,10 @@ import {
 type ThemeLike = {
   fg(name: string, text: string): string;
   bold(text: string): string;
+};
+
+type KeybindingsLike = {
+  matches(data: string, id: string): boolean;
 };
 
 type TuiLike = { requestRender: () => void };
@@ -28,34 +33,21 @@ export type AskUiResult =
 
 type Mode = "select" | "custom" | "chat" | "summary";
 
-const ESCAPE = String.fromCharCode(0x1b);
-const BRACKETED_PASTE_START = `${ESCAPE}[200~`;
-const BRACKETED_PASTE_END = `${ESCAPE}[201~`;
-
-function printableInput(data: string): string | null {
-  const isBracketedPaste =
-    data.startsWith(BRACKETED_PASTE_START) &&
-    data.endsWith(BRACKETED_PASTE_END);
-  const raw = isBracketedPaste
-    ? data.slice(BRACKETED_PASTE_START.length, -BRACKETED_PASTE_END.length)
-    : data;
-  if (!isBracketedPaste && raw.includes(ESCAPE)) return null;
-
-  const text = [...raw]
-    .filter((char) => {
-      const code = char.charCodeAt(0);
-      return !(code < 32 || code === 0x7f || (code >= 0x80 && code <= 0x9f));
-    })
-    .join("");
-  return text || null;
-}
-
 export function createQuestionnaireComponent(
   params: AskUserQuestionParams,
   tui: TuiLike,
   theme: ThemeLike,
+  keybindings: KeybindingsLike,
   done: Done,
 ) {
+  // Honor the user's tui.select.* keybindings for navigation, falling back to
+  // the default arrow/enter/escape keys when no custom binding matches.
+  const matchesSelect = (
+    data: string,
+    id: string,
+    fallback: Parameters<typeof matchesKey>[1],
+  ): boolean =>
+    (keybindings.matches?.(data, id) ?? false) || matchesKey(data, fallback);
   let questionIndex = 0;
   let selectedIndex = 0;
   let mode: Mode = "select";
@@ -206,9 +198,9 @@ export function createQuestionnaireComponent(
 
   function handleInput(data: string) {
     if (mode === "summary") {
-      if (matchesKey(data, Key.enter))
+      if (matchesSelect(data, "tui.select.confirm", Key.enter))
         done({ status: "completed", answers: [...answers] });
-      else if (matchesKey(data, Key.escape))
+      else if (matchesSelect(data, "tui.select.cancel", Key.escape))
         done({ status: "cancelled", answers: [...answers] });
       return;
     }
@@ -237,16 +229,16 @@ export function createQuestionnaireComponent(
       return;
     }
 
-    if (matchesKey(data, Key.escape)) {
+    if (matchesSelect(data, "tui.select.cancel", Key.escape)) {
       done({ status: "cancelled", answers: [...answers] });
       return;
     }
-    if (matchesKey(data, Key.up)) {
+    if (matchesSelect(data, "tui.select.up", Key.up)) {
       selectedIndex = Math.max(0, selectedIndex - 1);
       refresh();
       return;
     }
-    if (matchesKey(data, Key.down)) {
+    if (matchesSelect(data, "tui.select.down", Key.down)) {
       selectedIndex = Math.min(itemCount() - 1, selectedIndex + 1);
       refresh();
       return;
@@ -259,7 +251,8 @@ export function createQuestionnaireComponent(
       toggleSelectedMultiOption();
       return;
     }
-    if (matchesKey(data, Key.enter)) handleSelectEnter();
+    if (matchesSelect(data, "tui.select.confirm", Key.enter))
+      handleSelectEnter();
   }
 
   function renderOptionLine(

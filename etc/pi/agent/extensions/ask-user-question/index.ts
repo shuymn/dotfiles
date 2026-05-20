@@ -55,8 +55,8 @@ Usage notes:
       if (!ctx.hasUI) return errorResult(typed, ERROR_NO_UI, "no_ui", "no_ui");
 
       const result = await ctx.ui.custom<AskUiResult | null>(
-        (tui, theme, _keybindings, done) =>
-          createQuestionnaireComponent(typed, tui, theme, done),
+        (tui, theme, keybindings, done) =>
+          createQuestionnaireComponent(typed, tui, theme, keybindings, done),
       );
 
       if (!result || result.status === "cancelled")

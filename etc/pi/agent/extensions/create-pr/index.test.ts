@@ -1,65 +1,11 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import {
+  type CustomAction,
+  createCustomDriver,
+  installTuiMocks,
+} from "../test-support/tui-mocks";
 
-type SelectItemLike = { value: string; label: string; description?: string };
-type SelectInstance = {
-  items: SelectItemLike[];
-  selectedIndex: number;
-  onSelect?: (item: SelectItemLike) => void;
-  onCancel?: () => void;
-};
-type InputInstance = {
-  focused: boolean;
-  onSubmit?: (value: string) => void;
-  onEscape?: () => void;
-};
-
-const selectInstances: SelectInstance[] = [];
-const inputInstances: InputInstance[] = [];
-
-mock.module("@earendil-works/pi-tui", () => ({
-  Input: class implements InputInstance {
-    focused = false;
-    onSubmit?: (value: string) => void;
-    onEscape?: () => void;
-    constructor() {
-      inputInstances.push(this);
-    }
-    invalidate() {}
-    render() {
-      return ["<input>"];
-    }
-    handleInput(data: string) {
-      this.onSubmit?.(data);
-    }
-  },
-  Key: { backspace: "backspace", escape: "escape" },
-  matchesKey: (data: string, key: string) => data === key,
-  fuzzyFilter: (items: unknown[]) => items,
-  SelectList: class implements SelectInstance {
-    selectedIndex = 0;
-    onSelect?: (item: SelectItemLike) => void;
-    onCancel?: () => void;
-    constructor(public items: SelectItemLike[]) {
-      selectInstances.push(this);
-    }
-    setSelectedIndex(index: number) {
-      this.selectedIndex = index;
-    }
-    invalidate() {}
-    render() {
-      return this.items.map((item) => item.label);
-    }
-    handleInput(data: string) {
-      if (data === "escape") this.onCancel?.();
-      if (data === "enter") this.onSelect?.(this.items[this.selectedIndex]);
-    }
-  },
-  truncateToWidth: (text: string) => text,
-}));
-
-mock.module("@earendil-works/pi-coding-agent", () => ({
-  getSelectListTheme: () => ({}),
-}));
+const tuiInstances = installTuiMocks();
 
 type ExecCall = {
   command: string;
@@ -68,9 +14,6 @@ type ExecCall = {
 };
 type ExecResult = { code: number; stdout: string; stderr: string };
 type EventHandler = (event: any, ctx: any) => Promise<any> | any;
-type CustomAction =
-  | { kind: "select"; value: string | null }
-  | { kind: "input"; value: string | null };
 
 function defaultExec(call: ExecCall): ExecResult {
   const joined = call.args.join(" ");
@@ -183,7 +126,6 @@ function createContext(
 ) {
   const notifications: Array<{ message: string; level: string }> = [];
   let shutdownCount = 0;
-  const remaining = [...actions];
 
   return {
     notifications,
@@ -199,53 +141,7 @@ function createContext(
       notify(message: string, level: string) {
         notifications.push({ message, level });
       },
-      async custom(
-        factory: (
-          tui: unknown,
-          theme: unknown,
-          keybindings: unknown,
-          done: (value: unknown) => void,
-        ) => unknown,
-      ) {
-        const unresolved = Symbol("unresolved");
-        let resolved: unknown = unresolved;
-        const beforeSelectCount = selectInstances.length;
-        const beforeInputCount = inputInstances.length;
-        factory(
-          { requestRender() {} },
-          {
-            fg: (_name: string, text: string) => text,
-            bold: (text: string) => text,
-          },
-          {},
-          (value: unknown) => {
-            resolved = value;
-          },
-        );
-        const action = remaining.shift();
-        if (!action) throw new Error("No custom UI action queued");
-        if (action.kind === "select") {
-          const select = selectInstances.slice(beforeSelectCount).at(-1);
-          if (!select) throw new Error("Expected SelectList to be created");
-          if (action.value === null) select.onCancel?.();
-          else {
-            const item = select.items.find(
-              (candidate) => candidate.value === action.value,
-            );
-            if (!item)
-              throw new Error(
-                `No select item for value: ${action.value}. Choices: ${select.items.map((item) => item.value).join(", ")}`,
-              );
-            select.onSelect?.(item);
-          }
-        } else {
-          const input = inputInstances.slice(beforeInputCount).at(-1);
-          if (!input) throw new Error("Expected Input to be created");
-          if (action.value === null) input.onEscape?.();
-          else input.onSubmit?.(action.value);
-        }
-        return resolved === unresolved ? undefined : resolved;
-      },
+      custom: createCustomDriver(actions, tuiInstances),
     },
   };
 }

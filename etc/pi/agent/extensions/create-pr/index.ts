@@ -3,16 +3,8 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { getSelectListTheme } from "@earendil-works/pi-coding-agent";
-import {
-  fuzzyFilter,
-  Input,
-  Key,
-  matchesKey,
-  type SelectItem,
-  SelectList,
-  truncateToWidth,
-} from "@earendil-works/pi-tui";
+import type { SelectItem } from "@earendil-works/pi-tui";
+import { inputOptional, selectFuzzy } from "../lib/tui";
 
 const CREATE_PR_INSTRUCTIONS = readFileSync(
   new URL("./create-pr-instructions.md", import.meta.url),
@@ -31,99 +23,6 @@ type CreatePrOptions = {
   baseBranch?: string;
   additionalNotes?: string;
 };
-
-function normalizeOptional(value?: string): string | undefined {
-  return value?.trim() || undefined;
-}
-
-function isPrintableInput(data: string): boolean {
-  return (
-    data.length > 0 &&
-    !data.startsWith("\x1b") &&
-    !data.startsWith("\x7f") &&
-    !data.startsWith("\r")
-  );
-}
-
-async function selectFuzzy(
-  ctx: ExtensionContext,
-  title: string,
-  items: SelectItem[],
-  initialValue?: string,
-): Promise<string | null> {
-  return await ctx.ui.custom<string | null>(
-    (tui, theme, _keybindings, done) => {
-      let query = "";
-      let filteredItems = items;
-      let list: SelectList;
-
-      const makeList = () => {
-        filteredItems = query.trim()
-          ? fuzzyFilter(
-              items,
-              query.trim(),
-              (item) => `${item.label} ${item.value} ${item.description ?? ""}`,
-            )
-          : items;
-        list = new SelectList(
-          filteredItems,
-          Math.min(Math.max(filteredItems.length, 1), 12),
-          getSelectListTheme(),
-        );
-        const initialIndex = filteredItems.findIndex(
-          (item) => item.value === initialValue,
-        );
-        if (initialIndex >= 0) list.setSelectedIndex(initialIndex);
-        list.onSelect = (item) => done(item.value);
-        list.onCancel = () => done(null);
-      };
-
-      makeList();
-
-      return {
-        invalidate: () => list.invalidate(),
-        render: (width: number) => {
-          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
-          return [
-            border,
-            theme.fg("accent", theme.bold(title)),
-            theme.fg("dim", `検索: ${query || "(入力して絞り込み)"}`),
-            ...list.render(width),
-            truncateToWidth(
-              theme.fg(
-                "dim",
-                "入力で検索 • ↑↓で移動 • enterで選択 • escで戻る/キャンセル",
-              ),
-              width,
-              "",
-            ),
-            border,
-          ].map((line) => truncateToWidth(line, width, ""));
-        },
-        handleInput: (data: string) => {
-          if (matchesKey(data, Key.backspace)) {
-            query = query.slice(0, -1);
-            makeList();
-            tui.requestRender();
-            return;
-          }
-          if (matchesKey(data, Key.escape)) {
-            done(null);
-            return;
-          }
-          if (isPrintableInput(data)) {
-            query += data;
-            makeList();
-            tui.requestRender();
-            return;
-          }
-          list.handleInput(data);
-          tui.requestRender();
-        },
-      };
-    },
-  );
-}
 
 async function getDefaultBranch(pi: ExtensionAPI): Promise<string | undefined> {
   const symbolic = await pi
@@ -201,52 +100,13 @@ async function getBranches(
   }));
 }
 
-async function inputOptional(
-  ctx: ExtensionContext,
-  title: string,
-  placeholder: string,
-): Promise<string | null | undefined> {
-  return await ctx.ui.custom<string | null | undefined>(
-    (tui, theme, _keybindings, done) => {
-      const input = new Input();
-      input.focused = true;
-      input.onSubmit = (value) => done(normalizeOptional(value));
-      input.onEscape = () => done(null);
-
-      return {
-        invalidate: () => input.invalidate(),
-        render: (width: number) => {
-          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
-          return [
-            border,
-            theme.fg("accent", theme.bold(title)),
-            theme.fg("dim", placeholder),
-            ...input.render(width),
-            truncateToWidth(
-              theme.fg("dim", "enterで確定 • escで戻る"),
-              width,
-              "",
-            ),
-            border,
-          ].map((line) => truncateToWidth(line, width, ""));
-        },
-        handleInput: (data: string) => {
-          input.handleInput(data);
-          tui.requestRender();
-        },
-      };
-    },
-  );
-}
-
 async function collectAdditionalNotes(
   ctx: ExtensionContext,
 ): Promise<string | null | undefined> {
-  return await inputOptional(
-    ctx,
-    "追加指示",
-    "例: README の変更は無視してください。空 Enter でなし",
-  );
+  return await inputOptional(ctx, {
+    title: "追加指示",
+    placeholder: "例: README の変更は無視してください。空 Enter でなし",
+  });
 }
 
 async function collectCreatePrOptions(
@@ -262,10 +122,9 @@ async function collectCreatePrOptions(
 
   while (true) {
     if (step === "language") {
-      const selectedLanguage = (await selectFuzzy(
-        ctx,
-        "Pull request の言語",
-        [
+      const selectedLanguage = (await selectFuzzy(ctx, {
+        title: "Pull request の言語",
+        items: [
           { value: "english", label: "英語", description: "デフォルト" },
           {
             value: "japanese",
@@ -273,8 +132,8 @@ async function collectCreatePrOptions(
             description: "PR タイトル/本文を日本語で作成する",
           },
         ],
-        language,
-      )) as PrLanguage | null;
+        initialValue: language,
+      })) as PrLanguage | null;
       if (!selectedLanguage) return null;
       language = selectedLanguage;
       step = "mode";
@@ -282,10 +141,9 @@ async function collectCreatePrOptions(
     }
 
     if (step === "mode") {
-      const selectedMode = (await selectFuzzy(
-        ctx,
-        "Pull request を作成または更新しますか？",
-        [
+      const selectedMode = (await selectFuzzy(ctx, {
+        title: "Pull request を作成または更新しますか？",
+        items: [
           {
             value: "create",
             label: "作成",
@@ -297,8 +155,8 @@ async function collectCreatePrOptions(
             description: "現在のブランチの open PR を更新する",
           },
         ],
-        mode,
-      )) as PrMode | null;
+        initialValue: mode,
+      })) as PrMode | null;
       if (!selectedMode) {
         step = "language";
         continue;
@@ -313,20 +171,20 @@ async function collectCreatePrOptions(
         defaultBranch = await getDefaultBranch(pi);
         branches = await getBranches(pi, defaultBranch);
       }
-      const selectedBaseBranch = await selectFuzzy(
-        ctx,
-        "Pull request のベースブランチ",
-        branches.length > 0
-          ? branches
-          : [
-              {
-                value: defaultBranch ?? "main",
-                label: defaultBranch ?? "main",
-                description: "フォールバック",
-              },
-            ],
-        baseBranch ?? defaultBranch,
-      );
+      const selectedBaseBranch = await selectFuzzy(ctx, {
+        title: "Pull request のベースブランチ",
+        items:
+          branches.length > 0
+            ? branches
+            : [
+                {
+                  value: defaultBranch ?? "main",
+                  label: defaultBranch ?? "main",
+                  description: "フォールバック",
+                },
+              ],
+        initialValue: baseBranch ?? defaultBranch,
+      });
       if (!selectedBaseBranch) {
         step = "mode";
         continue;

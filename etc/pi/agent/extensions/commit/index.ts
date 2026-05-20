@@ -3,19 +3,9 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import {
-  getSelectListTheme,
-  isToolCallEventType,
-} from "@earendil-works/pi-coding-agent";
-import {
-  fuzzyFilter,
-  Input,
-  Key,
-  matchesKey,
-  type SelectItem,
-  SelectList,
-  truncateToWidth,
-} from "@earendil-works/pi-tui";
+import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
+import type { SelectItem } from "@earendil-works/pi-tui";
+import { inputOptional, selectFuzzy } from "../lib/tui";
 
 const COMMIT_INSTRUCTIONS = readFileSync(
   new URL("./commit-instructions.md", import.meta.url),
@@ -41,99 +31,6 @@ const PROHIBITED_GIT_PATTERNS = [
   /(^|[;&|]\s*)git\s+switch\b[^\n;|&]*\s--discard-changes\b/,
   /(^|[;&|]\s*)git\s+clean\b/,
 ];
-
-function normalizeOptional(value?: string): string | undefined {
-  return value?.trim() || undefined;
-}
-
-function isPrintableInput(data: string): boolean {
-  return (
-    data.length > 0 &&
-    !data.startsWith("\x1b") &&
-    !data.startsWith("\x7f") &&
-    !data.startsWith("\r")
-  );
-}
-
-async function selectFuzzy(
-  ctx: ExtensionContext,
-  title: string,
-  items: SelectItem[],
-  initialValue?: string,
-): Promise<string | null> {
-  return await ctx.ui.custom<string | null>(
-    (tui, theme, _keybindings, done) => {
-      let query = "";
-      let filteredItems = items;
-      let list: SelectList;
-
-      const makeList = () => {
-        filteredItems = query.trim()
-          ? fuzzyFilter(
-              items,
-              query.trim(),
-              (item) => `${item.label} ${item.value} ${item.description ?? ""}`,
-            )
-          : items;
-        list = new SelectList(
-          filteredItems,
-          Math.min(Math.max(filteredItems.length, 1), 12),
-          getSelectListTheme(),
-        );
-        const initialIndex = filteredItems.findIndex(
-          (item) => item.value === initialValue,
-        );
-        if (initialIndex >= 0) list.setSelectedIndex(initialIndex);
-        list.onSelect = (item) => done(item.value);
-        list.onCancel = () => done(null);
-      };
-
-      makeList();
-
-      return {
-        invalidate: () => list.invalidate(),
-        render: (width: number) => {
-          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
-          return [
-            border,
-            theme.fg("accent", theme.bold(title)),
-            theme.fg("dim", `検索: ${query || "(入力して絞り込み)"}`),
-            ...list.render(width),
-            truncateToWidth(
-              theme.fg(
-                "dim",
-                "入力で検索 • ↑↓で移動 • enterで選択 • escで戻る/キャンセル",
-              ),
-              width,
-              "",
-            ),
-            border,
-          ].map((line) => truncateToWidth(line, width, ""));
-        },
-        handleInput: (data: string) => {
-          if (matchesKey(data, Key.backspace)) {
-            query = query.slice(0, -1);
-            makeList();
-            tui.requestRender();
-            return;
-          }
-          if (matchesKey(data, Key.escape)) {
-            done(null);
-            return;
-          }
-          if (isPrintableInput(data)) {
-            query += data;
-            makeList();
-            tui.requestRender();
-            return;
-          }
-          list.handleInput(data);
-          tui.requestRender();
-        },
-      };
-    },
-  );
-}
 
 async function getDefaultBranch(pi: ExtensionAPI): Promise<string | undefined> {
   const symbolic = await pi
@@ -211,52 +108,13 @@ async function getBranches(
   }));
 }
 
-async function inputOptional(
-  ctx: ExtensionContext,
-  title: string,
-  placeholder: string,
-): Promise<string | null | undefined> {
-  return await ctx.ui.custom<string | null | undefined>(
-    (tui, theme, _keybindings, done) => {
-      const input = new Input();
-      input.focused = true;
-      input.onSubmit = (value) => done(normalizeOptional(value));
-      input.onEscape = () => done(null);
-
-      return {
-        invalidate: () => input.invalidate(),
-        render: (width: number) => {
-          const border = theme.fg("accent", "─".repeat(Math.max(0, width)));
-          return [
-            border,
-            theme.fg("accent", theme.bold(title)),
-            theme.fg("dim", placeholder),
-            ...input.render(width),
-            truncateToWidth(
-              theme.fg("dim", "enterで確定 • escで戻る"),
-              width,
-              "",
-            ),
-            border,
-          ].map((line) => truncateToWidth(line, width, ""));
-        },
-        handleInput: (data: string) => {
-          input.handleInput(data);
-          tui.requestRender();
-        },
-      };
-    },
-  );
-}
-
 async function collectAdditionalNotes(
   ctx: ExtensionContext,
 ): Promise<string | null | undefined> {
-  return await inputOptional(
-    ctx,
-    "追加指示",
-    "例: package-lock.json は無視してください。空 Enter でなし",
-  );
+  return await inputOptional(ctx, {
+    title: "追加指示",
+    placeholder: "例: package-lock.json は無視してください。空 Enter でなし",
+  });
 }
 
 async function collectCommitOptions(
@@ -273,10 +131,9 @@ async function collectCommitOptions(
 
   while (true) {
     if (step === "language") {
-      const selectedLanguage = (await selectFuzzy(
-        ctx,
-        "コミットメッセージの言語",
-        [
+      const selectedLanguage = (await selectFuzzy(ctx, {
+        title: "コミットメッセージの言語",
+        items: [
           {
             value: "auto",
             label: "自動",
@@ -289,8 +146,8 @@ async function collectCommitOptions(
             description: "--japanese 相当",
           },
         ],
-        language,
-      )) as CommitLanguage | null;
+        initialValue: language,
+      })) as CommitLanguage | null;
       if (!selectedLanguage) return null;
       language = selectedLanguage;
       step = "branchMode";
@@ -298,10 +155,9 @@ async function collectCommitOptions(
     }
 
     if (step === "branchMode") {
-      const selectedBranchMode = (await selectFuzzy(
-        ctx,
-        "先に新しいブランチを作成しますか？",
-        [
+      const selectedBranchMode = (await selectFuzzy(ctx, {
+        title: "先に新しいブランチを作成しますか？",
+        items: [
           {
             value: "no",
             label: "いいえ",
@@ -313,8 +169,8 @@ async function collectCommitOptions(
             description: "コミット前に新しいブランチを作成する",
           },
         ],
-        branchMode,
-      )) as "yes" | "no" | null;
+        initialValue: branchMode,
+      })) as "yes" | "no" | null;
       if (!selectedBranchMode) {
         step = "language";
         continue;
@@ -329,20 +185,20 @@ async function collectCommitOptions(
         defaultBranch = await getDefaultBranch(pi);
         branches = await getBranches(pi, defaultBranch);
       }
-      const selectedBaseBranch = await selectFuzzy(
-        ctx,
-        "新しいブランチのベースブランチ",
-        branches.length > 0
-          ? branches
-          : [
-              {
-                value: defaultBranch ?? "main",
-                label: defaultBranch ?? "main",
-                description: "フォールバック",
-              },
-            ],
-        baseBranch ?? defaultBranch,
-      );
+      const selectedBaseBranch = await selectFuzzy(ctx, {
+        title: "新しいブランチのベースブランチ",
+        items:
+          branches.length > 0
+            ? branches
+            : [
+                {
+                  value: defaultBranch ?? "main",
+                  label: defaultBranch ?? "main",
+                  description: "フォールバック",
+                },
+              ],
+        initialValue: baseBranch ?? defaultBranch,
+      });
       if (!selectedBaseBranch) {
         step = "branchMode";
         continue;

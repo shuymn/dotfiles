@@ -20,6 +20,12 @@ mock.module("@earendil-works/pi-tui", () => ({
   },
   matchesKey: (data: string, key: string) => data === key,
   truncateToWidth: (text: string, width: number) => text.slice(0, width),
+  // ui.ts now imports printableInput from ../lib/tui, which statically imports
+  // these from pi-tui. Provide stubs so the named imports resolve; they are
+  // not exercised by the questionnaire component under test.
+  Input: class {},
+  SelectList: class {},
+  fuzzyFilter: (items: unknown[]) => items,
 }));
 
 mock.module("@earendil-works/pi-coding-agent", () => ({}));
