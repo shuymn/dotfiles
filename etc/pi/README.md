@@ -23,7 +23,7 @@ When adding or changing global pi extensions:
    ```
 3. Validate TypeScript extensions when possible:
    ```bash
-   bun --check etc/pi/agent/extensions/*.ts
+   bun --check etc/pi/agent/extensions/*/index.ts
    ```
 4. In a running pi session, use `/reload` to pick up changes.
 
@@ -34,16 +34,17 @@ Do not make long-lived manual edits directly under `~/.pi/agent/extensions/**`. 
 Example:
 
 ```bash
-cp ~/.pi/agent/extensions/example.ts etc/pi/agent/extensions/example.ts
+mkdir -p etc/pi/agent/extensions/example
+cp ~/.pi/agent/extensions/example.ts etc/pi/agent/extensions/example/index.ts
 make link-pi
-ls -l ~/.pi/agent/extensions/example.ts
-bun --check etc/pi/agent/extensions/example.ts
+ls -l ~/.pi/agent/extensions/example/index.ts
+bun --check etc/pi/agent/extensions/example/index.ts
 ```
 
 Expected result:
 
 ```text
-~/.pi/agent/extensions/example.ts -> ~/.dotfiles/etc/pi/agent/extensions/example.ts
+~/.pi/agent/extensions/example/index.ts -> ~/.dotfiles/etc/pi/agent/extensions/example/index.ts
 ```
 
 ## Design notes
