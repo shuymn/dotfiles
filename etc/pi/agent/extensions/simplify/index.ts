@@ -5,6 +5,16 @@ import type {
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import {
+  collectChangedTargets,
+  type ExecGit,
+  formatPlainTarget,
+  isExplicitFileMode,
+  normalizeFileArg,
+  shellQuote,
+  type Target,
+  truncate,
+} from "../lib/git";
 
 const COMMAND_NAME = "simplify";
 const TOOL_NAME = "simplify";
@@ -16,16 +26,6 @@ type SimplifyOptions = {
   files: string[];
   staged: boolean;
 };
-
-type Target = {
-  path: string;
-  status: string;
-  source: "diff" | "explicit" | "recent";
-};
-
-function normalizeFileArg(file: string): string {
-  return file.replace(/^@/, "");
-}
 
 function parseArgs(args: string): SimplifyOptions {
   const files: string[] = [];
@@ -42,72 +42,19 @@ function parseArgs(args: string): SimplifyOptions {
   return { files, staged };
 }
 
-function truncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
-  return `${text.slice(0, maxChars)}\n\n[diff truncated at ${maxChars} chars; inspect files directly before editing]`;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-function parseNameStatus(stdout: string, source: Target["source"]): Target[] {
-  const targets: Target[] = [];
-  const fields = stdout.split("\0").filter(Boolean);
-
-  for (let index = 0; index < fields.length; ) {
-    const status = fields[index++] ?? "modified";
-    if (status.startsWith("R") || status.startsWith("C")) {
-      index += 1;
-      const path = fields[index++];
-      if (path) targets.push({ path, status, source });
-      continue;
-    }
-
-    const path = fields[index++];
-    if (path) targets.push({ path, status, source });
-  }
-
-  return targets;
-}
-
-function uniqueTargets(targets: Target[]): Target[] {
-  const seen = new Set<string>();
-  const result: Target[] = [];
-
-  for (const target of targets) {
-    if (seen.has(target.path)) continue;
-    seen.add(target.path);
-    result.push(target);
-  }
-
-  return result;
-}
-
 function formatTarget(target: Target): string {
-  const details =
-    target.status === target.source
-      ? target.status
-      : `${target.status}; ${target.source}`;
-  return `- ${target.path} (${details})`;
+  return formatPlainTarget(target);
 }
 
-function isExplicitFileMode(targets: Target[]): boolean {
-  return (
-    targets.length > 0 &&
-    targets.every((target) => target.source === "explicit")
-  );
-}
-
-async function execGit(pi: ExtensionAPI, cwd: string, args: string[]) {
-  return pi.exec("git", args, { cwd, timeout: 10_000 });
+function makeExecGit(pi: ExtensionAPI, cwd: string): ExecGit {
+  return (args) => pi.exec("git", args, { cwd, timeout: 10_000 });
 }
 
 async function getRecentTrackedFiles(
   pi: ExtensionAPI,
   cwd: string,
 ): Promise<Target[]> {
-  const result = await execGit(pi, cwd, ["ls-files", "-z"]);
+  const result = await makeExecGit(pi, cwd)(["ls-files", "-z"]);
   if (result.code !== 0) return [];
 
   const paths = result.stdout.split("\0").filter(Boolean);
@@ -152,47 +99,11 @@ async function collectTargets(
   cwd: string,
   options: SimplifyOptions,
 ): Promise<Target[]> {
-  if (options.files.length > 0) {
-    return options.files.map((path) => ({
-      path,
-      status: "explicit",
-      source: "explicit" as const,
-    }));
-  }
-
-  const unstagedArgs = ["diff", "--name-status", "-z"];
-  const stagedArgs = ["diff", "--cached", "--name-status", "-z"];
-  const targets: Target[] = [];
-
-  if (options.staged) {
-    const staged = await execGit(pi, cwd, stagedArgs);
-    if (staged.code === 0)
-      targets.push(...parseNameStatus(staged.stdout, "diff"));
-  } else {
-    const [unstaged, staged, status] = await Promise.all([
-      execGit(pi, cwd, unstagedArgs),
-      execGit(pi, cwd, stagedArgs),
-      execGit(pi, cwd, ["ls-files", "--others", "--exclude-standard", "-z"]),
-    ]);
-
-    if (unstaged.code === 0)
-      targets.push(...parseNameStatus(unstaged.stdout, "diff"));
-    if (staged.code === 0)
-      targets.push(...parseNameStatus(staged.stdout, "diff"));
-
-    if (status.code === 0) {
-      for (const path of status.stdout.split("\0").filter(Boolean)) {
-        targets.push({
-          path,
-          status: "untracked",
-          source: "diff",
-        });
-      }
-    }
-  }
-
-  const unique = uniqueTargets(targets);
-  return unique.length > 0 ? unique : getRecentTrackedFiles(pi, cwd);
+  const targets = await collectChangedTargets(makeExecGit(pi, cwd), {
+    files: options.files,
+    staged: options.staged,
+  });
+  return targets.length > 0 ? targets : getRecentTrackedFiles(pi, cwd);
 }
 
 async function collectDiff(
@@ -207,20 +118,21 @@ async function collectDiff(
   )
     return "";
   const chunks: string[] = [];
+  const execGit = makeExecGit(pi, cwd);
   const addDiffChunk = (
     label: string,
-    result: Awaited<ReturnType<typeof execGit>>,
+    result: Awaited<ReturnType<ExecGit>>,
   ) => {
     if (result.code === 0 && result.stdout.trim())
       chunks.push(`## ${label}\n\n${result.stdout}`);
   };
 
   if (options.staged) {
-    addDiffChunk("Staged diff", await execGit(pi, cwd, ["diff", "--cached"]));
+    addDiffChunk("Staged diff", await execGit(["diff", "--cached"]));
   } else {
     const [unstaged, staged] = await Promise.all([
-      execGit(pi, cwd, ["diff"]),
-      execGit(pi, cwd, ["diff", "--cached"]),
+      execGit(["diff"]),
+      execGit(["diff", "--cached"]),
     ]);
 
     addDiffChunk("Unstaged diff", unstaged);
