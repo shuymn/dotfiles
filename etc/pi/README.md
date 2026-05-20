@@ -17,15 +17,21 @@ make link-pi
 When adding or changing global pi extensions:
 
 1. Edit files under `etc/pi/agent/extensions/**`.
-2. Run:
+2. Install or refresh extension tooling when dependencies changed:
+   ```bash
+   bun install --cwd etc/pi/agent/extensions
+   ```
+3. Run the shared checks. `check` runs Biome formatting and lint diagnostics:
+   ```bash
+   bun run --cwd etc/pi/agent/extensions check
+   bun run --cwd etc/pi/agent/extensions typecheck
+   bun test --cwd etc/pi/agent/extensions
+   ```
+4. Link managed files:
    ```bash
    make link-pi
    ```
-3. Validate TypeScript extensions when possible:
-   ```bash
-   bun --check etc/pi/agent/extensions/*/index.ts
-   ```
-4. In a running pi session, use `/reload` to pick up changes.
+5. In a running pi session, use `/reload` to pick up changes.
 
 Do not make long-lived manual edits directly under `~/.pi/agent/extensions/**`. If you find an unmanaged global extension there, copy it into `etc/pi/agent/extensions/`, then run `make link-pi` so the global file becomes a symlink back to this repo.
 
@@ -38,7 +44,7 @@ mkdir -p etc/pi/agent/extensions/example
 cp ~/.pi/agent/extensions/example.ts etc/pi/agent/extensions/example/index.ts
 make link-pi
 ls -l ~/.pi/agent/extensions/example/index.ts
-bun --check etc/pi/agent/extensions/example/index.ts
+bun run --cwd etc/pi/agent/extensions check
 ```
 
 Expected result:
