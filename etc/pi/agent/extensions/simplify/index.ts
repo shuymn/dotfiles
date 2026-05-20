@@ -10,6 +10,7 @@ const COMMAND_NAME = "simplify";
 const TOOL_NAME = "simplify";
 const MAX_DIFF_CHARS = 60_000;
 const RECENT_FILE_LIMIT = 8;
+const RECENT_FILE_STAT_CONCURRENCY = 64;
 
 type SimplifyOptions = {
   files: string[];
@@ -109,11 +110,13 @@ async function getRecentTrackedFiles(
   const result = await execGit(pi, cwd, ["ls-files", "-z"]);
   if (result.code !== 0) return [];
 
-  const candidates = await Promise.all(
-    result.stdout
-      .split("\0")
-      .filter(Boolean)
-      .map(async (path) => {
+  const paths = result.stdout.split("\0").filter(Boolean);
+  const candidates: Array<{ path: string; mtimeMs: number }> = [];
+
+  for (let index = 0; index < paths.length; index += RECENT_FILE_STAT_CONCURRENCY) {
+    const batch = paths.slice(index, index + RECENT_FILE_STAT_CONCURRENCY);
+    const stats = await Promise.all(
+      batch.map(async (path) => {
         try {
           const info = await stat(join(cwd, path));
           return { path, mtimeMs: info.mtimeMs };
@@ -121,12 +124,16 @@ async function getRecentTrackedFiles(
           return undefined;
         }
       }),
-  );
+    );
+    candidates.push(
+      ...stats.filter(
+        (candidate): candidate is { path: string; mtimeMs: number } =>
+          Boolean(candidate),
+      ),
+    );
+  }
 
   return candidates
-    .filter((candidate): candidate is { path: string; mtimeMs: number } =>
-      Boolean(candidate),
-    )
     .sort((a, b) => b.mtimeMs - a.mtimeMs)
     .slice(0, RECENT_FILE_LIMIT)
     .map((candidate) => ({
