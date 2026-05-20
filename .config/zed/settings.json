@@ -7,6 +7,7 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "format_on_save": "off",
   "show_edit_predictions": false,
   "agent_ui_font_size": 15.0,
   "terminal": {
