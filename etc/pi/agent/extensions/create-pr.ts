@@ -271,26 +271,23 @@ async function gitSnapshot(
 ): Promise<string> {
   const base = options.baseBranch ?? "<existing PR base>";
   const baseRange = `origin/${base}..HEAD`;
-  const commands: Array<[label: string, command: string, args: string[]]> = [
-    ["Current branch", "git", ["branch", "--show-current"]],
-    ["Remote branches", "git", ["branch", "-r"]],
+  const commands: Array<[label: string, args: string[]]> = [
+    ["Current branch", ["branch", "--show-current"]],
+    ["Remote branches", ["branch", "-r"]],
     [
       "Default branch",
-      "git",
       ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
     ],
-    ["Repository root", "git", ["rev-parse", "--show-toplevel"]],
-    ["Push status", "git", ["status", "-sb"]],
+    ["Repository root", ["rev-parse", "--show-toplevel"]],
+    ["Push status", ["status", "-sb"]],
     [
       "Committed changes",
-      "git",
       options.mode === "create"
         ? ["log", baseRange, "--oneline"]
         : ["log", "--oneline", "-10"],
     ],
     [
       "Files changed",
-      "git",
       options.mode === "create"
         ? ["diff", "--name-status", baseRange]
         : ["show", "--stat", "--oneline", "-5"],
@@ -298,9 +295,9 @@ async function gitSnapshot(
   ];
 
   const results = await Promise.all(
-    commands.map(async ([label, command, args]) => {
+    commands.map(async ([label, args]) => {
       const result = await pi
-        .exec(command, args, { timeout: 5000 })
+        .exec("git", args, { timeout: 5000 })
         .catch((error: unknown) => ({
           code: 1,
           stdout: "",
