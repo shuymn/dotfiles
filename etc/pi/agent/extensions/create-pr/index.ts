@@ -9,9 +9,9 @@ import {
   Input,
   Key,
   matchesKey,
+  type SelectItem,
   SelectList,
   truncateToWidth,
-  type SelectItem,
 } from "@earendil-works/pi-tui";
 
 const CREATE_PR_INSTRUCTIONS = readFileSync(
@@ -253,8 +253,7 @@ async function collectCreatePrOptions(
   pi: ExtensionAPI,
   ctx: ExtensionContext,
 ): Promise<CreatePrOptions | null> {
-  let step: "language" | "mode" | "baseBranch" | "additionalNotes" =
-    "language";
+  let step: "language" | "mode" | "baseBranch" | "additionalNotes" = "language";
   let language: PrLanguage = "english";
   let mode: PrMode = "create";
   let baseBranch: string | undefined;

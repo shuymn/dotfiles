@@ -58,18 +58,21 @@ export const AskUserQuestionParamsSchema = {
             type: "array",
             minItems: MIN_OPTIONS,
             maxItems: MAX_OPTIONS,
-            description: "Available choices for this question. Runtime sentinel rows are added by the tool.",
+            description:
+              "Available choices for this question. Runtime sentinel rows are added by the tool.",
             items: {
               type: "object",
               properties: {
                 label: {
                   type: "string",
                   maxLength: MAX_LABEL_LENGTH,
-                  description: "Concise display label for this option. Do not use reserved runtime labels.",
+                  description:
+                    "Concise display label for this option. Do not use reserved runtime labels.",
                 },
                 description: {
                   type: "string",
-                  description: "Explanation of what this option means or what trade-off it represents.",
+                  description:
+                    "Explanation of what this option means or what trade-off it represents.",
                 },
                 preview: {
                   type: "string",
@@ -84,7 +87,8 @@ export const AskUserQuestionParamsSchema = {
           multiSelect: {
             type: "boolean",
             default: false,
-            description: "Allow the user to select multiple options for this question.",
+            description:
+              "Allow the user to select multiple options for this question.",
           },
         },
         required: ["question", "header", "options"],
@@ -126,7 +130,11 @@ export type QuestionAnswer =
     };
 
 export type QuestionnaireStatus = "completed" | "paused" | "cancelled";
-export type QuestionnaireReason = "chat" | "user_cancelled" | "validation_error" | "no_ui";
+export type QuestionnaireReason =
+  | "chat"
+  | "user_cancelled"
+  | "validation_error"
+  | "no_ui";
 export type QuestionnaireError =
   | "no_ui"
   | "no_questions"

@@ -25,8 +25,12 @@ mock.module("@earendil-works/pi-tui", () => ({
       inputInstances.push(this);
     }
     invalidate() {}
-    render() { return ["<input>"]; }
-    handleInput(data: string) { this.onSubmit?.(data); }
+    render() {
+      return ["<input>"];
+    }
+    handleInput(data: string) {
+      this.onSubmit?.(data);
+    }
   },
   Key: { backspace: "backspace", escape: "escape" },
   matchesKey: (data: string, key: string) => data === key,
@@ -38,9 +42,13 @@ mock.module("@earendil-works/pi-tui", () => ({
     constructor(public items: SelectItemLike[]) {
       selectInstances.push(this);
     }
-    setSelectedIndex(index: number) { this.selectedIndex = index; }
+    setSelectedIndex(index: number) {
+      this.selectedIndex = index;
+    }
     invalidate() {}
-    render() { return this.items.map((item) => item.label); }
+    render() {
+      return this.items.map((item) => item.label);
+    }
     handleInput(data: string) {
       if (data === "escape") this.onCancel?.();
       if (data === "enter") this.onSelect?.(this.items[this.selectedIndex]);
@@ -53,7 +61,11 @@ mock.module("@earendil-works/pi-coding-agent", () => ({
   getSelectListTheme: () => ({}),
 }));
 
-type ExecCall = { command: string; args: string[]; options: Record<string, unknown> };
+type ExecCall = {
+  command: string;
+  args: string[];
+  options: Record<string, unknown>;
+};
 type ExecResult = { code: number; stdout: string; stderr: string };
 type EventHandler = (event: any, ctx: any) => Promise<any> | any;
 type CustomAction =
@@ -62,31 +74,73 @@ type CustomAction =
 
 function defaultExec(call: ExecCall): ExecResult {
   const joined = call.args.join(" ");
-  if (call.command === "git" && joined === "symbolic-ref --quiet --short refs/remotes/origin/HEAD") {
+  if (
+    call.command === "git" &&
+    joined === "symbolic-ref --quiet --short refs/remotes/origin/HEAD"
+  ) {
     return { code: 0, stdout: "origin/main\n", stderr: "" };
   }
-  if (call.command === "git" && joined === "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes") {
+  if (
+    call.command === "git" &&
+    joined ===
+      "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes"
+  ) {
     return {
       code: 0,
-      stdout: "refs/heads/feature\tfeature\nrefs/heads/main\tmain\nrefs/remotes/origin/main\torigin/main\nrefs/remotes/origin/HEAD\torigin/HEAD\n",
+      stdout:
+        "refs/heads/feature\tfeature\nrefs/heads/main\tmain\nrefs/remotes/origin/main\torigin/main\nrefs/remotes/origin/HEAD\torigin/HEAD\n",
       stderr: "",
     };
   }
-  if (call.command === "git" && joined === "branch --show-current") return { code: 0, stdout: "feature\n", stderr: "" };
-  if (call.command === "git" && joined === "branch -r") return { code: 0, stdout: "  origin/main\n  origin/feature\n", stderr: "" };
-  if (call.command === "git" && joined === "rev-parse --show-toplevel") return { code: 0, stdout: "/repo\n", stderr: "" };
-  if (call.command === "git" && joined === "status -sb") return { code: 0, stdout: "## feature...origin/feature [ahead 2]\n", stderr: "" };
-  if (call.command === "git" && joined === "log origin/main..HEAD --oneline") return { code: 0, stdout: "abc123 feat: add api\n", stderr: "" };
-  if (call.command === "git" && joined === "diff --name-status origin/main..HEAD") return { code: 0, stdout: "M\tsrc/app.ts\n", stderr: "" };
-  if (call.command === "git" && joined === "log --oneline -10") return { code: 0, stdout: "abc123 feat: add api\ndef456 fix: bug\n", stderr: "" };
-  if (call.command === "git" && joined === "show --stat --oneline -5") return { code: 0, stdout: "abc123 feat: add api\n src/app.ts | 2 ++\n", stderr: "" };
-  if (call.command === "bash" && joined.startsWith("-lc cat .github/pull_request_template.md")) {
+  if (call.command === "git" && joined === "branch --show-current")
+    return { code: 0, stdout: "feature\n", stderr: "" };
+  if (call.command === "git" && joined === "branch -r")
+    return { code: 0, stdout: "  origin/main\n  origin/feature\n", stderr: "" };
+  if (call.command === "git" && joined === "rev-parse --show-toplevel")
+    return { code: 0, stdout: "/repo\n", stderr: "" };
+  if (call.command === "git" && joined === "status -sb")
+    return {
+      code: 0,
+      stdout: "## feature...origin/feature [ahead 2]\n",
+      stderr: "",
+    };
+  if (call.command === "git" && joined === "log origin/main..HEAD --oneline")
+    return { code: 0, stdout: "abc123 feat: add api\n", stderr: "" };
+  if (
+    call.command === "git" &&
+    joined === "diff --name-status origin/main..HEAD"
+  )
+    return { code: 0, stdout: "M\tsrc/app.ts\n", stderr: "" };
+  if (call.command === "git" && joined === "log --oneline -10")
+    return {
+      code: 0,
+      stdout: "abc123 feat: add api\ndef456 fix: bug\n",
+      stderr: "",
+    };
+  if (call.command === "git" && joined === "show --stat --oneline -5")
+    return {
+      code: 0,
+      stdout: "abc123 feat: add api\n src/app.ts | 2 ++\n",
+      stderr: "",
+    };
+  if (
+    call.command === "bash" &&
+    joined.startsWith("-lc cat .github/pull_request_template.md")
+  ) {
     return { code: 0, stdout: "## Summary\n\n## Test plan\n", stderr: "" };
   }
-  return { code: 1, stdout: "", stderr: `unexpected command: ${call.command} ${joined}` };
+  return {
+    code: 1,
+    stdout: "",
+    stderr: `unexpected command: ${call.command} ${joined}`,
+  };
 }
 
-function createFakePi(execHandler: (call: ExecCall) => ExecResult | Promise<ExecResult> = defaultExec) {
+function createFakePi(
+  execHandler: (
+    call: ExecCall,
+  ) => ExecResult | Promise<ExecResult> = defaultExec,
+) {
   const flags = new Map<string, unknown>();
   const events = new Map<string, EventHandler[]>();
   const registeredFlags: Array<{ name: string; definition: unknown }> = [];
@@ -108,7 +162,11 @@ function createFakePi(execHandler: (call: ExecCall) => ExecResult | Promise<Exec
     getFlag(name: string) {
       return flags.get(name);
     },
-    async exec(command: string, args: string[], options: Record<string, unknown> = {}) {
+    async exec(
+      command: string,
+      args: string[],
+      options: Record<string, unknown> = {},
+    ) {
       const call = { command, args, options };
       execCalls.push(call);
       return execHandler(call);
@@ -119,31 +177,50 @@ function createFakePi(execHandler: (call: ExecCall) => ExecResult | Promise<Exec
   };
 }
 
-function createContext(actions: CustomAction[], options: { idle?: boolean; hasUI?: boolean } = {}) {
+function createContext(
+  actions: CustomAction[],
+  options: { idle?: boolean; hasUI?: boolean } = {},
+) {
   const notifications: Array<{ message: string; level: string }> = [];
   let shutdownCount = 0;
   const remaining = [...actions];
 
   return {
     notifications,
-    get shutdownCount() { return shutdownCount; },
+    get shutdownCount() {
+      return shutdownCount;
+    },
     hasUI: options.hasUI ?? true,
     isIdle: () => options.idle ?? true,
-    shutdown: () => { shutdownCount += 1; },
+    shutdown: () => {
+      shutdownCount += 1;
+    },
     ui: {
       notify(message: string, level: string) {
         notifications.push({ message, level });
       },
-      async custom(factory: (tui: unknown, theme: unknown, keybindings: unknown, done: (value: unknown) => void) => unknown) {
+      async custom(
+        factory: (
+          tui: unknown,
+          theme: unknown,
+          keybindings: unknown,
+          done: (value: unknown) => void,
+        ) => unknown,
+      ) {
         const unresolved = Symbol("unresolved");
         let resolved: unknown = unresolved;
         const beforeSelectCount = selectInstances.length;
         const beforeInputCount = inputInstances.length;
         factory(
           { requestRender() {} },
-          { fg: (_name: string, text: string) => text, bold: (text: string) => text },
+          {
+            fg: (_name: string, text: string) => text,
+            bold: (text: string) => text,
+          },
           {},
-          (value: unknown) => { resolved = value; },
+          (value: unknown) => {
+            resolved = value;
+          },
         );
         const action = remaining.shift();
         if (!action) throw new Error("No custom UI action queued");
@@ -152,8 +229,13 @@ function createContext(actions: CustomAction[], options: { idle?: boolean; hasUI
           if (!select) throw new Error("Expected SelectList to be created");
           if (action.value === null) select.onCancel?.();
           else {
-            const item = select.items.find((candidate) => candidate.value === action.value);
-            if (!item) throw new Error(`No select item for value: ${action.value}. Choices: ${select.items.map((item) => item.value).join(", ")}`);
+            const item = select.items.find(
+              (candidate) => candidate.value === action.value,
+            );
+            if (!item)
+              throw new Error(
+                `No select item for value: ${action.value}. Choices: ${select.items.map((item) => item.value).join(", ")}`,
+              );
             select.onSelect?.(item);
           }
         } else {
@@ -183,13 +265,17 @@ describe("create-pr extension", () => {
       {
         name: "create-pr",
         definition: {
-          description: "対話式の create-pr ワークフローを実行して pi を終了する",
+          description:
+            "対話式の create-pr ワークフローを実行して pi を終了する",
           type: "boolean",
           default: false,
         },
       },
     ]);
-    expect([...pi.events.keys()].sort()).toEqual(["agent_end", "session_start"]);
+    expect([...pi.events.keys()].sort()).toEqual([
+      "agent_end",
+      "session_start",
+    ]);
   });
 
   test("does nothing unless startup session has --create-pr flag", async () => {
@@ -214,9 +300,17 @@ describe("create-pr extension", () => {
     busyPi.flags.set("create-pr", true);
     const busyCtx = createContext([], { idle: false });
 
-    await busyPi.events.get("session_start")![0]({ reason: "startup" }, busyCtx);
+    await busyPi.events.get("session_start")![0](
+      { reason: "startup" },
+      busyCtx,
+    );
 
-    expect(busyCtx.notifications).toEqual([{ message: "エージェントが処理中です。処理を終了します。", level: "warning" }]);
+    expect(busyCtx.notifications).toEqual([
+      {
+        message: "エージェントが処理中です。処理を終了します。",
+        level: "warning",
+      },
+    ]);
     expect(busyCtx.shutdownCount).toBe(1);
 
     const noUiPi = createFakePi();
@@ -224,9 +318,14 @@ describe("create-pr extension", () => {
     noUiPi.flags.set("create-pr", true);
     const noUiCtx = createContext([], { hasUI: false });
 
-    await noUiPi.events.get("session_start")![0]({ reason: "startup" }, noUiCtx);
+    await noUiPi.events.get("session_start")![0](
+      { reason: "startup" },
+      noUiCtx,
+    );
 
-    expect(noUiCtx.notifications).toEqual([{ message: "--create-pr には対話式 UI が必要です", level: "warning" }]);
+    expect(noUiCtx.notifications).toEqual([
+      { message: "--create-pr には対話式 UI が必要です", level: "warning" },
+    ]);
     expect(noUiCtx.shutdownCount).toBe(1);
   });
 
@@ -239,7 +338,9 @@ describe("create-pr extension", () => {
 
     await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
 
-    expect(ctx.notifications).toEqual([{ message: "--create-pr をキャンセルしました", level: "info" }]);
+    expect(ctx.notifications).toEqual([
+      { message: "--create-pr をキャンセルしました", level: "info" },
+    ]);
     expect(ctx.shutdownCount).toBe(1);
     expect(pi.sentUserMessages).toEqual([]);
   });
@@ -262,19 +363,31 @@ describe("create-pr extension", () => {
     expect(ctx.shutdownCount).toBe(0);
     expect(pi.sentUserMessages).toHaveLength(1);
     const prompt = pi.sentUserMessages[0];
-    expect(prompt).toContain("User invoked --create-pr with interactive options: --japanese --base=main");
+    expect(prompt).toContain(
+      "User invoked --create-pr with interactive options: --japanese --base=main",
+    );
     expect(prompt).toContain("## 人間向けレスポンスの言語");
     expect(prompt).toContain("## Additional User Notes\n\nREADME は無視");
-    expect(prompt).toContain("## Initial Git/GitHub Snapshot (may be stale; verify with live commands)");
+    expect(prompt).toContain(
+      "## Initial Git/GitHub Snapshot (may be stale; verify with live commands)",
+    );
     expect(prompt).toContain("### Current branch\nfeature");
     expect(prompt).toContain("### Default branch\nmain");
     expect(prompt).toContain("### Committed changes\nabc123 feat: add api");
     expect(prompt).toContain("### Files changed\nM\tsrc/app.ts");
     expect(prompt).toContain("### PR template\n## Summary");
-    expect(pi.execCalls.map((call) => [call.command, call.args.join(" ")])).toEqual([
+    expect(
+      pi.execCalls.map((call) => [call.command, call.args.join(" ")]),
+    ).toEqual([
       ["git", "symbolic-ref --quiet --short refs/remotes/origin/HEAD"],
-      ["git", "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes"],
-      ["bash", "-lc cat .github/pull_request_template.md 2>/dev/null || cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo 'No GitHub template'"],
+      [
+        "git",
+        "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes",
+      ],
+      [
+        "bash",
+        "-lc cat .github/pull_request_template.md 2>/dev/null || cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo 'No GitHub template'",
+      ],
       ["git", "branch --show-current"],
       ["git", "branch -r"],
       ["git", "symbolic-ref --quiet --short refs/remotes/origin/HEAD"],
@@ -299,23 +412,52 @@ describe("create-pr extension", () => {
     await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
 
     const prompt = pi.sentUserMessages[0];
-    expect(prompt).toContain("User invoked --create-pr with interactive options: --update");
+    expect(prompt).toContain(
+      "User invoked --create-pr with interactive options: --update",
+    );
     expect(prompt).toContain("## Additional User Notes\n\n(none)");
-    expect(prompt).toContain("### Committed changes\nabc123 feat: add api\ndef456 fix: bug");
-    expect(prompt).toContain("### Files changed\nabc123 feat: add api\n src/app.ts | 2 ++");
-    expect(pi.execCalls.map((call) => call.args.join(" "))).not.toContain("for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes");
-    expect(pi.execCalls.map((call) => call.args.join(" "))).toContain("log --oneline -10");
-    expect(pi.execCalls.map((call) => call.args.join(" "))).toContain("show --stat --oneline -5");
+    expect(prompt).toContain(
+      "### Committed changes\nabc123 feat: add api\ndef456 fix: bug",
+    );
+    expect(prompt).toContain(
+      "### Files changed\nabc123 feat: add api\n src/app.ts | 2 ++",
+    );
+    expect(pi.execCalls.map((call) => call.args.join(" "))).not.toContain(
+      "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes",
+    );
+    expect(pi.execCalls.map((call) => call.args.join(" "))).toContain(
+      "log --oneline -10",
+    );
+    expect(pi.execCalls.map((call) => call.args.join(" "))).toContain(
+      "show --stat --oneline -5",
+    );
   });
 
   test("falls back to main when no branches are discoverable for create mode", async () => {
     const extension = await loadExtension();
     const pi = createFakePi((call) => {
       const joined = call.args.join(" ");
-      if (call.command === "git" && joined === "symbolic-ref --quiet --short refs/remotes/origin/HEAD") return { code: 1, stdout: "", stderr: "" };
-      if (call.command === "git" && joined === "show-ref --verify --quiet refs/heads/main") return { code: 1, stdout: "", stderr: "" };
-      if (call.command === "git" && joined === "show-ref --verify --quiet refs/heads/master") return { code: 1, stdout: "", stderr: "" };
-      if (call.command === "git" && joined === "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes") return { code: 0, stdout: "", stderr: "" };
+      if (
+        call.command === "git" &&
+        joined === "symbolic-ref --quiet --short refs/remotes/origin/HEAD"
+      )
+        return { code: 1, stdout: "", stderr: "" };
+      if (
+        call.command === "git" &&
+        joined === "show-ref --verify --quiet refs/heads/main"
+      )
+        return { code: 1, stdout: "", stderr: "" };
+      if (
+        call.command === "git" &&
+        joined === "show-ref --verify --quiet refs/heads/master"
+      )
+        return { code: 1, stdout: "", stderr: "" };
+      if (
+        call.command === "git" &&
+        joined ===
+          "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes"
+      )
+        return { code: 0, stdout: "", stderr: "" };
       return defaultExec(call);
     });
     extension(pi as never);
@@ -329,13 +471,17 @@ describe("create-pr extension", () => {
 
     await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
 
-    expect(pi.sentUserMessages[0]).toContain("User invoked --create-pr with interactive options: --base=main");
-    expect(pi.execCalls.map((call) => call.args.join(" ")).slice(0, 4)).toEqual([
-      "symbolic-ref --quiet --short refs/remotes/origin/HEAD",
-      "show-ref --verify --quiet refs/heads/main",
-      "show-ref --verify --quiet refs/heads/master",
-      "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes",
-    ]);
+    expect(pi.sentUserMessages[0]).toContain(
+      "User invoked --create-pr with interactive options: --base=main",
+    );
+    expect(pi.execCalls.map((call) => call.args.join(" ")).slice(0, 4)).toEqual(
+      [
+        "symbolic-ref --quiet --short refs/remotes/origin/HEAD",
+        "show-ref --verify --quiet refs/heads/main",
+        "show-ref --verify --quiet refs/heads/master",
+        "for-each-ref --format=%(refname)%09%(refname:short) refs/heads refs/remotes",
+      ],
+    );
   });
 
   test("notifies and shuts down if prompt delivery fails", async () => {
@@ -354,7 +500,12 @@ describe("create-pr extension", () => {
 
     await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
 
-    expect(ctx.notifications).toEqual([{ message: "--create-pr の開始に失敗しました: send failed", level: "warning" }]);
+    expect(ctx.notifications).toEqual([
+      {
+        message: "--create-pr の開始に失敗しました: send failed",
+        level: "warning",
+      },
+    ]);
     expect(ctx.shutdownCount).toBe(1);
     expect(pi.sentUserMessages).toEqual([]);
   });

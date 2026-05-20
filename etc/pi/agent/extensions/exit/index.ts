@@ -17,7 +17,10 @@ export default function (pi: ExtensionAPI) {
   const printResumeCommand = () => {
     if (!resumeCommand) return;
     try {
-      writeSync(process.stdout.fd, `Resume this session:\n  ${resumeCommand}\n`);
+      writeSync(
+        process.stdout.fd,
+        `Resume this session:\n  ${resumeCommand}\n`,
+      );
     } catch {
       // Ignore EPIPE or closed stdout during shutdown.
     }

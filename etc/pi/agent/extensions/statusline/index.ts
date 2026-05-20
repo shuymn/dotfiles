@@ -54,9 +54,13 @@ function modelBaseName(model: unknown): string {
         : "model";
 }
 
-function modelName(model: unknown, ambiguousModelNames: ReadonlySet<string>): string {
+function modelName(
+  model: unknown,
+  ambiguousModelNames: ReadonlySet<string>,
+): string {
   const name = modelBaseName(model);
-  if (!model || typeof model !== "object" || !ambiguousModelNames.has(name)) return name;
+  if (!model || typeof model !== "object" || !ambiguousModelNames.has(name))
+    return name;
 
   const provider = (model as ModelLike).provider;
   return typeof provider === "string" ? `${provider}/${name}` : name;
@@ -65,7 +69,9 @@ function modelName(model: unknown, ambiguousModelNames: ReadonlySet<string>): st
 function contextWindow(model: unknown): number | undefined {
   if (!model || typeof model !== "object") return undefined;
   const value = (model as { contextWindow?: unknown }).contextWindow;
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
 }
 
 function formatTime(date: Date): string {
@@ -93,12 +99,16 @@ export default function (pi: ExtensionAPI) {
       modelNameCounts.set(name, (modelNameCounts.get(name) ?? 0) + 1);
     }
     ambiguousModelNames = new Set(
-      [...modelNameCounts].filter(([, count]) => count > 1).map(([name]) => name),
+      [...modelNameCounts]
+        .filter(([, count]) => count > 1)
+        .map(([name]) => name),
     );
 
     ctx.ui.setFooter((tui, _theme, footerData) => {
       requestFooterRender = () => tui.requestRender();
-      const disposeBranchListener = footerData.onBranchChange(() => tui.requestRender());
+      const disposeBranchListener = footerData.onBranchChange(() =>
+        tui.requestRender(),
+      );
 
       return {
         invalidate() {},
@@ -110,7 +120,8 @@ export default function (pi: ExtensionAPI) {
 
           const branch = footerData.getGitBranch();
           if (branch) {
-            parts[parts.length - 1] += ` on ${rgb(220, 120, 255, `${ICON_BRANCH} ${branch}`)}`;
+            parts[parts.length - 1] +=
+              ` on ${rgb(220, 120, 255, `${ICON_BRANCH} ${branch}`)}`;
           }
 
           const effort = pi.getThinkingLevel();

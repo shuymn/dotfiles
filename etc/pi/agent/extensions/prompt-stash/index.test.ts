@@ -2,7 +2,9 @@ import { describe, expect, mock, test } from "bun:test";
 
 mock.module("@earendil-works/pi-tui", () => ({
   truncateToWidth: (text: string, width: number, suffix = "") =>
-    text.length > width ? `${text.slice(0, Math.max(0, width - suffix.length))}${suffix}` : text,
+    text.length > width
+      ? `${text.slice(0, Math.max(0, width - suffix.length))}${suffix}`
+      : text,
 }));
 
 type EventHandler = (event: unknown, ctx: FakeContext) => void;
@@ -12,7 +14,10 @@ type BranchEntry = { type: string; customType?: string; data?: unknown };
 type FakeContext = ReturnType<typeof createContext>;
 
 function createFakePi() {
-  const shortcuts = new Map<string, { description: string; handler: ShortcutHandler }>();
+  const shortcuts = new Map<
+    string,
+    { description: string; handler: ShortcutHandler }
+  >();
   const events = new Map<string, EventHandler[]>();
   const appendedEntries: Array<{ type: string; data: unknown }> = [];
 
@@ -20,7 +25,10 @@ function createFakePi() {
     shortcuts,
     events,
     appendedEntries,
-    registerShortcut(shortcut: string, definition: { description: string; handler: ShortcutHandler }) {
+    registerShortcut(
+      shortcut: string,
+      definition: { description: string; handler: ShortcutHandler },
+    ) {
       shortcuts.set(shortcut, definition);
     },
     on(eventName: string, handler: EventHandler) {
@@ -32,7 +40,9 @@ function createFakePi() {
   };
 }
 
-function createContext(options: { editorText?: string; branch?: BranchEntry[] } = {}) {
+function createContext(
+  options: { editorText?: string; branch?: BranchEntry[] } = {},
+) {
   let editorText = options.editorText ?? "";
   const notifications: Array<{ message: string; level: string }> = [];
   const setEditorTexts: string[] = [];
@@ -68,8 +78,14 @@ describe("prompt-stash extension", () => {
     extension(pi as never);
 
     expect([...pi.shortcuts.keys()]).toEqual(["ctrl+s"]);
-    expect(pi.shortcuts.get("ctrl+s")!.description).toBe("Stash current prompt buffer and clear the editor");
-    expect([...pi.events.keys()].sort()).toEqual(["agent_start", "session_start", "user_bash"]);
+    expect(pi.shortcuts.get("ctrl+s")!.description).toBe(
+      "Stash current prompt buffer and clear the editor",
+    );
+    expect([...pi.events.keys()].sort()).toEqual([
+      "agent_start",
+      "session_start",
+      "user_bash",
+    ]);
   });
 
   test("does not stash blank editor text", async () => {
@@ -80,7 +96,9 @@ describe("prompt-stash extension", () => {
 
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
-    expect(ctx.notifications).toEqual([{ message: "Nothing to stash", level: "info" }]);
+    expect(ctx.notifications).toEqual([
+      { message: "Nothing to stash", level: "info" },
+    ]);
     expect(ctx.setEditorTexts).toEqual([]);
     expect(pi.appendedEntries).toEqual([]);
   });
@@ -94,16 +112,27 @@ describe("prompt-stash extension", () => {
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
     expect(ctx.setEditorTexts).toEqual([""]);
-    expect(ctx.notifications).toEqual([{ message: "Stashed prompt: Please implement feature X", level: "info" }]);
+    expect(ctx.notifications).toEqual([
+      { message: "Stashed prompt: Please implement feature X", level: "info" },
+    ]);
     expect(pi.appendedEntries).toEqual([
-      { type: "prompt-stash-state", data: { stack: ["Please implement feature X"] } },
+      {
+        type: "prompt-stash-state",
+        data: { stack: ["Please implement feature X"] },
+      },
     ]);
 
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
     expect(ctx.setEditorTexts).toEqual(["", "Please implement feature X"]);
-    expect(ctx.notifications.at(-1)).toEqual({ message: "Restored stashed prompt: Please implement feature X", level: "info" });
-    expect(pi.appendedEntries.at(-1)).toEqual({ type: "prompt-stash-state", data: { stack: [] } });
+    expect(ctx.notifications.at(-1)).toEqual({
+      message: "Restored stashed prompt: Please implement feature X",
+      level: "info",
+    });
+    expect(pi.appendedEntries.at(-1)).toEqual({
+      type: "prompt-stash-state",
+      data: { stack: [] },
+    });
   });
 
   test("restores latest stashed prompt automatically on agent_start and user_bash", async () => {
@@ -112,7 +141,11 @@ describe("prompt-stash extension", () => {
     extension(pi as never);
     const ctx = createContext({
       branch: [
-        { type: "custom", customType: "prompt-stash-state", data: { stack: ["first", "second"] } },
+        {
+          type: "custom",
+          customType: "prompt-stash-state",
+          data: { stack: ["first", "second"] },
+        },
       ],
     });
 
@@ -120,13 +153,19 @@ describe("prompt-stash extension", () => {
     pi.events.get("agent_start")![0]({}, ctx);
 
     expect(ctx.setEditorTexts).toEqual(["second"]);
-    expect(pi.appendedEntries.at(-1)).toEqual({ type: "prompt-stash-state", data: { stack: ["first"] } });
+    expect(pi.appendedEntries.at(-1)).toEqual({
+      type: "prompt-stash-state",
+      data: { stack: ["first"] },
+    });
 
     ctx.ui.setEditorText("");
     pi.events.get("user_bash")![0]({}, ctx);
 
     expect(ctx.setEditorTexts).toEqual(["second", "", "first"]);
-    expect(pi.appendedEntries.at(-1)).toEqual({ type: "prompt-stash-state", data: { stack: [] } });
+    expect(pi.appendedEntries.at(-1)).toEqual({
+      type: "prompt-stash-state",
+      data: { stack: [] },
+    });
   });
 
   test("does not restore over non-empty editor and keeps stash for later", async () => {
@@ -135,14 +174,23 @@ describe("prompt-stash extension", () => {
     extension(pi as never);
     const ctx = createContext({
       editorText: "current draft",
-      branch: [{ type: "custom", customType: "prompt-stash-state", data: { stack: ["stashed draft"] } }],
+      branch: [
+        {
+          type: "custom",
+          customType: "prompt-stash-state",
+          data: { stack: ["stashed draft"] },
+        },
+      ],
     });
 
     pi.events.get("session_start")![0]({}, ctx);
     pi.events.get("agent_start")![0]({}, ctx);
 
     expect(ctx.notifications).toEqual([
-      { message: "Prompt stash not restored because the editor is not empty.", level: "warning" },
+      {
+        message: "Prompt stash not restored because the editor is not empty.",
+        level: "warning",
+      },
     ]);
     expect(ctx.setEditorTexts).toEqual([]);
     expect(pi.appendedEntries).toEqual([]);
@@ -151,7 +199,10 @@ describe("prompt-stash extension", () => {
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
     expect(ctx.setEditorTexts).toEqual(["", "stashed draft"]);
-    expect(pi.appendedEntries.at(-1)).toEqual({ type: "prompt-stash-state", data: { stack: [] } });
+    expect(pi.appendedEntries.at(-1)).toEqual({
+      type: "prompt-stash-state",
+      data: { stack: [] },
+    });
   });
 
   test("restores the latest valid state entry and filters invalid stack items", async () => {
@@ -160,10 +211,26 @@ describe("prompt-stash extension", () => {
     extension(pi as never);
     const ctx = createContext({
       branch: [
-        { type: "custom", customType: "prompt-stash-state", data: { stack: ["old"] } },
-        { type: "message", customType: "prompt-stash-state", data: { stack: ["ignored message entry"] } },
-        { type: "custom", customType: "other", data: { stack: ["ignored custom type"] } },
-        { type: "custom", customType: "prompt-stash-state", data: { stack: ["new", 123, null, "latest"] } },
+        {
+          type: "custom",
+          customType: "prompt-stash-state",
+          data: { stack: ["old"] },
+        },
+        {
+          type: "message",
+          customType: "prompt-stash-state",
+          data: { stack: ["ignored message entry"] },
+        },
+        {
+          type: "custom",
+          customType: "other",
+          data: { stack: ["ignored custom type"] },
+        },
+        {
+          type: "custom",
+          customType: "prompt-stash-state",
+          data: { stack: ["new", 123, null, "latest"] },
+        },
       ],
     });
 
@@ -171,16 +238,28 @@ describe("prompt-stash extension", () => {
     pi.events.get("agent_start")![0]({}, ctx);
 
     expect(ctx.setEditorTexts).toEqual(["latest"]);
-    expect(pi.appendedEntries.at(-1)).toEqual({ type: "prompt-stash-state", data: { stack: ["new"] } });
+    expect(pi.appendedEntries.at(-1)).toEqual({
+      type: "prompt-stash-state",
+      data: { stack: ["new"] },
+    });
   });
 
   test("keeps only the newest twenty stashes when restoring persisted state", async () => {
     const extension = await loadExtension();
     const pi = createFakePi();
     extension(pi as never);
-    const originalStack = Array.from({ length: 25 }, (_value, index) => `stash-${index + 1}`);
+    const originalStack = Array.from(
+      { length: 25 },
+      (_value, index) => `stash-${index + 1}`,
+    );
     const ctx = createContext({
-      branch: [{ type: "custom", customType: "prompt-stash-state", data: { stack: originalStack } }],
+      branch: [
+        {
+          type: "custom",
+          customType: "prompt-stash-state",
+          data: { stack: originalStack },
+        },
+      ],
     });
 
     pi.events.get("session_start")![0]({}, ctx);
@@ -202,6 +281,8 @@ describe("prompt-stash extension", () => {
 
     pi.shortcuts.get("ctrl+s")!.handler(ctx);
 
-    expect(ctx.notifications[0].message).toBe(`Stashed prompt: first line ${"x".repeat(66)}...`);
+    expect(ctx.notifications[0].message).toBe(
+      `Stashed prompt: first line ${"x".repeat(66)}...`,
+    );
   });
 });

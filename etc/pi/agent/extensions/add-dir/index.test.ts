@@ -1,13 +1,20 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { mkdtemp, mkdir, realpath, rm, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 mock.module("typebox", () => {
   const Type = {
-    Object: (properties: Record<string, unknown>, options = {}) => ({ type: "object", properties, ...options }),
+    Object: (properties: Record<string, unknown>, options = {}) => ({
+      type: "object",
+      properties,
+      ...options,
+    }),
     String: (options = {}) => ({ type: "string", ...options }),
-    Optional: (schema: Record<string, unknown>) => ({ ...schema, optional: true }),
+    Optional: (schema: Record<string, unknown>) => ({
+      ...schema,
+      optional: true,
+    }),
   };
   return { Type };
 });
@@ -15,7 +22,10 @@ mock.module("typebox", () => {
 mock.module("@earendil-works/pi-coding-agent", () => ({}));
 
 type NotifyLevel = "info" | "error";
-type CommandHandler = (args: string, ctx: FakeCommandContext) => Promise<void> | void;
+type CommandHandler = (
+  args: string,
+  ctx: FakeCommandContext,
+) => Promise<void> | void;
 type EventHandler = (event: any, ctx: any) => Promise<any> | any;
 type ToolDefinition = {
   name: string;
@@ -87,7 +97,9 @@ async function createTempDir() {
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("add-dir extension", () => {
@@ -97,9 +109,17 @@ describe("add-dir extension", () => {
 
     extension(pi as never);
 
-    expect([...pi.commands.keys()].sort()).toEqual(["add-dir", "list-dir", "remove-dir"]);
+    expect([...pi.commands.keys()].sort()).toEqual([
+      "add-dir",
+      "list-dir",
+      "remove-dir",
+    ]);
     expect([...pi.tools.keys()]).toEqual(["github_clone_workspace"]);
-    expect([...pi.events.keys()].sort()).toEqual(["before_agent_start", "session_shutdown", "session_start"]);
+    expect([...pi.events.keys()].sort()).toEqual([
+      "before_agent_start",
+      "session_shutdown",
+      "session_start",
+    ]);
   });
 
   test("adds a real directory, persists canonical state, lists it, and injects agent context", async () => {
@@ -111,25 +131,41 @@ describe("add-dir extension", () => {
     const project = join(cwd, "project");
     await mkdir(project);
     const canonicalProject = await realpath(project);
-    await pi.events.get("session_start")![0]({}, { sessionManager: { getEntries: () => [] } });
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
 
     const { ctx, notifications } = createCommandContext(cwd);
     await pi.commands.get("add-dir")!.handler("./project", ctx);
 
     expect(notifications).toEqual([
-      { message: `Added directory: project: ${canonicalProject}`, level: "info" },
+      {
+        message: `Added directory: project: ${canonicalProject}`,
+        level: "info",
+      },
     ]);
     expect(pi.appendedEntries).toEqual([
-      { type: "add-dir-state", data: { dirs: [{ name: "project", path: canonicalProject }] } },
+      {
+        type: "add-dir-state",
+        data: { dirs: [{ name: "project", path: canonicalProject }] },
+      },
     ]);
 
     await pi.commands.get("list-dir")!.handler("", ctx);
-    expect(notifications.at(-1)).toEqual({ message: `- project: ${canonicalProject}`, level: "info" });
+    expect(notifications.at(-1)).toEqual({
+      message: `- project: ${canonicalProject}`,
+      level: "info",
+    });
 
-    const result = await pi.events.get("before_agent_start")![0]({ systemPrompt: "base prompt" });
+    const result = await pi.events.get("before_agent_start")![0]({
+      systemPrompt: "base prompt",
+    });
     expect(result.systemPrompt).toContain("base prompt");
     expect(result.systemPrompt).toContain(`- project: ${canonicalProject}`);
-    expect(result.systemPrompt).toContain("Use absolute paths when reading, searching, or editing files");
+    expect(result.systemPrompt).toContain(
+      "Use absolute paths when reading, searching, or editing files",
+    );
   });
 
   test("does not duplicate an already registered path", async () => {
@@ -141,7 +177,10 @@ describe("add-dir extension", () => {
     const project = join(cwd, "project");
     await mkdir(project);
     const canonicalProject = await realpath(project);
-    await pi.events.get("session_start")![0]({}, { sessionManager: { getEntries: () => [] } });
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
 
     const { ctx, notifications } = createCommandContext(cwd);
     await pi.commands.get("add-dir")!.handler("project", ctx);
@@ -166,7 +205,10 @@ describe("add-dir extension", () => {
     await mkdir(right, { recursive: true });
     const canonicalLeft = await realpath(left);
     const canonicalRight = await realpath(right);
-    await pi.events.get("session_start")![0]({}, { sessionManager: { getEntries: () => [] } });
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
 
     const { ctx, notifications } = createCommandContext(cwd);
     await pi.commands.get("add-dir")!.handler("left/same-name", ctx);
@@ -191,7 +233,10 @@ describe("add-dir extension", () => {
     await mkdir(beta);
     const canonicalAlpha = await realpath(alpha);
     const canonicalBeta = await realpath(beta);
-    await pi.events.get("session_start")![0]({}, { sessionManager: { getEntries: () => [] } });
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
 
     const { ctx, notifications } = createCommandContext(cwd);
     await pi.commands.get("add-dir")!.handler("alpha", ctx);
@@ -227,20 +272,42 @@ describe("add-dir extension", () => {
     const staleTemporary = join(cwd, "missing-temp");
     const stalePermanent = join(cwd, "missing-permanent");
 
-    await pi.events.get("session_start")![0]({}, {
-      sessionManager: {
-        getEntries: () => [
-          { type: "custom", customType: "different", data: { dirs: [{ name: "ignored", path: existing }] } },
-          { type: "custom", customType: "add-dir-state", data: { dirs: [null, { name: "existing", path: canonicalExisting }, { name: "bad" }, { name: "tmp", path: staleTemporary, temporary: true }, { name: "permanent", path: stalePermanent }] } },
-        ],
+    await pi.events.get("session_start")![0](
+      {},
+      {
+        sessionManager: {
+          getEntries: () => [
+            {
+              type: "custom",
+              customType: "different",
+              data: { dirs: [{ name: "ignored", path: existing }] },
+            },
+            {
+              type: "custom",
+              customType: "add-dir-state",
+              data: {
+                dirs: [
+                  null,
+                  { name: "existing", path: canonicalExisting },
+                  { name: "bad" },
+                  { name: "tmp", path: staleTemporary, temporary: true },
+                  { name: "permanent", path: stalePermanent },
+                ],
+              },
+            },
+          ],
+        },
       },
-    });
+    );
 
     const { ctx, notifications } = createCommandContext(cwd);
     await pi.commands.get("list-dir")!.handler("", ctx);
 
     expect(notifications.at(-1)).toEqual({
-      message: [`- existing: ${canonicalExisting}`, `- permanent: ${stalePermanent}`].join("\n"),
+      message: [
+        `- existing: ${canonicalExisting}`,
+        `- permanent: ${stalePermanent}`,
+      ].join("\n"),
       level: "info",
     });
   });
@@ -254,13 +321,24 @@ describe("add-dir extension", () => {
     const tempRoot = await createTempDir();
     const clone = join(tempRoot, "repo");
     await mkdir(clone);
-    await pi.events.get("session_start")![0]({}, {
-      sessionManager: {
-        getEntries: () => [
-          { type: "custom", customType: "add-dir-state", data: { dirs: [{ name: "repo", path: clone, temporary: true, tempRoot }] } },
-        ],
+    await pi.events.get("session_start")![0](
+      {},
+      {
+        sessionManager: {
+          getEntries: () => [
+            {
+              type: "custom",
+              customType: "add-dir-state",
+              data: {
+                dirs: [
+                  { name: "repo", path: clone, temporary: true, tempRoot },
+                ],
+              },
+            },
+          ],
+        },
       },
-    });
+    );
 
     await pi.events.get("session_shutdown")![0]({ reason: "reload" });
     await expect(stat(tempRoot)).resolves.toBeTruthy();
@@ -278,13 +356,37 @@ describe("add-dir extension", () => {
     const cwd = await createTempDir();
     const tool = pi.tools.get("github_clone_workspace")!;
 
-    await expect(tool.execute("call", { url: "git@github.com:owner/repo.git" }, undefined, undefined, { cwd })).rejects.toThrow(
+    await expect(
+      tool.execute(
+        "call",
+        { url: "git@github.com:owner/repo.git" },
+        undefined,
+        undefined,
+        { cwd },
+      ),
+    ).rejects.toThrow(
       "github_clone_workspace only accepts full https://github.com/owner/repo URLs.",
     );
-    await expect(tool.execute("call", { url: "https://example.com/owner/repo" }, undefined, undefined, { cwd })).rejects.toThrow(
+    await expect(
+      tool.execute(
+        "call",
+        { url: "https://example.com/owner/repo" },
+        undefined,
+        undefined,
+        { cwd },
+      ),
+    ).rejects.toThrow(
       "github_clone_workspace only accepts https://github.com URLs.",
     );
-    await expect(tool.execute("call", { url: "https://github.com/owner/repo", directoryName: "../repo" }, undefined, undefined, { cwd })).rejects.toThrow(
+    await expect(
+      tool.execute(
+        "call",
+        { url: "https://github.com/owner/repo", directoryName: "../repo" },
+        undefined,
+        undefined,
+        { cwd },
+      ),
+    ).rejects.toThrow(
       "Directory name may only contain letters, numbers, '.', '_', and '-'.",
     );
   });

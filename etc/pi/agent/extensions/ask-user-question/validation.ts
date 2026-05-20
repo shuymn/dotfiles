@@ -1,13 +1,15 @@
 import {
+  type AskUserQuestionParams,
   MAX_OPTIONS,
   MAX_QUESTIONS,
   MIN_OPTIONS,
-  RESERVED_LABELS,
-  type AskUserQuestionParams,
   type QuestionnaireError,
+  RESERVED_LABELS,
 } from "./types";
 
-export type ValidationResult = { ok: true } | { ok: false; error: QuestionnaireError; message: string };
+export type ValidationResult =
+  | { ok: true }
+  | { ok: false; error: QuestionnaireError; message: string };
 
 function normalizeComparable(value: string): string {
   return value.trim().toLowerCase();
@@ -21,19 +23,31 @@ function invalidParams(message: string): ValidationResult {
   return { ok: false, error: "invalid_params", message };
 }
 
-export function validateAskUserQuestionParams(params: unknown): ValidationResult {
+export function validateAskUserQuestionParams(
+  params: unknown,
+): ValidationResult {
   if (!isRecord(params) || !Array.isArray(params.questions)) {
-    return invalidParams("Invalid ask_user_question parameters: questions must be an array.");
+    return invalidParams(
+      "Invalid ask_user_question parameters: questions must be an array.",
+    );
   }
 
   const typed = params as AskUserQuestionParams;
 
   if (typed.questions.length === 0) {
-    return { ok: false, error: "no_questions", message: "At least one question is required." };
+    return {
+      ok: false,
+      error: "no_questions",
+      message: "At least one question is required.",
+    };
   }
 
   if (typed.questions.length > MAX_QUESTIONS) {
-    return { ok: false, error: "too_many_questions", message: `At most ${MAX_QUESTIONS} questions are allowed.` };
+    return {
+      ok: false,
+      error: "too_many_questions",
+      message: `At most ${MAX_QUESTIONS} questions are allowed.`,
+    };
   }
 
   const seenQuestions = new Set<string>();
@@ -41,21 +55,39 @@ export function validateAskUserQuestionParams(params: unknown): ValidationResult
 
   for (const question of typed.questions) {
     if (!isRecord(question)) {
-      return invalidParams("Invalid ask_user_question parameters: each question must be an object.");
+      return invalidParams(
+        "Invalid ask_user_question parameters: each question must be an object.",
+      );
     }
-    if (typeof question.question !== "string" || typeof question.header !== "string") {
-      return invalidParams("Invalid ask_user_question parameters: question and header must be strings.");
+    if (
+      typeof question.question !== "string" ||
+      typeof question.header !== "string"
+    ) {
+      return invalidParams(
+        "Invalid ask_user_question parameters: question and header must be strings.",
+      );
     }
     if (!Array.isArray(question.options)) {
-      return invalidParams("Invalid ask_user_question parameters: options must be an array.");
+      return invalidParams(
+        "Invalid ask_user_question parameters: options must be an array.",
+      );
     }
-    if (question.multiSelect !== undefined && typeof question.multiSelect !== "boolean") {
-      return invalidParams("Invalid ask_user_question parameters: multiSelect must be a boolean when provided.");
+    if (
+      question.multiSelect !== undefined &&
+      typeof question.multiSelect !== "boolean"
+    ) {
+      return invalidParams(
+        "Invalid ask_user_question parameters: multiSelect must be a boolean when provided.",
+      );
     }
 
     const questionKey = normalizeComparable(question.question);
     if (seenQuestions.has(questionKey)) {
-      return { ok: false, error: "duplicate_question", message: `Duplicate question: ${question.question}` };
+      return {
+        ok: false,
+        error: "duplicate_question",
+        message: `Duplicate question: ${question.question}`,
+      };
     }
     seenQuestions.add(questionKey);
 
@@ -78,13 +110,22 @@ export function validateAskUserQuestionParams(params: unknown): ValidationResult
     const seenOptionLabels = new Set<string>();
     for (const option of question.options) {
       if (!isRecord(option)) {
-        return invalidParams("Invalid ask_user_question parameters: each option must be an object.");
+        return invalidParams(
+          "Invalid ask_user_question parameters: each option must be an object.",
+        );
       }
-      if (typeof option.label !== "string" || typeof option.description !== "string") {
-        return invalidParams("Invalid ask_user_question parameters: option label and description must be strings.");
+      if (
+        typeof option.label !== "string" ||
+        typeof option.description !== "string"
+      ) {
+        return invalidParams(
+          "Invalid ask_user_question parameters: option label and description must be strings.",
+        );
       }
       if (option.preview !== undefined && typeof option.preview !== "string") {
-        return invalidParams("Invalid ask_user_question parameters: option preview must be a string when provided.");
+        return invalidParams(
+          "Invalid ask_user_question parameters: option preview must be a string when provided.",
+        );
       }
 
       const labelKey = normalizeComparable(option.label);

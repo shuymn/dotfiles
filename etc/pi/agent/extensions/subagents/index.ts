@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import {
+  type AgentSession,
+  type AgentSessionEvent,
   createAgentSession,
   DefaultResourceLoader,
+  type ExtensionAPI,
+  type ExtensionContext,
   getAgentDir,
   SessionManager,
   SettingsManager,
-  type AgentSession,
-  type AgentSessionEvent,
-  type ExtensionAPI,
-  type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 

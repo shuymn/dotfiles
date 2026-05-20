@@ -12,9 +12,9 @@ import {
   Input,
   Key,
   matchesKey,
+  type SelectItem,
   SelectList,
   truncateToWidth,
-  type SelectItem,
 } from "@earendil-works/pi-tui";
 
 const COMMIT_INSTRUCTIONS = readFileSync(
@@ -417,7 +417,10 @@ async function gitSnapshot(pi: ExtensionAPI): Promise<string> {
   }
 
   commands.push(
-    ["Recent All Commits (fallback for auto language)", ["log", "--format=%s", "-10"]],
+    [
+      "Recent All Commits (fallback for auto language)",
+      ["log", "--format=%s", "-10"],
+    ],
     ["Unstaged", ["diff", "--stat"]],
     ["Staged", ["diff", "--cached", "--stat"]],
   );

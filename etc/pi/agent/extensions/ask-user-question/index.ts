@@ -1,15 +1,20 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import {
+  cancelledResult,
+  completedResult,
+  errorResult,
+  pausedResult,
+} from "./response";
+import {
+  type AskUserQuestionParams,
   AskUserQuestionParamsSchema,
   CHAT_ABOUT_THIS_LABEL,
   NEXT_QUESTION_LABEL,
   OTHER_LABEL,
-  TYPE_SOMETHING_LABEL,
-  type AskUserQuestionParams,
   type QuestionnaireResult,
+  TYPE_SOMETHING_LABEL,
 } from "./types";
-import { cancelledResult, completedResult, errorResult, pausedResult } from "./response";
 import { createQuestionnaireComponent } from "./ui";
 import { validateAskUserQuestionParams } from "./validation";
 
@@ -42,7 +47,8 @@ Usage notes:
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const validation = validateAskUserQuestionParams(params);
-      if (!validation.ok) return errorResult(params, validation.message, validation.error);
+      if (!validation.ok)
+        return errorResult(params, validation.message, validation.error);
 
       const typed = params as AskUserQuestionParams;
       if (!ctx.hasUI) return errorResult(typed, ERROR_NO_UI, "no_ui", "no_ui");
@@ -51,21 +57,32 @@ Usage notes:
         createQuestionnaireComponent(typed, tui, theme, done),
       );
 
-      if (!result || result.status === "cancelled") return cancelledResult(typed, result?.answers ?? []);
+      if (!result || result.status === "cancelled")
+        return cancelledResult(typed, result?.answers ?? []);
       if (result.status === "paused") {
-        return pausedResult(typed, result.answers, result.activeQuestionIndex, result.chatMessage);
+        return pausedResult(
+          typed,
+          result.answers,
+          result.activeQuestionIndex,
+          result.chatMessage,
+        );
       }
       return completedResult(result.answers);
     },
 
     renderCall(args, theme) {
-      const questions = Array.isArray((args as Partial<AskUserQuestionParams>).questions)
-        ? (args as Partial<AskUserQuestionParams>).questions ?? []
+      const questions = Array.isArray(
+        (args as Partial<AskUserQuestionParams>).questions,
+      )
+        ? ((args as Partial<AskUserQuestionParams>).questions ?? [])
         : [];
       const labels = questions.map((q) => q.header || q.question).join(", ");
       const text =
         theme.fg("toolTitle", theme.bold("ask_user_question ")) +
-        theme.fg("muted", `${questions.length} question${questions.length === 1 ? "" : "s"}`) +
+        theme.fg(
+          "muted",
+          `${questions.length} question${questions.length === 1 ? "" : "s"}`,
+        ) +
         (labels ? theme.fg("dim", ` (${labels})`) : "");
       return new Text(text, 0, 0);
     },
@@ -79,7 +96,12 @@ Usage notes:
 
       if (details.status === "paused") {
         const suffix = details.chatMessage ? `: ${details.chatMessage}` : "";
-        return new Text(theme.fg("warning", "Paused for discussion") + theme.fg("muted", suffix), 0, 0);
+        return new Text(
+          theme.fg("warning", "Paused for discussion") +
+            theme.fg("muted", suffix),
+          0,
+          0,
+        );
       }
 
       if (details.status === "cancelled") {
@@ -88,7 +110,10 @@ Usage notes:
       }
 
       const lines = details.answers.map((answer) => {
-        const value = answer.kind === "multi" ? answer.selected.join(", ") : answer.answer ?? "(no response)";
+        const value =
+          answer.kind === "multi"
+            ? answer.selected.join(", ")
+            : (answer.answer ?? "(no response)");
         return `${theme.fg("success", "✓")} Q${answer.questionIndex + 1}: ${theme.fg("accent", value)}`;
       });
       return new Text(lines.join("\n"), 0, 0);

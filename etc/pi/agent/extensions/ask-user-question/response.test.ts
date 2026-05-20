@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { CHAT_ABOUT_THIS_LABEL, type AskUserQuestionParams, type QuestionAnswer } from "./types";
-import { cancelledResult, completedResult, errorResult, pausedResult } from "./response";
+import {
+  cancelledResult,
+  completedResult,
+  errorResult,
+  pausedResult,
+} from "./response";
+import {
+  type AskUserQuestionParams,
+  CHAT_ABOUT_THIS_LABEL,
+  type QuestionAnswer,
+} from "./types";
 
 const params: AskUserQuestionParams = {
   questions: [
@@ -40,11 +49,18 @@ describe("response builders", () => {
   });
 
   test("builds paused result with pending questions and chat message", () => {
-    const result = pausedResult(params, [answer], 1, "I don't understand runtime trade-offs");
+    const result = pausedResult(
+      params,
+      [answer],
+      1,
+      "I don't understand runtime trade-offs",
+    );
     expect(result.details.status).toBe("paused");
     expect(result.details.reason).toBe("chat");
     expect(result.details.activeQuestionIndex).toBe(1);
-    expect(result.details.chatMessage).toBe("I don't understand runtime trade-offs");
+    expect(result.details.chatMessage).toBe(
+      "I don't understand runtime trade-offs",
+    );
     expect(result.details.pendingQuestions).toEqual([params.questions[1]]);
     expect(result.content[0].text).toContain("details.pendingQuestions");
   });
@@ -57,7 +73,12 @@ describe("response builders", () => {
       answer: CHAT_ABOUT_THIS_LABEL,
       notes: "What does runtime mean?",
     };
-    const result = pausedResult(params, [answer, chatAnswer], 1, chatAnswer.notes);
+    const result = pausedResult(
+      params,
+      [answer, chatAnswer],
+      1,
+      chatAnswer.notes,
+    );
     expect(result.details.answers).toEqual([answer]);
     expect(result.details.pendingQuestions).toEqual([params.questions[1]]);
     expect(result.content[0].text).not.toContain("Q2: User wants to discuss");
@@ -81,7 +102,12 @@ describe("response builders", () => {
   });
 
   test("builds no-ui error result preserving questions", () => {
-    const result = errorResult(params, "Error: UI not available", "no_ui", "no_ui");
+    const result = errorResult(
+      params,
+      "Error: UI not available",
+      "no_ui",
+      "no_ui",
+    );
     expect(result.details.status).toBe("cancelled");
     expect(result.details.reason).toBe("no_ui");
     expect(result.details.error).toBe("no_ui");
@@ -89,12 +115,20 @@ describe("response builders", () => {
   });
 
   test("builds validation error result safely for malformed params", () => {
-    const nullResult = errorResult(null, "Invalid parameters", "invalid_params");
+    const nullResult = errorResult(
+      null,
+      "Invalid parameters",
+      "invalid_params",
+    );
     expect(nullResult.details.status).toBe("cancelled");
     expect(nullResult.details.error).toBe("invalid_params");
     expect(nullResult.details.pendingQuestions).toEqual([]);
 
-    const malformedQuestionsResult = errorResult({ questions: [null] }, "Invalid parameters", "invalid_params");
+    const malformedQuestionsResult = errorResult(
+      { questions: [null] },
+      "Invalid parameters",
+      "invalid_params",
+    );
     expect(malformedQuestionsResult.details.pendingQuestions).toEqual([]);
   });
 });

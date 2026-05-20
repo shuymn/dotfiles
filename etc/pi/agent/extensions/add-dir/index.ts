@@ -1,9 +1,9 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
 import { execFile } from "node:child_process";
 import { mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 
 const STATE_TYPE = "add-dir-state";
 const GITHUB_CLONE_PREFIX = "pi-github-workspace-";

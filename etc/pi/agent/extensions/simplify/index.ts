@@ -113,7 +113,11 @@ async function getRecentTrackedFiles(
   const paths = result.stdout.split("\0").filter(Boolean);
   const candidates: Array<{ path: string; mtimeMs: number }> = [];
 
-  for (let index = 0; index < paths.length; index += RECENT_FILE_STAT_CONCURRENCY) {
+  for (
+    let index = 0;
+    index < paths.length;
+    index += RECENT_FILE_STAT_CONCURRENCY
+  ) {
     const batch = paths.slice(index, index + RECENT_FILE_STAT_CONCURRENCY);
     const stats = await Promise.all(
       batch.map(async (path) => {

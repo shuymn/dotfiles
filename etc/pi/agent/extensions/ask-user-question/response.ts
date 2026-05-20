@@ -8,27 +8,41 @@ import type {
 } from "./types";
 
 function isRealAnswer(answer: QuestionAnswer): boolean {
-  return answer.kind === "option" || answer.kind === "custom" || answer.kind === "multi";
+  return (
+    answer.kind === "option" ||
+    answer.kind === "custom" ||
+    answer.kind === "multi"
+  );
 }
 
 function answeredQuestionIndexes(answers: QuestionAnswer[]): Set<number> {
-  return new Set(answers.filter(isRealAnswer).map((answer) => answer.questionIndex));
+  return new Set(
+    answers.filter(isRealAnswer).map((answer) => answer.questionIndex),
+  );
 }
 
 function isQuestionDataLike(value: unknown): value is QuestionData {
   if (!value || typeof value !== "object") return false;
   const question = value as Partial<QuestionData>;
-  return typeof question.question === "string" && typeof question.header === "string" && Array.isArray(question.options);
+  return (
+    typeof question.question === "string" &&
+    typeof question.header === "string" &&
+    Array.isArray(question.options)
+  );
 }
 
 function safePendingQuestions(params: unknown): QuestionData[] {
   if (!params || typeof params !== "object") return [];
   const questions = (params as { questions?: unknown }).questions;
-  if (!Array.isArray(questions) || !questions.every(isQuestionDataLike)) return [];
+  if (!Array.isArray(questions) || !questions.every(isQuestionDataLike))
+    return [];
   return questions;
 }
 
-export function pendingQuestionsFrom(params: AskUserQuestionParams, answers: QuestionAnswer[]): QuestionData[] {
+export function pendingQuestionsFrom(
+  params: AskUserQuestionParams,
+  answers: QuestionAnswer[],
+): QuestionData[] {
   const answered = answeredQuestionIndexes(answers);
   return params.questions.filter((_question, index) => !answered.has(index));
 }
@@ -58,9 +72,14 @@ export function completedResult(answers: QuestionAnswer[]): ToolTextResult {
     pendingQuestions: [],
   };
 
-  const answerText = answers.length > 0 ? answers.map(formatAnswer).join("\n") : "No answers were provided.";
+  const answerText =
+    answers.length > 0
+      ? answers.map(formatAnswer).join("\n")
+      : "No answers were provided.";
   return {
-    content: [{ type: "text", text: `Questionnaire completed.\n${answerText}` }],
+    content: [
+      { type: "text", text: `Questionnaire completed.\n${answerText}` },
+    ],
     details,
   };
 }
@@ -82,7 +101,10 @@ export function pausedResult(
     ...(chatMessage ? { chatMessage } : {}),
   };
 
-  const answeredText = realAnswers.length > 0 ? realAnswers.map(formatAnswer).join("\n") : "- None yet";
+  const answeredText =
+    realAnswers.length > 0
+      ? realAnswers.map(formatAnswer).join("\n")
+      : "- None yet";
   const concern = chatMessage ? `\nUser concern: ${chatMessage}\n` : "\n";
   return {
     content: [
@@ -99,7 +121,10 @@ export function pausedResult(
   };
 }
 
-export function cancelledResult(params: AskUserQuestionParams, answers: QuestionAnswer[] = []): ToolTextResult {
+export function cancelledResult(
+  params: AskUserQuestionParams,
+  answers: QuestionAnswer[] = [],
+): ToolTextResult {
   const details: QuestionnaireResult = {
     status: "cancelled",
     answers,

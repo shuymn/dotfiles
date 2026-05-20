@@ -1,11 +1,11 @@
-import {
-  SettingsManager,
-  type ExtensionAPI,
-  type ExtensionContext,
-} from "@earendil-works/pi-coding-agent";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  type ExtensionAPI,
+  type ExtensionContext,
+  SettingsManager,
+} from "@earendil-works/pi-coding-agent";
 
 const PACKAGE_NAME = "@earendil-works/pi-coding-agent";
 const REGISTRY_URL = "https://npm.flatt.tech";

@@ -2,12 +2,22 @@ import { describe, expect, mock, test } from "bun:test";
 
 mock.module("@earendil-works/pi-tui", () => ({
   truncateToWidth: (text: string, width: number, suffix = "") =>
-    text.length > width ? `${text.slice(0, Math.max(0, width - suffix.length))}${suffix}` : text,
+    text.length > width
+      ? `${text.slice(0, Math.max(0, width - suffix.length))}${suffix}`
+      : text,
 }));
 
 type EventHandler = (event: unknown, ctx: FakeContext) => Promise<void> | void;
-type FooterFactory = (tui: { requestRender: () => void }, theme: unknown, footerData: FooterData) => FooterComponent;
-type FooterComponent = { invalidate: () => void; render: (width: number) => string[]; dispose: () => void };
+type FooterFactory = (
+  tui: { requestRender: () => void },
+  theme: unknown,
+  footerData: FooterData,
+) => FooterComponent;
+type FooterComponent = {
+  invalidate: () => void;
+  render: (width: number) => string[];
+  dispose: () => void;
+};
 type FooterData = {
   getGitBranch: () => string | undefined;
   onBranchChange: (listener: () => void) => () => void;
@@ -28,15 +38,27 @@ function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
-function createFakePi(execResult: ExecResult | Promise<ExecResult> | undefined = { code: 0, stdout: "/repo/root\n", stderr: "" }) {
+function createFakePi(
+  execResult: ExecResult | Promise<ExecResult> | undefined = {
+    code: 0,
+    stdout: "/repo/root\n",
+    stderr: "",
+  },
+) {
   const events = new Map<string, EventHandler[]>();
-  const execCalls: Array<{ command: string; args: string[]; options: unknown }> = [];
+  const execCalls: Array<{
+    command: string;
+    args: string[];
+    options: unknown;
+  }> = [];
   let thinkingLevel = "medium";
 
   return {
     events,
     execCalls,
-    setThinkingLevel(value: string) { thinkingLevel = value; },
+    setThinkingLevel(value: string) {
+      thinkingLevel = value;
+    },
     on(eventName: string, handler: EventHandler) {
       events.set(eventName, [...(events.get(eventName) ?? []), handler]);
     },
@@ -49,15 +71,19 @@ function createFakePi(execResult: ExecResult | Promise<ExecResult> | undefined =
   };
 }
 
-function createContext(options: {
-  hasUI?: boolean;
-  cwd?: string;
-  model?: Model | unknown;
-  models?: unknown[];
-  usage?: { tokens: number } | undefined;
-} = {}) {
+function createContext(
+  options: {
+    hasUI?: boolean;
+    cwd?: string;
+    model?: Model | unknown;
+    models?: unknown[];
+    usage?: { tokens: number } | undefined;
+  } = {},
+) {
   const footerFactories: FooterFactory[] = [];
-  const model = Object.hasOwn(options, "model") ? options.model : { name: "claude", provider: "anthropic", contextWindow: 100_000 };
+  const model = Object.hasOwn(options, "model")
+    ? options.model
+    : { name: "claude", provider: "anthropic", contextWindow: 100_000 };
 
   return {
     hasUI: options.hasUI ?? true,
@@ -82,11 +108,17 @@ function instantiateFooter(ctx: FakeContext, branch?: string) {
     getGitBranch: () => branch,
     onBranchChange: (listener) => {
       branchListeners.push(listener);
-      return () => { disposed = true; };
+      return () => {
+        disposed = true;
+      };
     },
   };
   const component = ctx.footerFactories[0](
-    { requestRender: () => { renderCount += 1; } },
+    {
+      requestRender: () => {
+        renderCount += 1;
+      },
+    },
     {},
     footerData,
   );
@@ -94,9 +126,15 @@ function instantiateFooter(ctx: FakeContext, branch?: string) {
   return {
     component,
     branchListeners,
-    get renderCount() { return renderCount; },
-    get disposed() { return disposed; },
-    setBranch(value: string | undefined) { branch = value; },
+    get renderCount() {
+      return renderCount;
+    },
+    get disposed() {
+      return disposed;
+    },
+    setBranch(value: string | undefined) {
+      branch = value;
+    },
   };
 }
 
@@ -111,7 +149,12 @@ describe("statusline extension", () => {
 
     extension(pi as never);
 
-    expect([...pi.events.keys()].sort()).toEqual(["agent_end", "model_select", "session_start", "thinking_level_select"]);
+    expect([...pi.events.keys()].sort()).toEqual([
+      "agent_end",
+      "model_select",
+      "session_start",
+      "thinking_level_select",
+    ]);
   });
 
   test("does nothing on session_start without UI", async () => {
@@ -128,12 +171,19 @@ describe("statusline extension", () => {
 
   test("renders project, branch, model, thinking level, and context usage", async () => {
     const extension = await loadExtension();
-    const pi = createFakePi({ code: 0, stdout: "/work/my-project\n", stderr: "" });
+    const pi = createFakePi({
+      code: 0,
+      stdout: "/work/my-project\n",
+      stderr: "",
+    });
     pi.setThinkingLevel("high");
     extension(pi as never);
     const ctx = createContext({
       model: { name: "sonnet", provider: "anthropic", contextWindow: 100_000 },
-      models: [{ name: "sonnet", provider: "anthropic" }, { name: "sonnet", provider: "openrouter" }],
+      models: [
+        { name: "sonnet", provider: "anthropic" },
+        { name: "sonnet", provider: "openrouter" },
+      ],
       usage: { tokens: 25_000 },
     });
 
@@ -142,9 +192,15 @@ describe("statusline extension", () => {
     const rendered = stripAnsi(footer.component.render(500)[0]);
 
     expect(pi.execCalls).toEqual([
-      { command: "git", args: ["rev-parse", "--show-toplevel"], options: { timeout: 1000 } },
+      {
+        command: "git",
+        args: ["rev-parse", "--show-toplevel"],
+        options: { timeout: 1000 },
+      },
     ]);
-    expect(rendered).toContain("my-project on  feature/statusline via anthropic/sonnet • high");
+    expect(rendered).toContain(
+      "my-project on  feature/statusline via anthropic/sonnet • high",
+    );
     expect(rendered).toContain("ctx ● 25%");
   });
 
@@ -152,7 +208,10 @@ describe("statusline extension", () => {
     const extension = await loadExtension();
     const pi = createFakePi({ code: 1, stdout: "", stderr: "not git" });
     extension(pi as never);
-    const ctx = createContext({ cwd: "/Users/me/project/", model: { displayName: "Display Model" } });
+    const ctx = createContext({
+      cwd: "/Users/me/project/",
+      model: { displayName: "Display Model" },
+    });
 
     await pi.events.get("session_start")![0]({}, ctx);
     const footer = instantiateFooter(ctx);
@@ -167,24 +226,38 @@ describe("statusline extension", () => {
     const extension = await loadExtension();
     const pi = createFakePi(undefined);
     extension(pi as never);
-    const idCtx = createContext({ model: { id: "model-id", contextWindow: 0 }, usage: { tokens: 500 } });
+    const idCtx = createContext({
+      model: { id: "model-id", contextWindow: 0 },
+      usage: { tokens: 500 },
+    });
 
     await pi.events.get("session_start")![0]({}, idCtx);
     let footer = instantiateFooter(idCtx);
-    expect(stripAnsi(footer.component.render(300)[0])).toContain("model-id • medium");
+    expect(stripAnsi(footer.component.render(300)[0])).toContain(
+      "model-id • medium",
+    );
     expect(stripAnsi(footer.component.render(300)[0])).not.toContain("ctx ●");
 
     const fallbackCtx = createContext({ model: null, models: [null] });
     await pi.events.get("session_start")![0]({}, fallbackCtx);
     footer = instantiateFooter(fallbackCtx);
-    expect(stripAnsi(footer.component.render(300)[0])).toContain("no model • medium");
+    expect(stripAnsi(footer.component.render(300)[0])).toContain(
+      "no model • medium",
+    );
   });
 
   test("truncates the rendered footer to the available width", async () => {
     const extension = await loadExtension();
-    const pi = createFakePi({ code: 0, stdout: "/very/long/project-name\n", stderr: "" });
+    const pi = createFakePi({
+      code: 0,
+      stdout: "/very/long/project-name\n",
+      stderr: "",
+    });
     extension(pi as never);
-    const ctx = createContext({ model: { name: "very-long-model-name", contextWindow: 1000 }, usage: { tokens: 900 } });
+    const ctx = createContext({
+      model: { name: "very-long-model-name", contextWindow: 1000 },
+      usage: { tokens: 900 },
+    });
 
     await pi.events.get("session_start")![0]({}, ctx);
     const footer = instantiateFooter(ctx, "very-long-branch-name");

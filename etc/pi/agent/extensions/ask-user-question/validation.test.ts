@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { TYPE_SOMETHING_LABEL, type AskUserQuestionParams } from "./types";
+import { type AskUserQuestionParams, TYPE_SOMETHING_LABEL } from "./types";
 import { validateAskUserQuestionParams } from "./validation";
 
-function validParams(overrides: Partial<AskUserQuestionParams> = {}): AskUserQuestionParams {
+function validParams(
+  overrides: Partial<AskUserQuestionParams> = {},
+): AskUserQuestionParams {
   return {
     questions: [
       {
@@ -10,7 +12,10 @@ function validParams(overrides: Partial<AskUserQuestionParams> = {}): AskUserQue
         header: "Database",
         options: [
           { label: "SQLite", description: "Local embedded storage." },
-          { label: "PostgreSQL", description: "Networked relational database." },
+          {
+            label: "PostgreSQL",
+            description: "Networked relational database.",
+          },
         ],
       },
     ],
@@ -24,7 +29,13 @@ describe("validateAskUserQuestionParams", () => {
   });
 
   test("rejects malformed params without throwing", () => {
-    const malformedInputs = [null, {}, { questions: null }, { questions: [null] }, { questions: [{ question: 42 }] }];
+    const malformedInputs = [
+      null,
+      {},
+      { questions: null },
+      { questions: [null] },
+      { questions: [{ question: 42 }] },
+    ];
 
     for (const input of malformedInputs) {
       const result = validateAskUserQuestionParams(input);
@@ -34,28 +45,39 @@ describe("validateAskUserQuestionParams", () => {
   });
 
   test("rejects empty question list", () => {
-    const result = validateAskUserQuestionParams(validParams({ questions: [] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("no_questions");
   });
 
   test("rejects too many questions", () => {
     const q = validParams().questions[0];
-    const result = validateAskUserQuestionParams(validParams({ questions: [q, q, q, q, q] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q, q, q, q, q] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("too_many_questions");
   });
 
   test("rejects duplicate question text", () => {
     const q = validParams().questions[0];
-    const result = validateAskUserQuestionParams(validParams({ questions: [q, { ...q, header: "DB2" }] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q, { ...q, header: "DB2" }] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("duplicate_question");
   });
 
   test("rejects too few options", () => {
-    const q = { ...validParams().questions[0], options: [{ label: "SQLite", description: "Local." }] };
-    const result = validateAskUserQuestionParams(validParams({ questions: [q] }));
+    const q = {
+      ...validParams().questions[0],
+      options: [{ label: "SQLite", description: "Local." }],
+    };
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("too_few_options");
   });
@@ -68,7 +90,9 @@ describe("validateAskUserQuestionParams", () => {
         { label: "sqlite", description: "Duplicate." },
       ],
     };
-    const result = validateAskUserQuestionParams(validParams({ questions: [q] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("duplicate_option_label");
   });
@@ -81,7 +105,9 @@ describe("validateAskUserQuestionParams", () => {
         { label: "PostgreSQL", description: "Networked." },
       ],
     };
-    const result = validateAskUserQuestionParams(validParams({ questions: [q] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("reserved_label");
   });
@@ -94,7 +120,9 @@ describe("validateAskUserQuestionParams", () => {
         { label: "PostgreSQL", description: "Networked." },
       ],
     };
-    const result = validateAskUserQuestionParams(validParams({ questions: [q] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("empty_description");
   });
@@ -104,11 +132,17 @@ describe("validateAskUserQuestionParams", () => {
       ...validParams().questions[0],
       multiSelect: true,
       options: [
-        { label: "API", description: "API surface.", preview: "```ts\n/api\n```" },
+        {
+          label: "API",
+          description: "API surface.",
+          preview: "```ts\n/api\n```",
+        },
         { label: "CLI", description: "CLI surface." },
       ],
     };
-    const result = validateAskUserQuestionParams(validParams({ questions: [q] }));
+    const result = validateAskUserQuestionParams(
+      validParams({ questions: [q] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("preview_on_multiselect");
   });

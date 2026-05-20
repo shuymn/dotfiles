@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 type Entry = { type: string; message?: unknown; timestamp: string };
-type SessionMeta = { path: string; modified: Date; cwd?: string; name?: string };
+type SessionMeta = {
+  path: string;
+  modified: Date;
+  cwd?: string;
+  name?: string;
+};
 type ShortcutHandler = (ctx: any) => Promise<void> | void;
 
 type InputInstance = {
@@ -22,9 +27,13 @@ mock.module("@earendil-works/pi-tui", () => ({
     constructor() {
       inputInstances.push(this);
     }
-    getValue() { return this.value; }
+    getValue() {
+      return this.value;
+    }
     invalidate() {}
-    render() { return [`input:${this.value}`]; }
+    render() {
+      return [`input:${this.value}`];
+    }
     handleInput(data: string) {
       if (data === "backspace") this.value = this.value.slice(0, -1);
       else this.value += data;
@@ -35,15 +44,23 @@ mock.module("@earendil-works/pi-tui", () => ({
     ctrl: (key: string) => `ctrl-${key}`,
   },
   matchesKey: (data: string, key: string) => data === key,
-  fuzzyFilter: (items: unknown[], query: string, getText: (item: unknown) => string) =>
-    items.filter((item) => getText(item).toLowerCase().includes(query.toLowerCase())),
+  fuzzyFilter: (
+    items: unknown[],
+    query: string,
+    getText: (item: unknown) => string,
+  ) =>
+    items.filter((item) =>
+      getText(item).toLowerCase().includes(query.toLowerCase()),
+    ),
   truncateToWidth: (text: string, width: number) => text.slice(0, width),
 }));
 
 mock.module("@earendil-works/pi-coding-agent", () => ({
   DynamicBorder: class {
     constructor(private readonly colorize: (text: string) => string) {}
-    render(width: number) { return [this.colorize("─".repeat(width))]; }
+    render(width: number) {
+      return [this.colorize("─".repeat(width))];
+    }
   },
   SessionManager: {
     listAll: async () => listedSessions,
@@ -56,16 +73,26 @@ mock.module("@earendil-works/pi-coding-agent", () => ({
 }));
 
 function createFakePi() {
-  const shortcuts = new Map<string, { description: string; handler: ShortcutHandler }>();
+  const shortcuts = new Map<
+    string,
+    { description: string; handler: ShortcutHandler }
+  >();
   return {
     shortcuts,
-    registerShortcut(shortcut: string, definition: { description: string; handler: ShortcutHandler }) {
+    registerShortcut(
+      shortcut: string,
+      definition: { description: string; handler: ShortcutHandler },
+    ) {
       shortcuts.set(shortcut, definition);
     },
   };
 }
 
-function messageEntry(content: unknown, timestamp: number, role = "user"): Entry {
+function messageEntry(
+  content: unknown,
+  timestamp: number,
+  role = "user",
+): Entry {
   return {
     type: "message",
     timestamp: new Date(timestamp).toISOString(),
@@ -73,7 +100,11 @@ function messageEntry(content: unknown, timestamp: number, role = "user"): Entry
   };
 }
 
-function createSessionManager(options: { entries: Entry[]; name?: string; file?: string }) {
+function createSessionManager(options: {
+  entries: Entry[];
+  name?: string;
+  file?: string;
+}) {
   return {
     getEntries: () => options.entries,
     getSessionName: () => options.name,
@@ -94,14 +125,20 @@ function keybindings() {
   };
 }
 
-function createContext(options: {
-  hasUI?: boolean;
-  cwd?: string;
-  sessionManager?: ReturnType<typeof createSessionManager>;
-  editorText?: string;
-  confirmResult?: boolean;
-  drivePicker?: (component: { render: (width: number) => string[]; handleInput: (data: string) => void; focused?: boolean }) => string | null | undefined;
-} = {}) {
+function createContext(
+  options: {
+    hasUI?: boolean;
+    cwd?: string;
+    sessionManager?: ReturnType<typeof createSessionManager>;
+    editorText?: string;
+    confirmResult?: boolean;
+    drivePicker?: (component: {
+      render: (width: number) => string[];
+      handleInput: (data: string) => void;
+      focused?: boolean;
+    }) => string | null | undefined;
+  } = {},
+) {
   const notifications: Array<{ message: string; level: string }> = [];
   const setEditorTexts: string[] = [];
   const customOptions: unknown[] = [];
@@ -113,23 +150,48 @@ function createContext(options: {
     setEditorTexts,
     customOptions,
     renders,
-    get confirmCalls() { return confirmCalls; },
+    get confirmCalls() {
+      return confirmCalls;
+    },
     hasUI: options.hasUI ?? true,
     cwd: options.cwd ?? "/repo",
-    sessionManager: options.sessionManager ?? createSessionManager({ entries: [], name: "current", file: "/sessions/current.json" }),
+    sessionManager:
+      options.sessionManager ??
+      createSessionManager({
+        entries: [],
+        name: "current",
+        file: "/sessions/current.json",
+      }),
     ui: {
       notify(message: string, level: string) {
         notifications.push({ message, level });
       },
-      async custom(factory: (tui: unknown, theme: unknown, keybindings: unknown, done: (value: string | null) => void) => unknown, customOption: unknown) {
+      async custom(
+        factory: (
+          tui: unknown,
+          theme: unknown,
+          keybindings: unknown,
+          done: (value: string | null) => void,
+        ) => unknown,
+        customOption: unknown,
+      ) {
         customOptions.push(customOption);
         let doneValue: string | null | undefined;
         const component = factory(
           { requestRender() {} },
-          { fg: (_color: string, text: string) => text, bold: (text: string) => text },
+          {
+            fg: (_color: string, text: string) => text,
+            bold: (text: string) => text,
+          },
           keybindings(),
-          (value: string | null) => { doneValue = value; },
-        ) as { render: (width: number) => string[]; handleInput: (data: string) => void; focused?: boolean };
+          (value: string | null) => {
+            doneValue = value;
+          },
+        ) as {
+          render: (width: number) => string[];
+          handleInput: (data: string) => void;
+          focused?: boolean;
+        };
         component.focused = true;
         renders.push(component.render(120));
         const driven = options.drivePicker?.(component);
@@ -168,7 +230,9 @@ describe("message-history extension", () => {
     extension(pi as never);
 
     expect([...pi.shortcuts.keys()]).toEqual(["ctrl+r"]);
-    expect(pi.shortcuts.get("ctrl+r")!.description).toBe("Fuzzy-find previous user messages");
+    expect(pi.shortcuts.get("ctrl+r")!.description).toBe(
+      "Fuzzy-find previous user messages",
+    );
   });
 
   test("does nothing in non-interactive contexts", async () => {
@@ -206,28 +270,69 @@ describe("message-history extension", () => {
     const currentEntries = [
       messageEntry("current older", 1000),
       messageEntry("assistant ignored", 3000, "assistant"),
-      { type: "custom", timestamp: new Date(4000).toISOString(), message: { role: "user", content: "custom ignored" } },
+      {
+        type: "custom",
+        timestamp: new Date(4000).toISOString(),
+        message: { role: "user", content: "custom ignored" },
+      },
     ];
     sessions.set("/sessions/old.json", {
       entries: [
-        messageEntry([{ type: "text", text: "old text" }, { type: "image" }, { type: "tool", text: "ignored" }], 2000),
+        messageEntry(
+          [
+            { type: "text", text: "old text" },
+            { type: "image" },
+            { type: "tool", text: "ignored" },
+          ],
+          2000,
+        ),
       ],
     });
-    sessions.set("/sessions/new.json", { entries: [messageEntry("newest message", 5000)] });
-    sessions.set("/sessions/broken.json", { entries: [messageEntry("broken", 6000)] });
+    sessions.set("/sessions/new.json", {
+      entries: [messageEntry("newest message", 5000)],
+    });
+    sessions.set("/sessions/broken.json", {
+      entries: [messageEntry("broken", 6000)],
+    });
     listedSessions = [
-      { path: "/sessions/old.json", modified: new Date(100), cwd: "/other", name: "old" },
-      { path: "/sessions/current.json", modified: new Date(999), cwd: "/repo", name: "current duplicate should be skipped" },
-      { path: "/sessions/missing.json", modified: new Date(2000), cwd: "/missing", name: "missing" },
-      { path: "/sessions/new.json", modified: new Date(3000), cwd: "/repo", name: "new" },
+      {
+        path: "/sessions/old.json",
+        modified: new Date(100),
+        cwd: "/other",
+        name: "old",
+      },
+      {
+        path: "/sessions/current.json",
+        modified: new Date(999),
+        cwd: "/repo",
+        name: "current duplicate should be skipped",
+      },
+      {
+        path: "/sessions/missing.json",
+        modified: new Date(2000),
+        cwd: "/missing",
+        name: "missing",
+      },
+      {
+        path: "/sessions/new.json",
+        modified: new Date(3000),
+        cwd: "/repo",
+        name: "new",
+      },
     ];
     const ctx = createContext({
-      sessionManager: createSessionManager({ entries: currentEntries, name: "current", file: "/sessions/current.json" }),
+      sessionManager: createSessionManager({
+        entries: currentEntries,
+        name: "current",
+        file: "/sessions/current.json",
+      }),
       drivePicker: (component) => {
         const initial = component.render(120).join("\n");
         expect(initial).toContain("newest message");
         expect(initial).toContain("old text [image]");
-        expect(initial.indexOf("newest message")).toBeLessThan(initial.indexOf("old text [image]"));
+        expect(initial.indexOf("newest message")).toBeLessThan(
+          initial.indexOf("old text [image]"),
+        );
         component.handleInput("down");
         component.handleInput("enter");
         return undefined;
@@ -237,7 +342,12 @@ describe("message-history extension", () => {
     await pi.shortcuts.get("ctrl+r")!.handler(ctx);
 
     expect(ctx.setEditorTexts).toEqual(["old text\n[image]"]);
-    expect(ctx.customOptions).toEqual([{ overlay: true, overlayOptions: { width: "90%", maxHeight: "80%", anchor: "center" } }]);
+    expect(ctx.customOptions).toEqual([
+      {
+        overlay: true,
+        overlayOptions: { width: "90%", maxHeight: "80%", anchor: "center" },
+      },
+    ]);
   });
 
   test("truncates very long messages before insertion", async () => {
@@ -246,7 +356,9 @@ describe("message-history extension", () => {
     extension(pi as never);
     const longText = "x".repeat(4010);
     const ctx = createContext({
-      sessionManager: createSessionManager({ entries: [messageEntry(longText, 1000)] }),
+      sessionManager: createSessionManager({
+        entries: [messageEntry(longText, 1000)],
+      }),
       drivePicker: (component) => {
         component.handleInput("enter");
         return undefined;
@@ -262,7 +374,9 @@ describe("message-history extension", () => {
     const extension = await loadExtension();
     const pi = createFakePi();
     extension(pi as never);
-    const sessionManager = createSessionManager({ entries: [messageEntry("selected text", 1000)] });
+    const sessionManager = createSessionManager({
+      entries: [messageEntry("selected text", 1000)],
+    });
     const refusingCtx = createContext({
       sessionManager,
       editorText: "draft",
@@ -297,7 +411,9 @@ describe("message-history extension", () => {
     const pi = createFakePi();
     extension(pi as never);
     const ctx = createContext({
-      sessionManager: createSessionManager({ entries: [messageEntry("selected text", 1000)] }),
+      sessionManager: createSessionManager({
+        entries: [messageEntry("selected text", 1000)],
+      }),
       drivePicker: (component) => {
         component.handleInput("escape");
         return undefined;
@@ -314,15 +430,35 @@ describe("message-history extension", () => {
     const extension = await loadExtension();
     const pi = createFakePi();
     extension(pi as never);
-    sessions.set("/sessions/other-cwd.json", { entries: [messageEntry("target from other cwd", 3000)] });
-    sessions.set("/sessions/same-cwd.json", { entries: [messageEntry("target from same cwd", 2000), messageEntry("target from same cwd", 1000)] });
+    sessions.set("/sessions/other-cwd.json", {
+      entries: [messageEntry("target from other cwd", 3000)],
+    });
+    sessions.set("/sessions/same-cwd.json", {
+      entries: [
+        messageEntry("target from same cwd", 2000),
+        messageEntry("target from same cwd", 1000),
+      ],
+    });
     listedSessions = [
-      { path: "/sessions/other-cwd.json", modified: new Date(3000), cwd: "/other", name: "other" },
-      { path: "/sessions/same-cwd.json", modified: new Date(2000), cwd: "/repo/../repo", name: "same" },
+      {
+        path: "/sessions/other-cwd.json",
+        modified: new Date(3000),
+        cwd: "/other",
+        name: "other",
+      },
+      {
+        path: "/sessions/same-cwd.json",
+        modified: new Date(2000),
+        cwd: "/repo/../repo",
+        name: "same",
+      },
     ];
     const ctx = createContext({
       cwd: "/repo",
-      sessionManager: createSessionManager({ entries: [messageEntry("current session target", 4000)], file: "/sessions/current.json" }),
+      sessionManager: createSessionManager({
+        entries: [messageEntry("current session target", 4000)],
+        file: "/sessions/current.json",
+      }),
       drivePicker: (component) => {
         component.handleInput("target");
         let rendered = component.render(120).join("\n");
@@ -356,7 +492,9 @@ describe("message-history extension", () => {
     extension(pi as never);
     listedSessions = undefined as unknown as SessionMeta[];
     const ctx = createContext({
-      sessionManager: createSessionManager({ entries: [messageEntry("current only", 1000)] }),
+      sessionManager: createSessionManager({
+        entries: [messageEntry("current only", 1000)],
+      }),
       drivePicker: (component) => {
         component.handleInput("enter");
         return undefined;

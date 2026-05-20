@@ -1,4 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 
 const CUSTOM_TYPE = "prompt-stash-state";
@@ -45,14 +48,20 @@ export default function (pi: ExtensionAPI) {
 
     const current = ctx.ui.getEditorText();
     if (current.length > 0) {
-      ctx.ui.notify("Prompt stash not restored because the editor is not empty.", "warning");
+      ctx.ui.notify(
+        "Prompt stash not restored because the editor is not empty.",
+        "warning",
+      );
       return;
     }
 
     stack.pop();
     ctx.ui.setEditorText(text);
     persist();
-    ctx.ui.notify(`Restored stashed prompt: ${truncateForNotice(text)}`, "info");
+    ctx.ui.notify(
+      `Restored stashed prompt: ${truncateForNotice(text)}`,
+      "info",
+    );
   };
 
   pi.on("session_start", (_event, ctx) => {

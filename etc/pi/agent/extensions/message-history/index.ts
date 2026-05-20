@@ -5,13 +5,13 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { DynamicBorder, SessionManager } from "@earendil-works/pi-coding-agent";
 import {
-  Input,
-  Key,
-  fuzzyFilter,
-  matchesKey,
-  truncateToWidth,
   type Component,
   type Focusable,
+  fuzzyFilter,
+  Input,
+  Key,
+  matchesKey,
+  truncateToWidth,
 } from "@earendil-works/pi-tui";
 
 const MAX_SESSIONS_TO_SCAN = 200;
@@ -28,10 +28,7 @@ type HistoryMessage = {
 
 type SearchScope = "all" | "cwd" | "session";
 
-function sameResolvedPath(
-  a: string | undefined,
-  b: string,
-): boolean {
+function sameResolvedPath(a: string | undefined, b: string): boolean {
   return Boolean(a) && resolve(a) === b;
 }
 
@@ -269,11 +266,7 @@ class MessageHistoryPicker implements Component, Focusable {
   handleInput(data: string): void {
     if (matchesKey(data, Key.tab)) {
       this.scope =
-        this.scope === "all"
-          ? "cwd"
-          : this.scope === "cwd"
-            ? "session"
-            : "all";
+        this.scope === "all" ? "cwd" : this.scope === "cwd" ? "session" : "all";
       this.applyFilter();
       this.requestRender();
       return;
@@ -333,7 +326,10 @@ class MessageHistoryPicker implements Component, Focusable {
         return sameResolvedPath(item.cwd, this.currentCwdResolved);
       }
       if (this.scope === "session") {
-        return sameResolvedPath(item.sessionPath, this.currentSessionPathResolved);
+        return sameResolvedPath(
+          item.sessionPath,
+          this.currentSessionPathResolved,
+        );
       }
       return true;
     });

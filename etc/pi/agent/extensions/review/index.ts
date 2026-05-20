@@ -309,10 +309,10 @@ ${buildGlobalRules(run.noFix)}
 ${isFirstPhase ? "" : `## Previous phase outputs\n\n${buildPreviousPhaseOutputs(run)}\n\n`}## Current phase instructions
 
 ${phase.instructions}${
-    run.noFix && isLastPhase
-      ? "\n\nNo-fix mode: consolidate the validated findings into a Japanese report. Do not claim fixes or verification were performed. Include exact file paths, evidence, impact, suggested fix, and skipped/low-confidence items with reasons."
-      : ""
-  }
+  run.noFix && isLastPhase
+    ? "\n\nNo-fix mode: consolidate the validated findings into a Japanese report. Do not claim fixes or verification were performed. Include exact file paths, evidence, impact, suggested fix, and skipped/low-confidence items with reasons."
+    : ""
+}
 
 ## Phase boundary
 
@@ -727,10 +727,9 @@ export default function (pi: ExtensionAPI): void {
     if (!INVESTIGATION_ALLOWED_TOOLS.has(event.toolName)) {
       return {
         block: true,
-        reason:
-          activeRun?.noFix
-            ? "/review --no-fix mode is read-only. This tool is not allowed while producing a report."
-            : "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
+        reason: activeRun?.noFix
+          ? "/review --no-fix mode is read-only. This tool is not allowed while producing a report."
+          : "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
       };
     }
 

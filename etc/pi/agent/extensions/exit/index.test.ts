@@ -12,7 +12,10 @@ mock.module("node:fs", () => ({
 }));
 
 type EventHandler = (event: any, ctx: any) => Promise<any> | any;
-type CommandHandler = (args: string, ctx: { shutdown: () => void }) => Promise<void> | void;
+type CommandHandler = (
+  args: string,
+  ctx: { shutdown: () => void },
+) => Promise<void> | void;
 
 type ProcessPatch = {
   exitListeners: Array<(...args: unknown[]) => void>;
@@ -26,9 +29,15 @@ function patchProcessExitHooks(): ProcessPatch {
   const originalOnce = process.once;
   const originalOff = process.off;
   const exitListeners: Array<(...args: unknown[]) => void> = [];
-  const offCalls: Array<{ event: string; listener: (...args: unknown[]) => void }> = [];
+  const offCalls: Array<{
+    event: string;
+    listener: (...args: unknown[]) => void;
+  }> = [];
 
-  process.once = ((event: string | symbol, listener: (...args: unknown[]) => void) => {
+  process.once = ((
+    event: string | symbol,
+    listener: (...args: unknown[]) => void,
+  ) => {
     if (event === "exit") {
       exitListeners.push(listener);
       return process;
@@ -36,7 +45,10 @@ function patchProcessExitHooks(): ProcessPatch {
     return originalOnce.call(process, event, listener as never);
   }) as typeof process.once;
 
-  process.off = ((event: string | symbol, listener: (...args: unknown[]) => void) => {
+  process.off = ((
+    event: string | symbol,
+    listener: (...args: unknown[]) => void,
+  ) => {
     if (event === "exit") {
       offCalls.push({ event, listener });
       return process;
@@ -57,13 +69,19 @@ function patchProcessExitHooks(): ProcessPatch {
 }
 
 function createFakePi() {
-  const commands = new Map<string, { description: string; handler: CommandHandler }>();
+  const commands = new Map<
+    string,
+    { description: string; handler: CommandHandler }
+  >();
   const events = new Map<string, EventHandler[]>();
 
   return {
     commands,
     events,
-    registerCommand(name: string, definition: { description: string; handler: CommandHandler }) {
+    registerCommand(
+      name: string,
+      definition: { description: string; handler: CommandHandler },
+    ) {
       commands.set(name, definition);
     },
     on(eventName: string, handler: EventHandler) {
@@ -103,7 +121,11 @@ describe("exit extension", () => {
     extension(pi as never);
     let shutdownCount = 0;
 
-    await pi.commands.get("exit")!.handler("ignored", { shutdown: () => { shutdownCount += 1; } });
+    await pi.commands.get("exit")!.handler("ignored", {
+      shutdown: () => {
+        shutdownCount += 1;
+      },
+    });
 
     expect(shutdownCount).toBe(1);
   });
@@ -116,7 +138,11 @@ describe("exit extension", () => {
 
     await pi.events.get("session_shutdown")![0](
       { reason: "quit" },
-      { sessionManager: { getSessionFile: () => "/tmp/pi sessions/it's alive.json" } },
+      {
+        sessionManager: {
+          getSessionFile: () => "/tmp/pi sessions/it's alive.json",
+        },
+      },
     );
     processPatch.exitListeners[0](0);
 
