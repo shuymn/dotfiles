@@ -2,7 +2,7 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
-type JsonValue = unknown;
+import { cliResultForTool, runCli, toCliExec } from "../lib/cli";
 
 const SEARCH_DEPTHS = ["ultra-fast", "fast", "basic", "advanced"] as const;
 const TOPICS = ["general", "news", "finance"] as const;
@@ -18,6 +18,23 @@ const DEFAULT_SITE_TIMEOUT_SECONDS = 150;
 const TOOL_TIMEOUT_GRACE_MS = 10_000;
 
 type OptionValue = string | number | boolean | string[] | undefined;
+type ToolUpdateHandler =
+  | ((update: {
+      content: Array<{ type: "text"; text: string }>;
+      details: Record<string, unknown>;
+    }) => void)
+  | undefined;
+
+function sendStatus(onUpdate: ToolUpdateHandler, text: string) {
+  onUpdate?.({ content: [{ type: "text", text }], details: {} });
+}
+
+function cliTimeoutMs(
+  timeoutSeconds: number | undefined,
+  defaultSeconds: number,
+) {
+  return (timeoutSeconds ?? defaultSeconds) * 1000 + TOOL_TIMEOUT_GRACE_MS;
+}
 
 function addOption(args: string[], flag: string, value: OptionValue) {
   if (value === undefined || value === false) return;
@@ -38,70 +55,27 @@ function addOptions(
   for (const [flag, value] of options) addOption(args, flag, value);
 }
 
-function parseJson(stdout: string): JsonValue | undefined {
-  try {
-    return JSON.parse(stdout);
-  } catch {
-    return undefined;
-  }
-}
-
-function renderForModel(
-  stdout: string,
-  stderr: string,
-  code: number,
-  parsed: JsonValue | undefined,
-) {
-  const body =
-    parsed === undefined ? stdout.trim() : JSON.stringify(parsed, null, 2);
-  const prefix =
-    code === 0
-      ? "Tavily result:"
-      : `Tavily command failed with exit code ${code}:`;
-  const diagnostic = stderr.trim() ? `\n\nstderr:\n${stderr.trim()}` : "";
-  const full = `${prefix}\n\n${body}${diagnostic}`.trim();
-  if (full.length <= MAX_CONTEXT_CHARS) return full;
-  return `${full.slice(0, MAX_CONTEXT_CHARS)}\n\n[truncated by tavily extension: ${full.length - MAX_CONTEXT_CHARS} chars omitted]`;
-}
-
-function errorFromToolText(text: string): Error {
-  return new Error(text);
-}
-
 async function runTvly(
   pi: ExtensionAPI,
   commandArgs: string[],
   signal: AbortSignal | undefined,
   timeout: number,
 ) {
-  try {
-    const result = await pi.exec("tvly", commandArgs, { signal, timeout });
-    const stdout = result.stdout ?? "";
-    const parsed = parseJson(stdout);
-    const text = renderForModel(
-      stdout,
-      result.stderr ?? "",
-      result.code ?? 0,
-      parsed,
-    );
-    if ((result.code ?? 0) !== 0) throw errorFromToolText(text);
+  const result = await runCli(toCliExec(pi), {
+    command: "tvly",
+    args: commandArgs,
+    timeout,
+    signal,
+    parseJson: true,
+    maxOutputChars: MAX_CONTEXT_CHARS,
+    successLabel: "Tavily result",
+    failureLabel: "Tavily command failed",
+    truncationLabel: "tavily extension",
+    failureHint:
+      "Failed to execute tvly. Ensure the Tavily CLI is installed and authenticated (tvly auth).",
+  });
 
-    return {
-      content: [{ type: "text" as const, text }],
-      details: {
-        command: ["tvly", ...commandArgs],
-        exitCode: result.code,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        json: parsed,
-      },
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Failed to execute tvly. Ensure the Tavily CLI is installed and authenticated (tvly auth).\n\n${message}`,
-    );
-  }
+  return cliResultForTool(result);
 }
 
 const searchSchema = Type.Object({
@@ -342,15 +316,7 @@ export default function (pi: ExtensionAPI) {
         ["--include-image-descriptions", params.includeImageDescriptions],
         ["--chunks-per-source", params.chunksPerSource],
       ]);
-      onUpdate?.({
-        content: [
-          {
-            type: "text",
-            text: `Running tvly ${args.slice(0, 2).join(" ")} ...`,
-          },
-        ],
-        details: {},
-      });
+      sendStatus(onUpdate, `Running tvly ${args.slice(0, 2).join(" ")} ...`);
       return runTvly(pi, args, signal, SEARCH_TIMEOUT_MS);
     },
   });
@@ -380,21 +346,15 @@ export default function (pi: ExtensionAPI) {
         ["--include-images", params.includeImages],
         ["--timeout", params.timeoutSeconds],
       ]);
-      onUpdate?.({
-        content: [
-          {
-            type: "text",
-            text: `Extracting ${params.urls.length} URL(s) with Tavily...`,
-          },
-        ],
-        details: {},
-      });
+      sendStatus(
+        onUpdate,
+        `Extracting ${params.urls.length} URL(s) with Tavily...`,
+      );
       return runTvly(
         pi,
         args,
         signal,
-        (params.timeoutSeconds ?? DEFAULT_EXTRACT_TIMEOUT_SECONDS) * 1000 +
-          TOOL_TIMEOUT_GRACE_MS,
+        cliTimeoutMs(params.timeoutSeconds, DEFAULT_EXTRACT_TIMEOUT_SECONDS),
       );
     },
   });
@@ -423,18 +383,12 @@ export default function (pi: ExtensionAPI) {
         ["--allow-external", params.allowExternal],
         ["--timeout", params.timeoutSeconds],
       ]);
-      onUpdate?.({
-        content: [
-          { type: "text", text: `Mapping ${params.url} with Tavily...` },
-        ],
-        details: {},
-      });
+      sendStatus(onUpdate, `Mapping ${params.url} with Tavily...`);
       return runTvly(
         pi,
         args,
         signal,
-        (params.timeoutSeconds ?? DEFAULT_SITE_TIMEOUT_SECONDS) * 1000 +
-          TOOL_TIMEOUT_GRACE_MS,
+        cliTimeoutMs(params.timeoutSeconds, DEFAULT_SITE_TIMEOUT_SECONDS),
       );
     },
   });
@@ -472,18 +426,12 @@ export default function (pi: ExtensionAPI) {
         ["--include-images", params.includeImages],
         ["--timeout", params.timeoutSeconds],
       ]);
-      onUpdate?.({
-        content: [
-          { type: "text", text: `Crawling ${params.url} with Tavily...` },
-        ],
-        details: {},
-      });
+      sendStatus(onUpdate, `Crawling ${params.url} with Tavily...`);
       return runTvly(
         pi,
         args,
         signal,
-        (params.timeoutSeconds ?? DEFAULT_SITE_TIMEOUT_SECONDS) * 1000 +
-          TOOL_TIMEOUT_GRACE_MS,
+        cliTimeoutMs(params.timeoutSeconds, DEFAULT_SITE_TIMEOUT_SECONDS),
       );
     },
   });
