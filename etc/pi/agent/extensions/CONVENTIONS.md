@@ -1,0 +1,35 @@
+# Pi Agent Extension Conventions
+
+このディレクトリの extension は、単なる DRY ではなく UI/LLM-facing API/非対話モードの挙動を揃える。
+
+## 言語
+
+- Human-facing TUI 文言（通知、確認、入力タイトル、help text）は日本語を基本にする。
+- LLM-facing metadata（tool `description`, `promptSnippet`, `promptGuidelines`, parameter `description`）は英語を基本にする。
+- コマンド名、tool 名、CLI 出力、外部サービス固有語は原語を維持する。
+
+## TUI component
+
+- 検索可能な単一選択は `lib/tui.ts` の `selectFuzzy()` を使う。
+- 任意テキスト入力は `lib/tui.ts` の `inputOptional()` を使う。
+- custom component の render line は必ず width 以下に収める。共通 helper の `truncateLines()` を優先する。
+- state を変えた後は `tui.requestRender()` を呼ぶ。
+- embedded `Input` を持つ component は、IME 対応のため `Focusable` propagation を意識する。
+
+## 入力処理
+
+- printable 判定は `lib/tui.ts` の `printableInput()` を使う。
+- 制御キーは printable 判定より先に処理する。
+- 選択 UI は将来的に `keybindings.matches("tui.select.*")` を優先し、必要に応じて `Key.*` を fallback として使う。
+
+## 非対話モード
+
+- UI 専用 extension は `ctx.hasUI === false` で no-op にする。
+- LLM tool は UI が必要で利用できない場合、structured error result を返す。
+- 通知だけの処理は `ctx.hasUI` を吸収する helper を使う。
+
+## 進捗表示
+
+- 数秒以上かかる処理は `belowEditor` widget で進捗を示す。
+- 外部 CLI など待ち時間が読みにくい処理は spinner と elapsed time を表示する。
+- 短い完了通知は `ctx.ui.notify()` でよい。
