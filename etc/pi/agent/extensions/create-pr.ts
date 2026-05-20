@@ -387,6 +387,18 @@ async function gitSnapshot(
     ],
   ];
 
+  const templateCommand =
+    "cat .github/pull_request_template.md 2>/dev/null || " +
+    "cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || " +
+    "echo 'No GitHub template'";
+  const templatePromise = pi
+    .exec("bash", ["-lc", templateCommand], { timeout: 5000 })
+    .catch((error: unknown) => ({
+      code: 1,
+      stdout: "",
+      stderr: error instanceof Error ? error.message : String(error),
+    }));
+
   const results = await Promise.all(
     commands.map(async ([label, args]) => {
       const result = await pi
@@ -406,17 +418,7 @@ async function gitSnapshot(
     }),
   );
 
-  const templateCommand =
-    "cat .github/pull_request_template.md 2>/dev/null || " +
-    "cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || " +
-    "echo 'No GitHub template'";
-  const template = await pi
-    .exec("bash", ["-lc", templateCommand], { timeout: 5000 })
-    .catch((error: unknown) => ({
-      code: 1,
-      stdout: "",
-      stderr: error instanceof Error ? error.message : String(error),
-    }));
+  const template = await templatePromise;
   const templateOutput =
     `${template.stdout}${template.stderr ? `\n${template.stderr}` : ""}`.trim();
   results.push(`### PR template\n${templateOutput || "(empty)"}`);
