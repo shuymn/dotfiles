@@ -349,6 +349,7 @@ export default function (pi: ExtensionAPI) {
             text: `Running tvly ${args.slice(0, 2).join(" ")} ...`,
           },
         ],
+        details: {},
       });
       return runTvly(pi, args, signal, SEARCH_TIMEOUT_MS);
     },
@@ -386,6 +387,7 @@ export default function (pi: ExtensionAPI) {
             text: `Extracting ${params.urls.length} URL(s) with Tavily...`,
           },
         ],
+        details: {},
       });
       return runTvly(
         pi,
@@ -425,6 +427,7 @@ export default function (pi: ExtensionAPI) {
         content: [
           { type: "text", text: `Mapping ${params.url} with Tavily...` },
         ],
+        details: {},
       });
       return runTvly(
         pi,
@@ -473,6 +476,7 @@ export default function (pi: ExtensionAPI) {
         content: [
           { type: "text", text: `Crawling ${params.url} with Tavily...` },
         ],
+        details: {},
       });
       return runTvly(
         pi,

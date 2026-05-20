@@ -171,6 +171,8 @@ async function promptReviewOptions(
   ]);
   if (!comparisonMode) return undefined;
 
+  if (!isReviewType(type)) return undefined;
+
   const options: ReviewOptions = { type };
 
   if (comparisonMode === "Base branch") {
@@ -400,6 +402,7 @@ export default function (pi: ExtensionAPI): void {
               text: "Checking CodeRabbit prerequisites and running review...",
             },
           ],
+          details: {},
         });
 
         const startedAt = Date.now();
@@ -412,6 +415,7 @@ export default function (pi: ExtensionAPI): void {
                   text: `CodeRabbit review still running (${elapsedSecondsSince(startedAt)}s elapsed)...`,
                 },
               ],
+              details: {},
             });
           },
           REVIEW_HEARTBEAT_INTERVAL_MS,
@@ -435,6 +439,7 @@ export default function (pi: ExtensionAPI): void {
               text: `CodeRabbit review failed: ${message}`,
             },
           ],
+          details: {},
         });
 
         throw error;
