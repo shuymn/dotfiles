@@ -56,9 +56,11 @@ describe("todo extension", () => {
     expect([...pi.getEventHandlers("session_tree")]).toHaveLength(1);
     expect([...pi.getEventHandlers("session_compact")]).toHaveLength(1);
     expect([...pi.getEventHandlers("context")]).toHaveLength(1);
-    expect(pi.tools.get("todo")!.promptGuidelines!.join("\n")).toContain(
-      "Before starting implementation",
-    );
+    const guidelines = pi.tools.get("todo")!.promptGuidelines!.join("\n");
+    expect(guidelines).toContain("Before starting implementation");
+    expect(guidelines).toContain("planned order");
+    expect(guidelines).toContain("verifiable work units");
+    expect(guidelines).toContain("Update, split, or cancel todos");
   });
 
   test("tool mutates state, records details snapshot, and refreshes aboveEditor widget", async () => {

@@ -157,6 +157,9 @@ export default function (pi: ExtensionAPI) {
     promptGuidelines: [
       "Use todo for non-trivial multi-step coding tasks, user-provided task lists, or work that includes investigation, implementation, and verification.",
       "Skip todo for single trivial tasks and purely conversational requests.",
+      "For non-trivial work, think through the approach and create todos that reflect the planned order before starting tool-heavy implementation.",
+      "Break broad goals into verifiable work units; avoid a single todo that merely restates the user's whole request.",
+      "Update, split, or cancel todos when investigation reveals the original plan is wrong or incomplete.",
       "Before starting implementation, create todos or mark one existing todo in_progress.",
       "Keep at most one todo in_progress. Mark the current todo completed immediately when its work is done.",
       "After completing a todo, pick the next pending todo and mark it in_progress before continuing.",
