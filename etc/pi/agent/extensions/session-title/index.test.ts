@@ -10,8 +10,9 @@ mock.module("@earendil-works/pi-ai", () => ({
 
 type EventHandler = (event: any, ctx: any) => Promise<void> | void;
 
-function createFakePi() {
+function createFakePi(flags: Record<string, unknown> = {}) {
   const events = new Map<string, EventHandler[]>();
+  const flagValues = new Map(Object.entries(flags));
   let sessionName: string | undefined;
   let resolveSetName: ((name: string) => void) | undefined;
   const setNamePromise = new Promise<string>((resolve) => {
@@ -23,6 +24,9 @@ function createFakePi() {
     setNames: [] as string[],
     on(eventName: string, handler: EventHandler) {
       events.set(eventName, [...(events.get(eventName) ?? []), handler]);
+    },
+    getFlag(name: string) {
+      return flagValues.get(name);
     },
     getSessionName() {
       return sessionName;
@@ -134,6 +138,31 @@ describe("session-title extension", () => {
     expect(sanitizeSessionName("Title:\nImplement Auto Naming")).toBe(
       "Implement Auto Naming",
     );
+  });
+
+  test("skips one-shot workflow flag sessions", async () => {
+    const { default: extension } = await loadExtension();
+
+    for (const flag of ["commit", "create-pr"] as const) {
+      const pi = createFakePi({ [flag]: true });
+      const ctx = createCtx();
+      const completeCalls: unknown[][] = [];
+      completeImpl = async (...args: unknown[]) => {
+        completeCalls.push(args);
+        return { content: [{ type: "text", text: "Should Not Run" }] };
+      };
+
+      extension(pi as never);
+
+      await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+      await pi.events.get("message_end")![0](
+        { message: { role: "user", content: "name this" } },
+        ctx,
+      );
+
+      expect(completeCalls).toEqual([]);
+      expect(pi.setNames).toEqual([]);
+    }
   });
 
   test("generates a title in the background without notifying or injecting context", async () => {

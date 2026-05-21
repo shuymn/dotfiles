@@ -18,6 +18,7 @@ const TITLE_MODEL_ID = "gpt-5.3-codex-spark";
 const TITLE_REASONING_EFFORT = "low";
 const TITLE_TIMEOUT_MS = 15_000;
 const TITLE_TOOL_NAME = "set_session_title";
+const SKIP_SESSION_TITLE_FLAGS = ["commit", "create-pr"] as const;
 
 const titleTool = {
   name: TITLE_TOOL_NAME,
@@ -60,6 +61,10 @@ export default function sessionTitleExtension(pi: ExtensionAPI): void {
     abortActiveGeneration();
     sessionToken += 1;
     pending = false;
+    if (shouldSkipSessionTitle(pi)) {
+      armed = false;
+      return;
+    }
     armed = shouldArmSessionTitle(
       event.reason,
       ctx.sessionManager.getBranch(),
@@ -100,6 +105,10 @@ export default function sessionTitleExtension(pi: ExtensionAPI): void {
         if (token === sessionToken) pending = false;
       });
   });
+}
+
+function shouldSkipSessionTitle(pi: ExtensionAPI): boolean {
+  return SKIP_SESSION_TITLE_FLAGS.some((flag) => pi.getFlag(flag) === true);
 }
 
 async function generateSessionName(
