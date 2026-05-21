@@ -52,6 +52,36 @@ async function loadExtension() {
   return (await import("./index")).default;
 }
 
+function additionalInstructionsSection(instructions: string): string {
+  return [
+    "## Additional User Instructions",
+    "",
+    "Apply these only if they do not conflict with the requirements above.",
+    "",
+    instructions,
+  ].join("\n");
+}
+
+function countOccurrences(text: string, needle: string): number {
+  return text.split(needle).length - 1;
+}
+
+function expectAdditionalInstructionMessages(
+  messages: string[],
+  expectedInstructions: string[],
+): void {
+  expect(messages).toHaveLength(expectedInstructions.length);
+  expectedInstructions.forEach((instructions, index) => {
+    const message = messages[index]!;
+    expect(message).toEndWith(
+      `\n\n${additionalInstructionsSection(instructions)}`,
+    );
+    expect(countOccurrences(message, "## Additional User Instructions")).toBe(
+      1,
+    );
+  });
+}
+
 describe("plan extension", () => {
   test("registers /plan and /impl commands", async () => {
     const extension = await loadExtension();
@@ -82,6 +112,23 @@ describe("plan extension", () => {
     expect(prompt).toContain("PLAN.md itself is not the progress tracker");
   });
 
+  test("/plan appends additional instructions from arguments or -- separator", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const { ctx } = createCommandContext();
+    await pi.commands.get("plan")!.handler("UI変更を優先", ctx);
+    await pi.commands.get("plan")!.handler("-- API互換性は不要", ctx);
+    await pi.commands.get("plan")!.handler("UI変更 -- API互換性は不要", ctx);
+
+    expectAdditionalInstructionMessages(pi.sentMessages, [
+      "UI変更を優先",
+      "API互換性は不要",
+      "UI変更 -- API互換性は不要",
+    ]);
+  });
+
   test("/impl asks the agent to convert PLAN.md tasks into the pi todo tool and keep Japanese notes", async () => {
     const extension = await loadExtension();
     const pi = createFakePi();
@@ -102,6 +149,42 @@ describe("plan extension", () => {
     );
   });
 
+  test("/impl appends additional instructions from arguments or -- separator", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const { ctx } = createCommandContext();
+    await pi.commands.get("impl")!.handler("まずテストを追加", ctx);
+    await pi.commands.get("impl")!.handler("-- 既存APIは壊してよい", ctx);
+    await pi.commands
+      .get("impl")!
+      .handler("テスト追加 -- 既存APIは壊してよい", ctx);
+
+    expectAdditionalInstructionMessages(pi.sentMessages, [
+      "まずテストを追加",
+      "既存APIは壊してよい",
+      "テスト追加 -- 既存APIは壊してよい",
+    ]);
+  });
+
+  test("commands do not append empty additional instruction sections", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const { ctx } = createCommandContext();
+    for (const args of ["", "   ", "--", "--   "]) {
+      await pi.commands.get("plan")!.handler(args, ctx);
+      await pi.commands.get("impl")!.handler(args, ctx);
+    }
+
+    expect(pi.sentMessages).toHaveLength(8);
+    for (const message of pi.sentMessages) {
+      expect(message).not.toContain("## Additional User Instructions");
+    }
+  });
+
   test("commands do not start a new agent turn while the agent is busy", async () => {
     const extension = await loadExtension();
     const pi = createFakePi();
@@ -112,15 +195,11 @@ describe("plan extension", () => {
     await pi.commands.get("impl")!.handler("", ctx);
 
     expect(pi.sentMessages).toEqual([]);
-    expect(notifications).toEqual([
-      {
+    expect(notifications).toEqual(
+      Array.from({ length: 2 }, () => ({
         message: "エージェントが処理中です。完了後に再実行してください。",
         level: "warning",
-      },
-      {
-        message: "エージェントが処理中です。完了後に再実行してください。",
-        level: "warning",
-      },
-    ]);
+      })),
+    );
   });
 });

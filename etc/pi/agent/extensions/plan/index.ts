@@ -32,27 +32,44 @@ During implementation:
 - If new findings require course correction, update the pi todo list before continuing.
 - Update PLAN.md only when the actual plan/design/assumptions change, not merely to mark progress.`;
 
+function stripInstructionSeparator(args: string): string {
+  return args
+    .trim()
+    .replace(/^--(?:\s+|$)/, "")
+    .trim();
+}
+
+function appendAdditionalInstructions(prompt: string, args: string): string {
+  const instructions = stripInstructionSeparator(args);
+  if (!instructions) return prompt;
+
+  return `${prompt}\n\n## Additional User Instructions\n\nApply these only if they do not conflict with the requirements above.\n\n${instructions}`;
+}
+
 function sendWorkflowPrompt(
   pi: Pick<ExtensionAPI, "sendUserMessage">,
   ctx: Pick<ExtensionCommandContext, "isIdle" | "ui">,
   prompt: string,
+  args: string,
 ): void {
   if (!ctx.isIdle()) {
     ctx.ui.notify(BUSY_MESSAGE, "warning");
     return;
   }
 
-  pi.sendUserMessage(prompt);
+  pi.sendUserMessage(appendAdditionalInstructions(prompt, args));
 }
 
 export default function planExtension(pi: ExtensionAPI) {
   pi.registerCommand("plan", {
     description: "Create PLAN.md from the current session investigation",
-    handler: async (_args, ctx) => sendWorkflowPrompt(pi, ctx, PLAN_PROMPT),
+    handler: async (args, ctx) =>
+      sendWorkflowPrompt(pi, ctx, PLAN_PROMPT, args),
   });
 
   pi.registerCommand("impl", {
     description: "Implement PLAN.md using pi todo tracking and Japanese notes",
-    handler: async (_args, ctx) => sendWorkflowPrompt(pi, ctx, IMPL_PROMPT),
+    handler: async (args, ctx) =>
+      sendWorkflowPrompt(pi, ctx, IMPL_PROMPT, args),
   });
 }
