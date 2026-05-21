@@ -1,3 +1,4 @@
+import { isActiveTodoStatus } from "./state";
 import type { TodoItem, TodoState } from "./state";
 
 const ACTIVE_ORDER: Record<TodoItem["status"], number> = {
@@ -8,9 +9,7 @@ const ACTIVE_ORDER: Record<TodoItem["status"], number> = {
 };
 
 export function activeTodos(state: TodoState): TodoItem[] {
-  return state.items.filter(
-    (item) => item.status === "in_progress" || item.status === "pending",
-  );
+  return state.items.filter((item) => isActiveTodoStatus(item.status));
 }
 
 export function inProgressTodo(state: TodoState): TodoItem | undefined {

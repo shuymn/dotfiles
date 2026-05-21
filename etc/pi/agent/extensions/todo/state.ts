@@ -76,11 +76,11 @@ export function isTodoStatus(value: unknown): value is TodoStatus {
   );
 }
 
-function isActiveTodoStatus(status: TodoStatus): boolean {
+export function isActiveTodoStatus(status: TodoStatus): boolean {
   return status === "pending" || status === "in_progress";
 }
 
-function isTerminalTodoStatus(status: TodoStatus): boolean {
+export function isTerminalTodoStatus(status: TodoStatus): boolean {
   return status === "completed" || status === "cancelled";
 }
 

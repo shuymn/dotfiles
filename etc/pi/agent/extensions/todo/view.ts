@@ -38,6 +38,8 @@ export function renderWidgetLines(
 
   const width = options.width ?? 80;
   const maxLines = options.maxLines ?? 12;
+  if (maxLines <= 0) return [];
+
   const done = completedCount(state);
   const headerColor = state.items.some((item) => item.status === "in_progress")
     ? "accent"
@@ -45,7 +47,6 @@ export function renderWidgetLines(
   const lines: WidgetLine[] = [
     { text: `● Todos ${done}/${state.items.length}`, color: headerColor },
   ];
-  if (maxLines <= 0) return [];
 
   const items = orderedTodos(state);
   const itemCapacity = Math.max(0, maxLines - 1);

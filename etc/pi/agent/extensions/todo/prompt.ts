@@ -1,5 +1,5 @@
 import { activeTodos, inProgressTodo, pendingTodos } from "./selectors";
-import type { TodoItem, TodoState } from "./state";
+import { isTerminalTodoStatus, type TodoItem, type TodoState } from "./state";
 
 const DEFAULT_MAX_LINES = 12;
 
@@ -25,9 +25,7 @@ export function renderTodoReminder(
   const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
   const candidates = [
     ...activeTodos(state),
-    ...state.items.filter(
-      (item) => item.status === "completed" || item.status === "cancelled",
-    ),
+    ...state.items.filter((item) => isTerminalTodoStatus(item.status)),
   ];
   const protocol = [
     "Protocol:",

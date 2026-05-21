@@ -3,7 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { nextActionText, renderTodoReminder } from "./prompt";
 import { replayTodoState, TOOL_NAME } from "./replay";
-import { inProgressTodo, pendingTodos } from "./selectors";
+import { activeTodos, inProgressTodo, pendingTodos } from "./selectors";
 import {
   applyTodoMutation,
   cloneTodoState,
@@ -123,14 +123,34 @@ export default function (pi: ExtensionAPI) {
   let state = cloneTodoState(EMPTY_TODO_STATE);
   let currentUiCtx: WidgetContext | undefined;
   let suppressWidgetForReview = false;
+  let hasSeenMultipleActiveTodos = false;
+
+  function shouldShowTodoWidget(): boolean {
+    const activeCount = activeTodos(state).length;
+    if (activeCount === 0) return false;
+    if (activeCount >= 2) {
+      hasSeenMultipleActiveTodos = true;
+      return true;
+    }
+    return hasSeenMultipleActiveTodos;
+  }
 
   function refreshWidget(ctx: WidgetContext): void {
-    if (ctx.hasUI !== false) currentUiCtx = ctx;
-    refreshTodoWidget(ctx, state, { suppress: suppressWidgetForReview });
+    const hasUI = ctx.hasUI !== false;
+    if (hasUI) currentUiCtx = ctx;
+    if (state.items.length === 0) hasSeenMultipleActiveTodos = false;
+    if (!hasUI) {
+      refreshTodoWidget(ctx, state, { suppress: true });
+      return;
+    }
+    const shouldShowWidget = shouldShowTodoWidget();
+    const suppressWidget = suppressWidgetForReview || !shouldShowWidget;
+    refreshTodoWidget(ctx, state, { suppress: suppressWidget });
   }
 
   function replayAndRefresh(ctx: WidgetContext & { sessionManager: unknown }) {
     state = replayTodoState(ctx.sessionManager as never);
+    hasSeenMultipleActiveTodos = false;
     refreshWidget(ctx);
   }
 

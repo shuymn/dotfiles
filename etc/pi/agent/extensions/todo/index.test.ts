@@ -63,7 +63,7 @@ describe("todo extension", () => {
     expect(guidelines).toContain("Update, split, or cancel todos");
   });
 
-  test("tool mutates state, records details snapshot, and refreshes aboveEditor widget", async () => {
+  test("tool mutates state, records details snapshot, and hides widget for a single active todo", async () => {
     const extension = await loadExtension();
     const pi = createFakePi<ToolDefinition>();
     extension(pi as never);
@@ -79,10 +79,7 @@ describe("todo extension", () => {
       ctx,
     );
     expect(created.details.state.items[0].title).toBe("A");
-    expect(ui.widgets.at(-1)).toMatchObject({
-      key: "todo",
-      options: { placement: "aboveEditor" },
-    });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
 
     const updated = await tool.execute(
       "call",
@@ -92,6 +89,7 @@ describe("todo extension", () => {
       ctx,
     );
     expect(updated.details.state.items[0].status).toBe("in_progress");
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
   });
 
   test("session lifecycle replays branch state and context injects reminder", async () => {
@@ -131,13 +129,325 @@ describe("todo extension", () => {
         },
       },
     );
-    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("Replay me");
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
 
     const result = (await pi.getEventHandlers("context")[0]({
       messages: [{ role: "user", content: "x" }],
     })) as { messages: Array<{ content: unknown }> };
     expect(result.messages).toHaveLength(2);
     expect(JSON.stringify(result.messages[1].content)).toContain("Replay me");
+  });
+
+  test("widget stays hidden for one active todo, appears after two, and remains after returning to one", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "B" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
+
+    await tool.execute(
+      "call",
+      { action: "update", id: 2, status: "completed" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
+    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("A");
+  });
+
+  test("clear resets the widget visibility threshold", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "create", title: "B" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({ key: "todo" });
+
+    await tool.execute("call", { action: "clear" }, undefined, undefined, ctx);
+    await tool.execute(
+      "call",
+      { action: "create", title: "C" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("auto-clear resets the widget visibility threshold", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "create", title: "B" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 1, status: "completed" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 2, status: "completed" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "create", title: "C" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("review suppression tracks visibility threshold while keeping widget hidden", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "create", title: "B" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 2, status: "completed" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    pi.events.emit("workflow:completed", {
+      name: "review",
+      status: "completed",
+    });
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
+    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("A");
+  });
+
+  test("headless refreshes do not advance the widget visibility threshold", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      { hasUI: true, ui },
+    );
+    await tool.execute(
+      "call",
+      { action: "create", title: "B" },
+      undefined,
+      undefined,
+      { hasUI: false },
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 2, status: "completed" },
+      undefined,
+      undefined,
+      { hasUI: false },
+    );
+    await tool.execute(
+      "call",
+      { action: "list" },
+      undefined,
+      undefined,
+      { hasUI: true, ui },
+    );
+
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("replay resets local widget visibility threshold", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "create", title: "B" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({ key: "todo" });
+
+    await pi.getEventHandlers("session_tree")[0](
+      {},
+      {
+        hasUI: true,
+        ui,
+        sessionManager: {
+          getBranch: () => [
+            {
+              type: "message",
+              message: {
+                role: "toolResult",
+                toolName: "todo",
+                details: {
+                  state: {
+                    nextId: 2,
+                    items: [
+                      {
+                        id: 1,
+                        title: "Replay one",
+                        status: "pending",
+                        createdAt: 1,
+                        updatedAt: 1,
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    );
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    await pi.getEventHandlers("session_tree")[0](
+      {},
+      {
+        hasUI: true,
+        ui,
+        sessionManager: {
+          getBranch: () => [
+            {
+              type: "message",
+              message: {
+                role: "toolResult",
+                toolName: "todo",
+                details: {
+                  state: {
+                    nextId: 3,
+                    items: [
+                      {
+                        id: 1,
+                        title: "Replay one",
+                        status: "pending",
+                        createdAt: 1,
+                        updatedAt: 1,
+                      },
+                      {
+                        id: 2,
+                        title: "Replay two",
+                        status: "pending",
+                        createdAt: 1,
+                        updatedAt: 1,
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
+    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("Replay two");
   });
 
   test("tool result text guides no-active and active transitions", async () => {
@@ -412,7 +722,17 @@ describe("todo extension", () => {
       undefined,
       ctx,
     );
-    expect(ui.widgets.at(-1)).toMatchObject({ key: "todo" });
+    await tool.execute(
+      "call",
+      { action: "create", title: "Keep widget visible" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
 
     pi.events.emit("workflow:started", { name: "review", status: "started" });
     expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
