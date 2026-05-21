@@ -4,9 +4,9 @@ import {
   appendOverflowLine,
   treeBranch,
   truncateWidgetLines,
+  type WidgetLine,
   widgetLinesToText,
   widgetStatusIcon,
-  type WidgetLine,
 } from "./widget-view";
 
 describe("widget-view helpers", () => {

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
 import type { WorkflowPhase } from "./phases";
-import type { ActiveReviewRun } from "./workflow";
 import { phaseLabel, renderReviewWidgetText } from "./view";
+import type { ActiveReviewRun } from "./workflow";
 
 function phases(files: WorkflowPhase["file"][]): WorkflowPhase[] {
   return files.map((file) => ({ file, instructions: `${file} instructions` }));
@@ -150,11 +150,11 @@ describe("review widget view", () => {
   test("preserves header for one max line and honors zero max lines", () => {
     const active = run(["01-recon.md", "02-hunt.md"]);
 
-    expect(renderReviewWidgetText(active, "running", 2, { maxLines: 1 })).toEqual([
-      "● Review 2/2 running",
-    ]);
-    expect(renderReviewWidgetText(active, "running", 2, { maxLines: 0 })).toEqual(
-      [],
-    );
+    expect(
+      renderReviewWidgetText(active, "running", 2, { maxLines: 1 }),
+    ).toEqual(["● Review 2/2 running"]);
+    expect(
+      renderReviewWidgetText(active, "running", 2, { maxLines: 0 }),
+    ).toEqual([]);
   });
 });

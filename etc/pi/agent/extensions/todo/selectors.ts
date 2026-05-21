@@ -1,5 +1,5 @@
-import { isActiveTodoStatus } from "./state";
 import type { TodoItem, TodoState } from "./state";
+import { isActiveTodoStatus } from "./state";
 
 const ACTIVE_ORDER: Record<TodoItem["status"], number> = {
   in_progress: 0,

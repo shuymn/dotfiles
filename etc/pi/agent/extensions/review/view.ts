@@ -2,9 +2,9 @@ import {
   overflowLine,
   treeBranch,
   truncateWidgetLines,
+  type WidgetLine,
   widgetLinesToText,
   widgetStatusIcon,
-  type WidgetLine,
 } from "../lib/widget-view";
 import type { ActiveReviewRun } from "./workflow";
 

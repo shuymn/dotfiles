@@ -2,9 +2,9 @@ import {
   appendOverflowLine,
   treeBranch,
   truncateWidgetLines,
+  type WidgetLine,
   widgetLinesToText,
   widgetStatusIcon,
-  type WidgetLine,
 } from "../lib/widget-view";
 import { activeTodos, completedCount, orderedTodos } from "./selectors";
 import type { TodoItem, TodoState } from "./state";
@@ -50,7 +50,8 @@ export function renderWidgetLines(
 
   const items = orderedTodos(state);
   const itemCapacity = Math.max(0, maxLines - 1);
-  const shownCount = items.length > itemCapacity ? Math.max(0, itemCapacity - 1) : itemCapacity;
+  const shownCount =
+    items.length > itemCapacity ? Math.max(0, itemCapacity - 1) : itemCapacity;
   const shown = items.slice(0, shownCount);
   const hidden = items.length - shown.length;
   const renderedRows = shown.length + (hidden > 0 ? 1 : 0);

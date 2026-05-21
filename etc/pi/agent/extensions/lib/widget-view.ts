@@ -26,10 +26,7 @@ export function widgetStatusIcon(status: WidgetStatus): string {
   }
 }
 
-export function treeBranch(
-  index: number,
-  total: number,
-): "├─" | "└─" {
+export function treeBranch(index: number, total: number): "├─" | "└─" {
   return index === total - 1 ? "└─" : "├─";
 }
 

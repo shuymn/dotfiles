@@ -1,6 +1,6 @@
 import { clearWidget } from "../lib/tui";
+import { type ReviewPhaseWidgetState, renderReviewWidgetText } from "./view";
 import type { ActiveReviewRun } from "./workflow";
-import { renderReviewWidgetText, type ReviewPhaseWidgetState } from "./view";
 
 export const REVIEW_WIDGET_KEY = "review-workflow";
 
