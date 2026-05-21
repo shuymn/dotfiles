@@ -11,6 +11,10 @@ import {
 } from "../test-support/fake-pi";
 import { createFakeUi, type FakeUi } from "../test-support/fake-ui";
 import { installTypeboxMock } from "../test-support/typebox-mock";
+import type {
+  ReviewWorkflowLifecycleEvent,
+  ReviewWorkflowLifecycleStatus,
+} from "./index";
 
 installTypeboxMock();
 type CommandHandler = (
@@ -118,8 +122,22 @@ function createCommandContext(
   };
 }
 
+async function loadExtensionModule() {
+  return import("./index");
+}
+
 async function loadExtension() {
-  return (await import("./index")).default;
+  return (await loadExtensionModule()).default;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }
 
 async function createTempDir() {
@@ -150,11 +168,9 @@ describe("review extension", () => {
     expect(pi.commands.get("review")?.description).toContain(
       "multi-stage code review workflow",
     );
-    expect([...pi.events.keys()].sort()).toEqual([
-      "agent_end",
-      "session_shutdown",
-      "tool_call",
-    ]);
+    expect(pi.getEventHandlers("agent_end")).toHaveLength(1);
+    expect(pi.getEventHandlers("session_shutdown")).toHaveLength(1);
+    expect(pi.getEventHandlers("tool_call")).toHaveLength(1);
     const tool = pi.tools.get("review")!;
     expect(tool.label).toBe("Review");
     expect(tool.promptGuidelines.join("\n")).toContain(
@@ -168,6 +184,27 @@ describe("review extension", () => {
         noFix: { type: "boolean", optional: true },
       },
     });
+  });
+
+  test("exports workflow lifecycle event contract", async () => {
+    const module = await loadExtensionModule();
+    const status: ReviewWorkflowLifecycleStatus = "started";
+    const payload = {
+      name: module.REVIEW_WORKFLOW_EVENT_NAME,
+      status,
+      runId: "run-1",
+      cwd: "/repo",
+      targets: [{ path: "src/app.ts", status: "explicit", source: "explicit" }],
+      phaseCount: 9,
+      noFix: false,
+    } satisfies ReviewWorkflowLifecycleEvent;
+
+    expect(module.REVIEW_WORKFLOW_EVENT_NAME).toBe("review");
+    expect(module.WORKFLOW_STARTED_EVENT).toBe("workflow:started");
+    expect(module.WORKFLOW_COMPLETED_EVENT).toBe("workflow:completed");
+    expect(module.WORKFLOW_FAILED_EVENT).toBe("workflow:failed");
+    expect(module.WORKFLOW_CANCELLED_EVENT).toBe("workflow:cancelled");
+    expect(payload).toMatchObject({ name: "review", status: "started" });
   });
 
   test("tool explicit-file mode queues the first phase without inspecting git status", async () => {
@@ -203,6 +240,20 @@ describe("review extension", () => {
     expect(result.details.targets).toEqual([
       { path: "src/app.ts", status: "explicit", source: "explicit" },
       { path: "docs/readme.md", status: "explicit", source: "explicit" },
+    ]);
+    expect(pi.emittedEvents).toEqual([
+      {
+        name: "workflow:started",
+        data: expect.objectContaining({
+          name: "review",
+          status: "started",
+          runId: result.details.runId,
+          cwd: "/repo",
+          targets: result.details.targets,
+          phaseCount: 9,
+          noFix: false,
+        }),
+      },
     ]);
     expect(ctx.ui.widgets[0]).toMatchObject({
       key: "review-workflow",
@@ -301,7 +352,7 @@ describe("review extension", () => {
       );
 
     await expect(
-      pi.events.get("tool_call")?.[0]({ toolName: "read", input: {} }),
+      pi.getEventHandlers("tool_call")?.[0]({ toolName: "read", input: {} }),
     ).resolves.toBeUndefined();
     const subagentEvent: { toolName: string; input: Record<string, unknown> } =
       {
@@ -309,11 +360,11 @@ describe("review extension", () => {
         input: { prompt: "inspect" },
       };
     await expect(
-      pi.events.get("tool_call")?.[0](subagentEvent),
+      pi.getEventHandlers("tool_call")?.[0](subagentEvent),
     ).resolves.toBeUndefined();
     expect(subagentEvent.input).toEqual({ prompt: "inspect", readOnly: true });
     await expect(
-      pi.events.get("tool_call")?.[0]({
+      pi.getEventHandlers("tool_call")?.[0]({
         toolName: "bash",
         input: { command: "echo hi" },
       }),
@@ -333,7 +384,7 @@ describe("review extension", () => {
       .get("review")
       ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
 
-    await pi.events.get("agent_end")?.[0](
+    await pi.getEventHandlers("agent_end")?.[0](
       {
         messages: [
           {
@@ -360,7 +411,7 @@ describe("review extension", () => {
     });
 
     for (let index = 2; index <= 9; index += 1) {
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: `phase ${index} done` }] },
         ctx,
       );
@@ -370,6 +421,18 @@ describe("review extension", () => {
     expect(ctx.ui.notifications.at(-1)?.message).toMatch(
       /^\/review: ワークフロー \d+ が完了しました。$/,
     );
+    expect(pi.emittedEvents.map((event) => event.name)).toEqual([
+      "workflow:started",
+      "workflow:completed",
+    ]);
+    expect(pi.emittedEvents.at(-1)?.data).toMatchObject({
+      name: "review",
+      status: "completed",
+      cwd: "/repo",
+      targets: [{ path: "src/app.ts", status: "explicit", source: "explicit" }],
+      phaseCount: 9,
+      noFix: false,
+    });
     expect(ctx.ui.widgets.at(-1)).toEqual({
       key: "review-workflow",
       lines: undefined,
@@ -388,13 +451,13 @@ describe("review extension", () => {
 
     // Finish Recon, Hunt, Validate, then Gapfill with new tasks.
     for (const text of ["recon", "hunt", "validate"]) {
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: text }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
-    await pi.events.get("agent_end")?.[0](
+    await pi.getEventHandlers("agent_end")?.[0](
       {
         messages: [
           {
@@ -412,17 +475,17 @@ describe("review extension", () => {
 
     // Second gapfill loop is still allowed; third one advances to Dedupe.
     for (const expected of ["02-hunt.md", "05-dedupe.md"]) {
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: "hunt again" }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: "validate again" }] },
         ctx,
       );
       await new Promise((resolve) => setTimeout(resolve, 5));
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         {
           messages: [
             {
@@ -449,7 +512,7 @@ describe("review extension", () => {
       ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
 
     for (let index = 1; index <= 8; index += 1) {
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: `phase ${index}` }] },
         ctx,
       );
@@ -458,7 +521,7 @@ describe("review extension", () => {
 
     expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("09-summary.md");
     await expect(
-      pi.events.get("tool_call")?.[0]({
+      pi.getEventHandlers("tool_call")?.[0]({
         toolName: "bash",
         input: { command: "echo hi" },
       }),
@@ -494,6 +557,19 @@ describe("review extension", () => {
       lines: undefined,
       options: undefined,
     });
+    expect(pi.emittedEvents.map((event) => event.name)).toEqual([
+      "workflow:started",
+      "workflow:failed",
+    ]);
+    expect(pi.emittedEvents.at(-1)?.data).toMatchObject({
+      name: "review",
+      status: "failed",
+      cwd: "/repo",
+      targets: [{ path: "src/app.ts", status: "explicit", source: "explicit" }],
+      phaseCount: 9,
+      noFix: false,
+      error: "send failed",
+    });
 
     pi.sendMessage = originalSendMessage;
     const retry = await pi.tools
@@ -521,7 +597,7 @@ describe("review extension", () => {
     pi.sendMessage = () => {
       throw new Error("send failed");
     };
-    await pi.events.get("agent_end")?.[0](
+    await pi.getEventHandlers("agent_end")?.[0](
       { messages: [{ role: "assistant", content: "recon" }] },
       ctx,
     );
@@ -535,6 +611,19 @@ describe("review extension", () => {
       key: "review-workflow",
       lines: undefined,
       options: undefined,
+    });
+    expect(pi.emittedEvents.map((event) => event.name)).toEqual([
+      "workflow:started",
+      "workflow:failed",
+    ]);
+    expect(pi.emittedEvents.at(-1)?.data).toMatchObject({
+      name: "review",
+      status: "failed",
+      cwd: "/repo",
+      targets: [{ path: "src/app.ts", status: "explicit", source: "explicit" }],
+      phaseCount: 9,
+      noFix: false,
+      error: "send failed",
     });
 
     pi.sendMessage = originalSendMessage;
@@ -571,7 +660,7 @@ describe("review extension", () => {
       "No-fix mode is enabled: do not edit files",
     );
     await expect(
-      pi.events.get("tool_call")?.[0]({
+      pi.getEventHandlers("tool_call")?.[0]({
         toolName: "bash",
         input: { command: "echo hi" },
       }),
@@ -582,7 +671,7 @@ describe("review extension", () => {
     });
 
     for (let index = 1; index <= 6; index += 1) {
-      await pi.events.get("agent_end")?.[0](
+      await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: `phase ${index}` }] },
         ctx,
       );
@@ -593,6 +682,49 @@ describe("review extension", () => {
     expect(pi.sentMessages.at(-1)?.message.content).toContain(
       "No-fix mode: consolidate the validated findings into a Japanese report.",
     );
+  });
+
+  test("pending command startup does not queue a phase after cancellation", async () => {
+    const extension = await loadExtension();
+    const delayedStatus = deferred<ExecResult>();
+    const reachedStatus = deferred<void>();
+    let delayed = false;
+    const pi = createFakePi((call) => {
+      if (
+        !delayed &&
+        call.command === "git" &&
+        call.args.join(" ") === "diff --name-status -z"
+      ) {
+        delayed = true;
+        reachedStatus.resolve();
+        return delayedStatus.promise;
+      }
+      return defaultExec(call);
+    });
+    extension(pi as never);
+    const ctx = createCommandContext();
+
+    const startup = pi.commands.get("review")!.handler("", ctx);
+    await reachedStatus.promise;
+    await pi.commands.get("review")!.handler("cancel", createCommandContext());
+    delayedStatus.resolve({ code: 0, stdout: "M\0src/app.ts\0", stderr: "" });
+    await startup;
+
+    expect(pi.sentMessages).toEqual([]);
+    expect(pi.emittedEvents.map((event) => event.name)).not.toContain(
+      "workflow:started",
+    );
+
+    const retry = await pi.tools
+      .get("review")!
+      .execute(
+        "call",
+        { files: ["src/retry.ts"] },
+        undefined,
+        undefined,
+        createRunContext(),
+      );
+    expect(retry.content[0].text).toContain("Queued review workflow");
   });
 
   test("command supports explicit args, busy guard, and cancellation", async () => {
@@ -621,6 +753,14 @@ describe("review extension", () => {
 
     const cancelCtx = createCommandContext();
     await pi.commands.get("review")?.handler("cancel", cancelCtx);
+    expect(pi.emittedEvents.at(-1)).toEqual({
+      name: "workflow:cancelled",
+      data: expect.objectContaining({
+        name: "review",
+        status: "cancelled",
+        reason: "user_cancelled",
+      }),
+    });
     expect(cancelCtx.ui.notifications[0].message).toMatch(
       /^\/review: ワークフロー \d+ をキャンセルしました。$/,
     );

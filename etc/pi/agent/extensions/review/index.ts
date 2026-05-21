@@ -47,9 +47,42 @@ const INVESTIGATION_ALLOWED_TOOLS = new Set([
   "tavily_auth_status",
 ]);
 
+export const REVIEW_WORKFLOW_EVENT_NAME = "review";
+export const WORKFLOW_STARTED_EVENT = "workflow:started";
+export const WORKFLOW_COMPLETED_EVENT = "workflow:completed";
+export const WORKFLOW_FAILED_EVENT = "workflow:failed";
+export const WORKFLOW_CANCELLED_EVENT = "workflow:cancelled";
+
 const workflow = new ReviewWorkflowController();
 let runStarting = false;
+let startupGeneration = 0;
 let nextPhaseTimer: ReturnType<typeof setTimeout> | undefined;
+
+export type ReviewWorkflowLifecycleStatus =
+  | "started"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+const WORKFLOW_LIFECYCLE_EVENTS: Record<ReviewWorkflowLifecycleStatus, string> =
+  {
+    started: WORKFLOW_STARTED_EVENT,
+    completed: WORKFLOW_COMPLETED_EVENT,
+    failed: WORKFLOW_FAILED_EVENT,
+    cancelled: WORKFLOW_CANCELLED_EVENT,
+  };
+
+export type ReviewWorkflowLifecycleEvent = {
+  name: typeof REVIEW_WORKFLOW_EVENT_NAME;
+  status: ReviewWorkflowLifecycleStatus;
+  runId: string;
+  cwd: string;
+  targets: Target[];
+  phaseCount: number;
+  noFix: boolean;
+  reason?: string;
+  error?: string;
+};
 
 type ReviewOptions = {
   files: string[];
@@ -225,7 +258,9 @@ async function collectDiff(
   }
 
   const untrackedChunks = await Promise.all(
-    targets.map((target) => collectUntrackedFileChunk(cwd, target)),
+    targets
+      .filter((target) => target.status === "untracked")
+      .map((target) => collectUntrackedFileChunk(cwd, target)),
   );
   chunks.push(
     ...untrackedChunks.filter((chunk): chunk is string => Boolean(chunk)),
@@ -257,18 +292,29 @@ async function createReviewRun(
   };
 }
 
+type ReviewRunCreationResult =
+  | { kind: "ready"; run: ReviewRunSeed }
+  | { kind: "empty" }
+  | { kind: "cancelled" };
+
 async function createReviewRunWithStartGuard(
   pi: ExtensionAPI,
   cwd: string,
   options: ReviewOptions,
-): Promise<ReviewRunSeed | undefined> {
+): Promise<ReviewRunCreationResult> {
   runStarting = true;
+  startupGeneration += 1;
+  const generation = startupGeneration;
   try {
     const run = await createReviewRun(pi, cwd, options);
-    if (!run) runStarting = false;
-    return run;
+    if (startupGeneration !== generation) return { kind: "cancelled" };
+    if (!run) {
+      runStarting = false;
+      return { kind: "empty" };
+    }
+    return { kind: "ready", run };
   } catch (error) {
-    runStarting = false;
+    if (startupGeneration === generation) runStarting = false;
     throw error;
   }
 }
@@ -286,6 +332,7 @@ function activeRun(): ActiveReviewRun | undefined {
 function clearActiveRun(ctx?: Pick<ExtensionContext, "ui">): void {
   clearQueuedPhaseTimer();
   workflow.cancel();
+  startupGeneration += 1;
   runStarting = false;
   if (ctx) clearWidget(ctx, REVIEW_WIDGET_KEY);
 }
@@ -302,10 +349,42 @@ function setPhaseWidget(
   ]);
 }
 
+function emitWorkflowLifecycleEvent(
+  pi: ExtensionAPI,
+  status: ReviewWorkflowLifecycleStatus,
+  run: ReviewRunSeed,
+  extra: Pick<ReviewWorkflowLifecycleEvent, "reason" | "error"> = {},
+): void {
+  const event: ReviewWorkflowLifecycleEvent = {
+    name: REVIEW_WORKFLOW_EVENT_NAME,
+    status,
+    runId: run.id,
+    cwd: run.cwd,
+    targets: run.targets,
+    phaseCount: run.phases.length,
+    noFix: run.noFix,
+    ...extra,
+  };
+
+  try {
+    pi.events.emit(WORKFLOW_LIFECYCLE_EVENTS[status], event);
+  } catch {
+    // Lifecycle observers must not affect the review workflow itself.
+  }
+}
+
 function failActiveRun(
+  pi: ExtensionAPI,
   ctx: Pick<ExtensionContext, "ui">,
   message: string,
+  error: unknown,
 ): void {
+  const run = activeRun();
+  if (run) {
+    emitWorkflowLifecycleEvent(pi, "failed", run, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
   clearActiveRun(ctx);
   notifyIfUI(ctx, message, "error");
 }
@@ -340,12 +419,15 @@ function startReviewRun(
 ): ActiveReviewRun {
   runStarting = false;
   const queued = workflow.start(run);
+  emitWorkflowLifecycleEvent(pi, "started", queued.run);
   try {
     sendQueuedPhase(pi, queued, ctx);
   } catch (error) {
     failActiveRun(
+      pi,
       ctx,
       "/review: ワークフローの phase をキューに追加できませんでした。",
+      error,
     );
     throw error;
   }
@@ -365,10 +447,12 @@ function queueNextPhaseAfterCurrentTurn(
     if (!queued) return;
     try {
       sendQueuedPhase(pi, queued, ctx);
-    } catch {
+    } catch (error) {
       failActiveRun(
+        pi,
         ctx,
         "/review: 次の phase をキューに追加できませんでした。",
+        error,
       );
     }
   }, 0);
@@ -393,6 +477,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("agent_end", async (event, ctx) => {
+    const completingRun = activeRun();
     const latestAssistantText = getLatestAssistantMessageText(event.messages);
     const decision = workflow.completePhase({
       latestAssistantText,
@@ -401,6 +486,8 @@ export default function (pi: ExtensionAPI): void {
     if (!decision) return;
 
     if (decision.kind === "completed") {
+      if (completingRun)
+        emitWorkflowLifecycleEvent(pi, "completed", completingRun);
       clearQueuedPhaseTimer();
       runStarting = false;
       clearWidget(ctx, REVIEW_WIDGET_KEY);
@@ -417,6 +504,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
+    const run = activeRun();
+    if (run)
+      emitWorkflowLifecycleEvent(pi, "cancelled", run, {
+        reason: "session_shutdown",
+      });
     clearActiveRun(ctx);
   });
 
@@ -428,7 +520,12 @@ export default function (pi: ExtensionAPI): void {
 
       const trimmedArgs = args.trim();
       if (trimmedArgs === "cancel" || trimmedArgs === "--cancel") {
-        const runId = activeRun()?.id;
+        const run = activeRun();
+        const runId = run?.id;
+        if (run)
+          emitWorkflowLifecycleEvent(pi, "cancelled", run, {
+            reason: "user_cancelled",
+          });
         clearActiveRun(ctx);
         ctx.ui.notify(
           runId
@@ -448,8 +545,13 @@ export default function (pi: ExtensionAPI): void {
       }
 
       const options = parseArgs(args);
-      const run = await createReviewRunWithStartGuard(pi, ctx.cwd, options);
-      if (!run) {
+      const creation = await createReviewRunWithStartGuard(
+        pi,
+        ctx.cwd,
+        options,
+      );
+      if (creation.kind === "cancelled") return;
+      if (creation.kind === "empty") {
         ctx.ui.notify(
           "/review: 変更ファイルが見つかりませんでした。ファイル全体をレビューするにはパスを明示してください。",
           "info",
@@ -457,7 +559,7 @@ export default function (pi: ExtensionAPI): void {
         return;
       }
 
-      const active = startReviewRun(pi, run, ctx);
+      const active = startReviewRun(pi, creation.run, ctx);
       ctx.ui.notify(
         `/review: ${active.targets.length} 件のファイルについて phase 1/${active.phases.length} をキューに追加しました。`,
         "info",
@@ -520,9 +622,20 @@ export default function (pi: ExtensionAPI): void {
         staged: params.staged ?? false,
         noFix: params.noFix ?? false,
       };
-      const run = await createReviewRunWithStartGuard(pi, ctx.cwd, options);
+      const creation = await createReviewRunWithStartGuard(
+        pi,
+        ctx.cwd,
+        options,
+      );
 
-      if (!run) {
+      if (creation.kind === "cancelled") {
+        return {
+          content: [{ type: "text", text: "Review startup was cancelled." }],
+          details: { targets: [] },
+        };
+      }
+
+      if (creation.kind === "empty") {
         return {
           content: [
             {
@@ -534,7 +647,7 @@ export default function (pi: ExtensionAPI): void {
         };
       }
 
-      const active = startReviewRun(pi, run, ctx);
+      const active = startReviewRun(pi, creation.run, ctx);
       return {
         content: [
           {
