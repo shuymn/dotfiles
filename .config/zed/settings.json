@@ -47,15 +47,9 @@
     "dock": "left",
   },
   "agent": {
-    "enabled": false,
+    "enabled": true,
     "flexible": true,
     "default_profile": "ask",
-    "default_model": {
-      "provider": "opencode",
-      "model": "go/deepseek-v4-pro",
-      "enable_thinking": true,
-      "effort": "max",
-    },
     "sidebar_side": "left",
     "dock": "right",
     "button": true,
@@ -67,7 +61,7 @@
     "button": false,
   },
   "outline_panel": {
-    "button": true,
+    "button": false,
   },
   "use_system_window_tabs": false,
   "bottom_dock_layout": "contained",
@@ -93,9 +87,9 @@
   "semantic_tokens": "off",
   "colorize_brackets": true,
   "tasks": {
-    "enabled": true,
+    "enabled": false,
   },
-  "code_lens": "off",
+  "code_lens": "menu",
   "inlay_hints": {
     "show_background": false,
     "enabled": false,
