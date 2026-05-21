@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { EventEmitter } from "node:events";
+import { mkdir, mkdtemp, realpath, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,6 +19,39 @@ mock.module("typebox", () => {
   };
   return { Type };
 });
+
+type ExecFileCallback = (
+  error: Error | null,
+  stdout: string,
+  stderr: string,
+) => void;
+type ExecFileImplementation = (
+  file: string,
+  args: string[],
+  options: unknown,
+  callback: ExecFileCallback,
+) => EventEmitter;
+
+let execFileImplementation: ExecFileImplementation = (
+  _file,
+  _args,
+  _options,
+  callback,
+) => {
+  callback(new Error("execFile mock not configured"), "", "");
+  return new EventEmitter();
+};
+
+mock.module("node:child_process", () => ({
+  execFile: mock(
+    (
+      file: string,
+      args: string[],
+      options: unknown,
+      callback: ExecFileCallback,
+    ) => execFileImplementation(file, args, options, callback),
+  ),
+}));
 
 mock.module("@earendil-works/pi-coding-agent", () => ({}));
 
@@ -88,8 +122,8 @@ async function loadExtension() {
   return (await import("./index")).default;
 }
 
-async function createTempDir() {
-  const root = await mkdtemp(join(tmpdir(), "add-dir-test-"));
+async function createTempDir(prefix = "add-dir-test-") {
+  const root = await mkdtemp(join(tmpdir(), prefix));
   tempDirs.push(root);
   return root;
 }
@@ -97,6 +131,10 @@ async function createTempDir() {
 const tempDirs: string[] = [];
 
 afterEach(async () => {
+  execFileImplementation = (_file, _args, _options, callback) => {
+    callback(new Error("execFile mock not configured"), "", "");
+    return new EventEmitter();
+  };
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );
@@ -166,6 +204,37 @@ describe("add-dir extension", () => {
     expect(result.systemPrompt).toContain(
       "Use absolute paths when reading, searching, or editing files",
     );
+  });
+
+  test("does not mutate registered directories when persistence fails", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const cwd = await createTempDir();
+    const project = join(cwd, "project");
+    await mkdir(project);
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
+
+    pi.appendEntry = () => {
+      throw new Error("persist failed");
+    };
+
+    const { ctx, notifications } = createCommandContext(cwd);
+    await pi.commands.get("add-dir")!.handler("project", ctx);
+    expect(notifications.at(-1)).toEqual({
+      message: "persist failed",
+      level: "error",
+    });
+
+    await pi.commands.get("list-dir")!.handler("", ctx);
+    expect(notifications.at(-1)).toEqual({
+      message: "追加ディレクトリは登録されていません。",
+      level: "info",
+    });
   });
 
   test("does not duplicate an already registered path", async () => {
@@ -318,7 +387,7 @@ describe("add-dir extension", () => {
     extension(pi as never);
 
     const cwd = await createTempDir();
-    const tempRoot = await createTempDir();
+    const tempRoot = await createTempDir("pi-github-workspace-");
     const clone = join(tempRoot, "repo");
     await mkdir(clone);
     await pi.events.get("session_start")![0](
@@ -346,6 +415,189 @@ describe("add-dir extension", () => {
     await pi.events.get("session_shutdown")![0]({ reason: "exit" });
     await expect(stat(tempRoot)).rejects.toThrow();
     expect(cwd).toBeString();
+  });
+
+  test("drops restored temporary clone roots outside the managed temp area", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const cwd = await createTempDir();
+    const unsafeRoot = await createTempDir();
+    const clone = join(unsafeRoot, "repo");
+    await mkdir(clone);
+    await pi.events.get("session_start")![0](
+      {},
+      {
+        sessionManager: {
+          getEntries: () => [
+            {
+              type: "custom",
+              customType: "add-dir-state",
+              data: {
+                dirs: [
+                  { name: "repo", path: clone, temporary: true, tempRoot: cwd },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    );
+
+    const { ctx, notifications } = createCommandContext(cwd);
+    await pi.commands.get("list-dir")!.handler("", ctx);
+    expect(notifications.at(-1)).toEqual({
+      message: "追加ディレクトリは登録されていません。",
+      level: "info",
+    });
+
+    await pi.events.get("session_shutdown")![0]({ reason: "exit" });
+    await expect(stat(cwd)).resolves.toBeTruthy();
+  });
+
+  test("github clone tool registers a GitHub tree URL subdirectory directly", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const cwd = await createTempDir();
+    const tool = pi.tools.get("github_clone_workspace")!;
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
+
+    execFileImplementation = (_file, args, _options, callback) => {
+      const child = new EventEmitter();
+      if (args[0] === "ls-remote") {
+        callback(
+          null,
+          [
+            "0000000000000000000000000000000000000000\trefs/heads/main",
+            "1111111111111111111111111111111111111111\trefs/heads/feature/deep",
+          ].join("\n"),
+          "",
+        );
+        return child;
+      }
+
+      if (args[0] === "clone") {
+        const targetPath = args.at(-1)!;
+        mkdir(join(targetPath, "packages", "edb-auto-name-session"), {
+          recursive: true,
+        }).then(
+          () => callback(null, "", ""),
+          (error) => callback(error, "", ""),
+        );
+        return child;
+      }
+
+      callback(new Error(`Unexpected git args: ${args.join(" ")}`), "", "");
+      return child;
+    };
+
+    const result = (await tool.execute(
+      "call",
+      {
+        url: "https://github.com/agnishcc/pi-extention-monorepo/tree/main/packages/edb-auto-name-session",
+        directoryName: "custom-clone",
+      },
+      undefined,
+      undefined,
+      { cwd },
+    )) as {
+      content: Array<{ type: "text"; text: string }>;
+      details: {
+        name: string;
+        path: string;
+        ref: string;
+        subPath: string;
+        tempRoot: string;
+      };
+    };
+
+    expect(result.details.name).toBe("edb-auto-name-session");
+    expect(result.details.ref).toBe("main");
+    expect(result.details.subPath).toBe("packages/edb-auto-name-session");
+    expect(result.details.path).toEndWith(
+      "/custom-clone/packages/edb-auto-name-session",
+    );
+    expect(result.content[0].text).toContain(`path: ${result.details.path}`);
+    expect(result.content[0].text).toContain("ref: main");
+    expect(result.content[0].text).toContain(
+      "subPath: packages/edb-auto-name-session",
+    );
+    expect(pi.appendedEntries.at(-1)).toEqual({
+      type: "add-dir-state",
+      data: {
+        dirs: [
+          {
+            name: "edb-auto-name-session",
+            path: result.details.path,
+            temporary: true,
+            tempRoot: result.details.tempRoot,
+          },
+        ],
+      },
+    });
+  });
+
+  test("github clone tool rejects subdirectories that resolve outside the clone", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    const cwd = await createTempDir();
+    const outside = await createTempDir();
+    const canonicalOutside = await realpath(outside);
+    const tool = pi.tools.get("github_clone_workspace")!;
+    await pi.events.get("session_start")![0](
+      {},
+      { sessionManager: { getEntries: () => [] } },
+    );
+
+    execFileImplementation = (_file, args, _options, callback) => {
+      const child = new EventEmitter();
+      if (args[0] === "ls-remote") {
+        callback(
+          null,
+          "0000000000000000000000000000000000000000\trefs/heads/main",
+          "",
+        );
+        return child;
+      }
+
+      if (args[0] === "clone") {
+        const targetPath = args.at(-1)!;
+        mkdir(targetPath, { recursive: true })
+          .then(
+            () => symlink(outside, join(targetPath, "escape"), "dir"),
+            (error) => Promise.reject(error),
+          )
+          .then(
+            () => callback(null, "", ""),
+            (error) => callback(error, "", ""),
+          );
+        return child;
+      }
+
+      callback(new Error(`Unexpected git args: ${args.join(" ")}`), "", "");
+      return child;
+    };
+
+    await expect(
+      tool.execute(
+        "call",
+        { url: "https://github.com/owner/repo/tree/main/escape" },
+        undefined,
+        undefined,
+        { cwd },
+      ),
+    ).rejects.toThrow(
+      `GitHub URL path resolves outside the cloned repository: ${canonicalOutside}`,
+    );
+    expect(pi.appendedEntries).toEqual([]);
   });
 
   test("github clone tool rejects unsupported URLs and unsafe directory names before cloning", async () => {
@@ -377,6 +629,17 @@ describe("add-dir extension", () => {
       ),
     ).rejects.toThrow(
       "github_clone_workspace only accepts https://github.com URLs.",
+    );
+    await expect(
+      tool.execute(
+        "call",
+        { url: "https://github.com/owner/repo/blob/main/src/index.ts" },
+        undefined,
+        undefined,
+        { cwd },
+      ),
+    ).rejects.toThrow(
+      "GitHub blob URLs point to files and are not supported. Use the repository URL or a /tree/<ref>/<directory> URL instead.",
     );
     await expect(
       tool.execute(

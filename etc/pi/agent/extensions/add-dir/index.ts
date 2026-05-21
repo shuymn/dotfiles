@@ -23,8 +23,12 @@ type AddedDir = {
 type ParsedGitHubUrl = {
   owner: string;
   repo: string;
+  treeSegments?: string[];
+};
+
+type ResolvedGitHubTarget = {
   ref?: string;
-  blobPathSegments?: string[];
+  subPathSegments: string[];
 };
 
 function expandHome(path: string): string {
@@ -50,6 +54,11 @@ async function resolveExistingDirectory(
     name: basename(canonical),
     path: canonical,
   };
+}
+
+function isPathInside(parent: string, child: string): boolean {
+  const parentWithSeparator = `${parent}/`;
+  return child === parent || child.startsWith(parentWithSeparator);
 }
 
 function isAddedDir(value: unknown): value is AddedDir {
@@ -109,28 +118,26 @@ function parseGitHubRepoUrl(input: string): ParsedGitHubUrl {
     );
   }
 
-  let ref: string | undefined;
-  let blobPathSegments: string[] | undefined;
-  const action = segments[2];
-  if (action === "tree") {
-    ref = segments.slice(3).join("/");
-    if (!ref) throw new Error("GitHub tree URL must include a ref.");
-  } else if (action === "blob") {
-    blobPathSegments = segments.slice(3);
-    if (blobPathSegments.length === 0) {
-      throw new Error("GitHub blob URL must include a ref.");
-    }
-  } else if (action !== undefined) {
+  let treeSegments: string[] | undefined;
+  const pathAction = segments[2];
+  if (pathAction === "blob") {
     throw new Error(
-      "Only GitHub repository, /tree/<ref>, and /blob/<ref>/... URLs are supported.",
+      "GitHub blob URLs point to files and are not supported. Use the repository URL or a /tree/<ref>/<directory> URL instead.",
     );
   }
 
-  if (ref !== undefined && !SAFE_REF.test(ref)) {
-    throw new Error("GitHub ref contains unsupported characters.");
+  if (pathAction === "tree") {
+    treeSegments = segments.slice(3);
+    if (treeSegments.length === 0) {
+      throw new Error("GitHub tree URL must include a ref.");
+    }
+  } else if (pathAction !== undefined) {
+    throw new Error(
+      "Only GitHub repository and /tree/<ref>/... URLs are supported.",
+    );
   }
 
-  return { owner, repo, ref, blobPathSegments };
+  return { owner, repo, treeSegments };
 }
 
 function sanitizeDirectoryName(input: string): string {
@@ -182,11 +189,14 @@ function runGit(
   });
 }
 
-async function resolveBlobRef(
+async function resolveGitHubTarget(
   repoUrl: string,
-  segments: string[],
+  parsed: ParsedGitHubUrl,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<ResolvedGitHubTarget> {
+  if (!parsed.treeSegments) return { subPathSegments: [] };
+
+  const segments = parsed.treeSegments;
   const stdout = await runGit(
     ["ls-remote", "--heads", "--tags", repoUrl],
     signal,
@@ -203,12 +213,16 @@ async function resolveBlobRef(
   );
 
   for (let length = segments.length; length > 0; length -= 1) {
-    const candidate = segments.slice(0, length).join("/");
-    if (refs.has(candidate)) return candidate;
+    const ref = segments.slice(0, length).join("/");
+    if (!refs.has(ref)) continue;
+    if (!SAFE_REF.test(ref)) {
+      throw new Error("GitHub ref contains unsupported characters.");
+    }
+    return { ref, subPathSegments: segments.slice(length) };
   }
 
   throw new Error(
-    "Could not resolve the GitHub blob URL ref. Use a repository URL or /tree/<ref> URL instead.",
+    "Could not resolve the GitHub tree URL ref. Use a repository URL or a URL with an existing branch or tag.",
   );
 }
 
@@ -231,20 +245,66 @@ function cloneGitHubRepo(
   return runGit(args, signal).then(() => undefined);
 }
 
+function resolveSafeSubPath(root: string, subPathSegments: string[]): string {
+  for (const segment of subPathSegments) {
+    if (segment === "" || segment === "." || segment === "..") {
+      throw new Error("GitHub URL path contains unsupported segments.");
+    }
+  }
+
+  const path = resolve(root, ...subPathSegments);
+  if (!isPathInside(root, path)) {
+    throw new Error("GitHub URL path escapes the cloned repository.");
+  }
+  return path;
+}
+
 export default function (pi: ExtensionAPI) {
   let dirs: AddedDir[] = [];
   let tempRoots: string[] = [];
 
-  function persist() {
-    pi.appendEntry(STATE_TYPE, { dirs });
+  function persist(nextDirs: AddedDir[]) {
+    pi.appendEntry(STATE_TYPE, { dirs: nextDirs });
+  }
+
+  async function validateRestoredTemporaryDir(
+    dir: AddedDir,
+  ): Promise<AddedDir | undefined> {
+    if (!dir.tempRoot) return undefined;
+
+    try {
+      const canonicalTempRoot = await realpath(dir.tempRoot);
+      const canonicalTmpDir = await realpath(tmpdir());
+      if (!basename(canonicalTempRoot).startsWith(GITHUB_CLONE_PREFIX)) {
+        return undefined;
+      }
+      if (!isPathInside(canonicalTmpDir, canonicalTempRoot)) return undefined;
+
+      const canonicalDirPath = await realpath(dir.path);
+      if (!isPathInside(canonicalTempRoot, canonicalDirPath)) return undefined;
+
+      return {
+        ...dir,
+        path: canonicalDirPath,
+        tempRoot: canonicalTempRoot,
+      };
+    } catch {
+      return undefined;
+    }
   }
 
   async function addDirectory(
     input: string,
     cwd: string,
     metadata: Pick<AddedDir, "temporary" | "tempRoot"> = {},
+    containmentRoot?: string,
   ): Promise<{ dir: AddedDir; alreadyAdded: boolean }> {
     const resolvedDir = await resolveExistingDirectory(input, cwd);
+    if (containmentRoot && !isPathInside(containmentRoot, resolvedDir.path)) {
+      throw new Error(
+        `GitHub URL path resolves outside the cloned repository: ${resolvedDir.path}`,
+      );
+    }
     const dir: AddedDir = { ...resolvedDir, ...metadata };
 
     const samePath = dirs.find((existing) => existing.path === dir.path);
@@ -259,8 +319,9 @@ export default function (pi: ExtensionAPI) {
       );
     }
 
-    dirs = [...dirs, dir];
-    persist();
+    const nextDirs = [...dirs, dir];
+    persist(nextDirs);
+    dirs = nextDirs;
     return { dir, alreadyAdded: false };
   }
 
@@ -282,7 +343,8 @@ export default function (pi: ExtensionAPI) {
         dirs.map(async (dir) => {
           try {
             const stats = await stat(dir.path);
-            return stats.isDirectory() ? dir : undefined;
+            if (!stats.isDirectory()) return undefined;
+            return dir.temporary ? validateRestoredTemporaryDir(dir) : dir;
           } catch {
             // Drop stale temporary paths from previous sessions.
             return dir.temporary ? undefined : dir;
@@ -343,12 +405,12 @@ export default function (pi: ExtensionAPI) {
       const expanded = expandHome(input);
       const resolved = resolve(ctx.cwd, expanded);
       const before = dirs.length;
-      dirs = dirs.filter(
+      const nextDirs = dirs.filter(
         (dir) =>
           dir.name !== input && dir.path !== input && dir.path !== resolved,
       );
 
-      if (dirs.length === before) {
+      if (nextDirs.length === before) {
         ctx.ui.notify(
           `一致する登録ディレクトリがありません: ${input}`,
           "error",
@@ -356,7 +418,8 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      persist();
+      persist(nextDirs);
+      dirs = nextDirs;
       ctx.ui.notify(
         dirs.length === 0
           ? "ディレクトリを削除しました。追加ディレクトリはありません。"
@@ -370,7 +433,7 @@ export default function (pi: ExtensionAPI) {
     name: "github_clone_workspace",
     label: "GitHub Clone Workspace",
     description:
-      "Clone a public GitHub repository URL into a temporary directory and register it as an additional named directory for this session. Only https://github.com/owner/repo URLs are allowed. Clones are shallow, blob-filtered, do not fetch submodules, time out after 30 seconds, and are removed when the session shuts down.",
+      "Clone a public GitHub repository URL or GitHub /tree/<ref>/<directory> URL into a temporary directory and register it as an additional named directory for this session. GitHub /blob/ file URLs are not supported. Clones are shallow, blob-filtered, do not fetch submodules, time out after 30 seconds, and are removed when the session shuts down.",
     promptSnippet:
       "Clone a GitHub repository URL into a temporary workspace and register it as an additional directory.",
     promptGuidelines: [
@@ -380,12 +443,12 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       url: Type.String({
         description:
-          "A public https://github.com/owner/repo URL. /tree/<ref> and /blob/<ref>/... URLs are also accepted to select a ref.",
+          "A public https://github.com/owner/repo URL. /tree/<ref>/<directory> URLs are also accepted; the cloned workspace is registered at the referenced subdirectory when a path is present. /blob/ file URLs are not supported.",
       }),
       directoryName: Type.Optional(
         Type.String({
           description:
-            "Optional registered directory name. Defaults to the repository name. Must contain only letters, numbers, '.', '_', and '-'.",
+            "Optional clone directory name. Defaults to the repository name. For /tree/<ref>/<directory> URLs, the registered workspace name is the target directory basename. Must contain only letters, numbers, '.', '_', and '-'.",
         }),
       ),
     }),
@@ -399,32 +462,40 @@ export default function (pi: ExtensionAPI) {
 
       const displayUrl = `https://github.com/${parsed.owner}/${parsed.repo}`;
       const repoUrl = `${displayUrl}.git`;
-      const targetPath = join(tempRoot, directoryName);
+      const clonePath = join(tempRoot, directoryName);
 
       try {
-        const ref = parsed.blobPathSegments
-          ? await resolveBlobRef(repoUrl, parsed.blobPathSegments, signal)
-          : parsed.ref;
-        if (ref !== undefined && !SAFE_REF.test(ref)) {
-          throw new Error("GitHub ref contains unsupported characters.");
-        }
+        const target = await resolveGitHubTarget(repoUrl, parsed, signal);
+        await cloneGitHubRepo(repoUrl, clonePath, target.ref, signal);
+        const canonicalClonePath = await realpath(clonePath);
 
-        await cloneGitHubRepo(repoUrl, targetPath, ref, signal);
-        const { dir, alreadyAdded } = await addDirectory(targetPath, ctx.cwd, {
-          temporary: true,
-          tempRoot,
-        });
+        const registeredPath = resolveSafeSubPath(
+          canonicalClonePath,
+          target.subPathSegments,
+        );
+        const { dir, alreadyAdded } = await addDirectory(
+          registeredPath,
+          ctx.cwd,
+          {
+            temporary: true,
+            tempRoot,
+          },
+          canonicalClonePath,
+        );
 
         const lines = [
           alreadyAdded
-            ? "GitHub repository was already registered."
+            ? "GitHub workspace was already registered."
             : "Cloned and registered GitHub workspace.",
           "",
           `name: ${dir.name}`,
           `path: ${dir.path}`,
           `url: ${displayUrl}`,
         ];
-        if (ref) lines.push(`ref: ${ref}`);
+        if (target.ref) lines.push(`ref: ${target.ref}`);
+        if (target.subPathSegments.length > 0) {
+          lines.push(`subPath: ${target.subPathSegments.join("/")}`);
+        }
         lines.push(
           "",
           "Use the absolute path above when reading, searching, or running read-only commands in this repository.",
@@ -436,7 +507,8 @@ export default function (pi: ExtensionAPI) {
             name: dir.name,
             path: dir.path,
             url: displayUrl,
-            ref,
+            ref: target.ref,
+            subPath: target.subPathSegments.join("/") || undefined,
             tempRoot,
             alreadyAdded,
           },
