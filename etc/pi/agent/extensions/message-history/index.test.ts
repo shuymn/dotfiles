@@ -359,6 +359,56 @@ describe("message-history extension", () => {
     ]);
   });
 
+  test("excludes flag-invoked sessions whose first user message starts with User invoked", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    sessions.set("/sessions/commit.json", {
+      entries: [
+        messageEntry(
+          "User invoked --commit with interactive options: --japanese",
+          3000,
+        ),
+        messageEntry("follow-up from commit session", 2000),
+      ],
+    });
+    sessions.set("/sessions/normal.json", {
+      entries: [messageEntry("normal historical message", 1000)],
+    });
+    listedSessions = [
+      {
+        path: "/sessions/commit.json",
+        modified: new Date(3000),
+        cwd: "/repo",
+        name: "commit",
+      },
+      {
+        path: "/sessions/normal.json",
+        modified: new Date(1000),
+        cwd: "/repo",
+        name: "normal",
+      },
+    ];
+    const ctx = createContext({
+      sessionManager: createSessionManager({
+        entries: [messageEntry("current normal message", 4000)],
+      }),
+      drivePicker: (component) => {
+        const rendered = component.render(120).join("\n");
+        expect(rendered).toContain("current normal message");
+        expect(rendered).toContain("normal historical message");
+        expect(rendered).not.toContain("User invoked --commit");
+        expect(rendered).not.toContain("follow-up from commit session");
+        component.handleInput("enter");
+        return undefined;
+      },
+    });
+
+    await pi.shortcuts.get("ctrl+r")!.handler(ctx);
+
+    expect(ctx.setEditorTexts).toEqual(["current normal message"]);
+  });
+
   test("truncates very long messages before insertion", async () => {
     const extension = await loadExtension();
     const pi = createFakePi();

@@ -18,6 +18,7 @@ import { accentBorder, truncateLines } from "../lib/tui";
 const MAX_SESSIONS_TO_SCAN = 200;
 const MAX_MESSAGES_TO_SHOW = 1000;
 const MAX_MESSAGE_CHARS = 4000;
+const FLAG_INVOCATION_PREFIX = "User invoked";
 
 type HistoryMessage = {
   text: string;
@@ -60,6 +61,18 @@ function userMessageText(message: unknown): string | undefined {
   return undefined;
 }
 
+function isFlagInvocationSession(
+  entries: ReturnType<ExtensionContext["sessionManager"]["getEntries"]>,
+): boolean {
+  for (const entry of entries) {
+    if (entry.type !== "message") continue;
+    const text = userMessageText(entry.message);
+    if (text === undefined) continue;
+    return text.startsWith(FLAG_INVOCATION_PREFIX);
+  }
+  return false;
+}
+
 function displaySnippet(text: string): string {
   const oneLine = text.replace(/\s+/g, " ").trim();
   return oneLine.length > 180 ? `${oneLine.slice(0, 177)}...` : oneLine;
@@ -82,6 +95,8 @@ function collectFromEntries(
     "cwd" | "sessionName" | "sessionPath" | "isCurrentSession"
   > = {},
 ): HistoryMessage[] {
+  if (isFlagInvocationSession(entries)) return [];
+
   const messages: HistoryMessage[] = [];
   for (const entry of entries) {
     if (entry.type !== "message") continue;
