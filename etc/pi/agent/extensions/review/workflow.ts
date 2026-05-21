@@ -23,6 +23,7 @@ export type ReviewRunSeed = {
   diff: string;
   phases: WorkflowPhase[];
   noFix: boolean;
+  instructions: string;
 };
 
 export type ActiveReviewRun = ReviewRunSeed & {
@@ -48,12 +49,7 @@ export type CompletePhaseInput = {
 };
 
 export type WorkflowDecision =
-  | {
-      kind: "queued";
-      run: ActiveReviewRun;
-      phaseIndex: number;
-      phase: WorkflowPhase;
-    }
+  | ({ kind: "queued" } & QueuedPhase)
   | { kind: "completed"; runId: string };
 
 export class ReviewWorkflowController {

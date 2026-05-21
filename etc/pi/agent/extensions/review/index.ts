@@ -6,6 +6,7 @@ import type {
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { parseCommandArgs } from "../lib/command-args";
 import {
   collectChangedTargets,
   type ExecGit,
@@ -88,24 +89,21 @@ type ReviewOptions = {
   files: string[];
   staged: boolean;
   noFix: boolean;
+  instructions: string;
 };
 
 function parseArgs(args: string): ReviewOptions {
-  const files: string[] = [];
-  let staged = false;
-  let noFix = false;
+  const parsed = parseCommandArgs({
+    args,
+    booleanFlags: ["--staged", "--cached", "--no-fix"] as const,
+  });
 
-  for (const token of args.trim().split(/\s+/).filter(Boolean)) {
-    if (token === "--staged" || token === "--cached") {
-      staged = true;
-    } else if (token === "--no-fix") {
-      noFix = true;
-    } else {
-      files.push(normalizeFileArg(token));
-    }
-  }
-
-  return { files, staged, noFix };
+  return {
+    files: parsed.files,
+    staged: parsed.flags["--staged"] || parsed.flags["--cached"],
+    noFix: parsed.flags["--no-fix"],
+    instructions: parsed.instructions,
+  };
 }
 
 function formatPathForPrompt(path: string): string {
@@ -289,6 +287,7 @@ async function createReviewRun(
     diff,
     phases,
     noFix: options.noFix,
+    instructions: options.instructions,
   };
 }
 
@@ -603,6 +602,11 @@ export default function (pi: ExtensionAPI): void {
             "When true, report validated review findings without applying fixes or editing files.",
         }),
       ),
+      instructions: Type.Optional(
+        Type.String({
+          description: "Additional user instructions for this review pass.",
+        }),
+      ),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       if (activeRun() || runStarting) {
@@ -621,6 +625,7 @@ export default function (pi: ExtensionAPI): void {
         files: params.files?.map(normalizeFileArg) ?? [],
         staged: params.staged ?? false,
         noFix: params.noFix ?? false,
+        instructions: params.instructions?.trim() ?? "",
       };
       const creation = await createReviewRunWithStartGuard(
         pi,

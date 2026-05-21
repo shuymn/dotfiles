@@ -22,6 +22,7 @@ function run(overrides: Partial<ActiveReviewRun> = {}): ActiveReviewRun {
     diff: "diff text",
     phases: phases(false),
     noFix: false,
+    instructions: "",
     nextPhaseIndex: 1,
     phaseOutputs: [],
     phaseInProgress: true,
@@ -50,6 +51,17 @@ describe("review prompt rendering", () => {
 
     expect(prompt).toContain(
       "No-fix mode is enabled: do not edit files, run mutating commands, or apply fixes at any stage",
+    );
+  });
+
+  test("additional user instructions are included after phase 1", () => {
+    const prompt = buildPhasePrompt(
+      run({ instructions: "focus on security regressions" }),
+      1,
+    );
+
+    expect(prompt).toContain(
+      "## Additional user instructions\n\nfocus on security regressions",
     );
   });
 

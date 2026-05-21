@@ -49,6 +49,12 @@ export function buildGlobalRules(noFix: boolean): string {
 - Write the final response to the user in Japanese.`;
 }
 
+export function buildAdditionalUserInstructions(run: ActiveReviewRun): string {
+  return run.instructions
+    ? `## Additional user instructions\n\n${run.instructions}`
+    : "";
+}
+
 export function buildPreparedScope(run: ActiveReviewRun): string {
   return `## Prepared scope
 
@@ -135,6 +141,8 @@ Run only phase ${phaseNumber}/${run.phases.length} now. Do not execute later pha
 Keep the response concise and structured for the next phase. Do not provide user-facing commentary for intermediate phases.
 
 ${isFirstPhase ? buildPreparedScope(run) : `Target files:\n${buildTargetList(run.targets)}`}
+
+${buildAdditionalUserInstructions(run)}
 
 ${buildGlobalRules(run.noFix)}
 

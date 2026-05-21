@@ -17,6 +17,7 @@ function seed(noFix = false): ReviewRunSeed {
     diff: "",
     phases: phases(noFix),
     noFix,
+    instructions: "",
   };
 }
 

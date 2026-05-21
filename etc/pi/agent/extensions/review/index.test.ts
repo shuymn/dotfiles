@@ -29,7 +29,12 @@ type ToolDefinition = {
   parameters: unknown;
   execute: (
     toolCallId: string,
-    params: { files?: string[]; staged?: boolean; noFix?: boolean },
+    params: {
+      files?: string[];
+      staged?: boolean;
+      noFix?: boolean;
+      instructions?: string;
+    },
     signal: AbortSignal | undefined,
     onUpdate: unknown,
     ctx: FakeRunContext,
@@ -182,6 +187,7 @@ describe("review extension", () => {
         files: { type: "array", optional: true },
         staged: { type: "boolean", optional: true },
         noFix: { type: "boolean", optional: true },
+        instructions: { type: "string", optional: true },
       },
     });
   });
@@ -725,6 +731,49 @@ describe("review extension", () => {
         createRunContext(),
       );
     expect(retry.content[0].text).toContain("Queued review workflow");
+  });
+
+  test("command passes additional instructions after -- into the first phase prompt", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createCommandContext();
+
+    await pi.commands
+      .get("review")
+      ?.handler("--no-fix @src/app.ts -- focus on security regressions", ctx);
+
+    expect(pi.sentMessages[0].message.content).toContain(
+      "Additional user instructions\n\nfocus on security regressions",
+    );
+    expect(ctx.ui.notifications).toContainEqual({
+      message:
+        "/review: 1 件のファイルについて phase 1/7 をキューに追加しました。",
+      level: "info",
+    });
+  });
+
+  test("tool passes additional instructions into the first phase prompt", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    await pi.tools
+      .get("review")!
+      .execute(
+        "call",
+        { files: ["src/app.ts"], instructions: "  check async cancellation  " },
+        undefined,
+        undefined,
+        createRunContext(),
+      );
+
+    expect(pi.sentMessages[0].message.content).toContain(
+      "Additional user instructions\n\ncheck async cancellation",
+    );
+    expect(pi.sentMessages[0].message.content).not.toContain(
+      "  check async cancellation  ",
+    );
   });
 
   test("command supports explicit args, busy guard, and cancellation", async () => {
