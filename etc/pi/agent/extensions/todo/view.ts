@@ -1,5 +1,5 @@
 import { truncateToWidth } from "@earendil-works/pi-tui";
-import { completedCount, orderedTodos } from "./selectors";
+import { activeTodos, completedCount, orderedTodos } from "./selectors";
 import type { TodoItem, TodoState } from "./state";
 
 export type WidgetLine = { text: string; color?: string; dim?: boolean };
@@ -36,7 +36,7 @@ export function renderWidgetLines(
   state: TodoState,
   options: { width?: number; maxLines?: number } = {},
 ): WidgetLine[] | undefined {
-  if (state.items.length === 0) return undefined;
+  if (activeTodos(state).length === 0) return undefined;
 
   const width = options.width ?? 80;
   const maxLines = options.maxLines ?? 12;

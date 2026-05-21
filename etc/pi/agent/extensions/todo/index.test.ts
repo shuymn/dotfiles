@@ -245,6 +245,39 @@ describe("todo extension", () => {
     );
   });
 
+  test("completing the last active todo clears the widget", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 1, status: "in_progress" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 1, status: "completed" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
   test("clear action reports count and clears widget", async () => {
     const extension = await loadExtension();
     const pi = createFakePi<ToolDefinition>();

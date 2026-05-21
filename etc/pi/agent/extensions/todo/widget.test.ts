@@ -1,6 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import type { TodoState } from "./state";
+import type { TodoItem, TodoState } from "./state";
 import { renderWidgetLines, renderWidgetText, statusIcon } from "./view";
+
+function terminalState(statuses: Array<TodoItem["status"]>): TodoState {
+  return {
+    nextId: statuses.length + 1,
+    items: statuses.map((status, index) => ({
+      id: index + 1,
+      title: status,
+      status,
+      createdAt: 1,
+      updatedAt: 1,
+    })),
+  };
+}
 
 const state: TodoState = {
   nextId: 5,
@@ -40,6 +53,19 @@ const state: TodoState = {
 describe("todo widget", () => {
   test("returns undefined for empty state", () => {
     expect(renderWidgetText({ items: [], nextId: 1 })).toBeUndefined();
+  });
+
+  test("returns undefined when only terminal todos remain", () => {
+    const terminalCases = [
+      terminalState(["completed"]),
+      terminalState(["cancelled"]),
+      terminalState(["completed", "cancelled"]),
+    ];
+
+    for (const state of terminalCases) {
+      expect(renderWidgetText(state)).toBeUndefined();
+      expect(renderWidgetLines(state)).toBeUndefined();
+    }
   });
 
   test("has icons and color policy for every status", () => {
