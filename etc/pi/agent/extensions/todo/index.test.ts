@@ -394,4 +394,163 @@ describe("todo extension", () => {
     );
     expect(ui.widgets.length).toBe(before + 1);
   });
+
+  test("review workflow suppresses only the human-facing todo widget", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "Keep state" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(ui.widgets.at(-1)).toMatchObject({ key: "todo" });
+
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    const updatedWhileSuppressed = await tool.execute(
+      "call",
+      { action: "update", id: 1, status: "in_progress" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(updatedWhileSuppressed.details.state.items[0].status).toBe(
+      "in_progress",
+    );
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    const reminder = (await pi.getEventHandlers("context")[0]({
+      messages: [{ role: "user", content: "x" }],
+    })) as { messages: Array<{ content: unknown }> };
+    expect(JSON.stringify(reminder.messages[1].content)).toContain(
+      "Keep state",
+    );
+
+    pi.events.emit("workflow:completed", {
+      name: "review",
+      status: "completed",
+    });
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
+    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("Keep state");
+  });
+
+  test("review suppression applies when review starts before any UI context exists", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    const created = await pi.tools
+      .get("todo")!
+      .execute(
+        "call",
+        { action: "create", title: "Created during review" },
+        undefined,
+        undefined,
+        ctx,
+      );
+
+    expect(created.details.state.items[0].title).toBe("Created during review");
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("non-UI refresh does not replace the cached UI context", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "Visible before headless refresh" },
+      undefined,
+      undefined,
+      { hasUI: true, ui },
+    );
+    await tool.execute("call", { action: "list" }, undefined, undefined, {
+      hasUI: false,
+    });
+
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("review completion keeps todo widget hidden when no actionable todos remain", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    await tool.execute("call", { action: "clear" }, undefined, undefined, ctx);
+
+    pi.events.emit("workflow:completed", {
+      name: "review",
+      status: "completed",
+    });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("review suppression ignores non-review workflow events and malformed review events", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const beforeIgnoredEvent = ui.widgets.length;
+    pi.events.emit("workflow:started", { name: "other", status: "started" });
+    pi.events.emit("workflow:started", { name: "review" });
+    pi.events.emit("workflow:started", { name: "review", status: "completed" });
+    expect(ui.widgets).toHaveLength(beforeIgnoredEvent);
+
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    pi.events.emit("workflow:completed", { name: "review", status: "started" });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    pi.events.emit("workflow:failed", { name: "review", status: "failed" });
+    expect(ui.widgets.at(-1)).toMatchObject({ key: "todo" });
+
+    pi.events.emit("workflow:started", { name: "review", status: "started" });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+
+    pi.events.emit("workflow:cancelled", {
+      name: "review",
+      status: "cancelled",
+    });
+    expect(ui.widgets.at(-1)).toMatchObject({ key: "todo" });
+  });
 });

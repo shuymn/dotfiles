@@ -21,6 +21,35 @@ import {
   type WidgetContext,
 } from "./widget";
 
+const REVIEW_WORKFLOW_EVENT_NAME = "review";
+const REVIEW_WORKFLOW_EVENTS = [
+  { event: "workflow:started", status: "started", suppress: true },
+  { event: "workflow:completed", status: "completed", suppress: false },
+  { event: "workflow:failed", status: "failed", suppress: false },
+  { event: "workflow:cancelled", status: "cancelled", suppress: false },
+] as const;
+
+type ReviewWorkflowLifecycleStatus =
+  (typeof REVIEW_WORKFLOW_EVENTS)[number]["status"];
+
+type ReviewWorkflowLifecycleEvent = {
+  name?: string;
+  status?: string;
+};
+
+function isReviewWorkflowLifecycleEvent(
+  data: unknown,
+  expectedStatus: ReviewWorkflowLifecycleStatus,
+): data is ReviewWorkflowLifecycleEvent {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as ReviewWorkflowLifecycleEvent).name ===
+      REVIEW_WORKFLOW_EVENT_NAME &&
+    (data as ReviewWorkflowLifecycleEvent).status === expectedStatus
+  );
+}
+
 function formatToolResult(state: TodoState, op: TodoOperation): string {
   const lines: string[] = [];
 
@@ -92,10 +121,31 @@ function formatToolResult(state: TodoState, op: TodoOperation): string {
 
 export default function (pi: ExtensionAPI) {
   let state = cloneTodoState(EMPTY_TODO_STATE);
+  let currentUiCtx: WidgetContext | undefined;
+  let suppressWidgetForReview = false;
+
+  function refreshWidget(ctx: WidgetContext): void {
+    if (ctx.hasUI !== false) currentUiCtx = ctx;
+    refreshTodoWidget(ctx, state, { suppress: suppressWidgetForReview });
+  }
 
   function replayAndRefresh(ctx: WidgetContext & { sessionManager: unknown }) {
     state = replayTodoState(ctx.sessionManager as never);
-    refreshTodoWidget(ctx, state);
+    refreshWidget(ctx);
+  }
+
+  function setReviewWidgetSuppression(suppress: boolean): void {
+    suppressWidgetForReview = suppress;
+    if (currentUiCtx) refreshWidget(currentUiCtx);
+  }
+
+  function handleReviewWorkflowLifecycle(
+    data: unknown,
+    status: ReviewWorkflowLifecycleStatus,
+    suppress: boolean,
+  ): void {
+    if (!isReviewWorkflowLifecycleEvent(data, status)) return;
+    setReviewWidgetSuppression(suppress);
   }
 
   pi.registerTool({
@@ -141,7 +191,7 @@ export default function (pi: ExtensionAPI) {
         state: cloneTodoState(state),
         op: result.op,
       };
-      refreshTodoWidget(ctx, state);
+      refreshWidget(ctx);
       return {
         content: [{ type: "text", text: formatToolResult(state, result.op) }],
         details,
@@ -154,6 +204,8 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_tree", async (_event, ctx) => replayAndRefresh(ctx));
   pi.on("session_compact", async (_event, ctx) => replayAndRefresh(ctx));
   pi.on("session_shutdown", async (_event, ctx) => {
+    suppressWidgetForReview = false;
+    currentUiCtx = undefined;
     if ((ctx as { hasUI?: boolean } | undefined)?.hasUI === false) return;
     (
       ctx as
@@ -164,9 +216,16 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_execution_end", async (event, ctx) => {
     const toolEvent = event as { toolName?: string; isError?: boolean };
     if (toolEvent.toolName === TOOL_NAME && toolEvent.isError !== true) {
-      refreshTodoWidget(ctx, state);
+      refreshWidget(ctx);
     }
   });
+
+  for (const { event, status, suppress } of REVIEW_WORKFLOW_EVENTS) {
+    pi.events.on(event, (data) =>
+      handleReviewWorkflowLifecycle(data, status, suppress),
+    );
+  }
+
   pi.on("context", async (event) => {
     const reminder = renderTodoReminder(state);
     if (!reminder) return;
