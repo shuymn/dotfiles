@@ -5,8 +5,7 @@ import type {
 
 const MAX_PROMPT_CHARS = 4_000;
 export const MAX_TITLE_CHARS = 60;
-export const SESSION_TITLE_PREFIX = "π - ";
-const SESSION_TITLE_PREFIX_PATTERN = /^(π\s*-\s*)+/i;
+const LEGACY_SESSION_TITLE_PREFIX_PATTERN = /^(π\s*-\s*)+/i;
 
 type SessionEntry = ReturnType<
   ExtensionContext["sessionManager"]["getBranch"]
@@ -73,7 +72,7 @@ function sanitizeTitleCandidate(value: string): string | undefined {
     .trim()
     .replace(/^[-*]\s*/, "")
     .replace(/^(title|session name|タイトル|セッション名)\s*[:：]\s*/i, "")
-    .replace(SESSION_TITLE_PREFIX_PATTERN, "")
+    .replace(LEGACY_SESSION_TITLE_PREFIX_PATTERN, "")
     .replace(/^[「『'"`]+|[」』'"`]+$/g, "")
     .replace(/[.?!:;,。！？：；、]+$/g, "")
     .replace(/^[「『'"`]+|[」』'"`]+$/g, "")

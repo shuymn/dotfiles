@@ -198,8 +198,8 @@ describe("session-title extension", () => {
 
     await expect(
       withTimeout(pi.waitForSetName(), "session name was not set"),
-    ).resolves.toBe("π - Implement Auto Naming");
-    expect(pi.setNames).toEqual(["π - Implement Auto Naming"]);
+    ).resolves.toBe("Implement Auto Naming");
+    expect(pi.setNames).toEqual(["Implement Auto Naming"]);
     expect(completeCalls).toHaveLength(1);
     const options = completeCalls[0]![2] as Record<string, unknown>;
     expect(options).toMatchObject({
@@ -250,7 +250,7 @@ describe("session-title extension", () => {
 
     await expect(
       withTimeout(pi.waitForSetName(), "session name was not set"),
-    ).resolves.toBe("π - Implement Automatic Session Naming for Pi Extension");
+    ).resolves.toBe("Implement Automatic Session Naming for Pi Extension");
   });
 
   test("falls back to text title when structured tool call is absent", async () => {
@@ -271,7 +271,7 @@ describe("session-title extension", () => {
 
     await expect(
       withTimeout(pi.waitForSetName(), "session name was not set"),
-    ).resolves.toBe("π - Implement Text Fallback");
+    ).resolves.toBe("Implement Text Fallback");
   });
 
   test("does not start completion after auth resolves for an aborted session", async () => {

@@ -8,7 +8,6 @@ import {
   extractTextBlocks,
   extractUserText,
   MAX_TITLE_CHARS,
-  SESSION_TITLE_PREFIX,
   sanitizeSessionName,
   shouldArmSessionTitle,
 } from "./title";
@@ -27,7 +26,7 @@ const titleTool = {
     title: Type.String({
       minLength: 1,
       maxLength: MAX_TITLE_CHARS,
-      description: "Concise session title without the π prefix",
+      description: "Concise session title",
     }),
   }),
 };
@@ -97,7 +96,7 @@ export default function sessionTitleExtension(pi: ExtensionAPI): void {
         if (!name) return;
         if (token !== sessionToken) return;
         if (pi.getSessionName()) return;
-        pi.setSessionName(`${SESSION_TITLE_PREFIX}${name}`);
+        pi.setSessionName(name);
       })
       .catch(() => undefined)
       .finally(() => {
