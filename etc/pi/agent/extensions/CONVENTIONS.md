@@ -30,6 +30,8 @@
 
 ## 進捗表示
 
-- 数秒以上かかる処理は `belowEditor` widget で進捗を示す。
+- 長期的に参照する進行状態・作業状態は `aboveEditor` widget で示す。
+- `todo` / `review` / plan・workflow 系の状態表示は `aboveEditor` を標準にする。
+- `belowEditor` widget は spinner、elapsed time、外部 CLI 実行中など短命・補助的な進捗表示に使う。
 - 外部 CLI など待ち時間が読みにくい処理は spinner と elapsed time を表示する。
 - 短い完了通知は `ctx.ui.notify()` でよい。

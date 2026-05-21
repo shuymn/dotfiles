@@ -84,9 +84,13 @@ describe("todo widget", () => {
     ).toBe(true);
   });
 
-  test("truncates to width and shows overflow", () => {
+  test("truncates to width and shows accurate overflow", () => {
     const lines = renderWidgetText(state, { width: 16, maxLines: 3 })!;
     expect(lines.every((line) => line.length <= 16)).toBe(true);
-    expect(lines.at(-1)).toContain("more");
+    expect(lines.at(-1)).toContain("+3 more");
+  });
+
+  test("honors zero max lines", () => {
+    expect(renderWidgetText(state, { maxLines: 0 })).toEqual([]);
   });
 });

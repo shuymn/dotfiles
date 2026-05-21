@@ -94,15 +94,11 @@ export class ReviewWorkflowController {
     const run = this.activeRun;
     const completedPhaseIndex = run.nextPhaseIndex - 1;
 
-    if (
-      input.latestAssistantText &&
-      completedPhaseIndex >= 0 &&
-      completedPhaseIndex < run.phases.length
-    ) {
+    if (completedPhaseIndex >= 0 && completedPhaseIndex < run.phases.length) {
       run.phaseOutputs.push({
         phaseIndex: completedPhaseIndex,
         phaseFile: run.phases[completedPhaseIndex].file,
-        notes: input.truncateNotes(input.latestAssistantText),
+        notes: input.truncateNotes(input.latestAssistantText ?? ""),
       });
     }
 

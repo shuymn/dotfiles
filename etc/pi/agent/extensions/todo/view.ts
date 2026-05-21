@@ -1,20 +1,18 @@
-import { truncateToWidth } from "@earendil-works/pi-tui";
+import {
+  appendOverflowLine,
+  treeBranch,
+  truncateWidgetLines,
+  widgetLinesToText,
+  widgetStatusIcon,
+  type WidgetLine,
+} from "../lib/widget-view";
 import { activeTodos, completedCount, orderedTodos } from "./selectors";
 import type { TodoItem, TodoState } from "./state";
 
-export type WidgetLine = { text: string; color?: string; dim?: boolean };
+export type { WidgetLine } from "../lib/widget-view";
 
 export function statusIcon(status: TodoItem["status"]): string {
-  switch (status) {
-    case "pending":
-      return "○";
-    case "in_progress":
-      return "◐";
-    case "completed":
-      return "✓";
-    case "cancelled":
-      return "×";
-  }
+  return widgetStatusIcon(status === "in_progress" ? "running" : status);
 }
 
 function colorFor(
@@ -47,32 +45,30 @@ export function renderWidgetLines(
   const lines: WidgetLine[] = [
     { text: `● Todos ${done}/${state.items.length}`, color: headerColor },
   ];
+  if (maxLines <= 0) return [];
+
   const items = orderedTodos(state);
-  const capacity = Math.max(0, maxLines - 1);
-  const shown = items.slice(0, capacity);
+  const itemCapacity = Math.max(0, maxLines - 1);
+  const shownCount = items.length > itemCapacity ? Math.max(0, itemCapacity - 1) : itemCapacity;
+  const shown = items.slice(0, shownCount);
+  const hidden = items.length - shown.length;
+  const renderedRows = shown.length + (hidden > 0 ? 1 : 0);
   for (const [index, item] of shown.entries()) {
-    const branch =
-      index === shown.length - 1 && shown.length === items.length ? "└─" : "├─";
+    const branch = treeBranch(index, renderedRows);
     lines.push({
       text: `${branch} ${statusIcon(item.status)} ${item.activeForm ?? item.title}`,
       ...colorFor(item.status),
     });
   }
-  const hidden = items.length - shown.length;
-  if (hidden > 0) {
-    if (lines.length >= maxLines) lines.pop();
-    lines.push({ text: `└─ +${hidden} more`, color: "dim", dim: true });
-  }
+  appendOverflowLine(lines, hidden, maxLines);
 
-  return lines.map((line) => ({
-    ...line,
-    text: truncateToWidth(line.text, width, ""),
-  }));
+  return truncateWidgetLines(lines, width);
 }
 
 export function renderWidgetText(
   state: TodoState,
   options: { width?: number; maxLines?: number } = {},
 ): string[] | undefined {
-  return renderWidgetLines(state, options)?.map((line) => line.text);
+  const lines = renderWidgetLines(state, options);
+  return lines ? widgetLinesToText(lines) : undefined;
 }

@@ -17,9 +17,10 @@ import {
   targetPathsForDiff,
   truncate,
 } from "../lib/git";
-import { clearWidget, notifyIfUI, setBelowEditorWidget } from "../lib/tui";
+import { notifyIfUI } from "../lib/tui";
 import { loadWorkflowPhases } from "./phases";
 import { buildPhasePrompt } from "./prompts";
+import { clearReviewWidget, refreshReviewWidget } from "./widget";
 import {
   type ActiveReviewRun,
   type QueuedPhase,
@@ -32,7 +33,6 @@ const TOOL_NAME = "review";
 const MAX_DIFF_CHARS = 80_000;
 const MAX_UNTRACKED_FILE_CHARS = 20_000;
 const MAX_PHASE_NOTE_CHARS = 20_000;
-const REVIEW_WIDGET_KEY = "review-workflow";
 const INVESTIGATION_ALLOWED_TOOLS = new Set([
   "read",
   "grep",
@@ -333,7 +333,7 @@ function clearActiveRun(ctx?: Pick<ExtensionContext, "ui">): void {
   workflow.cancel();
   startupGeneration += 1;
   runStarting = false;
-  if (ctx) clearWidget(ctx, REVIEW_WIDGET_KEY);
+  if (ctx) clearReviewWidget(ctx);
 }
 
 function setPhaseWidget(
@@ -343,9 +343,7 @@ function setPhaseWidget(
 ): void {
   const run = activeRun();
   if (!run) return;
-  setBelowEditorWidget(ctx, REVIEW_WIDGET_KEY, [
-    `/review: phase ${phaseNumber}/${run.phases.length} ${state}`,
-  ]);
+  refreshReviewWidget(ctx, run, state, phaseNumber);
 }
 
 function emitWorkflowLifecycleEvent(
@@ -489,7 +487,7 @@ export default function (pi: ExtensionAPI): void {
         emitWorkflowLifecycleEvent(pi, "completed", completingRun);
       clearQueuedPhaseTimer();
       runStarting = false;
-      clearWidget(ctx, REVIEW_WIDGET_KEY);
+      clearReviewWidget(ctx);
       notifyIfUI(
         ctx,
         `/review: ワークフロー ${decision.runId} が完了しました。`,

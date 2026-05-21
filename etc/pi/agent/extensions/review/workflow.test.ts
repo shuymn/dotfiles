@@ -89,6 +89,18 @@ describe("ReviewWorkflowController", () => {
     expect(workflow.getActiveRun()?.phaseInProgress).toBe(false);
   });
 
+  test("records completed phases even when assistant output is empty", () => {
+    const workflow = new ReviewWorkflowController();
+    workflow.start(seed());
+
+    const decision = complete(workflow, "");
+
+    expect(decision).toMatchObject({ kind: "queued", phaseIndex: 1 });
+    expect(workflow.getActiveRun()?.phaseOutputs).toEqual([
+      { phaseIndex: 0, phaseFile: "01-recon.md", notes: "" },
+    ]);
+  });
+
   test("gapfill control with new_hunt_tasks loops back to Hunt", () => {
     const workflow = new ReviewWorkflowController();
     workflow.start(seed());

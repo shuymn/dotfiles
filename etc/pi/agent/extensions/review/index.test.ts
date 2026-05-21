@@ -263,7 +263,8 @@ describe("review extension", () => {
     ]);
     expect(ctx.ui.widgets[0]).toMatchObject({
       key: "review-workflow",
-      lines: ["/review: phase 1/9 running"],
+      lines: ["● Review 1/9 running", "└─ ◐ Recon running"],
+      options: { placement: "aboveEditor" },
     });
   });
 
@@ -410,10 +411,12 @@ describe("review extension", () => {
     );
     expect(pi.sentMessages[1].message.content).toContain("recon notes");
     expect(ctx.ui.widgets.at(-2)).toMatchObject({
-      lines: ["/review: phase 2/9 queued"],
+      lines: ["● Review 2/9 queued", "├─ ✓ Recon", "└─ ○ Hunt queued"],
+      options: { placement: "aboveEditor" },
     });
     expect(ctx.ui.widgets.at(-1)).toMatchObject({
-      lines: ["/review: phase 2/9 running"],
+      lines: ["● Review 2/9 running", "├─ ✓ Recon", "└─ ◐ Hunt running"],
+      options: { placement: "aboveEditor" },
     });
 
     for (let index = 2; index <= 9; index += 1) {
