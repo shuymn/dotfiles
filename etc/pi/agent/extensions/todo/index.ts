@@ -31,12 +31,18 @@ function formatToolResult(state: TodoState, op: TodoOperation): string {
       break;
     }
     case "update": {
-      const item = state.items.find((candidate) => candidate.id === op.id);
       if (op.toStatus === "completed") {
-        lines.push(`Completed #${op.id}: ${item?.title ?? "todo"}.`);
+        lines.push(`Completed #${op.id}: ${op.title}.`);
+      } else if (op.toStatus === "cancelled") {
+        lines.push(`Cancelled #${op.id}: ${op.title}.`);
       } else {
         lines.push(
-          `Updated #${op.id}: ${item?.title ?? "todo"} (${op.fromStatus} -> ${op.toStatus}).`,
+          `Updated #${op.id}: ${op.title} (${op.fromStatus} -> ${op.toStatus}).`,
+        );
+      }
+      if (op.autoCleared) {
+        lines.push(
+          "All todos are closed; todo list was automatically cleared.",
         );
       }
       break;
@@ -61,10 +67,10 @@ function formatToolResult(state: TodoState, op: TodoOperation): string {
     );
   }
 
-  const active = inProgressTodo(state);
+  const inProgress = inProgressTodo(state);
   const pending = pendingTodos(state);
   if (
-    !active &&
+    !inProgress &&
     op.kind === "update" &&
     op.toStatus === "completed" &&
     pending.length > 0

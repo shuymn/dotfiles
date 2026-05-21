@@ -36,9 +36,14 @@ describe("todo state", () => {
   });
 
   test("update changes status and rejects unknown ids", () => {
-    const created = applyTodoMutation(
+    const first = applyTodoMutation(
       EMPTY_TODO_STATE,
       { action: "create", title: "A" },
+      NOW,
+    ).state;
+    const created = applyTodoMutation(
+      first,
+      { action: "create", title: "B" },
       NOW,
     ).state;
     const updated = applyTodoMutation(
@@ -49,6 +54,7 @@ describe("todo state", () => {
     expect(updated.op).toEqual({
       kind: "update",
       id: 1,
+      title: "A",
       fromStatus: "pending",
       toStatus: "completed",
     });
@@ -89,6 +95,83 @@ describe("todo state", () => {
     expect(activeB.items.map((item) => [item.id, item.status])).toEqual([
       [1, "pending"],
       [2, "in_progress"],
+    ]);
+  });
+
+  test("updating the final active todo to terminal status auto-clears closed todos", () => {
+    const created = applyTodoMutation(
+      EMPTY_TODO_STATE,
+      { action: "create", title: "A" },
+      NOW,
+    ).state;
+    const completed = applyTodoMutation(
+      created,
+      { action: "update", id: 1, status: "completed" },
+      NOW + 1,
+    );
+
+    expect(completed.op).toEqual({
+      kind: "update",
+      id: 1,
+      title: "A",
+      fromStatus: "pending",
+      toStatus: "completed",
+      autoCleared: { count: 1 },
+    });
+    expect(completed.state).toEqual(EMPTY_TODO_STATE);
+
+    const cancelled = applyTodoMutation(
+      created,
+      { action: "update", id: 1, status: "cancelled" },
+      NOW + 1,
+    );
+    expect(cancelled.op).toEqual({
+      kind: "update",
+      id: 1,
+      title: "A",
+      fromStatus: "pending",
+      toStatus: "cancelled",
+      autoCleared: { count: 1 },
+    });
+    expect(cancelled.state).toEqual(EMPTY_TODO_STATE);
+  });
+
+  test("metadata-only updates to terminal-only todos do not auto-clear", () => {
+    const state = {
+      nextId: 2,
+      items: [
+        {
+          id: 1,
+          title: "A",
+          status: "completed" as const,
+          createdAt: NOW,
+          updatedAt: NOW,
+        },
+      ],
+    };
+
+    const updated = applyTodoMutation(
+      state,
+      { action: "update", id: 1, description: "Done" },
+      NOW + 1,
+    );
+
+    expect(updated.op).toEqual({
+      kind: "update",
+      id: 1,
+      title: "A",
+      fromStatus: "completed",
+      toStatus: "completed",
+    });
+    expect(updated.state.items).toEqual([
+      {
+        id: 1,
+        title: "A",
+        description: "Done",
+        status: "completed",
+        createdAt: NOW,
+        updatedAt: NOW + 1,
+      },
     ]);
   });
 

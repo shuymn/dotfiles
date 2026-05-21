@@ -245,7 +245,7 @@ describe("todo extension", () => {
     );
   });
 
-  test("completing the last active todo clears the widget", async () => {
+  test("completing the last active todo auto-clears state, reports it, and clears the widget", async () => {
     const extension = await loadExtension();
     const pi = createFakePi<ToolDefinition>();
     extension(pi as never);
@@ -267,7 +267,7 @@ describe("todo extension", () => {
       undefined,
       ctx,
     );
-    await tool.execute(
+    const completed = await tool.execute(
       "call",
       { action: "update", id: 1, status: "completed" },
       undefined,
@@ -275,6 +275,49 @@ describe("todo extension", () => {
       ctx,
     );
 
+    expect(completed.content[0].text).toContain("Completed #1: A.");
+    expect(completed.content[0].text).toContain(
+      "All todos are closed; todo list was automatically cleared.",
+    );
+    expect(completed.details.state).toEqual({ items: [], nextId: 1 });
+    expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("cancelling the last active todo auto-clears state, reports it, and clears the widget", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    await tool.execute(
+      "call",
+      { action: "create", title: "A" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await tool.execute(
+      "call",
+      { action: "update", id: 1, status: "in_progress" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const cancelled = await tool.execute(
+      "call",
+      { action: "update", id: 1, status: "cancelled" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(cancelled.content[0].text).toContain("Cancelled #1: A.");
+    expect(cancelled.content[0].text).toContain(
+      "All todos are closed; todo list was automatically cleared.",
+    );
+    expect(cancelled.details.state).toEqual({ items: [], nextId: 1 });
     expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
   });
 

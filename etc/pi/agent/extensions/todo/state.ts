@@ -39,7 +39,14 @@ export type TodoParams = {
 
 export type TodoOperation =
   | { kind: "create"; id: number }
-  | { kind: "update"; id: number; fromStatus: TodoStatus; toStatus: TodoStatus }
+  | {
+      kind: "update";
+      id: number;
+      title: string;
+      fromStatus: TodoStatus;
+      toStatus: TodoStatus;
+      autoCleared?: { count: number };
+    }
   | { kind: "list" }
   | { kind: "clear"; count: number }
   | { kind: "error"; message: string };
@@ -67,6 +74,14 @@ export function isTodoStatus(value: unknown): value is TodoStatus {
   return (
     typeof value === "string" && TODO_STATUSES.includes(value as TodoStatus)
   );
+}
+
+function isActiveTodoStatus(status: TodoStatus): boolean {
+  return status === "pending" || status === "in_progress";
+}
+
+function isTerminalTodoStatus(status: TodoStatus): boolean {
+  return status === "completed" || status === "cancelled";
 }
 
 function isTodoItem(value: unknown): value is TodoItem {
@@ -219,10 +234,27 @@ export function applyTodoMutation(
       };
     });
 
-    return {
-      state: { items, nextId: current.nextId },
-      op: { kind: "update", id, fromStatus, toStatus },
+    const nextState = { items, nextId: current.nextId };
+    const op: TodoOperation = {
+      kind: "update",
+      id,
+      title: title ?? existing.title,
+      fromStatus,
+      toStatus,
     };
+    const hasActiveTodos = items.some((item) =>
+      isActiveTodoStatus(item.status),
+    );
+    const closedActiveTodo =
+      isActiveTodoStatus(fromStatus) && isTerminalTodoStatus(toStatus);
+    if (closedActiveTodo && !hasActiveTodos) {
+      return {
+        state: cloneTodoState(EMPTY_TODO_STATE),
+        op: { ...op, autoCleared: { count: items.length } },
+      };
+    }
+
+    return { state: nextState, op };
   }
 
   return { state: current, op: { kind: "error", message: "unknown action." } };
