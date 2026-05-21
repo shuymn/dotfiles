@@ -25,7 +25,7 @@ type ToolDefinition = {
   parameters: unknown;
   execute: (
     toolCallId: string,
-    params: { files?: string[]; staged?: boolean },
+    params: { files?: string[]; staged?: boolean; instructions?: string },
     signal: AbortSignal | undefined,
     onUpdate: unknown,
     ctx: { cwd: string },
@@ -146,6 +146,7 @@ describe("simplify extension", () => {
       properties: {
         files: { type: "array", optional: true },
         staged: { type: "boolean", optional: true },
+        instructions: { type: "string", optional: true },
       },
     });
   });
@@ -358,6 +359,62 @@ describe("simplify extension", () => {
     expect(pi.sentMessages[0].message.content).toContain(
       "[diff truncated at 60000 chars; inspect files directly before editing]",
     );
+  });
+
+  test("command passes additional instructions after -- into prompt", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createCommandContext();
+
+    await pi.commands
+      .get("simplify")!
+      .handler("@src/app.ts -- remove duplication only", ctx);
+
+    const prompt = pi.sentMessages[0].message.content;
+    expect(prompt).toContain(
+      "Additional user instructions:\nremove duplication only",
+    );
+    expect(prompt).toContain(
+      "Apply only findings consistent with the Additional user instructions above",
+    );
+    expect(
+      prompt.match(/Additional user instructions:\nremove duplication only/g),
+    ).toHaveLength(4);
+    expect(ctx.notifications).toEqual([
+      {
+        message: "/simplify: 1 件のファイルのレビューをキューに追加しました。",
+        level: "info",
+      },
+    ]);
+  });
+
+  test("tool passes additional instructions into prompt", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    await pi.tools
+      .get("simplify")!
+      .execute(
+        "call",
+        { files: ["src/app.ts"], instructions: "  prefer project utilities  " },
+        undefined,
+        undefined,
+        { cwd: "/repo" },
+      );
+
+    const prompt = pi.sentMessages[0].message.content;
+    expect(prompt).toContain(
+      "Additional user instructions:\nprefer project utilities",
+    );
+    expect(prompt).toContain(
+      "Apply only findings consistent with the Additional user instructions above",
+    );
+    expect(
+      prompt.match(/Additional user instructions:\nprefer project utilities/g),
+    ).toHaveLength(4);
+    expect(prompt).not.toContain("  prefer project utilities  ");
   });
 
   test("command waits for idle, parses args, queues pass, and notifies", async () => {

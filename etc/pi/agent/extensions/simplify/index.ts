@@ -5,6 +5,7 @@ import type {
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { parseCommandArgs } from "../lib/command-args";
 import {
   collectChangedTargets,
   type ExecGit,
@@ -25,25 +26,20 @@ const RECENT_FILE_STAT_CONCURRENCY = 64;
 type SimplifyOptions = {
   files: string[];
   staged: boolean;
+  instructions: string;
 };
 
 function parseArgs(args: string): SimplifyOptions {
-  const files: string[] = [];
-  let staged = false;
+  const parsed = parseCommandArgs({
+    args,
+    booleanFlags: ["--staged", "--cached"] as const,
+  });
 
-  for (const token of args.trim().split(/\s+/).filter(Boolean)) {
-    if (token === "--staged" || token === "--cached") {
-      staged = true;
-    } else {
-      files.push(normalizeFileArg(token));
-    }
-  }
-
-  return { files, staged };
-}
-
-function formatTarget(target: Target): string {
-  return formatPlainTarget(target);
+  return {
+    files: parsed.files,
+    staged: parsed.flags["--staged"] || parsed.flags["--cached"],
+    instructions: parsed.instructions,
+  };
 }
 
 function makeExecGit(pi: ExtensionAPI, cwd: string): ExecGit {
@@ -162,8 +158,12 @@ function buildReviewPrompt(
   return `${shared}\n\n${REVIEW_FOCUS[kind]}`;
 }
 
-function buildSimplifyPrompt(targets: Target[], diff: string): string {
-  const targetList = targets.map(formatTarget).join("\n");
+function buildSimplifyPrompt(
+  targets: Target[],
+  diff: string,
+  instructions: string,
+): string {
+  const targetList = targets.map(formatPlainTarget).join("\n");
   const quotedTargets = targets
     .map((target) => shellQuote(target.path))
     .join(" ");
@@ -175,8 +175,11 @@ function buildSimplifyPrompt(targets: Target[], diff: string): string {
     ? "[Explicit file mode: git diff is intentionally ignored; inspect the listed files directly as whole-file targets.]"
     : diff ||
       "[No git diff available for these targets; inspect the listed files directly.]";
+  const scopeWithUserInstructions = instructions
+    ? `${scopeInstruction}\n\nAdditional user instructions:\n${instructions}`
+    : scopeInstruction;
 
-  return `Run a Claude Code-style /simplify pass for the current repository.\n\nPhase 1 is already prepared by the extension. Target files:\n${targetList}\n\nScope guidance:\n${scopeInstruction}\n\nDiff context:\n\n${diffContext}\n\nImportant rules:\n- Preserve exact behavior and public APIs unless a change is unquestionably internal and behavior-preserving.\n- Only modify target files unless a verified simplification requires a tiny adjacent change; explain any out-of-scope edit first.\n- Prefer readable, explicit code over clever line-count reduction.\n- Follow AGENTS.md/CLAUDE.md and existing project style.\n- Skip false positives. Do not make speculative changes.\n- Write the final response to the user in Japanese.\n\nPhase 2: spawn three subagents in parallel using spawn_subagent, one per review area. Use these exact delegated tasks:\n\n1. Code reuse review:\n${buildReviewPrompt("reuse", targetList, scopeInstruction)}\n\n2. Code quality review:\n${buildReviewPrompt("quality", targetList, scopeInstruction)}\n\n3. Efficiency review:\n${buildReviewPrompt("efficiency", targetList, scopeInstruction)}\n\nPhase 3: integrate the three review results. Directly apply only verified, behavior-preserving simplifications with read/edit/write/bash. If a finding is false positive or too risky, skip it. After editing, run the narrowest relevant formatter/test/typecheck/lint if discoverable. Summarize:\n- what changed\n- which subagent findings were applied\n- which findings were skipped and why\n\nFor quick inspection, target file shell arguments are: ${quotedTargets}`;
+  return `Run a Claude Code-style /simplify pass for the current repository.\n\nPhase 1 is already prepared by the extension. Target files:\n${targetList}\n\nScope guidance:\n${scopeWithUserInstructions}\n\nDiff context:\n\n${diffContext}\n\nImportant rules:\n- Preserve exact behavior and public APIs unless a change is unquestionably internal and behavior-preserving.\n- Only modify target files unless a verified simplification requires a tiny adjacent change; explain any out-of-scope edit first.\n- Prefer readable, explicit code over clever line-count reduction.\n- Follow AGENTS.md/CLAUDE.md and existing project style.\n- Skip false positives. Do not make speculative changes.\n- Write the final response to the user in Japanese.\n\nPhase 2: spawn three subagents in parallel using spawn_subagent, one per review area. Use these exact delegated tasks:\n\n1. Code reuse review:\n${buildReviewPrompt("reuse", targetList, scopeWithUserInstructions)}\n\n2. Code quality review:\n${buildReviewPrompt("quality", targetList, scopeWithUserInstructions)}\n\n3. Efficiency review:\n${buildReviewPrompt("efficiency", targetList, scopeWithUserInstructions)}\n\nPhase 3: integrate the three review results. Directly apply only verified, behavior-preserving simplifications with read/edit/write/bash. Apply only findings consistent with the Additional user instructions above; skip conflicting findings and explain why. If a finding is false positive or too risky, skip it. After editing, run the narrowest relevant formatter/test/typecheck/lint if discoverable. Summarize:\n- what changed\n- which subagent findings were applied\n- which findings were skipped and why\n\nFor quick inspection, target file shell arguments are: ${quotedTargets}`;
 }
 
 async function queueSimplifyPass(
@@ -192,7 +195,7 @@ async function queueSimplifyPass(
   pi.sendMessage(
     {
       customType: "simplify-command",
-      content: buildSimplifyPrompt(targets, diff),
+      content: buildSimplifyPrompt(targets, diff, options.instructions),
       display: false,
     },
     { deliverAs: "followUp", triggerTurn: true },
@@ -254,11 +257,17 @@ export default function (pi: ExtensionAPI): void {
             "When true and files is omitted, review only staged/cached git changes.",
         }),
       ),
+      instructions: Type.Optional(
+        Type.String({
+          description: "Additional user instructions for this simplify pass.",
+        }),
+      ),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const options: SimplifyOptions = {
         files: params.files?.map(normalizeFileArg) ?? [],
         staged: params.staged ?? false,
+        instructions: params.instructions?.trim() ?? "",
       };
       const targets = await queueSimplifyPass(pi, ctx.cwd, options);
 
@@ -279,7 +288,7 @@ export default function (pi: ExtensionAPI): void {
           {
             type: "text",
             text: `Queued simplify review for ${targets.length} file(s):\n${targets
-              .map(formatTarget)
+              .map(formatPlainTarget)
               .join("\n")}`,
           },
         ],
