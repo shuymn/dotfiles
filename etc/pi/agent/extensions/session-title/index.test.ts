@@ -13,6 +13,7 @@ type EventHandler = (event: any, ctx: any) => Promise<void> | void;
 function createFakePi(flags: Record<string, unknown> = {}) {
   const events = new Map<string, EventHandler[]>();
   const flagValues = new Map(Object.entries(flags));
+  const registeredFlags = new Set<string>();
   let sessionName: string | undefined;
   let resolveSetName: ((name: string) => void) | undefined;
   const setNamePromise = new Promise<string>((resolve) => {
@@ -22,10 +23,26 @@ function createFakePi(flags: Record<string, unknown> = {}) {
   return {
     events,
     setNames: [] as string[],
+    flags: [] as Array<{ name: string; definition: unknown }>,
+    getFlagCalls: [] as string[],
     on(eventName: string, handler: EventHandler) {
       events.set(eventName, [...(events.get(eventName) ?? []), handler]);
     },
+    registerFlag(name: string, definition: unknown) {
+      registeredFlags.add(name);
+      this.flags.push({ name, definition });
+      if (
+        definition &&
+        typeof definition === "object" &&
+        "default" in definition &&
+        !flagValues.has(name)
+      ) {
+        flagValues.set(name, definition.default);
+      }
+    },
     getFlag(name: string) {
+      this.getFlagCalls.push(name);
+      if (!registeredFlags.has(name)) return undefined;
       return flagValues.get(name);
     },
     getSessionName() {
@@ -71,13 +88,21 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(message)), 1_000);
-    }),
-  ]);
+async function withTimeout<T>(
+  promise: Promise<T>,
+  message: string,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(message)), 1_000);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 async function loadExtension() {
@@ -140,17 +165,50 @@ describe("session-title extension", () => {
     );
   });
 
-  test("skips one-shot workflow flag sessions", async () => {
+  test("registers and honors --no-session-title", async () => {
+    const { default: extension } = await loadExtension();
+    const pi = createFakePi({ "no-session-title": true });
+    const ctx = createCtx();
+    const completeCalls: unknown[][] = [];
+    completeImpl = async (...args: unknown[]) => {
+      completeCalls.push(args);
+      return { content: [{ type: "text", text: "Should Not Run" }] };
+    };
+
+    extension(pi as never);
+
+    expect(pi.flags).toEqual([
+      {
+        name: "no-session-title",
+        definition: {
+          description: "セッション名の自動生成を無効にする",
+          type: "boolean",
+          default: false,
+        },
+      },
+    ]);
+
+    await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+    await pi.events.get("message_end")![0](
+      { message: { role: "user", content: "name this" } },
+      ctx,
+    );
+
+    expect(completeCalls).toEqual([]);
+    expect(pi.setNames).toEqual([]);
+  });
+
+  test("does not rely on unregistered one-shot workflow flags", async () => {
     const { default: extension } = await loadExtension();
 
     for (const flag of ["commit", "create-pr"] as const) {
       const pi = createFakePi({ [flag]: true });
       const ctx = createCtx();
-      const completeCalls: unknown[][] = [];
-      completeImpl = async (...args: unknown[]) => {
-        completeCalls.push(args);
-        return { content: [{ type: "text", text: "Should Not Run" }] };
-      };
+      completeImpl = async () => ({
+        content: [
+          { type: "text", text: "Generated Despite Unregistered Flag" },
+        ],
+      });
 
       extension(pi as never);
 
@@ -160,8 +218,10 @@ describe("session-title extension", () => {
         ctx,
       );
 
-      expect(completeCalls).toEqual([]);
-      expect(pi.setNames).toEqual([]);
+      await expect(
+        withTimeout(pi.waitForSetName(), "session name was not set"),
+      ).resolves.toBe("Generated Despite Unregistered Flag");
+      expect(pi.getFlagCalls).toEqual(["no-session-title"]);
     }
   });
 

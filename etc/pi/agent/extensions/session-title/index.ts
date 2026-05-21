@@ -17,7 +17,7 @@ const TITLE_MODEL_ID = "gpt-5.3-codex-spark";
 const TITLE_REASONING_EFFORT = "low";
 const TITLE_TIMEOUT_MS = 15_000;
 const TITLE_TOOL_NAME = "set_session_title";
-const SKIP_SESSION_TITLE_FLAGS = ["commit", "create-pr"] as const;
+const NO_SESSION_TITLE_FLAG = "no-session-title";
 
 const titleTool = {
   name: TITLE_TOOL_NAME,
@@ -46,6 +46,12 @@ Rules:
 - Maximum ${MAX_TITLE_CHARS} characters`;
 
 export default function sessionTitleExtension(pi: ExtensionAPI): void {
+  pi.registerFlag(NO_SESSION_TITLE_FLAG, {
+    description: "セッション名の自動生成を無効にする",
+    type: "boolean",
+    default: false,
+  });
+
   let sessionToken = 0;
   let armed = false;
   let pending = false;
@@ -107,7 +113,7 @@ export default function sessionTitleExtension(pi: ExtensionAPI): void {
 }
 
 function shouldSkipSessionTitle(pi: ExtensionAPI): boolean {
-  return SKIP_SESSION_TITLE_FLAGS.some((flag) => pi.getFlag(flag) === true);
+  return pi.getFlag(NO_SESSION_TITLE_FLAG) === true;
 }
 
 async function generateSessionName(
