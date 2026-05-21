@@ -4,6 +4,8 @@
 # - Neovim/Vim muscle memory where Helix can model it cleanly
 # - Neovim community baseline: kickstart.nvim-style options where Helix has an equivalent
 
+theme = "onedark"
+
 [editor]
 # Neovim: number + relativenumber
 line-number = "relative"
