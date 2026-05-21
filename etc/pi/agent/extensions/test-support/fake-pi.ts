@@ -42,7 +42,46 @@ export function createFakePi<
   const commands = new Map<string, TCommand>();
   const flags = new Map<string, unknown>(Object.entries(options.flags ?? {}));
   const flagDefinitions = new Map<string, FlagDefinition>();
-  const events = new Map<string, EventHandler[]>();
+  const eventHandlers = new Map<string, EventHandler[]>();
+  const extensionEventHandlers = new Map<
+    string,
+    Array<(data: unknown) => unknown>
+  >();
+  const emittedEvents: Array<{ name: string; data: unknown }> = [];
+  const eventBus = {
+    on(name: string, handler: (data: unknown) => unknown) {
+      extensionEventHandlers.set(name, [
+        ...(extensionEventHandlers.get(name) ?? []),
+        handler,
+      ]);
+      return () => {
+        extensionEventHandlers.set(
+          name,
+          (extensionEventHandlers.get(name) ?? []).filter(
+            (candidate) => candidate !== handler,
+          ),
+        );
+      };
+    },
+    emit(name: string, data: unknown) {
+      emittedEvents.push({ name, data });
+      for (const handler of extensionEventHandlers.get(name) ?? []) {
+        try {
+          Promise.resolve(handler(data)).catch(() => {});
+        } catch {
+          // Match pi's event bus behavior: observer failures do not propagate.
+        }
+      }
+    },
+    // Test-only compatibility for older extension tests that used pi.events as
+    // the lifecycle handler registry. New tests should prefer getEventHandlers().
+    get(name: string) {
+      return eventHandlers.get(name);
+    },
+    keys() {
+      return eventHandlers.keys();
+    },
+  };
   const execCalls: ExecCall[] = [];
   const sentMessages: MessageRecord[] = [];
   const appendedEntries: EntryRecord[] = [];
@@ -54,10 +93,11 @@ export function createFakePi<
     commands,
     flags,
     flagDefinitions,
-    events,
+    events: eventBus,
     execCalls,
     sentMessages,
     appendedEntries,
+    emittedEvents,
     registerTool(definition: TTool) {
       tools.set(definition.name, definition);
     },
@@ -71,7 +111,10 @@ export function createFakePi<
       return flags.get(name);
     },
     on(eventName: string, handler: EventHandler) {
-      events.set(eventName, [...(events.get(eventName) ?? []), handler]);
+      eventHandlers.set(eventName, [
+        ...(eventHandlers.get(eventName) ?? []),
+        handler,
+      ]);
     },
     async exec(
       command: string,
@@ -100,7 +143,7 @@ export function createFakePi<
       return commands.get(name);
     },
     getEventHandlers(eventName: string) {
-      return events.get(eventName) ?? [];
+      return eventHandlers.get(eventName) ?? [];
     },
   };
 }
