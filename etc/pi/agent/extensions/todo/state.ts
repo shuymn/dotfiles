@@ -28,17 +28,30 @@ export const TODO_ACTIONS = ["create", "update", "list", "clear"] as const;
 
 export type TodoAction = (typeof TODO_ACTIONS)[number];
 
-export type TodoParams = {
-  action: TodoAction;
-  title?: string;
+export type TodoCreateItemParams = {
+  title: string;
   description?: string;
-  id?: number;
-  status?: TodoStatus;
   activeForm?: string;
 };
 
+export type TodoParams =
+  | {
+      action: "create";
+      items: [TodoCreateItemParams, ...TodoCreateItemParams[]];
+    }
+  | {
+      action: "update";
+      id?: number;
+      title?: string;
+      description?: string;
+      status?: TodoStatus;
+      activeForm?: string;
+    }
+  | { action: "list" }
+  | { action: "clear" };
+
 export type TodoOperation =
-  | { kind: "create"; id: number }
+  | { kind: "create"; ids: number[] }
   | {
       kind: "update";
       id: number;
@@ -139,26 +152,84 @@ export function applyTodoMutation(
   }
 
   if (params.action === "create") {
-    const title = params.title?.trim();
-    if (!title) {
+    if (!Array.isArray(params.items) || params.items.length === 0) {
       return {
         state: current,
-        op: { kind: "error", message: "title is required for create." },
+        op: { kind: "error", message: "items is required for create." },
       };
     }
 
-    const item: TodoItem = {
-      id: current.nextId,
-      title,
-      description: params.description?.trim() || undefined,
-      status: "pending",
-      activeForm: params.activeForm?.trim() || undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const items: TodoItem[] = [];
+    for (const [index, candidate] of params.items.entries()) {
+      if (typeof candidate !== "object" || candidate === null) {
+        return {
+          state: current,
+          op: {
+            kind: "error",
+            message: `items[${index}] must be an object for create.`,
+          },
+        };
+      }
+      if (typeof candidate.title !== "string") {
+        return {
+          state: current,
+          op: {
+            kind: "error",
+            message: `items[${index}].title is required for create.`,
+          },
+        };
+      }
+      const title = candidate.title.trim();
+      if (!title) {
+        return {
+          state: current,
+          op: {
+            kind: "error",
+            message: `items[${index}].title is required for create.`,
+          },
+        };
+      }
+      if (
+        candidate.description !== undefined &&
+        typeof candidate.description !== "string"
+      ) {
+        return {
+          state: current,
+          op: {
+            kind: "error",
+            message: `items[${index}].description must be a string.`,
+          },
+        };
+      }
+      if (
+        candidate.activeForm !== undefined &&
+        typeof candidate.activeForm !== "string"
+      ) {
+        return {
+          state: current,
+          op: {
+            kind: "error",
+            message: `items[${index}].activeForm must be a string.`,
+          },
+        };
+      }
+      items.push({
+        id: current.nextId + index,
+        title,
+        description: candidate.description?.trim() || undefined,
+        status: "pending",
+        activeForm: candidate.activeForm?.trim() || undefined,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
     return {
-      state: { items: [...current.items, item], nextId: current.nextId + 1 },
-      op: { kind: "create", id: item.id },
+      state: {
+        items: [...current.items, ...items],
+        nextId: current.nextId + items.length,
+      },
+      op: { kind: "create", ids: items.map((item) => item.id) },
     };
   }
 

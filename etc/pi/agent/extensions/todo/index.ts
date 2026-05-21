@@ -3,7 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { nextActionText, renderTodoReminder } from "./prompt";
 import { replayTodoState, TOOL_NAME } from "./replay";
-import { activeTodos, inProgressTodo, pendingTodos } from "./selectors";
+import { inProgressTodo, pendingTodos } from "./selectors";
 import {
   applyTodoMutation,
   cloneTodoState,
@@ -23,14 +23,22 @@ import {
 
 const REVIEW_WORKFLOW_EVENT_NAME = "review";
 const REVIEW_WORKFLOW_EVENTS = [
-  { event: "workflow:started", status: "started", suppress: true },
-  { event: "workflow:completed", status: "completed", suppress: false },
-  { event: "workflow:failed", status: "failed", suppress: false },
-  { event: "workflow:cancelled", status: "cancelled", suppress: false },
+  { status: "started", suppress: true },
+  { status: "completed", suppress: false },
+  { status: "failed", suppress: false },
+  { status: "cancelled", suppress: false },
 ] as const;
 
 type ReviewWorkflowLifecycleStatus =
   (typeof REVIEW_WORKFLOW_EVENTS)[number]["status"];
+
+type ReviewWorkflowEventName = `workflow:${ReviewWorkflowLifecycleStatus}`;
+
+function reviewWorkflowEventName(
+  status: ReviewWorkflowLifecycleStatus,
+): ReviewWorkflowEventName {
+  return `workflow:${status}`;
+}
 
 type ReviewWorkflowLifecycleEvent = {
   name?: string;
@@ -55,8 +63,9 @@ function formatToolResult(state: TodoState, op: TodoOperation): string {
 
   switch (op.kind) {
     case "create": {
-      const item = state.items.find((candidate) => candidate.id === op.id);
-      lines.push(`Created #${op.id}: ${item?.title ?? "todo"}.`);
+      lines.push(
+        `Created ${op.ids.length} todo${op.ids.length === 1 ? "" : "s"}: ${op.ids.map((id) => `#${id}`).join(", ")}.`,
+      );
       break;
     }
     case "update": {
@@ -126,12 +135,16 @@ export default function (pi: ExtensionAPI) {
   let hasSeenMultipleActiveTodos = false;
 
   function shouldShowTodoWidget(): boolean {
-    const activeCount = activeTodos(state).length;
-    if (activeCount === 0) return false;
-    if (activeCount >= 2) {
-      hasSeenMultipleActiveTodos = true;
-      return true;
+    let activeCount = 0;
+    for (const item of state.items) {
+      if (item.status !== "pending" && item.status !== "in_progress") continue;
+      activeCount += 1;
+      if (activeCount >= 2) {
+        hasSeenMultipleActiveTodos = true;
+        return true;
+      }
     }
+    if (activeCount === 0) return false;
     return hasSeenMultipleActiveTodos;
   }
 
@@ -178,6 +191,7 @@ export default function (pi: ExtensionAPI) {
       "Use todo for non-trivial multi-step coding tasks, user-provided task lists, or work that includes investigation, implementation, and verification.",
       "Skip todo for single trivial tasks and purely conversational requests.",
       "For non-trivial work, think through the approach and create todos that reflect the planned order before starting tool-heavy implementation.",
+      "When creating todos, pass the full consecutive list in todo create items instead of calling todo create repeatedly.",
       "Break broad goals into verifiable work units; avoid a single todo that merely restates the user's whole request.",
       "Update, split, or cancel todos when investigation reveals the original plan is wrong or incomplete.",
       "Before starting implementation, create todos or mark one existing todo in_progress.",
@@ -189,8 +203,28 @@ export default function (pi: ExtensionAPI) {
       action: StringEnum(TODO_ACTIONS, {
         description: "Todo action to perform.",
       }),
+      items: Type.Optional(
+        Type.Array(
+          Type.Object({
+            title: Type.String({ description: "Todo title for create." }),
+            description: Type.Optional(
+              Type.String({ description: "Optional todo details." }),
+            ),
+            activeForm: Type.Optional(
+              Type.String({
+                description: "Short current-work wording for the active todo.",
+              }),
+            ),
+          }),
+          {
+            description:
+              "Required non-empty todo items to create in order when action is create.",
+            minItems: 1,
+          },
+        ),
+      ),
       title: Type.Optional(
-        Type.String({ description: "Todo title for create or update." }),
+        Type.String({ description: "Todo title for update." }),
       ),
       description: Type.Optional(
         Type.String({ description: "Optional todo details." }),
@@ -243,8 +277,8 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  for (const { event, status, suppress } of REVIEW_WORKFLOW_EVENTS) {
-    pi.events.on(event, (data) =>
+  for (const { status, suppress } of REVIEW_WORKFLOW_EVENTS) {
+    pi.events.on(reviewWorkflowEventName(status), (data) =>
       handleReviewWorkflowLifecycle(data, status, suppress),
     );
   }

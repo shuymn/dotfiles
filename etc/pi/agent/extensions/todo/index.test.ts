@@ -11,6 +11,11 @@ mock.module("typebox", () => ({
     }),
     String: (options = {}) => ({ type: "string", ...options }),
     Number: (options = {}) => ({ type: "number", ...options }),
+    Array: (items: unknown, options = {}) => ({
+      type: "array",
+      items,
+      ...options,
+    }),
     Optional: (schema: Record<string, unknown>) => ({
       ...schema,
       optional: true,
@@ -29,6 +34,7 @@ mock.module("@earendil-works/pi-coding-agent", () => ({}));
 
 type ToolDefinition = {
   name: string;
+  parameters?: any;
   promptSnippet?: string;
   promptGuidelines?: string[];
   execute: (
@@ -61,6 +67,20 @@ describe("todo extension", () => {
     expect(guidelines).toContain("planned order");
     expect(guidelines).toContain("verifiable work units");
     expect(guidelines).toContain("Update, split, or cancel todos");
+
+    const parameters = pi.tools.get("todo")!.parameters;
+    const items = parameters.properties.items;
+    expect(items.type).toBe("array");
+    expect(items.minItems).toBe(1);
+    expect(items.description).toContain("Required non-empty");
+    expect(items.items.type).toBe("object");
+    expect(Object.keys(items.items.properties)).toEqual([
+      "title",
+      "description",
+      "activeForm",
+    ]);
+    expect(items.items.properties.description.optional).toBe(true);
+    expect(items.items.properties.activeForm.optional).toBe(true);
   });
 
   test("tool mutates state, records details snapshot, and hides widget for a single active todo", async () => {
@@ -73,7 +93,7 @@ describe("todo extension", () => {
 
     const created = await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -90,6 +110,46 @@ describe("todo extension", () => {
     );
     expect(updated.details.state.items[0].status).toBe("in_progress");
     expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
+  });
+
+  test("tool creates multiple todos in one call and refreshes visible widget", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi<ToolDefinition>();
+    extension(pi as never);
+    const ui = createFakeUi();
+    const ctx = { hasUI: true, ui };
+    const tool = pi.tools.get("todo")!;
+
+    const created = await tool.execute(
+      "call",
+      {
+        action: "create",
+        items: [{ title: "A" }, { title: "B", activeForm: "Doing B" }],
+      },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(created.content[0].text).toContain("Created 2 todos: #1, #2.");
+    expect(created.content[0].text).toContain("#1 [pending] A");
+    expect(created.content[0].text).toContain("#2 [pending] B");
+    expect(created.details.op).toEqual({ kind: "create", ids: [1, 2] });
+    expect(created.details.params.items).toEqual([
+      { title: "A" },
+      { title: "B", activeForm: "Doing B" },
+    ]);
+    expect(created.details.state.nextId).toBe(3);
+    expect(created.details.state.items.map((item: any) => item.title)).toEqual([
+      "A",
+      "B",
+    ]);
+    expect(ui.widgets.at(-1)).toMatchObject({
+      key: "todo",
+      options: { placement: "aboveEditor" },
+    });
+    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("A");
+    expect(ui.widgets.at(-1)?.lines?.join("\n")).toContain("Doing B");
   });
 
   test("session lifecycle replays branch state and context injects reminder", async () => {
@@ -148,7 +208,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -157,7 +217,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
@@ -191,14 +251,14 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
@@ -208,7 +268,7 @@ describe("todo extension", () => {
     await tool.execute("call", { action: "clear" }, undefined, undefined, ctx);
     await tool.execute(
       "call",
-      { action: "create", title: "C" },
+      { action: "create", items: [{ title: "C" }] },
       undefined,
       undefined,
       ctx,
@@ -227,14 +287,14 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
@@ -255,7 +315,7 @@ describe("todo extension", () => {
     );
     await tool.execute(
       "call",
-      { action: "create", title: "C" },
+      { action: "create", items: [{ title: "C" }] },
       undefined,
       undefined,
       ctx,
@@ -275,14 +335,14 @@ describe("todo extension", () => {
     pi.events.emit("workflow:started", { name: "review", status: "started" });
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
@@ -316,14 +376,14 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       { hasUI: true, ui },
     );
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       { hasUI: false },
@@ -335,13 +395,10 @@ describe("todo extension", () => {
       undefined,
       { hasUI: false },
     );
-    await tool.execute(
-      "call",
-      { action: "list" },
-      undefined,
-      undefined,
-      { hasUI: true, ui },
-    );
+    await tool.execute("call", { action: "list" }, undefined, undefined, {
+      hasUI: true,
+      ui,
+    });
 
     expect(ui.widgets.at(-1)).toEqual({ key: "todo", lines: undefined });
   });
@@ -356,14 +413,14 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
@@ -460,7 +517,7 @@ describe("todo extension", () => {
 
     const created = await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -491,7 +548,7 @@ describe("todo extension", () => {
 
     const second = await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
@@ -518,21 +575,21 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "B" },
+      { action: "create", items: [{ title: "B" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "C" },
+      { action: "create", items: [{ title: "C" }] },
       undefined,
       undefined,
       ctx,
@@ -567,7 +624,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -605,7 +662,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -643,7 +700,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -674,7 +731,7 @@ describe("todo extension", () => {
         .get("todo")!
         .execute(
           "call",
-          { action: "create", title: "A" },
+          { action: "create", items: [{ title: "A" }] },
           undefined,
           undefined,
           {
@@ -695,10 +752,16 @@ describe("todo extension", () => {
     const ui = createFakeUi();
     await pi.tools
       .get("todo")!
-      .execute("call", { action: "create", title: "A" }, undefined, undefined, {
-        hasUI: true,
-        ui,
-      });
+      .execute(
+        "call",
+        { action: "create", items: [{ title: "A" }] },
+        undefined,
+        undefined,
+        {
+          hasUI: true,
+          ui,
+        },
+      );
     const before = ui.widgets.length;
     await pi.getEventHandlers("tool_execution_end")[0](
       { toolName: "todo", isError: false },
@@ -717,14 +780,14 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "Keep state" },
+      { action: "create", items: [{ title: "Keep state" }] },
       undefined,
       undefined,
       ctx,
     );
     await tool.execute(
       "call",
-      { action: "create", title: "Keep widget visible" },
+      { action: "create", items: [{ title: "Keep widget visible" }] },
       undefined,
       undefined,
       ctx,
@@ -779,7 +842,7 @@ describe("todo extension", () => {
       .get("todo")!
       .execute(
         "call",
-        { action: "create", title: "Created during review" },
+        { action: "create", items: [{ title: "Created during review" }] },
         undefined,
         undefined,
         ctx,
@@ -798,7 +861,10 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "Visible before headless refresh" },
+      {
+        action: "create",
+        items: [{ title: "Visible before headless refresh" }],
+      },
       undefined,
       undefined,
       { hasUI: true, ui },
@@ -821,7 +887,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
@@ -846,7 +912,7 @@ describe("todo extension", () => {
 
     await tool.execute(
       "call",
-      { action: "create", title: "A" },
+      { action: "create", items: [{ title: "A" }] },
       undefined,
       undefined,
       ctx,
