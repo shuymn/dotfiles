@@ -16,6 +16,8 @@ PI_HOME := $(HOME)/.pi
 PI_EXCLUSIONS := \
 	$(PI_BASE)/README.md \
 	$(PI_BASE)/agent/extensions/CONVENTIONS.md \
+	$(PI_BASE)/agent/extensions/PLAN.md \
+	$(PI_BASE)/agent/extensions/implementation-notes.md \
 	$(PI_BASE)/agent/extensions/biome.json \
 	$(PI_BASE)/agent/extensions/bun.lock \
 	$(PI_BASE)/agent/extensions/package.json \
