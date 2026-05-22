@@ -423,6 +423,8 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("agent_end", async (event, ctx) => {
     const completingRun = activeRun();
+    if (!completingRun?.phaseInProgress) return;
+
     const latestAssistantText = getLatestAssistantMessageText(event.messages);
     const decision = workflow.completePhase({
       latestAssistantText,
