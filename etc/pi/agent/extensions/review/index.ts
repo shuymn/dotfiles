@@ -18,6 +18,7 @@ import {
   truncate,
 } from "../lib/git";
 import { getLatestAssistantMessageText } from "../lib/session-messages";
+import { classifyShellCommand } from "../lib/shell-safety";
 import { terminatingTextResult } from "../lib/structured-tool";
 import { notifyIfUI } from "../lib/tui";
 import {
@@ -36,7 +37,6 @@ import {
 } from "./events";
 import { loadWorkflowPhases } from "./phases";
 import { buildPhasePrompt } from "./prompts";
-import { classifyShellCommand } from "./shell-safety";
 import { clearReviewWidget, refreshReviewWidget } from "./widget";
 import {
   type ActiveReviewRun,
