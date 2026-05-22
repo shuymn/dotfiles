@@ -178,13 +178,7 @@ describe("research workflow helpers", () => {
     expect(pi.execCalls).toEqual([
       {
         command: "tvly",
-        args: [
-          "extract",
-          "https://example.com/a",
-          "--json",
-          "--timeout",
-          "5",
-        ],
+        args: ["extract", "https://example.com/a", "--json", "--timeout", "5"],
         options: { signal: undefined, timeout: 15_000 },
       },
     ]);

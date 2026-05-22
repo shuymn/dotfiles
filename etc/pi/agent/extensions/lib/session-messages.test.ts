@@ -35,7 +35,9 @@ describe("getLatestAssistantMessageText", () => {
       getLatestAssistantMessageText({
         earlier: [{ role: "assistant", content: "earlier" }],
         later: {
-          items: [{ role: "assistant", content: [{ type: "text", text: "later" }] }],
+          items: [
+            { role: "assistant", content: [{ type: "text", text: "later" }] },
+          ],
         },
       }),
     ).toBe("later");
@@ -45,7 +47,10 @@ describe("getLatestAssistantMessageText", () => {
     expect(
       getLatestAssistantMessageText([
         { role: "user", content: "question" },
-        { role: "assistant", content: [{ type: "tool-result", text: "ignored" }] },
+        {
+          role: "assistant",
+          content: [{ type: "tool-result", text: "ignored" }],
+        },
       ]),
     ).toBeUndefined();
   });

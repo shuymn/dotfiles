@@ -2,8 +2,8 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import {
-  type ReviewWorkflowLifecycleStatus,
   isReviewWorkflowLifecycleEvent,
+  type ReviewWorkflowLifecycleStatus,
   reviewWorkflowEventName,
 } from "../review/events";
 import { nextActionText, renderTodoReminder } from "./prompt";

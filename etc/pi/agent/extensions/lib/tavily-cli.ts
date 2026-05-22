@@ -2,11 +2,7 @@ export type OptionValue = string | number | boolean | string[] | undefined;
 
 export const TAVILY_CLI_TIMEOUT_GRACE_MS = 10_000;
 
-export function addOption(
-  args: string[],
-  flag: string,
-  value: OptionValue,
-) {
+export function addOption(args: string[], flag: string, value: OptionValue) {
   if (value === undefined || value === false) return;
   if (value === true) {
     args.push(flag);
@@ -29,5 +25,7 @@ export function cliTimeoutMs(
   timeoutSeconds: number | undefined,
   defaultSeconds: number,
 ) {
-  return (timeoutSeconds ?? defaultSeconds) * 1000 + TAVILY_CLI_TIMEOUT_GRACE_MS;
+  return (
+    (timeoutSeconds ?? defaultSeconds) * 1000 + TAVILY_CLI_TIMEOUT_GRACE_MS
+  );
 }
