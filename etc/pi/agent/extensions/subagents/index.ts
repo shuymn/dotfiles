@@ -12,7 +12,9 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
-const SUBAGENT_TOOLS = ["read", "write", "edit", "bash"];
+import codexTools from "../codex-tools";
+
+const SUBAGENT_TOOLS = ["shell_command", "apply_patch"];
 type SubagentStatus =
   | "running"
   | "stopping"
@@ -34,6 +36,10 @@ type SubagentRecord = {
 };
 
 const records = new Map<string, SubagentRecord>();
+
+function isActiveStatus(status: SubagentStatus): boolean {
+  return status === "running" || status === "stopping";
+}
 
 function textResult(text: string, details?: Record<string, unknown>) {
   return {
@@ -117,6 +123,7 @@ Your job is to complete the delegated task autonomously, then return a concise f
 
 Operational rules:
 - Use only the tools available in this subagent session.
+- Default subagents have shell_command and apply_patch; read-only subagents have read only.
 - Use absolute file paths in file references when practical.
 - Be concise but complete in your final answer.
 - Do not ask the parent agent to do work you can do yourself.
@@ -145,6 +152,7 @@ async function runSubagent(
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
+    extensionFactories: readOnly ? [] : [codexTools],
     systemPromptOverride: () =>
       buildSystemPrompt(ctx.getSystemPrompt(), ctx.cwd, readOnly),
     appendSystemPromptOverride: () => [],
@@ -178,7 +186,7 @@ async function runSubagent(
     }
 
     await session.prompt(prompt);
-    return { session, result: collector.getText().trim() || "No output." };
+    return { session, result: collector.getText() || "No output." };
   } finally {
     abortSignal.removeEventListener("abort", abort);
     collector.unsubscribe();
@@ -192,6 +200,7 @@ export default function (pi: ExtensionAPI) {
     description:
       "Run a delegated task in a separate general-purpose agent session. " +
       "Use this for self-contained investigation or implementation work that benefits from an isolated context. " +
+      "Default subagents receive shell_command and apply_patch; read-only subagents receive read only. " +
       "Foreground mode returns the result inline; background mode returns an id and notifies when complete.",
     parameters: Type.Object({
       prompt: Type.String({
@@ -212,7 +221,7 @@ export default function (pi: ExtensionAPI) {
       readOnly: Type.Optional(
         Type.Boolean({
           description:
-            "When true, run the subagent with read and bash tools only, without file editing tools. Default: false.",
+            "When true, run the subagent with read only, without shell or editing tools. Default: false.",
         }),
       ),
     }),
@@ -323,10 +332,7 @@ export default function (pi: ExtensionAPI) {
       const record = records.get(params.id);
       if (!record) return textResult(`Subagent not found: ${params.id}`);
 
-      if (
-        params.wait &&
-        (record.status === "running" || record.status === "stopping")
-      ) {
+      if (params.wait && isActiveStatus(record.status)) {
         await record.promise;
       }
 
@@ -405,7 +411,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_shutdown", async () => {
     const activeRecords = [...records.values()];
     for (const record of activeRecords) {
-      if (record.status === "running" || record.status === "stopping") {
+      if (isActiveStatus(record.status)) {
         record.status = "stopping";
         record.abortController.abort();
         await record.session?.abort?.().catch(() => {});

@@ -23,6 +23,20 @@ mock.module("typebox", () => {
   return { Type };
 });
 
+mock.module("../codex-tools", () => ({
+  default: (pi: {
+    registerTool: (tool: { name: string }) => void;
+    on: (eventName: string, handler: () => void) => void;
+    setActiveTools: (tools: string[]) => void;
+  }) => {
+    pi.registerTool({ name: "shell_command" });
+    pi.registerTool({ name: "apply_patch" });
+    pi.on("session_start", () => {
+      pi.setActiveTools(["read", "shell_command", "apply_patch"]);
+    });
+  },
+}));
+
 type Subscriber = (event: any) => void;
 type SessionBehavior = {
   resultText?: string;
@@ -61,6 +75,8 @@ const loaderInstances: any[] = [];
 const createdSessions: CreatedSession[] = [];
 const createdPis: any[] = [];
 let nextBehaviors: SessionBehavior[] = [];
+
+const BUILTIN_TOOLS = new Set(["read", "write", "edit", "bash"]);
 
 function createSession(behavior: SessionBehavior) {
   const subscribers: Subscriber[] = [];
@@ -143,12 +159,40 @@ mock.module("@earendil-works/pi-coding-agent", () => ({
   DefaultResourceLoader: class {
     options: unknown;
     reloaded = false;
+    activeTools: string[] = [];
+    allowedTools = new Set<string>();
+    eventHandlers = new Map<string, Array<() => void>>();
+    registeredTools = new Set<string>();
     constructor(options: unknown) {
       this.options = options;
       loaderInstances.push(this);
     }
     async reload() {
       this.reloaded = true;
+      const options = this.options as {
+        extensionFactories?: Array<(pi: unknown) => void>;
+      };
+      for (const factory of options.extensionFactories ?? []) {
+        factory({
+          registerTool: (tool: { name: string }) => {
+            this.registeredTools.add(tool.name);
+          },
+          on: (eventName: string, handler: () => void) => {
+            this.eventHandlers.set(eventName, [
+              ...(this.eventHandlers.get(eventName) ?? []),
+              handler,
+            ]);
+          },
+          getActiveTools: () => [...this.activeTools],
+          setActiveTools: (tools: string[]) => {
+            this.activeTools = tools.filter(
+              (tool) =>
+                this.allowedTools.has(tool) &&
+                (BUILTIN_TOOLS.has(tool) || this.registeredTools.has(tool)),
+            );
+          },
+        });
+      }
     }
   },
   SessionManager: {
@@ -157,9 +201,21 @@ mock.module("@earendil-works/pi-coding-agent", () => ({
   SettingsManager: {
     create: (cwd: string, agentDir: string) => ({ cwd, agentDir }),
   },
-  createAgentSession: async (options: unknown) => {
+  createAgentSession: async (options: any) => {
     createAgentSessionCalls.push(options);
-    return { session: createSession(nextBehaviors.shift() ?? {}) };
+    const loader = options.resourceLoader;
+    loader.allowedTools = new Set(options.tools ?? []);
+    loader.activeTools = (options.tools ?? []).filter(
+      (tool: string) =>
+        BUILTIN_TOOLS.has(tool) || loader.registeredTools.has(tool),
+    );
+    for (const handler of loader.eventHandlers.get("session_start") ?? []) {
+      handler();
+    }
+    const session = createSession(nextBehaviors.shift() ?? {});
+    (session as any).activeTools = loader.activeTools;
+    (session as any).registeredTools = [...loader.registeredTools].sort();
+    return { session };
   },
 }));
 
@@ -247,6 +303,9 @@ describe("subagents extension", () => {
         readOnly: { type: "boolean", optional: true },
       },
     });
+    expect(pi.tools.get("spawn_subagent")!.description).toContain(
+      "Default subagents receive shell_command and apply_patch",
+    );
   });
 
   test("foreground spawn runs an isolated subagent session and returns streamed result", async () => {
@@ -275,15 +334,25 @@ describe("subagents extension", () => {
     expect(updates).toEqual(["Subagent id000001 running...\n\nfinal answer"]);
     expect(createdSessions[0].name).toBe("subagent#id000001");
     expect(createdSessions[0].disposed).toBe(true);
+    expect(createdSessions[0].registeredTools).toEqual([
+      "apply_patch",
+      "shell_command",
+    ]);
+    expect(createdSessions[0].activeTools).toEqual([
+      "shell_command",
+      "apply_patch",
+    ]);
     expect(createAgentSessionCalls[0]).toMatchObject({
       cwd: "/repo",
       agentDir: "/agent-dir",
       thinkingLevel: "high",
-      tools: ["read", "write", "edit", "bash"],
+      tools: ["shell_command", "apply_patch"],
       model: { name: "model" },
       modelRegistry: { id: "registry" },
     });
     expect(loaderInstances[0].reloaded).toBe(true);
+    expect(loaderInstances[0].options.noExtensions).toBe(true);
+    expect(loaderInstances[0].options.extensionFactories).toHaveLength(1);
     expect(loaderInstances[0].options.systemPromptOverride()).toContain(
       "parent system prompt",
     );
@@ -309,8 +378,14 @@ describe("subagents extension", () => {
       );
 
     expect(createAgentSessionCalls[0].tools).toEqual(["read"]);
+    expect(createdSessions[0].registeredTools).toEqual([]);
+    expect(createdSessions[0].activeTools).toEqual(["read"]);
+    expect(loaderInstances[0].options.extensionFactories).toEqual([]);
     expect(loaderInstances[0].options.systemPromptOverride()).toContain(
       "This subagent is read-only: do not edit files or run mutating shell commands.",
+    );
+    expect(loaderInstances[0].options.systemPromptOverride()).toContain(
+      "Default subagents have shell_command and apply_patch; read-only subagents have read only.",
     );
   });
 
