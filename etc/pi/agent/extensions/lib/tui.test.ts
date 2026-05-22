@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { installTuiMocks } from "../test-support/tui-mocks";
+import { createFakeUi } from "../test-support/fake-ui";
+import { createCustomDriver, installTuiMocks } from "../test-support/tui-mocks";
 
 const { selectInstances, inputInstances } = installTuiMocks();
 
@@ -92,76 +93,70 @@ describe("tui helpers", () => {
   test("widget helpers set aboveEditor/belowEditor lines and clear them", async () => {
     const { setAboveEditorWidget, setBelowEditorWidget, clearWidget } =
       await loadTuiLib();
-    const widgets: Array<{
-      key: string;
-      content: string[] | undefined;
-      options?: unknown;
-    }> = [];
-    const ctx = {
-      ui: {
-        setWidget(
-          key: string,
-          content: string[] | undefined,
-          options?: unknown,
-        ) {
-          widgets.push({ key, content, options });
-        },
-      },
-    };
+    const ui = createFakeUi();
+    const ctx = { ui };
 
     setAboveEditorWidget(ctx, "top", ["status"]);
     setBelowEditorWidget(ctx, "bottom", ["line"]);
     clearWidget(ctx, "bottom");
-    expect(widgets).toEqual([
+    expect(ui.widgets).toEqual([
       {
         key: "top",
-        content: ["status"],
+        lines: ["status"],
         options: { placement: "aboveEditor" },
       },
       {
         key: "bottom",
-        content: ["line"],
+        lines: ["line"],
         options: { placement: "belowEditor" },
       },
-      { key: "bottom", content: undefined, options: undefined },
+      { key: "bottom", lines: undefined, options: undefined },
     ]);
   });
 
   test("startSpinnerWidget renders initial elapsed time and clears on stop", async () => {
     const { startSpinnerWidget, SPINNER_FRAMES } = await loadTuiLib();
-    const widgets: Array<string[] | undefined> = [];
-    const ctx = {
-      ui: {
-        setWidget(_key: string, content: string[] | undefined) {
-          widgets.push(content);
-        },
-      },
-    };
+    const ui = createFakeUi();
+    const ctx = { ui };
     let clock = 1000;
 
     const stop = startSpinnerWidget(ctx, "spin", "working", {
       intervalMs: 1_000_000,
       now: () => clock,
     });
-    expect(widgets[0]).toEqual([`${SPINNER_FRAMES[0]} working (0s)`]);
+    expect(ui.widgets[0]).toEqual({
+      key: "spin",
+      lines: [`${SPINNER_FRAMES[0]} working (0s)`],
+      options: { placement: "belowEditor" },
+    });
 
     clock = 3500;
     stop();
-    expect(widgets.at(-1)).toBeUndefined();
+    expect(ui.widgets.at(-1)).toEqual({
+      key: "spin",
+      lines: undefined,
+      options: undefined,
+    });
   });
 
   test("inputOptional trims submitted text and maps escape to null", async () => {
     const { inputOptional } = await loadTuiLib();
-    const submitCtx = createCtx([
-      () => {
-        inputInstances.at(-1)?.onSubmit?.("  hello  ");
+    const submitCtx = {
+      ui: {
+        custom: createCustomDriver([{ kind: "input", value: "  hello  " }], {
+          selectInstances,
+          inputInstances,
+        }),
       },
-    ]);
-    const escapeCtx = createCtx([
-      () => {
-        inputInstances.at(-1)?.onEscape?.();
+    };
+    const escapeCtx = {
+      ui: {
+        custom: createCustomDriver([{ kind: "input", value: null }], {
+          selectInstances,
+          inputInstances,
+        }),
       },
-    ]);
+    };
 
     await expect(
       inputOptional(submitCtx, { title: "Notes", placeholder: "optional" }),

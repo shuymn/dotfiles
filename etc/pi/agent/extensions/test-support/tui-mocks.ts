@@ -1,5 +1,7 @@
 import { mock } from "bun:test";
 
+import type { UiContext } from "../lib/tui";
+
 export type SelectItemLike = {
   value: string;
   label: string;
@@ -112,23 +114,15 @@ export function installTuiMocks(
 export function createCustomDriver(
   actions: CustomAction[],
   instances: TuiInstances,
-) {
+): UiContext["ui"]["custom"] {
   const remaining = [...actions];
   const { selectInstances, inputInstances } = instances;
 
-  return async function custom(
-    factory: (
-      tui: { requestRender(): void },
-      theme: {
-        fg(name: string, text: string): string;
-        bold(text: string): string;
-      },
-      keybindings: unknown,
-      done: (value: unknown) => void,
-    ) => unknown,
-  ) {
+  const custom = async <TResult>(
+    factory: Parameters<UiContext["ui"]["custom"]>[0],
+  ): Promise<TResult> => {
     const unresolved = Symbol("unresolved");
-    let resolved: unknown = unresolved;
+    let resolved: unknown | typeof unresolved = unresolved;
     const beforeSelectCount = selectInstances.length;
     const beforeInputCount = inputInstances.length;
     factory(
@@ -138,7 +132,7 @@ export function createCustomDriver(
         bold: (text: string) => text,
       },
       {},
-      (value: unknown) => {
+      (value) => {
         resolved = value;
       },
     );
@@ -168,6 +162,7 @@ export function createCustomDriver(
     }
     if (resolved === unresolved)
       throw new Error("Custom UI action did not resolve via done()");
-    return resolved;
+    return resolved as TResult;
   };
+  return custom;
 }
