@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildExtractArgs, buildResearchRunArgs, buildSearchArgs } from "./cli";
+import { createFakePi } from "../test-support/fake-pi";
+import {
+  buildExtractArgs,
+  buildResearchRunArgs,
+  buildSearchArgs,
+  tvlyExtract,
+} from "./cli";
 import { ASSESS_PHASE_FILE, RESEARCH_PHASES } from "./phases";
 import {
   buildPreviousPhaseOutputs,
@@ -154,6 +160,34 @@ describe("research workflow helpers", () => {
     expect(buildResearchPhasePrompt(run, assessIndex)).toContain(
       "Remaining Collect loop budget after this Assess response: 1",
     );
+  });
+
+  test("tvlyExtract passes computed timeout to tvly", async () => {
+    const pi = createFakePi({
+      exec() {
+        return { code: 0, stdout: JSON.stringify({ ok: true }), stderr: "" };
+      },
+    });
+
+    await tvlyExtract(
+      pi as never,
+      { urls: ["https://example.com/a"], timeoutSeconds: 5 },
+      undefined,
+    );
+
+    expect(pi.execCalls).toEqual([
+      {
+        command: "tvly",
+        args: [
+          "extract",
+          "https://example.com/a",
+          "--json",
+          "--timeout",
+          "5",
+        ],
+        options: { signal: undefined, timeout: 15_000 },
+      },
+    ]);
   });
 
   test("builds CLI args for search, extract, and research run", () => {

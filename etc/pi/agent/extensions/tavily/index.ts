@@ -3,6 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type Static, type TSchema, Type } from "typebox";
 
 import { cliResultForTool, runCli, toCliExec } from "../lib/cli";
+import { addOptions, cliTimeoutMs } from "../lib/tavily-cli";
 
 const SEARCH_DEPTHS = ["ultra-fast", "fast", "basic", "advanced"] as const;
 const TOPICS = ["general", "news", "finance"] as const;
@@ -15,9 +16,6 @@ const SEARCH_TIMEOUT_MS = 120_000;
 const AUTH_TIMEOUT_MS = 20_000;
 const DEFAULT_EXTRACT_TIMEOUT_SECONDS = 60;
 const DEFAULT_SITE_TIMEOUT_SECONDS = 150;
-const TOOL_TIMEOUT_GRACE_MS = 10_000;
-
-type OptionValue = string | number | boolean | string[] | undefined;
 type ToolUpdateHandler =
   | ((update: {
       content: Array<{ type: "text"; text: string }>;
@@ -27,32 +25,6 @@ type ToolUpdateHandler =
 
 function sendStatus(onUpdate: ToolUpdateHandler, text: string) {
   onUpdate?.({ content: [{ type: "text", text }], details: {} });
-}
-
-function cliTimeoutMs(
-  timeoutSeconds: number | undefined,
-  defaultSeconds: number,
-) {
-  return (timeoutSeconds ?? defaultSeconds) * 1000 + TOOL_TIMEOUT_GRACE_MS;
-}
-
-function addOption(args: string[], flag: string, value: OptionValue) {
-  if (value === undefined || value === false) return;
-  if (value === true) {
-    args.push(flag);
-    return;
-  }
-  const rendered = Array.isArray(value)
-    ? value.filter(Boolean).join(",")
-    : String(value);
-  if (rendered.length > 0) args.push(flag, rendered);
-}
-
-function addOptions(
-  args: string[],
-  options: readonly (readonly [flag: string, value: OptionValue])[],
-) {
-  for (const [flag, value] of options) addOption(args, flag, value);
 }
 
 async function runTvly(
@@ -314,6 +286,9 @@ type RegisteredTavilyToolSpec = {
 function defineTavilyToolSpec<TParams extends object>(
   spec: TavilyToolSpec<TParams>,
 ): RegisteredTavilyToolSpec {
+  const validate = spec.validate;
+  const progressText = spec.progressText;
+
   return {
     name: spec.name,
     label: spec.label,
@@ -322,11 +297,9 @@ function defineTavilyToolSpec<TParams extends object>(
     promptGuidelines: spec.promptGuidelines,
     parameters: spec.parameters,
     buildArgs: (params) => spec.buildArgs(params as TParams),
-    validate: spec.validate
-      ? (params) => spec.validate?.(params as TParams)
-      : undefined,
-    progressText: spec.progressText
-      ? (params) => spec.progressText?.(params as TParams) ?? ""
+    validate: validate ? (params) => validate(params as TParams) : undefined,
+    progressText: progressText
+      ? (params) => progressText(params as TParams)
       : undefined,
     timeoutMs: (params) => spec.timeoutMs(params as TParams),
   };
