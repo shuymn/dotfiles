@@ -134,7 +134,7 @@
   "theme": {
     "mode": "system",
     "light": "One Light",
-    "dark": "One Dark",
+    "dark": "GitHub Dark",
   },
   "debugger": {
     "button": false,
