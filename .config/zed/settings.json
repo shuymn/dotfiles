@@ -82,7 +82,7 @@
       "enabled": true,
     },
   },
-  "document_folding_ranges": "off",
+  "document_folding_ranges": "on",
   "document_symbols": "off",
   "semantic_tokens": "off",
   "colorize_brackets": true,
