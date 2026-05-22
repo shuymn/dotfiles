@@ -1,4 +1,5 @@
 import type { Target } from "../lib/git";
+import type { StructuredSubmissionResult } from "../lib/structured-tool";
 import type {
   PendingPhaseArtifactState,
   PhaseArtifactStatus,
@@ -63,8 +64,7 @@ export type WorkflowDecision =
   | { kind: "completed"; runId: string };
 
 export type RecordArtifactResult =
-  | { ok: true; warnings: ReviewArtifactWarning[] }
-  | { ok: false; reason: string; warnings: ReviewArtifactWarning[] };
+  StructuredSubmissionResult<ReviewArtifactWarning>;
 
 export class ReviewWorkflowController {
   private activeRun: ActiveReviewRun | undefined;

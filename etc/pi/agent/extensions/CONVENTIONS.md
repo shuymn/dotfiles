@@ -28,6 +28,15 @@
 - LLM tool は UI が必要で利用できない場合、structured error result を返す。
 - 通知だけの処理は `ctx.hasUI` を吸収する helper を使う。
 
+## Structured output tool
+
+- LLM に固定の JSON-like 出力を求める場合は、prose-only な JSON 指示ではなく tool parameter schema を優先する。
+- 文字列 enum は Google API 互換性のため `@earendil-works/pi-ai` の `StringEnum` を使い、`Type.Union` / `Type.Literal` で表現しない。
+- 最終または中間成果物の提出で turn を終える tool は `terminate: true` を返す。
+- `content` は人間向けの短い説明に留め、機械可読な状態は `details` に置く。
+- recoverable な workflow 提出失敗は `{ ok, warnings }`（必要なら `reason`）を含む structured result で返し、実行不能な tool failure は throw する。
+- 外部 CLI JSON の parse、質問 UI、state persistence の result は、具体的な再利用ニーズが出るまで structured-output helper に一般化しない。
+
 ## 進捗表示
 
 - 長期的に参照する進行状態・作業状態は `aboveEditor` widget で示す。

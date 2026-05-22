@@ -18,6 +18,7 @@ import {
   truncate,
 } from "../lib/git";
 import { getLatestAssistantMessageText } from "../lib/session-messages";
+import { terminatingTextResult } from "../lib/structured-tool";
 import { notifyIfUI } from "../lib/tui";
 import {
   REVIEW_PHASE_ARTIFACT_PATCH_TOOL_NAME,
@@ -40,6 +41,7 @@ import { clearReviewWidget, refreshReviewWidget } from "./widget";
 import {
   type ActiveReviewRun,
   type QueuedPhase,
+  type RecordArtifactResult,
   type ReviewRunSeed,
   ReviewWorkflowController,
 } from "./workflow";
@@ -476,23 +478,16 @@ function registerReviewArtifactTools(pi: ExtensionAPI): void {
       const result = workflow.recordPhaseArtifact(
         params as ReviewPhaseArtifact,
       );
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.ok
-              ? "Review phase artifact recorded."
-              : `Review phase artifact ignored: ${result.reason}`,
-          },
-        ],
-        details: {
-          ok: result.ok,
-          warnings: result.warnings,
+      return reviewArtifactToolResult(
+        result.ok
+          ? "Review phase artifact recorded."
+          : `Review phase artifact ignored: ${result.reason}`,
+        result,
+        {
           runId: (params as ReviewPhaseArtifact).runId,
           phaseFile: (params as ReviewPhaseArtifact).phaseFile,
         },
-        terminate: true,
-      };
+      );
     },
   });
 
@@ -512,24 +507,33 @@ function registerReviewArtifactTools(pi: ExtensionAPI): void {
       const result = workflow.recordPhaseArtifactPatch(
         params as ReviewPhaseArtifactPatch,
       );
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.ok
-              ? "Review phase artifact patch recorded."
-              : `Review phase artifact patch ignored: ${result.reason}`,
-          },
-        ],
-        details: {
-          ok: result.ok,
-          warnings: result.warnings,
+      return reviewArtifactToolResult(
+        result.ok
+          ? "Review phase artifact patch recorded."
+          : `Review phase artifact patch ignored: ${result.reason}`,
+        result,
+        {
           runId: (params as ReviewPhaseArtifactPatch).runId,
           phaseFile: (params as ReviewPhaseArtifactPatch).phaseFile,
         },
-        terminate: true,
-      };
+      );
     },
+  });
+}
+
+function reviewArtifactToolResult(
+  text: string,
+  result: RecordArtifactResult,
+  params: Pick<
+    ReviewPhaseArtifact | ReviewPhaseArtifactPatch,
+    "runId" | "phaseFile"
+  >,
+) {
+  return terminatingTextResult(text, {
+    ok: result.ok,
+    warnings: result.warnings,
+    runId: params.runId,
+    phaseFile: params.phaseFile,
   });
 }
 

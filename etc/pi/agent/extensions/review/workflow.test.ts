@@ -297,6 +297,38 @@ describe("ReviewWorkflowController", () => {
     );
   });
 
+  test("artifact finding confidence must be a string enum value", () => {
+    const workflow = new ReviewWorkflowController();
+    workflow.start(seed());
+
+    workflow.recordPhaseArtifact(
+      artifact({
+        findings: [
+          {
+            id: "finding-1",
+            file: "src/app.ts",
+            issue: "issue",
+            evidence: "evidence",
+            impact: "impact",
+            suggestedFix: "fix",
+            confidence: ["confirmed"],
+          } as never,
+        ],
+      }),
+    );
+    complete(workflow, "fallback after non-string confidence");
+
+    expect(workflow.getActiveRun()?.phaseArtifacts[0]).toMatchObject({
+      artifact: undefined,
+      fallbackNotes: "fallback after non-string confidence",
+    });
+    expect(
+      workflow
+        .getActiveRun()
+        ?.phaseArtifacts[0].warnings.map((warning) => warning.message),
+    ).toContain("findings item has invalid confidence.");
+  });
+
   test("gapfill control with new_hunt_tasks loops back to Hunt", () => {
     const workflow = new ReviewWorkflowController();
     workflow.start(seed());

@@ -29,6 +29,7 @@ export function installTypeboxMock() {
         anyOf: schemas,
         ...options,
       }),
+      Unsafe: (schema: Record<string, unknown>) => schema,
     };
     return { Type };
   });

@@ -1,3 +1,4 @@
+import { StringEnum } from "@earendil-works/pi-ai";
 import { type Static, Type } from "typebox";
 import type { WorkflowPhaseFile } from "./phases";
 
@@ -7,6 +8,12 @@ export const REVIEW_PHASE_ARTIFACT_PATCH_TOOL_NAME =
 
 export const REVIEW_ARTIFACT_SUMMARY_MAX_CHARS = 4_000;
 export const REVIEW_ARTIFACT_FALLBACK_MAX_CHARS = 4_000;
+export const REVIEW_FINDING_CONFIDENCES = [
+  "confirmed",
+  "likely",
+  "speculative",
+  "false_positive",
+] as const;
 
 export const reviewFindingSchema = Type.Object({
   id: Type.String({
@@ -21,12 +28,9 @@ export const reviewFindingSchema = Type.Object({
   suggestedFix: Type.String({
     description: "Minimal suggested fix or skip rationale.",
   }),
-  confidence: Type.Union([
-    Type.Literal("confirmed"),
-    Type.Literal("likely"),
-    Type.Literal("speculative"),
-    Type.Literal("false_positive"),
-  ]),
+  confidence: StringEnum(REVIEW_FINDING_CONFIDENCES, {
+    description: "Finding confidence classification.",
+  }),
 });
 
 export const reviewCoverageGapSchema = Type.Object({
@@ -217,8 +221,9 @@ function validateFindingFields(
     }
   }
   if (
-    !["confirmed", "likely", "speculative", "false_positive"].includes(
-      String(finding.confidence),
+    typeof finding.confidence !== "string" ||
+    !(REVIEW_FINDING_CONFIDENCES as readonly string[]).includes(
+      finding.confidence,
     )
   ) {
     warnings.push(
@@ -520,12 +525,13 @@ export function finalizeReviewPhaseArtifact(input: {
   const warnings = [...(input.pending?.warnings ?? [])];
   let artifact = input.pending?.artifact;
   let patchCount = 0;
+  const patches = input.pending?.patches ?? [];
   const expected = { runId: input.runId, phaseFile: input.phaseFile };
   const baseWarnings = validateReviewPhaseArtifact(artifact, expected);
   warnings.push(...baseWarnings);
 
   if (hasFatalArtifactWarning(baseWarnings)) {
-    if (input.pending?.patches.length) {
+    if (patches.length) {
       warnings.push(
         warning(
           "invalid_patch",
@@ -534,7 +540,7 @@ export function finalizeReviewPhaseArtifact(input: {
       );
     }
   } else {
-    for (const patch of input.pending?.patches ?? []) {
+    for (const patch of patches) {
       if (!artifact) {
         warnings.push(
           warning(
@@ -550,7 +556,9 @@ export function finalizeReviewPhaseArtifact(input: {
       warnings.push(...result.warnings);
     }
 
-    warnings.push(...validateReviewPhaseArtifact(artifact, expected));
+    if (patches.length) {
+      warnings.push(...validateReviewPhaseArtifact(artifact, expected));
+    }
   }
 
   let fallbackNotes: string | undefined;

@@ -231,6 +231,18 @@ describe("review extension", () => {
         instructions: { type: "string", optional: true },
       },
     });
+    const artifactTool = pi.tools.get("review_phase_artifact")!;
+    expect(
+      (artifactTool.parameters as any).properties.findings.items.properties
+        .confidence,
+    ).toMatchObject({
+      type: "string",
+      enum: ["confirmed", "likely", "speculative", "false_positive"],
+    });
+    expect(
+      (artifactTool.parameters as any).properties.findings.items.properties
+        .confidence,
+    ).not.toHaveProperty("anyOf");
   });
 
   test("exports workflow lifecycle event contract", async () => {
@@ -276,7 +288,13 @@ describe("review extension", () => {
       );
 
     expect(artifactResult).toMatchObject({
-      details: { ok: true, warnings: [] },
+      content: [{ type: "text", text: "Review phase artifact recorded." }],
+      details: {
+        ok: true,
+        warnings: [],
+        runId,
+        phaseFile: "01-recon.md",
+      },
       terminate: true,
     });
 
@@ -314,7 +332,15 @@ describe("review extension", () => {
       );
 
     expect(patchResult).toMatchObject({
-      details: { ok: true, warnings: [] },
+      content: [
+        { type: "text", text: "Review phase artifact patch recorded." },
+      ],
+      details: {
+        ok: true,
+        warnings: [],
+        runId,
+        phaseFile: "01-recon.md",
+      },
       terminate: true,
     });
 
@@ -349,7 +375,17 @@ describe("review extension", () => {
       );
 
     expect(noRunResult).toMatchObject({
-      details: { ok: false },
+      content: [
+        {
+          type: "text",
+          text: "Review phase artifact ignored: No active /review phase is accepting artifacts.",
+        },
+      ],
+      details: {
+        ok: false,
+        runId: "run-1",
+        phaseFile: "01-recon.md",
+      },
       terminate: true,
     });
 
@@ -369,7 +405,13 @@ describe("review extension", () => {
       );
 
     expect(wrongRunResult).toMatchObject({
-      details: { ok: false },
+      content: [
+        {
+          type: "text",
+          text: `Review phase artifact ignored: Artifact runId wrong-run does not match active run ${runId}.`,
+        },
+      ],
+      details: { ok: false, runId: "wrong-run", phaseFile: "01-recon.md" },
       terminate: true,
     });
     expect(wrongRunResult?.details.warnings[0]).toMatchObject({
@@ -391,7 +433,13 @@ describe("review extension", () => {
       );
 
     expect(wrongPhaseResult).toMatchObject({
-      details: { ok: false },
+      content: [
+        {
+          type: "text",
+          text: "Review phase artifact patch ignored: Artifact phaseFile 02-hunt.md does not match active phase 01-recon.md.",
+        },
+      ],
+      details: { ok: false, runId, phaseFile: "02-hunt.md" },
       terminate: true,
     });
     expect(wrongPhaseResult?.details.warnings[0]).toMatchObject({
