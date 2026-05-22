@@ -2,6 +2,14 @@
 
 You are running the /commit extension. Create local git commits only.
 
+## Tool Policy During This Workflow
+
+- Use only inspection tools, `bash`/`shell_command`, read-only subagents, and the temp-file helper if a temporary file is needed.
+- Do not use `apply_patch`, direct file edit tools, or workspace write tools.
+- `spawn_subagent` is read-only in this workflow.
+- Shell commands are restricted to read-only inspection plus the workflow-required git side effects: branch switching/creation, staging, index-only patch application, and `git commit`.
+- Workspace files must not be modified except through intentional git staging/commit operations already described below.
+
 ## Not in Scope
 
 - Do not run git push.
@@ -32,9 +40,9 @@ The extension asks for language interactively. The selected options shown in the
 
 **Auto**:
 
-- First inspect your own recent commit subjects using your configured `user.email` (or `user.name` if no email is configured), for example `git log --author="$(git config user.email)" --format='%s' -10`.
+- First use the provided "Recent Self Commits" snapshot to inspect your own recent commit subjects.
 - Match the dominant description language in your own recent commits.
-- If your own recent commits are unavailable or empty in this repository, inspect all recent commit subjects with `git log --format='%s' -10` as a fallback.
+- If the snapshot is unavailable or empty, inspect all recent commit subjects with `git log --format='%s' -10` as a fallback.
 - Match the dominant description language in the fallback history.
 - If the applicable recent commits do not show a clear preference, ask the user before committing.
 
@@ -90,8 +98,7 @@ Rules:
 3. Choose commit language according to the interactive option or recent history.
 4. If branch creation is selected:
     - Determine the branch name from the primary change.
-    - Run `git switch <selected-base-branch>`.
-    - Run `git switch -c <branch-name>` before committing.
+    - Run `git switch -c <branch-name> <selected-base-branch>` before committing.
 5. For each logical unit separately:
     - Stage only related files.
     - For whole-file commits: `git add <specific-files>`.
@@ -107,26 +114,23 @@ Rules:
 
 When a file contains multiple logical changes:
 
-1. Export the full diff for target files: `git diff -- <target-file> > /tmp/partial-stage.patch`.
-2. Back it up: `cp /tmp/partial-stage.patch /tmp/partial-stage.full.patch`.
-3. Edit `/tmp/partial-stage.patch` and remove hunks unrelated to the current logical unit.
-4. Validate: `git apply --check --cached /tmp/partial-stage.patch`.
-5. Apply to index only: `git apply --cached /tmp/partial-stage.patch`.
+1. Inspect the full diff for target files with `git diff -- <target-file>`.
+2. Create a minimal patch containing only hunks for the current logical unit.
+3. Write that patch to an OS temp file with the `workflow_write_temp_file` tool.
+    - Do not write the patch into the workspace.
+    - Do not use shell redirection, `cp`, or direct edit/write tools for patch files.
+4. Validate: `git apply --check --cached <temp-patch-file>`.
+5. Apply to index only: `git apply --cached <temp-patch-file>`.
 6. Verify with `git diff --cached` and `git diff`.
 7. If check/apply fails, stop and ask the user how to proceed.
 
 ## Subject Sanity Checks
 
-Before `git commit`, validate the drafted subject mechanically:
+Before `git commit`, validate the drafted subject from the text itself:
 
-```bash
-printf '%s' 'feat: centralize request validation' | wc -c
-printf '%s\n' 'feat: centralize request validation' | rg -n '\band\b'
-```
-
-- If `wc -c` exceeds 50, rewrite before committing.
-- If `rg` matches `and` in an English subject, reconsider split or wording.
-- Run each check as a complete shell command.
+- Keep it under 50 characters.
+- Avoid `and` in an English subject; it often signals multiple logical changes.
+- If mechanical shell checks seem necessary, pause and ask the user for explicit direction instead of using shell pipelines.
 
 ## Prohibited Commands During Partial Commit Preparation
 

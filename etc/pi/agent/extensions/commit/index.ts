@@ -3,10 +3,14 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import type { SelectItem } from "@earendil-works/pi-tui";
 import { formatAdditionalUserNotesBlock } from "../lib/prompt";
 import { inputOptional, selectFuzzy } from "../lib/tui";
+import {
+  applyWorkflowActiveTools,
+  evaluateWorkflowToolCall,
+  registerWorkflowTempFileTool,
+} from "../lib/workflow-tool-policy";
 
 const COMMIT_INSTRUCTIONS = readFileSync(
   new URL("./commit-instructions.md", import.meta.url),
@@ -24,14 +28,6 @@ type CommitOptions = {
   baseBranch?: string;
   additionalNotes?: string;
 };
-
-const PROHIBITED_GIT_PATTERNS = [
-  /(^|[;&|]\s*)git\s+restore\b/,
-  /(^|[;&|]\s*)git\s+reset\b/,
-  /(^|[;&|]\s*)git\s+checkout\s+(?:--|-f\b)/,
-  /(^|[;&|]\s*)git\s+switch\b[^\n;|&]*\s--discard-changes\b/,
-  /(^|[;&|]\s*)git\s+clean\b/,
-];
 
 async function getDefaultBranch(pi: ExtensionAPI): Promise<string | undefined> {
   const symbolic = await pi
@@ -340,6 +336,9 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
+    const previousActiveTools = pi.getActiveTools();
+    let workflowToolsApplied = false;
+
     try {
       const snapshot = await gitSnapshot(pi);
       const selectedOptions = optionsForPrompt(options);
@@ -358,9 +357,13 @@ export default function (pi: ExtensionAPI) {
       ].join("\n\n");
 
       commitWorkflowActive = true;
+      registerWorkflowTempFileTool(pi, "commit");
+      applyWorkflowActiveTools(pi, "commit");
+      workflowToolsApplied = true;
       pi.sendUserMessage(prompt);
     } catch (error) {
       commitWorkflowActive = false;
+      if (workflowToolsApplied) pi.setActiveTools(previousActiveTools);
       const message = error instanceof Error ? error.message : String(error);
       notifyAndShutdown(
         ctx,
@@ -381,28 +384,14 @@ export default function (pi: ExtensionAPI) {
     await startCommitWorkflow(ctx);
   });
 
+  pi.on("before_agent_start", async () => {
+    if (!commitWorkflowActive) return;
+    applyWorkflowActiveTools(pi, "commit");
+  });
+
   pi.on("tool_call", async (event) => {
     if (!commitWorkflowActive) return undefined;
-    if (!isToolCallEventType("bash", event)) return undefined;
-
-    const command = event.input.command;
-    if (PROHIBITED_GIT_PATTERNS.some((pattern) => pattern.test(command))) {
-      return {
-        block: true,
-        reason:
-          "/commit extension によりブロックしました: コミット準備中の破壊的な git cleanup/reset コマンドは禁止されています。代わりにユーザーへ明示的な指示を確認してください。",
-      };
-    }
-
-    if (/(^|[;&|]\s*)git\s+push\b/.test(command)) {
-      return {
-        block: true,
-        reason:
-          "/commit extension によりブロックしました: /commit はローカルコミットのみを作成します。push しないでください。",
-      };
-    }
-
-    return undefined;
+    return evaluateWorkflowToolCall("commit", event);
   });
 
   pi.on("agent_end", async (_event, ctx) => {

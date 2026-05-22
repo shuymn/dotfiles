@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getWorkflowActiveTools } from "../lib/workflow-tool-policy";
 import {
   type CustomAction,
   createCustomDriver,
@@ -7,13 +8,15 @@ import {
 
 const tuiInstances = installTuiMocks();
 
+const EXPECTED_WORKFLOW_TOOLS = getWorkflowActiveTools("create-pr");
+
 type ExecCall = {
   command: string;
   args: string[];
   options: Record<string, unknown>;
 };
 type ExecResult = { code: number; stdout: string; stderr: string };
-type EventHandler = (event: any, ctx: any) => Promise<any> | any;
+type EventHandler = (event: any, ctx?: any) => Promise<any> | any;
 
 function defaultExec(call: ExecCall): ExecResult {
   const joined = call.args.join(" ");
@@ -89,6 +92,9 @@ function createFakePi(
   const registeredFlags: Array<{ name: string; definition: unknown }> = [];
   const execCalls: ExecCall[] = [];
   const sentUserMessages: string[] = [];
+  const activeToolSets: string[][] = [];
+  let activeTools = ["read", "bash", "edit", "write", "todo"];
+  const registeredTools: Array<{ name: string; [key: string]: unknown }> = [];
 
   return {
     flags,
@@ -98,6 +104,9 @@ function createFakePi(
     sentUserMessages,
     registerFlag(name: string, definition: unknown) {
       registeredFlags.push({ name, definition });
+    },
+    registerTool(definition: { name: string; [key: string]: unknown }) {
+      registeredTools.push(definition);
     },
     on(eventName: string, handler: EventHandler) {
       events.set(eventName, [...(events.get(eventName) ?? []), handler]);
@@ -117,6 +126,15 @@ function createFakePi(
     sendUserMessage(message: string) {
       sentUserMessages.push(message);
     },
+    getActiveTools() {
+      return [...activeTools];
+    },
+    setActiveTools(tools: string[]) {
+      activeTools = [...tools];
+      activeToolSets.push([...tools]);
+    },
+    activeToolSets,
+    registeredTools,
   };
 }
 
@@ -170,8 +188,11 @@ describe("create-pr extension", () => {
     ]);
     expect([...pi.events.keys()].sort()).toEqual([
       "agent_end",
+      "before_agent_start",
       "session_start",
+      "tool_call",
     ]);
+    expect(pi.registeredTools).toEqual([]);
   });
 
   test("does nothing unless startup session has --create-pr flag", async () => {
@@ -274,6 +295,13 @@ describe("create-pr extension", () => {
     expect(prompt).toContain("### Committed changes\nabc123 feat: add api");
     expect(prompt).toContain("### Files changed\nM\tsrc/app.ts");
     expect(prompt).toContain("### PR template\n## Summary");
+    expect(prompt).not.toContain("2>/dev/null");
+    expect(prompt).not.toContain("| sed");
+    expect(prompt).not.toContain("<<'EOF'");
+    expect(pi.activeToolSets).toEqual([EXPECTED_WORKFLOW_TOOLS]);
+    expect(pi.registeredTools.map((tool) => tool.name)).toEqual([
+      "workflow_write_temp_file",
+    ]);
     expect(
       pi.execCalls.map((call) => [call.command, call.args.join(" ")]),
     ).toEqual([
@@ -294,6 +322,114 @@ describe("create-pr extension", () => {
       ["git", "log origin/main..HEAD --oneline"],
       ["git", "diff --name-status origin/main..HEAD"],
     ]);
+  });
+
+  test("reapplies active tools before agent start while workflow is active", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    pi.flags.set("create-pr", true);
+    const ctx = createContext([
+      { kind: "select", value: "english" },
+      { kind: "select", value: "update" },
+      { kind: "input", value: "" },
+    ]);
+
+    await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+    await pi.events.get("before_agent_start")![0]({});
+
+    expect(pi.activeToolSets).toEqual([
+      EXPECTED_WORKFLOW_TOOLS,
+      EXPECTED_WORKFLOW_TOOLS,
+    ]);
+  });
+
+  test("create-pr workflow gates tools and shell commands", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git push origin HEAD" },
+      }),
+    ).resolves.toBeUndefined();
+
+    pi.flags.set("create-pr", true);
+    const ctx = createContext([
+      { kind: "select", value: "english" },
+      { kind: "select", value: "update" },
+      { kind: "input", value: "" },
+    ]);
+    await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+
+    for (const toolName of ["apply_patch", "edit", "write"]) {
+      await expect(
+        pi.events.get("tool_call")![0]({ toolName, input: {} }),
+      ).resolves.toMatchObject({ block: true });
+    }
+
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "bash",
+        input: { command: "git status --short" },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git reset --hard" },
+      }),
+    ).resolves.toMatchObject({ block: true });
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "bash",
+        input: { command: "git push origin HEAD" },
+      }),
+    ).resolves.toBeUndefined();
+    for (const command of [
+      "git push --force origin HEAD",
+      "git push --delete origin main",
+      "git push --tags",
+      "git push origin :main",
+      "git push origin +HEAD",
+    ]) {
+      await expect(
+        pi.events.get("tool_call")![0]({
+          toolName: "shell_command",
+          input: { command },
+        }),
+      ).resolves.toMatchObject({ block: true });
+    }
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: {
+          command: "gh pr create --title test --body-file /tmp/body.md",
+        },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "gh pr create --fill" },
+      }),
+    ).resolves.toMatchObject({ block: true });
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: {
+          command: "gh pr edit 1 --title test --body-file /tmp/body.md",
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    const subagentEvent = { toolName: "spawn_subagent", input: {} };
+    await expect(
+      pi.events.get("tool_call")![0](subagentEvent),
+    ).resolves.toBeUndefined();
+    expect(subagentEvent.input).toEqual({ readOnly: true });
   });
 
   test("update mode skips base branch selection and snapshots existing PR context", async () => {
@@ -406,6 +542,10 @@ describe("create-pr extension", () => {
     ]);
     expect(ctx.shutdownCount).toBe(1);
     expect(pi.sentUserMessages).toEqual([]);
+    expect(pi.activeToolSets).toEqual([
+      EXPECTED_WORKFLOW_TOOLS,
+      ["read", "bash", "edit", "write", "todo"],
+    ]);
   });
 
   test("agent_end shuts down once after an active workflow", async () => {

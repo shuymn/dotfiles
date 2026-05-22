@@ -6,6 +6,11 @@ import type {
 import type { SelectItem } from "@earendil-works/pi-tui";
 import { formatAdditionalUserNotesBlock } from "../lib/prompt";
 import { inputOptional, selectFuzzy } from "../lib/tui";
+import {
+  applyWorkflowActiveTools,
+  evaluateWorkflowToolCall,
+  registerWorkflowTempFileTool,
+} from "../lib/workflow-tool-policy";
 
 const CREATE_PR_INSTRUCTIONS = readFileSync(
   new URL("./create-pr-instructions.md", import.meta.url),
@@ -324,6 +329,9 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
+    const previousActiveTools = pi.getActiveTools();
+    let workflowToolsApplied = false;
+
     try {
       const snapshot = await gitSnapshot(pi, options);
       const selectedOptions = optionsForPrompt(options);
@@ -342,9 +350,13 @@ export default function (pi: ExtensionAPI) {
       ].join("\n\n");
 
       createPrWorkflowActive = true;
+      registerWorkflowTempFileTool(pi, "create-pr");
+      applyWorkflowActiveTools(pi, "create-pr");
+      workflowToolsApplied = true;
       pi.sendUserMessage(prompt);
     } catch (error) {
       createPrWorkflowActive = false;
+      if (workflowToolsApplied) pi.setActiveTools(previousActiveTools);
       const message = error instanceof Error ? error.message : String(error);
       notifyAndShutdown(
         ctx,
@@ -363,6 +375,16 @@ export default function (pi: ExtensionAPI) {
       return;
     startupCreatePrLaunched = true;
     await startCreatePrWorkflow(ctx);
+  });
+
+  pi.on("before_agent_start", async () => {
+    if (!createPrWorkflowActive) return;
+    applyWorkflowActiveTools(pi, "create-pr");
+  });
+
+  pi.on("tool_call", async (event) => {
+    if (!createPrWorkflowActive) return undefined;
+    return evaluateWorkflowToolCall("create-pr", event);
   });
 
   pi.on("agent_end", async (_event, ctx) => {

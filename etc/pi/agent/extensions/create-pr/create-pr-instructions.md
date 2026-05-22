@@ -2,6 +2,14 @@
 
 You are running the /create-pr extension. Create or update a GitHub pull request from committed changes.
 
+## Tool Policy During This Workflow
+
+- Use only inspection tools, `bash`/`shell_command`, read-only subagents, and the temp-file helper for PR body files.
+- Do not use `apply_patch`, direct file edit tools, or workspace write tools.
+- `spawn_subagent` is read-only in this workflow.
+- Shell commands are restricted to read-only inspection plus the workflow-required side effects: `git push`, `gh pr create`, and `gh pr edit`.
+- When `--body-file` is needed, write the body with `workflow_write_temp_file`; do not create body files in the workspace.
+
 ## Scope
 
 - Analyze committed changes only.
@@ -35,7 +43,7 @@ Verify git/GitHub state with live commands before creating or updating:
 ```bash
 git branch --show-current
 git branch -r
-git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@'
+git symbolic-ref --short refs/remotes/origin/HEAD
 git rev-parse --show-toplevel
 git status -sb
 ```
@@ -49,21 +57,25 @@ git diff --name-status origin/<base>..HEAD
 git diff --shortstat origin/<base>..HEAD
 git diff origin/<base>..HEAD
 git log origin/<base>..HEAD --format="### %s%n%n%b%n"
-git log origin/<base>..HEAD --format="%an <%ae>" | sort | uniq
+git log origin/<base>..HEAD --format="%an <%ae>"
 ```
 
 PR templates:
 
 ```bash
-cat .github/pull_request_template.md 2>/dev/null || echo "No GitHub template"
-cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo ""
+cat .github/pull_request_template.md
+cat .github/PULL_REQUEST_TEMPLATE.md
 ```
+
+If neither template file exists, continue without a template.
 
 Project information:
 
 ```bash
-cat README.md 2>/dev/null | head -50 || echo "No README"
+head -50 README.md
 ```
+
+If README.md does not exist, continue without README context.
 
 ## Analyze Committed Changes
 
@@ -191,7 +203,8 @@ Japanese:
 Escaping:
 
 - Prefer `gh pr create --body-file <file>` and `gh pr edit --body-file <file>` to avoid shell escaping issues.
-- If inline body is unavoidable, use a single-quoted heredoc (`<<'EOF'`) so backticks are preserved as-is.
+- Create `<file>` with `workflow_write_temp_file`; it must be under the OS temp directory, not the workspace.
+- Do not use heredocs or shell redirection for PR bodies in this workflow.
 - Do not escape Markdown backticks unnecessarily.
 
 ## Create Flow

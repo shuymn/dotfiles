@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getWorkflowActiveTools } from "../lib/workflow-tool-policy";
 import {
   type CustomAction,
   createCustomDriver,
@@ -11,6 +12,8 @@ const tuiInstances = installTuiMocks({
       event.toolName === name,
   },
 });
+
+const EXPECTED_WORKFLOW_TOOLS = getWorkflowActiveTools("commit");
 
 type ExecCall = {
   command: string;
@@ -64,6 +67,9 @@ function createFakePi(
   const registeredFlags: Array<{ name: string; definition: unknown }> = [];
   const execCalls: ExecCall[] = [];
   const sentUserMessages: string[] = [];
+  const activeToolSets: string[][] = [];
+  let activeTools = ["read", "bash", "edit", "write", "todo"];
+  const registeredTools: Array<{ name: string; [key: string]: unknown }> = [];
 
   return {
     flags,
@@ -73,6 +79,9 @@ function createFakePi(
     sentUserMessages,
     registerFlag(name: string, definition: unknown) {
       registeredFlags.push({ name, definition });
+    },
+    registerTool(definition: { name: string; [key: string]: unknown }) {
+      registeredTools.push(definition);
     },
     on(eventName: string, handler: EventHandler) {
       events.set(eventName, [...(events.get(eventName) ?? []), handler]);
@@ -92,6 +101,15 @@ function createFakePi(
     sendUserMessage(message: string) {
       sentUserMessages.push(message);
     },
+    getActiveTools() {
+      return [...activeTools];
+    },
+    setActiveTools(tools: string[]) {
+      activeTools = [...tools];
+      activeToolSets.push([...tools]);
+    },
+    activeToolSets,
+    registeredTools,
   };
 }
 
@@ -144,9 +162,11 @@ describe("commit extension", () => {
     ]);
     expect([...pi.events.keys()].sort()).toEqual([
       "agent_end",
+      "before_agent_start",
       "session_start",
       "tool_call",
     ]);
+    expect(pi.registeredTools).toEqual([]);
   });
 
   test("does nothing unless startup session has --commit flag", async () => {
@@ -245,6 +265,12 @@ describe("commit extension", () => {
       "### Recent Self Commits (primary for auto language)\nfeat: self commit",
     );
     expect(prompt).toContain("### Staged\n(empty)");
+    expect(prompt).not.toContain("$(git config user.email)");
+    expect(prompt).not.toContain("| wc -c");
+    expect(pi.activeToolSets).toEqual([EXPECTED_WORKFLOW_TOOLS]);
+    expect(pi.registeredTools.map((tool) => tool.name)).toEqual([
+      "workflow_write_temp_file",
+    ]);
     expect(pi.execCalls.map((call) => call.args.join(" "))).toEqual([
       "config --get user.email",
       "status --short",
@@ -253,6 +279,26 @@ describe("commit extension", () => {
       "log --format=%s -10",
       "diff --stat",
       "diff --cached --stat",
+    ]);
+  });
+
+  test("reapplies active tools before agent start while workflow is active", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    pi.flags.set("commit", true);
+    const ctx = createContext([
+      { kind: "select", value: "auto" },
+      { kind: "select", value: "no" },
+      { kind: "input", value: "" },
+    ]);
+
+    await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+    await pi.events.get("before_agent_start")![0]({});
+
+    expect(pi.activeToolSets).toEqual([
+      EXPECTED_WORKFLOW_TOOLS,
+      EXPECTED_WORKFLOW_TOOLS,
     ]);
   });
 
@@ -317,11 +363,13 @@ describe("commit extension", () => {
         toolName: "bash",
         input: { command },
       });
-      expect(result).toEqual({
-        block: true,
-        reason:
-          "/commit extension によりブロックしました: コミット準備中の破壊的な git cleanup/reset コマンドは禁止されています。代わりにユーザーへ明示的な指示を確認してください。",
-      });
+      expect(result?.block).toBe(true);
+      expect(result?.reason).toContain(
+        "/commit extension によりブロックしました",
+      );
+      expect(result?.reason).toContain(
+        "destructive git cleanup/reset commands",
+      );
     }
 
     await expect(
@@ -338,14 +386,114 @@ describe("commit extension", () => {
     ).resolves.toBeUndefined();
     await expect(
       pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git reset --hard" },
+      }),
+    ).resolves.toMatchObject({ block: true });
+    await expect(
+      pi.events.get("tool_call")![0]({
         toolName: "bash",
         input: { command: "git push origin HEAD" },
       }),
-    ).resolves.toEqual({
-      block: true,
-      reason:
-        "/commit extension によりブロックしました: /commit はローカルコミットのみを作成します。push しないでください。",
-    });
+    ).resolves.toMatchObject({ block: true });
+  });
+
+  test("commit workflow blocks write tools and allows required commit commands", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    pi.flags.set("commit", true);
+    const ctx = createContext([
+      { kind: "select", value: "auto" },
+      { kind: "select", value: "no" },
+      { kind: "input", value: "" },
+    ]);
+    await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+
+    for (const toolName of ["apply_patch", "edit", "write"]) {
+      await expect(
+        pi.events.get("tool_call")![0]({ toolName, input: {} }),
+      ).resolves.toMatchObject({ block: true });
+    }
+
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git add commit/index.ts" },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git add -A" },
+      }),
+    ).resolves.toMatchObject({ block: true });
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "bash",
+        input: { command: "git commit -m 'test: update commit extension'" },
+      }),
+    ).resolves.toBeUndefined();
+    for (const command of [
+      "git commit --amend",
+      "git commit --no-verify -m test",
+      "git switch main",
+      "git apply /tmp/change.patch",
+    ]) {
+      await expect(
+        pi.events.get("tool_call")![0]({
+          toolName: "shell_command",
+          input: { command },
+        }),
+      ).resolves.toMatchObject({ block: true });
+    }
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git switch -c fix/test main" },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.events.get("tool_call")![0]({
+        toolName: "shell_command",
+        input: { command: "git apply --check --cached /tmp/change.patch" },
+      }),
+    ).resolves.toBeUndefined();
+
+    const subagentEvent = { toolName: "spawn_subagent", input: {} };
+    await expect(
+      pi.events.get("tool_call")![0](subagentEvent),
+    ).resolves.toBeUndefined();
+    expect(subagentEvent.input).toEqual({ readOnly: true });
+  });
+
+  test("restores active tools if prompt delivery fails", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    pi.sendUserMessage = () => {
+      throw new Error("send failed");
+    };
+    extension(pi as never);
+    pi.flags.set("commit", true);
+    const ctx = createContext([
+      { kind: "select", value: "auto" },
+      { kind: "select", value: "no" },
+      { kind: "input", value: "" },
+    ]);
+
+    await pi.events.get("session_start")![0]({ reason: "startup" }, ctx);
+
+    expect(ctx.notifications).toEqual([
+      {
+        message: "--commit の開始に失敗しました: send failed",
+        level: "warning",
+      },
+    ]);
+    expect(ctx.shutdownCount).toBe(1);
+    expect(pi.activeToolSets).toEqual([
+      EXPECTED_WORKFLOW_TOOLS,
+      ["read", "bash", "edit", "write", "todo"],
+    ]);
   });
 
   test("agent_end shuts down once after an active workflow", async () => {
