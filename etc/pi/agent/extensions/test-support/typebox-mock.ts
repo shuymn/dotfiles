@@ -10,6 +10,7 @@ export function installTypeboxMock() {
       }),
       String: (options = {}) => ({ type: "string", ...options }),
       Boolean: (options = {}) => ({ type: "boolean", ...options }),
+      Number: (options = {}) => ({ type: "number", ...options }),
       Integer: (options = {}) => ({ type: "integer", ...options }),
       Array: (items: unknown, options = {}) => ({
         type: "array",
