@@ -1,77 +1,8 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
-type SelectItemLike = { value: string; label: string; description?: string };
-type SelectInstance = {
-  items: SelectItemLike[];
-  selectedIndex: number;
-  onSelect?: (item: SelectItemLike) => void;
-  onCancel?: () => void;
-  handleInput(data: string): void;
-};
-type InputInstance = {
-  focused: boolean;
-  onSubmit?: (value: string) => void;
-  onEscape?: () => void;
-};
+import { installTuiMocks } from "../test-support/tui-mocks";
 
-const selectInstances: SelectInstance[] = [];
-const inputInstances: InputInstance[] = [];
-
-mock.module("@earendil-works/pi-tui", () => ({
-  Input: class implements InputInstance {
-    focused = false;
-    onSubmit?: (value: string) => void;
-    onEscape?: () => void;
-    constructor() {
-      inputInstances.push(this);
-    }
-    invalidate() {}
-    render() {
-      return ["<input>"];
-    }
-    handleInput(data: string) {
-      if (data === "escape") this.onEscape?.();
-      else this.onSubmit?.(data);
-    }
-  },
-  Key: {
-    backspace: "backspace",
-    escape: "escape",
-    enter: "enter",
-    up: "up",
-    down: "down",
-    ctrl: (key: string) => `ctrl+${key}`,
-  },
-  matchesKey: (data: string, key: string) => data === key,
-  fuzzyFilter: (items: SelectItemLike[], query: string) =>
-    items.filter(
-      (item) => item.label.includes(query) || item.value.includes(query),
-    ),
-  SelectList: class implements SelectInstance {
-    selectedIndex = 0;
-    onSelect?: (item: SelectItemLike) => void;
-    onCancel?: () => void;
-    constructor(public items: SelectItemLike[]) {
-      selectInstances.push(this);
-    }
-    setSelectedIndex(index: number) {
-      this.selectedIndex = index;
-    }
-    invalidate() {}
-    render() {
-      return this.items.map((item) => item.label);
-    }
-    handleInput(data: string) {
-      if (data === "escape") this.onCancel?.();
-      if (data === "enter") this.onSelect?.(this.items[this.selectedIndex]);
-    }
-  },
-  truncateToWidth: (text: string, width: number) => text.slice(0, width),
-}));
-
-mock.module("@earendil-works/pi-coding-agent", () => ({
-  getSelectListTheme: () => ({}),
-}));
+const { selectInstances, inputInstances } = installTuiMocks();
 
 async function loadTuiLib() {
   return await import("./tui");
@@ -158,8 +89,9 @@ describe("tui helpers", () => {
     ]);
   });
 
-  test("widget helpers set belowEditor lines and clear them", async () => {
-    const { setBelowEditorWidget, clearWidget } = await loadTuiLib();
+  test("widget helpers set aboveEditor/belowEditor lines and clear them", async () => {
+    const { setAboveEditorWidget, setBelowEditorWidget, clearWidget } =
+      await loadTuiLib();
     const widgets: Array<{
       key: string;
       content: string[] | undefined;
@@ -177,15 +109,25 @@ describe("tui helpers", () => {
       },
     };
 
-    setBelowEditorWidget(ctx, "k", ["line"]);
-    clearWidget(ctx, "k");
+    setAboveEditorWidget(ctx, "top", ["status"]);
+    setBelowEditorWidget(ctx, "bottom", ["line"]);
+    clearWidget(ctx, "bottom");
     expect(widgets).toEqual([
-      { key: "k", content: ["line"], options: { placement: "belowEditor" } },
-      { key: "k", content: undefined, options: undefined },
+      {
+        key: "top",
+        content: ["status"],
+        options: { placement: "aboveEditor" },
+      },
+      {
+        key: "bottom",
+        content: ["line"],
+        options: { placement: "belowEditor" },
+      },
+      { key: "bottom", content: undefined, options: undefined },
     ]);
   });
 
-  test("startSpinnerWidget renders elapsed time and clears on stop", async () => {
+  test("startSpinnerWidget renders initial elapsed time and clears on stop", async () => {
     const { startSpinnerWidget, SPINNER_FRAMES } = await loadTuiLib();
     const widgets: Array<string[] | undefined> = [];
     const ctx = {

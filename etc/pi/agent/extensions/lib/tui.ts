@@ -33,7 +33,7 @@ type NotifyContext = {
   ui: { notify(message: string, type?: NotifyLevel): void };
 };
 
-type WidgetContext = {
+export type WidgetContext = {
   ui: {
     setWidget(
       key: string,
@@ -71,6 +71,15 @@ export function notifyIfUI(
   if (ctx.hasUI === false) return false;
   ctx.ui.notify(message, level);
   return true;
+}
+
+/** Set an aboveEditor widget for prominent status/progress. */
+export function setAboveEditorWidget(
+  ctx: WidgetContext,
+  key: string,
+  lines: string[],
+): void {
+  ctx.ui.setWidget(key, lines, { placement: "aboveEditor" });
 }
 
 /** Set a belowEditor widget for long-running progress. */
