@@ -7,6 +7,7 @@ import type {
 import { Type } from "typebox";
 
 import { cliResultForTool } from "../lib/cli";
+import { getLatestAssistantMessageText } from "../lib/session-messages";
 import { tvlyResearchRun } from "./cli";
 import { RESEARCH_PHASES } from "./phases";
 import { buildResearchPhasePrompt } from "./prompts";
@@ -106,59 +107,6 @@ const tavilyResearchSchema = Type.Object({
 function truncate(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
   return `${text.slice(0, maxChars)}\n\n[truncated: ${text.length - maxChars} chars omitted]`;
-}
-
-function collectTextParts(value: unknown, output: string[]): void {
-  if (typeof value === "string") {
-    output.push(value);
-    return;
-  }
-  if (!value || typeof value !== "object") return;
-
-  if (Array.isArray(value)) {
-    for (const item of value) collectTextParts(item, output);
-    return;
-  }
-
-  const record = value as Record<string, unknown>;
-  if (record.type === "text" && typeof record.text === "string") {
-    output.push(record.text);
-  }
-}
-
-function findLatestAssistantMessageText(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") return undefined;
-
-  if (Array.isArray(value)) {
-    for (let index = value.length - 1; index >= 0; index -= 1) {
-      const text = findLatestAssistantMessageText(value[index]);
-      if (text) return text;
-    }
-    return undefined;
-  }
-
-  const record = value as Record<string, unknown>;
-  if (record.role === "assistant") {
-    const textParts: string[] = [];
-    collectTextParts(record.content, textParts);
-    return textParts.length > 0 ? textParts.join("\n") : undefined;
-  }
-
-  const children = Object.values(record);
-  for (let index = children.length - 1; index >= 0; index -= 1) {
-    const text = findLatestAssistantMessageText(children[index]);
-    if (text) return text;
-  }
-
-  return undefined;
-}
-
-function getLatestAssistantMessageText(messages: unknown): string | undefined {
-  try {
-    return findLatestAssistantMessageText(messages);
-  } catch {
-    return undefined;
-  }
 }
 
 function activeRun(): ActiveResearchRun | undefined {
