@@ -1,6 +1,11 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import {
+  type ReviewWorkflowLifecycleStatus,
+  isReviewWorkflowLifecycleEvent,
+  reviewWorkflowEventName,
+} from "../review/events";
 import { nextActionText, renderTodoReminder } from "./prompt";
 import { replayTodoState, TOOL_NAME } from "./replay";
 import { inProgressTodo, pendingTodos } from "./selectors";
@@ -21,42 +26,12 @@ import {
   type WidgetContext,
 } from "./widget";
 
-const REVIEW_WORKFLOW_EVENT_NAME = "review";
-const REVIEW_WORKFLOW_EVENTS = [
-  { status: "started", suppress: true },
-  { status: "completed", suppress: false },
-  { status: "failed", suppress: false },
-  { status: "cancelled", suppress: false },
-] as const;
-
-type ReviewWorkflowLifecycleStatus =
-  (typeof REVIEW_WORKFLOW_EVENTS)[number]["status"];
-
-type ReviewWorkflowEventName = `workflow:${ReviewWorkflowLifecycleStatus}`;
-
-function reviewWorkflowEventName(
-  status: ReviewWorkflowLifecycleStatus,
-): ReviewWorkflowEventName {
-  return `workflow:${status}`;
-}
-
-type ReviewWorkflowLifecycleEvent = {
-  name?: string;
-  status?: string;
-};
-
-function isReviewWorkflowLifecycleEvent(
-  data: unknown,
-  expectedStatus: ReviewWorkflowLifecycleStatus,
-): data is ReviewWorkflowLifecycleEvent {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    (data as ReviewWorkflowLifecycleEvent).name ===
-      REVIEW_WORKFLOW_EVENT_NAME &&
-    (data as ReviewWorkflowLifecycleEvent).status === expectedStatus
-  );
-}
+const REVIEW_WORKFLOW_SUPPRESSION_BY_STATUS = {
+  started: true,
+  completed: false,
+  failed: false,
+  cancelled: false,
+} satisfies Record<ReviewWorkflowLifecycleStatus, boolean>;
 
 function formatToolResult(state: TodoState, op: TodoOperation): string {
   const lines: string[] = [];
@@ -277,7 +252,9 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  for (const { status, suppress } of REVIEW_WORKFLOW_EVENTS) {
+  for (const [status, suppress] of Object.entries(
+    REVIEW_WORKFLOW_SUPPRESSION_BY_STATUS,
+  ) as [ReviewWorkflowLifecycleStatus, boolean][]) {
     pi.events.on(reviewWorkflowEventName(status), (data) =>
       handleReviewWorkflowLifecycle(data, status, suppress),
     );

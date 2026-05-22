@@ -19,6 +19,12 @@ import {
 } from "../lib/git";
 import { getLatestAssistantMessageText } from "../lib/session-messages";
 import { notifyIfUI } from "../lib/tui";
+import {
+  REVIEW_WORKFLOW_EVENT_NAME,
+  type ReviewWorkflowLifecycleEvent,
+  type ReviewWorkflowLifecycleStatus,
+  reviewWorkflowEventName,
+} from "./events";
 import { loadWorkflowPhases } from "./phases";
 import { buildPhasePrompt } from "./prompts";
 import { clearReviewWidget, refreshReviewWidget } from "./widget";
@@ -49,42 +55,20 @@ const INVESTIGATION_ALLOWED_TOOLS = new Set([
   "tavily_auth_status",
 ]);
 
-export const REVIEW_WORKFLOW_EVENT_NAME = "review";
-export const WORKFLOW_STARTED_EVENT = "workflow:started";
-export const WORKFLOW_COMPLETED_EVENT = "workflow:completed";
-export const WORKFLOW_FAILED_EVENT = "workflow:failed";
-export const WORKFLOW_CANCELLED_EVENT = "workflow:cancelled";
+export {
+  REVIEW_WORKFLOW_EVENT_NAME,
+  type ReviewWorkflowLifecycleEvent,
+  type ReviewWorkflowLifecycleStatus,
+  WORKFLOW_CANCELLED_EVENT,
+  WORKFLOW_COMPLETED_EVENT,
+  WORKFLOW_FAILED_EVENT,
+  WORKFLOW_STARTED_EVENT,
+} from "./events";
 
 const workflow = new ReviewWorkflowController();
 let runStarting = false;
 let startupGeneration = 0;
 let nextPhaseTimer: ReturnType<typeof setTimeout> | undefined;
-
-export type ReviewWorkflowLifecycleStatus =
-  | "started"
-  | "completed"
-  | "failed"
-  | "cancelled";
-
-const WORKFLOW_LIFECYCLE_EVENTS: Record<ReviewWorkflowLifecycleStatus, string> =
-  {
-    started: WORKFLOW_STARTED_EVENT,
-    completed: WORKFLOW_COMPLETED_EVENT,
-    failed: WORKFLOW_FAILED_EVENT,
-    cancelled: WORKFLOW_CANCELLED_EVENT,
-  };
-
-export type ReviewWorkflowLifecycleEvent = {
-  name: typeof REVIEW_WORKFLOW_EVENT_NAME;
-  status: ReviewWorkflowLifecycleStatus;
-  runId: string;
-  cwd: string;
-  targets: Target[];
-  phaseCount: number;
-  noFix: boolean;
-  reason?: string;
-  error?: string;
-};
 
 type ReviewOptions = {
   files: string[];
@@ -312,7 +296,7 @@ function emitWorkflowLifecycleEvent(
   };
 
   try {
-    pi.events.emit(WORKFLOW_LIFECYCLE_EVENTS[status], event);
+    pi.events.emit(reviewWorkflowEventName(status), event);
   } catch {
     // Lifecycle observers must not affect the review workflow itself.
   }
