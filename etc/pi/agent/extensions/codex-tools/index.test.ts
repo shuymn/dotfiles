@@ -76,9 +76,7 @@ async function executeApplyPatch(
 ) {
   const tool = pi.tools.get("apply_patch")!;
   const params = tool.prepareArguments?.(input) ?? input;
-  return pi.tools
-    .get("apply_patch")!
-    .execute("call", params, undefined, undefined, { cwd });
+  return tool.execute("call", params, undefined, undefined, { cwd });
 }
 
 afterEach(async () => {
@@ -431,6 +429,26 @@ describe("codex-tools extension", () => {
 
     expect(await readFile(join(root, "repeated.txt"), "utf8")).toBe(
       "first\nsecond\n",
+    );
+  });
+
+  test("apply_patch preserves fuzzy Unicode punctuation matching", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+    await writeFile(
+      join(root, "unicode.txt"),
+      "before\nvalue — quoted “text”\nafter\n",
+      "utf8",
+    );
+
+    await executeApplyPatch(
+      pi,
+      root,
+      '*** Begin Patch\n*** Update File: unicode.txt\n@@\n-value - quoted "text"\n+value - patched\n*** End Patch\n',
+    );
+
+    expect(await readFile(join(root, "unicode.txt"), "utf8")).toBe(
+      "before\nvalue - patched\nafter\n",
     );
   });
 });

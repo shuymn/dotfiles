@@ -392,10 +392,16 @@ function hunkNewLines(hunk: Hunk): string[] {
     .map((line) => line.text);
 }
 
-function matchesAt(lines: string[], pattern: string[], index: number): boolean {
+function normalizedMatchesAt(
+  lines: string[],
+  pattern: string[],
+  index: number,
+  normalize: (value: string) => string,
+): boolean {
   if (index + pattern.length > lines.length) return false;
   for (let offset = 0; offset < pattern.length; offset++) {
-    if (lines[index + offset] !== pattern[offset]) return false;
+    if (normalize(lines[index + offset] ?? "") !== pattern[offset])
+      return false;
   }
   return true;
 }
@@ -446,18 +452,15 @@ function findMatch(
       ? Math.max(startAt, lines.length - pattern.length)
       : startAt;
   for (const normalize of MATCH_NORMALIZERS) {
-    const normalizedLines = lines.map(normalize);
     const normalizedPattern = pattern.map(normalize);
-    const matches: number[] = [];
     for (
       let index = searchStart;
       index <= lines.length - pattern.length;
       index++
     ) {
-      if (matchesAt(normalizedLines, normalizedPattern, index))
-        matches.push(index);
+      if (normalizedMatchesAt(lines, normalizedPattern, index, normalize))
+        return { kind: "found", index };
     }
-    if (matches.length > 0) return { kind: "found", index: matches[0] };
   }
   return { kind: "missing" };
 }
