@@ -27,6 +27,7 @@ import {
 } from "./events";
 import { loadWorkflowPhases } from "./phases";
 import { buildPhasePrompt } from "./prompts";
+import { classifyShellCommand } from "./shell-safety";
 import { clearReviewWidget, refreshReviewWidget } from "./widget";
 import {
   type ActiveReviewRun,
@@ -69,6 +70,23 @@ const workflow = new ReviewWorkflowController();
 let runStarting = false;
 let startupGeneration = 0;
 let nextPhaseTimer: ReturnType<typeof setTimeout> | undefined;
+
+type ShellCommandGuardianReviewer = (
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+  request: {
+    command: string;
+    cwd: string;
+    phaseFile?: ReturnType<typeof workflow.currentPhaseFile>;
+    noFix: boolean;
+    targets: Target[];
+    staticRationale: string;
+  },
+) => Promise<{ outcome: "allow" | "deny"; rationale: string }>;
+
+type ReviewExtensionDeps = {
+  shellCommandGuardianReviewer?: ShellCommandGuardianReviewer;
+};
 
 type ReviewOptions = {
   files: string[];
@@ -387,215 +405,267 @@ function queueNextPhaseAfterCurrentTurn(
   }, 0);
 }
 
-export default function (pi: ExtensionAPI): void {
-  pi.on("tool_call", async (event) => {
-    if (!workflow.isReadOnlyPhase()) return;
+async function evaluateReadOnlyShellCommand(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext | undefined,
+  input: unknown,
+  deps: ReviewExtensionDeps,
+) {
+  const command = (input as { command?: unknown }).command;
+  const classification = classifyShellCommand(command);
+  if (classification.decision === "allow") return;
 
-    if (!INVESTIGATION_ALLOWED_TOOLS.has(event.toolName)) {
-      return {
-        block: true,
-        reason: activeRun()?.noFix
-          ? "/review --no-fix mode is read-only. This tool is not allowed while producing a report."
-          : "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
-      };
-    }
-
-    if (event.toolName === "spawn_subagent") {
-      (event.input as { readOnly?: boolean }).readOnly = true;
-    }
+  const blocked = (rationale: string) => ({
+    block: true,
+    reason: `/review read-only phase blocked shell_command: ${rationale}`,
   });
 
-  pi.on("agent_end", async (event, ctx) => {
-    const completingRun = activeRun();
-    if (!completingRun?.phaseInProgress) return;
+  if (classification.decision !== "unknown") {
+    return blocked(classification.rationale);
+  }
 
-    const latestAssistantText = getLatestAssistantMessageText(event.messages);
-    const decision = workflow.completePhase({
-      latestAssistantText,
-      truncateNotes: (text) => truncate(text, MAX_PHASE_NOTE_CHARS),
+  if (typeof command !== "string" || !ctx) {
+    return blocked(classification.rationale);
+  }
+
+  try {
+    const reviewShellCommandWithGuardian =
+      deps.shellCommandGuardianReviewer ??
+      (await import("./guardian")).reviewShellCommandWithGuardian;
+    const review = await reviewShellCommandWithGuardian(pi, ctx, {
+      command,
+      cwd: activeRun()?.cwd ?? ctx.cwd,
+      phaseFile: workflow.currentPhaseFile(),
+      noFix: activeRun()?.noFix ?? false,
+      targets: activeRun()?.targets ?? [],
+      staticRationale: classification.rationale,
     });
-    if (!decision) return;
-
-    if (decision.kind === "completed") {
-      if (completingRun)
-        emitWorkflowLifecycleEvent(pi, "completed", completingRun);
-      clearQueuedPhaseTimer();
-      runStarting = false;
-      clearReviewWidget(ctx);
-      notifyIfUI(
-        ctx,
-        `/review: ワークフロー ${decision.runId} が完了しました。`,
-        "info",
-      );
-      return;
-    }
-
-    setPhaseWidget(ctx, "queued", decision.phaseIndex + 1);
-    queueNextPhaseAfterCurrentTurn(pi, decision.run.id, ctx);
-  });
-
-  pi.on("session_shutdown", async (_event, ctx) => {
-    const run = activeRun();
-    if (run)
-      emitWorkflowLifecycleEvent(pi, "cancelled", run, {
-        reason: "session_shutdown",
-      });
-    clearActiveRun(ctx);
-  });
-
-  pi.registerCommand(COMMAND_NAME, {
-    description:
-      "Run a multi-stage code review workflow and apply verified fixes, or report only with --no-fix",
-    handler: async (args: string, ctx: ExtensionCommandContext) => {
-      await ctx.waitForIdle();
-
-      const trimmedArgs = args.trim();
-      if (trimmedArgs === "cancel" || trimmedArgs === "--cancel") {
-        const run = activeRun();
-        const runId = run?.id;
-        if (run)
-          emitWorkflowLifecycleEvent(pi, "cancelled", run, {
-            reason: "user_cancelled",
-          });
-        clearActiveRun(ctx);
-        ctx.ui.notify(
-          runId
-            ? `/review: ワークフロー ${runId} をキャンセルしました。`
-            : "/review: キャンセルできるワークフローがありません。",
-          "info",
-        );
-        return;
-      }
-
-      if (activeRun() || runStarting) {
-        ctx.ui.notify(
-          "/review: 別のレビューワークフローが既に実行中です。",
-          "warning",
-        );
-        return;
-      }
-
-      const options = parseArgs(args);
-      const creation = await createReviewRunWithStartGuard(
-        pi,
-        ctx.cwd,
-        options,
-      );
-      if (creation.kind === "cancelled") return;
-      if (creation.kind === "empty") {
-        ctx.ui.notify(
-          "/review: 変更ファイルが見つかりませんでした。ファイル全体をレビューするにはパスを明示してください。",
-          "info",
-        );
-        return;
-      }
-
-      const active = startReviewRun(pi, creation.run, ctx);
-      ctx.ui.notify(
-        `/review: ${active.targets.length} 件のファイルについて phase 1/${active.phases.length} をキューに追加しました。`,
-        "info",
-      );
-    },
-  });
-
-  pi.registerTool({
-    name: TOOL_NAME,
-    label: "Review",
-    description:
-      "Queue a multi-stage code review workflow for changed, staged, or explicitly listed files, then apply verified fixes or produce a no-fix report.",
-    promptSnippet:
-      "Queue a /review pass that runs Recon, Hunt, Validate, Gapfill, Dedupe, Trace, Fix, and Verify stages before applying only validated fixes. Set noFix to produce a consolidated report without fixes.",
-    promptGuidelines: [
-      "Use review when the user asks for a code review workflow that should identify actionable issues, verify them, fix the valid ones, and run relevant checks.",
-      "Use review with explicit files when the user names file paths; otherwise let review target current git changes. Use staged when the user specifically asks to review staged/cached changes.",
-      "Use noFix when the user asks to report findings without fixing or editing files.",
-    ],
-    parameters: Type.Object({
-      files: Type.Optional(
-        Type.Array(
-          Type.String({
-            description: "File path to review as a whole-file target.",
-          }),
-          {
-            description:
-              "Explicit file paths to review. Omit to use git changes.",
-          },
-        ),
-      ),
-      staged: Type.Optional(
-        Type.Boolean({
-          description:
-            "When true and files is omitted, review only staged/cached git changes.",
-        }),
-      ),
-      noFix: Type.Optional(
-        Type.Boolean({
-          description:
-            "When true, report validated review findings without applying fixes or editing files.",
-        }),
-      ),
-      instructions: Type.Optional(
-        Type.String({
-          description: "Additional user instructions for this review pass.",
-        }),
-      ),
-    }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      if (activeRun() || runStarting) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Another review workflow is already running.",
-            },
-          ],
-          details: { activeRunId: activeRun()?.id },
-        };
-      }
-
-      const options: ReviewOptions = {
-        files: params.files?.map(normalizeFileArg) ?? [],
-        staged: params.staged ?? false,
-        noFix: params.noFix ?? false,
-        instructions: params.instructions?.trim() ?? "",
-      };
-      const creation = await createReviewRunWithStartGuard(
-        pi,
-        ctx.cwd,
-        options,
-      );
-
-      if (creation.kind === "cancelled") {
-        return {
-          content: [{ type: "text", text: "Review startup was cancelled." }],
-          details: { targets: [] },
-        };
-      }
-
-      if (creation.kind === "empty") {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "No changed files found for review. Pass explicit files to review whole files.",
-            },
-          ],
-          details: { targets: [] },
-        };
-      }
-
-      const active = startReviewRun(pi, creation.run, ctx);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Queued review workflow ${active.id} phase 1/${active.phases.length} for ${active.targets.length} file(s):\n${active.targets
-              .map(formatJsonTarget)
-              .join("\n")}`,
-          },
-        ],
-        details: { runId: active.id, targets: active.targets },
-      };
-    },
-  });
+    if (review.outcome === "allow") return;
+    return blocked(review.rationale);
+  } catch (error) {
+    return blocked(
+      `guardian review failed closed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
+
+export function createReviewExtension(deps: ReviewExtensionDeps = {}) {
+  return function reviewExtension(pi: ExtensionAPI): void {
+    pi.on("tool_call", async (event, ctx) => {
+      if (!workflow.isReadOnlyPhase()) return;
+
+      if (event.toolName === "shell_command") {
+        return evaluateReadOnlyShellCommand(pi, ctx, event.input, deps);
+      }
+
+      if (!INVESTIGATION_ALLOWED_TOOLS.has(event.toolName)) {
+        return {
+          block: true,
+          reason: activeRun()?.noFix
+            ? "/review --no-fix mode is read-only. This tool is not allowed while producing a report."
+            : "/review investigation phases are read-only. This tool is allowed only in Fix and Verify phases.",
+        };
+      }
+
+      if (event.toolName === "spawn_subagent") {
+        (event.input as { readOnly?: boolean }).readOnly = true;
+      }
+    });
+
+    pi.on("agent_end", async (event, ctx) => {
+      const completingRun = activeRun();
+      if (!completingRun?.phaseInProgress) return;
+
+      const latestAssistantText = getLatestAssistantMessageText(event.messages);
+      const decision = workflow.completePhase({
+        latestAssistantText,
+        truncateNotes: (text) => truncate(text, MAX_PHASE_NOTE_CHARS),
+      });
+      if (!decision) return;
+
+      if (decision.kind === "completed") {
+        if (completingRun)
+          emitWorkflowLifecycleEvent(pi, "completed", completingRun);
+        clearQueuedPhaseTimer();
+        runStarting = false;
+        clearReviewWidget(ctx);
+        notifyIfUI(
+          ctx,
+          `/review: ワークフロー ${decision.runId} が完了しました。`,
+          "info",
+        );
+        return;
+      }
+
+      setPhaseWidget(ctx, "queued", decision.phaseIndex + 1);
+      queueNextPhaseAfterCurrentTurn(pi, decision.run.id, ctx);
+    });
+
+    pi.on("session_shutdown", async (_event, ctx) => {
+      const run = activeRun();
+      if (run)
+        emitWorkflowLifecycleEvent(pi, "cancelled", run, {
+          reason: "session_shutdown",
+        });
+      clearActiveRun(ctx);
+    });
+
+    pi.registerCommand(COMMAND_NAME, {
+      description:
+        "Run a multi-stage code review workflow and apply verified fixes, or report only with --no-fix",
+      handler: async (args: string, ctx: ExtensionCommandContext) => {
+        await ctx.waitForIdle();
+
+        const trimmedArgs = args.trim();
+        if (trimmedArgs === "cancel" || trimmedArgs === "--cancel") {
+          const run = activeRun();
+          const runId = run?.id;
+          if (run)
+            emitWorkflowLifecycleEvent(pi, "cancelled", run, {
+              reason: "user_cancelled",
+            });
+          clearActiveRun(ctx);
+          ctx.ui.notify(
+            runId
+              ? `/review: ワークフロー ${runId} をキャンセルしました。`
+              : "/review: キャンセルできるワークフローがありません。",
+            "info",
+          );
+          return;
+        }
+
+        if (activeRun() || runStarting) {
+          ctx.ui.notify(
+            "/review: 別のレビューワークフローが既に実行中です。",
+            "warning",
+          );
+          return;
+        }
+
+        const options = parseArgs(args);
+        const creation = await createReviewRunWithStartGuard(
+          pi,
+          ctx.cwd,
+          options,
+        );
+        if (creation.kind === "cancelled") return;
+        if (creation.kind === "empty") {
+          ctx.ui.notify(
+            "/review: 変更ファイルが見つかりませんでした。ファイル全体をレビューするにはパスを明示してください。",
+            "info",
+          );
+          return;
+        }
+
+        const active = startReviewRun(pi, creation.run, ctx);
+        ctx.ui.notify(
+          `/review: ${active.targets.length} 件のファイルについて phase 1/${active.phases.length} をキューに追加しました。`,
+          "info",
+        );
+      },
+    });
+
+    pi.registerTool({
+      name: TOOL_NAME,
+      label: "Review",
+      description:
+        "Queue a multi-stage code review workflow for changed, staged, or explicitly listed files, then apply verified fixes or produce a no-fix report.",
+      promptSnippet:
+        "Queue a /review pass that runs Recon, Hunt, Validate, Gapfill, Dedupe, Trace, Fix, and Verify stages before applying only validated fixes. Set noFix to produce a consolidated report without fixes.",
+      promptGuidelines: [
+        "Use review when the user asks for a code review workflow that should identify actionable issues, verify them, fix the valid ones, and run relevant checks.",
+        "Use review with explicit files when the user names file paths; otherwise let review target current git changes. Use staged when the user specifically asks to review staged/cached changes.",
+        "Use noFix when the user asks to report findings without fixing or editing files.",
+      ],
+      parameters: Type.Object({
+        files: Type.Optional(
+          Type.Array(
+            Type.String({
+              description: "File path to review as a whole-file target.",
+            }),
+            {
+              description:
+                "Explicit file paths to review. Omit to use git changes.",
+            },
+          ),
+        ),
+        staged: Type.Optional(
+          Type.Boolean({
+            description:
+              "When true and files is omitted, review only staged/cached git changes.",
+          }),
+        ),
+        noFix: Type.Optional(
+          Type.Boolean({
+            description:
+              "When true, report validated review findings without applying fixes or editing files.",
+          }),
+        ),
+        instructions: Type.Optional(
+          Type.String({
+            description: "Additional user instructions for this review pass.",
+          }),
+        ),
+      }),
+      async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+        if (activeRun() || runStarting) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Another review workflow is already running.",
+              },
+            ],
+            details: { activeRunId: activeRun()?.id },
+          };
+        }
+
+        const options: ReviewOptions = {
+          files: params.files?.map(normalizeFileArg) ?? [],
+          staged: params.staged ?? false,
+          noFix: params.noFix ?? false,
+          instructions: params.instructions?.trim() ?? "",
+        };
+        const creation = await createReviewRunWithStartGuard(
+          pi,
+          ctx.cwd,
+          options,
+        );
+
+        if (creation.kind === "cancelled") {
+          return {
+            content: [{ type: "text", text: "Review startup was cancelled." }],
+            details: { targets: [] },
+          };
+        }
+
+        if (creation.kind === "empty") {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No changed files found for review. Pass explicit files to review whole files.",
+              },
+            ],
+            details: { targets: [] },
+          };
+        }
+
+        const active = startReviewRun(pi, creation.run, ctx);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Queued review workflow ${active.id} phase 1/${active.phases.length} for ${active.targets.length} file(s):\n${active.targets
+                .map(formatJsonTarget)
+                .join("\n")}`,
+            },
+          ],
+          details: { runId: active.id, targets: active.targets },
+        };
+      },
+    });
+  };
+}
+
+export default createReviewExtension();

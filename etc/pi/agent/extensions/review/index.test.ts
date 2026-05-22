@@ -17,6 +17,12 @@ import type {
 } from "./index";
 
 installTypeboxMock();
+type GuardianResponse =
+  | { outcome: "allow" | "deny"; rationale: string }
+  | Error;
+const guardianCalls: unknown[][] = [];
+let guardianResponses: GuardianResponse[] = [];
+
 type CommandHandler = (
   args: string,
   ctx: FakeCommandContext,
@@ -132,7 +138,15 @@ async function loadExtensionModule() {
 }
 
 async function loadExtension() {
-  return (await loadExtensionModule()).default;
+  const { createReviewExtension } = await loadExtensionModule();
+  return createReviewExtension({
+    shellCommandGuardianReviewer: async (...args: unknown[]) => {
+      guardianCalls.push(args);
+      const response = guardianResponses.shift();
+      if (response instanceof Error) throw response;
+      return response ?? { outcome: "deny", rationale: "test default deny" };
+    },
+  });
 }
 
 function deferred<T>() {
@@ -156,6 +170,8 @@ async function shutdownAllRuns() {
 }
 
 afterEach(async () => {
+  guardianCalls.splice(0);
+  guardianResponses = [];
   await shutdownAllRuns();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
@@ -372,13 +388,82 @@ describe("review extension", () => {
     expect(subagentEvent.input).toEqual({ prompt: "inspect", readOnly: true });
     await expect(
       pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "shell_command",
+        input: { command: "sed -n '1,120p' review/index.ts" },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "shell_command",
+        input: {
+          command:
+            "git status --short -- review/index.ts && git diff -- review/index.ts",
+        },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "shell_command",
+        input: { command: "rm -rf review" },
+      }),
+    ).resolves.toEqual({
+      block: true,
+      reason: expect.stringContaining("rm"),
+    });
+    guardianResponses = [{ outcome: "allow", rationale: "awk only prints" }];
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0](
+        {
+          toolName: "shell_command",
+          input: { command: "awk '{print $1}' file" },
+        },
+        createRunContext(),
+      ),
+    ).resolves.toBeUndefined();
+    expect(guardianCalls).toHaveLength(1);
+    expect(guardianCalls[0][2]).toMatchObject({
+      command: "awk '{print $1}' file",
+      phaseFile: "01-recon.md",
+      staticRationale: expect.stringContaining("awk"),
+    });
+
+    guardianResponses = [{ outcome: "deny", rationale: "unsafe awk" }];
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0](
+        {
+          toolName: "shell_command",
+          input: { command: "awk '{print $1}' file" },
+        },
+        createRunContext(),
+      ),
+    ).resolves.toEqual({
+      block: true,
+      reason: "/review read-only phase blocked shell_command: unsafe awk",
+    });
+
+    guardianResponses = [new Error("guardian unavailable")];
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0](
+        {
+          toolName: "shell_command",
+          input: { command: "awk '{print $1}' file" },
+        },
+        createRunContext(),
+      ),
+    ).resolves.toEqual({
+      block: true,
+      reason:
+        "/review read-only phase blocked shell_command: guardian review failed closed: guardian unavailable",
+    });
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
         toolName: "bash",
         input: { command: "echo hi" },
       }),
     ).resolves.toEqual({
       block: true,
       reason:
-        "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
+        "/review investigation phases are read-only. This tool is allowed only in Fix and Verify phases.",
     });
   });
 
@@ -511,7 +596,7 @@ describe("review extension", () => {
     }
   });
 
-  test("normal-mode summary phase is read-only", async () => {
+  test("normal-mode verify phase permits mutating tools and summary phase is read-only", async () => {
     const extension = await loadExtension();
     const pi = createFakePi();
     extension(pi as never);
@@ -520,7 +605,7 @@ describe("review extension", () => {
       .get("review")
       ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
 
-    for (let index = 1; index <= 8; index += 1) {
+    for (let index = 1; index <= 7; index += 1) {
       await pi.getEventHandlers("agent_end")?.[0](
         { messages: [{ role: "assistant", content: `phase ${index}` }] },
         ctx,
@@ -528,7 +613,27 @@ describe("review extension", () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
 
+    expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("08-verify.md");
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "bash",
+        input: { command: "echo hi" },
+      }),
+    ).resolves.toBeUndefined();
+
+    await pi.getEventHandlers("agent_end")?.[0](
+      { messages: [{ role: "assistant", content: "phase 8" }] },
+      ctx,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
     expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("09-summary.md");
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "shell_command",
+        input: { command: "git diff -- review/index.ts" },
+      }),
+    ).resolves.toBeUndefined();
     await expect(
       pi.getEventHandlers("tool_call")?.[0]({
         toolName: "bash",
@@ -537,7 +642,7 @@ describe("review extension", () => {
     ).resolves.toEqual({
       block: true,
       reason:
-        "/review investigation phases are read-only. This tool is allowed only in Stage 7: Fix.",
+        "/review investigation phases are read-only. This tool is allowed only in Fix and Verify phases.",
     });
   });
 
@@ -678,6 +783,12 @@ describe("review extension", () => {
       reason:
         "/review --no-fix mode is read-only. This tool is not allowed while producing a report.",
     });
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "shell_command",
+        input: { command: "sed -n '1,80p' review/index.ts" },
+      }),
+    ).resolves.toBeUndefined();
 
     for (let index = 1; index <= 6; index += 1) {
       await pi.getEventHandlers("agent_end")?.[0](
