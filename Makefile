@@ -13,19 +13,8 @@ CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 SKILLS_PROJECT := $(abspath skills)
 PI_BASE := etc/pi
 PI_HOME := $(HOME)/.pi
-PI_EXCLUSIONS := \
-	$(PI_BASE)/README.md \
-	$(PI_BASE)/agent/extensions/CONVENTIONS.md \
-	$(PI_BASE)/agent/extensions/PLAN.md \
-	$(PI_BASE)/agent/extensions/implementation-notes.md \
-	$(PI_BASE)/agent/extensions/biome.json \
-	$(PI_BASE)/agent/extensions/bun.lock \
-	$(PI_BASE)/agent/extensions/package.json \
-	$(PI_BASE)/agent/extensions/tsconfig.json \
-	$(PI_BASE)/agent/extensions/node_modules/% \
-	$(PI_BASE)/agent/extensions/%.test.ts \
-	$(PI_BASE)/agent/extensions/test-support/%
-PI_CANDIDATES := $(filter-out $(PI_EXCLUSIONS),$(shell find $(PI_BASE) \( -path '$(PI_BASE)/agent/extensions/node_modules' -o -path '$(PI_BASE)/agent/extensions/test-support' \) -prune -o -type f -print 2>/dev/null))
+PI_EXTENSIONS_PROJECT ?= $(HOME)/ghq/github.com/shuymn/pi-extensions
+PI_CANDIDATES := $(shell find $(PI_BASE) -type f -print 2>/dev/null)
 PI_TARGETS := $(patsubst $(PI_BASE)/%,$(PI_HOME)/%,$(PI_CANDIDATES))
 
 .DEFAULT_GOAL := help
@@ -82,6 +71,11 @@ link-pi: ## Create symlinks to the pi agent directory
 	@$(foreach file,$(PI_CANDIDATES), \
 		mkdir -p $(dir $(patsubst etc/pi/%,$(PI_HOME)/%,$(file))) && \
 		ln -sfnv $(abspath $(file)) $(patsubst etc/pi/%,$(PI_HOME)/%,$(file));)
+	@if [ -d "$(PI_EXTENSIONS_PROJECT)" ]; then \
+		pi install "$(PI_EXTENSIONS_PROJECT)" >/dev/null; \
+	else \
+		echo "Skip pi-extensions package install: $(PI_EXTENSIONS_PROJECT) not found"; \
+	fi
 	@mkdir -p $(PI_HOME)/agent
 	@ln -sfnv $(abspath $(CLAUDE_BASE)/CLAUDE.md) $(PI_HOME)/agent/AGENTS.md
 	@echo 'Finish linking pi files'
