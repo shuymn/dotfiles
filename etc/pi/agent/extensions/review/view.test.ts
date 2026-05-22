@@ -22,6 +22,7 @@ function run(
     instructions: "",
     nextPhaseIndex: 1,
     phaseOutputs: [],
+    phaseArtifacts: [],
     phaseInProgress: true,
     gapfillLoopCount: 0,
     ...overrides,

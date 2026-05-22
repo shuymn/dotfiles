@@ -21,6 +21,14 @@ export function installTypeboxMock() {
         ...schema,
         optional: true,
       }),
+      Literal: (value: unknown, options = {}) => ({
+        const: value,
+        ...options,
+      }),
+      Union: (schemas: unknown[], options = {}) => ({
+        anyOf: schemas,
+        ...options,
+      }),
     };
     return { Type };
   });

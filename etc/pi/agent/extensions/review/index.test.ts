@@ -40,7 +40,7 @@ type ToolDefinition = {
       staged?: boolean;
       noFix?: boolean;
       instructions?: string;
-    },
+    } & Record<string, unknown>,
     signal: AbortSignal | undefined,
     onUpdate: unknown,
     ctx: FakeRunContext,
@@ -130,6 +130,31 @@ function createCommandContext(
     async waitForIdle() {
       waited.value = true;
     },
+  };
+}
+
+function sampleArtifact(
+  runId: string,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    runId,
+    phaseFile: "01-recon.md",
+    findings: [
+      {
+        id: "finding-1",
+        file: "src/app.ts",
+        issue: "issue",
+        evidence: "evidence",
+        impact: "impact",
+        suggestedFix: "fix",
+        confidence: "confirmed",
+      },
+    ],
+    coverageGaps: [],
+    nextTasks: [],
+    summaryForNextPhase: "summary",
+    ...overrides,
   };
 }
 
@@ -227,6 +252,162 @@ describe("review extension", () => {
     expect(module.WORKFLOW_FAILED_EVENT).toBe("workflow:failed");
     expect(module.WORKFLOW_CANCELLED_EVENT).toBe("workflow:cancelled");
     expect(payload).toMatchObject({ name: "review", status: "started" });
+  });
+
+  test("artifact tools record structured state, patches, and terminate", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createRunContext();
+
+    const reviewResult = await pi.tools
+      .get("review")
+      ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
+    const runId = reviewResult?.details.runId as string;
+
+    const artifactResult = await pi.tools
+      .get("review_phase_artifact")
+      ?.execute(
+        "artifact-call",
+        sampleArtifact(runId),
+        undefined,
+        undefined,
+        ctx,
+      );
+
+    expect(artifactResult).toMatchObject({
+      details: { ok: true, warnings: [] },
+      terminate: true,
+    });
+
+    const patchResult = await pi.tools
+      .get("review_phase_artifact_patch")
+      ?.execute(
+        "patch-call",
+        {
+          runId,
+          phaseFile: "01-recon.md",
+          replaceFindingsById: [
+            {
+              id: "finding-1",
+              file: "src/app.ts",
+              issue: "patched issue",
+              evidence: "patched evidence",
+              impact: "impact",
+              suggestedFix: "fix",
+              confidence: "likely",
+            },
+          ],
+          addNextTasks: [
+            {
+              id: "task-1",
+              question: "q",
+              scopeHint: "src/app.ts",
+              evidenceToCheck: ["caller"],
+              whyItMatters: "could affect decision",
+            },
+          ],
+        },
+        undefined,
+        undefined,
+        ctx,
+      );
+
+    expect(patchResult).toMatchObject({
+      details: { ok: true, warnings: [] },
+      terminate: true,
+    });
+
+    await pi.getEventHandlers("agent_end")?.[0](
+      { messages: [{ role: "assistant", content: "fallback not used" }] },
+      ctx,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(pi.sentMessages.at(-1)?.message.details.phase).toBe("02-hunt.md");
+    expect(pi.sentMessages.at(-1)?.message.content).toContain("patched issue");
+    expect(pi.sentMessages.at(-1)?.message.content).toContain("task-1");
+    expect(pi.sentMessages.at(-1)?.message.content).not.toContain(
+      "fallback not used",
+    );
+  });
+
+  test("artifact tools ignore wrong run or phase without corrupting state", async () => {
+    const extension = await loadExtension();
+    const pi = createFakePi();
+    extension(pi as never);
+    const ctx = createRunContext();
+
+    const noRunResult = await pi.tools
+      .get("review_phase_artifact")
+      ?.execute(
+        "artifact-call",
+        sampleArtifact("run-1"),
+        undefined,
+        undefined,
+        ctx,
+      );
+
+    expect(noRunResult).toMatchObject({
+      details: { ok: false },
+      terminate: true,
+    });
+
+    const reviewResult = await pi.tools
+      .get("review")
+      ?.execute("call", { files: ["src/app.ts"] }, undefined, undefined, ctx);
+    const runId = reviewResult?.details.runId as string;
+
+    const wrongRunResult = await pi.tools
+      .get("review_phase_artifact")
+      ?.execute(
+        "artifact-call",
+        sampleArtifact("wrong-run"),
+        undefined,
+        undefined,
+        ctx,
+      );
+
+    expect(wrongRunResult).toMatchObject({
+      details: { ok: false },
+      terminate: true,
+    });
+    expect(wrongRunResult?.details.warnings[0]).toMatchObject({
+      code: "run_mismatch",
+    });
+
+    const wrongPhaseResult = await pi.tools
+      .get("review_phase_artifact_patch")
+      ?.execute(
+        "patch-call",
+        {
+          runId,
+          phaseFile: "02-hunt.md",
+          replaceSummaryForNextPhase: "wrong phase patch",
+        },
+        undefined,
+        undefined,
+        ctx,
+      );
+
+    expect(wrongPhaseResult).toMatchObject({
+      details: { ok: false },
+      terminate: true,
+    });
+    expect(wrongPhaseResult?.details.warnings[0]).toMatchObject({
+      code: "phase_mismatch",
+    });
+
+    await pi.getEventHandlers("agent_end")?.[0](
+      { messages: [{ role: "assistant", content: "fallback text" }] },
+      ctx,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(pi.sentMessages.at(-1)?.message.content).toContain("fallback text");
+    expect(pi.sentMessages.at(-1)?.message.content).not.toContain(
+      "wrong phase patch",
+    );
   });
 
   test("tool explicit-file mode queues the first phase without inspecting git status", async () => {
@@ -376,6 +557,18 @@ describe("review extension", () => {
 
     await expect(
       pi.getEventHandlers("tool_call")?.[0]({ toolName: "read", input: {} }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "review_phase_artifact",
+        input: {},
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "review_phase_artifact_patch",
+        input: {},
+      }),
     ).resolves.toBeUndefined();
     const subagentEvent: { toolName: string; input: Record<string, unknown> } =
       {
@@ -787,6 +980,12 @@ describe("review extension", () => {
       pi.getEventHandlers("tool_call")?.[0]({
         toolName: "shell_command",
         input: { command: "sed -n '1,80p' review/index.ts" },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      pi.getEventHandlers("tool_call")?.[0]({
+        toolName: "review_phase_artifact",
+        input: {},
       }),
     ).resolves.toBeUndefined();
 

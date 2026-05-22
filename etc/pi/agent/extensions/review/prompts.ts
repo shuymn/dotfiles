@@ -5,6 +5,11 @@ import {
   type Target,
 } from "../lib/git";
 import { formatAdditionalUserInstructionsBlock } from "../lib/prompt";
+import {
+  type PhaseArtifactStatus,
+  REVIEW_PHASE_ARTIFACT_PATCH_TOOL_NAME,
+  REVIEW_PHASE_ARTIFACT_TOOL_NAME,
+} from "./artifacts";
 import { GAPFILL_PHASE_FILE, type WorkflowPhaseFile } from "./phases";
 import { type ActiveReviewRun, MAX_GAPFILL_LOOPS } from "./workflow";
 
@@ -75,6 +80,7 @@ For quick inspection, target file shell arguments are: ${buildQuotedTargets(run.
 }
 
 export function buildPreviousPhaseOutputs(run: ActiveReviewRun): string {
+  if (run.phaseArtifacts.length > 0) return buildPreviousPhaseArtifacts(run);
   if (run.phaseOutputs.length === 0) return "No previous phase outputs yet.";
 
   const phaseOccurrences = new Map<string, number>();
@@ -86,6 +92,79 @@ export function buildPreviousPhaseOutputs(run: ActiveReviewRun): string {
   });
 
   return `<previous_phase_outputs untrusted="true">\n${renderedOutputs.join("\n\n")}\n</previous_phase_outputs>`;
+}
+
+function formatWarnings(status: PhaseArtifactStatus): string[] {
+  if (status.warnings.length === 0) return [];
+  return [
+    "warnings:",
+    ...status.warnings.map(
+      (warning) => `  - ${warning.code}: ${warning.message}`,
+    ),
+  ];
+}
+
+function buildPreviousPhaseArtifacts(run: ActiveReviewRun): string {
+  const phaseOccurrences = new Map<string, number>();
+  const renderedArtifacts = run.phaseArtifacts.map((status, statusIndex) => {
+    const occurrence = (phaseOccurrences.get(status.phaseFile) ?? 0) + 1;
+    phaseOccurrences.set(status.phaseFile, occurrence);
+    const artifact = status.artifact;
+    const body = artifact
+      ? JSON.stringify(
+          {
+            summaryForNextPhase: artifact.summaryForNextPhase,
+            findings: artifact.findings,
+            coverageGaps: artifact.coverageGaps,
+            nextTasks: artifact.nextTasks,
+            patchCount: status.patchCount,
+            warnings: status.warnings,
+          },
+          null,
+          2,
+        )
+      : [
+          "Structured artifact unavailable; fallback notes follow.",
+          ...formatWarnings(status),
+          "",
+          status.fallbackNotes ?? "",
+        ].join("\n");
+
+    return `## Artifact #${statusIndex + 1} — Completed phase ${status.phaseIndex + 1}: ${status.phaseFile} (occurrence ${occurrence})\n\n${body}`;
+  });
+
+  return `<previous_phase_artifacts untrusted="true">\n${renderedArtifacts.join("\n\n")}\n</previous_phase_artifacts>`;
+}
+
+export function buildArtifactInstructions(
+  run: ActiveReviewRun,
+  phaseFile: WorkflowPhaseFile,
+  isLastPhase: boolean,
+): string {
+  if (isLastPhase) return "";
+
+  return `
+
+## Required structured phase artifact
+
+End this intermediate phase by calling the ${REVIEW_PHASE_ARTIFACT_TOOL_NAME} tool. Do not rely on prose as workflow state.
+
+Use exactly this run/phase metadata in the tool arguments:
+
+- runId: ${JSON.stringify(run.id)}
+- phaseFile: ${JSON.stringify(phaseFile)}
+
+Artifact requirements:
+
+- findings: confirmed, likely, speculative, and false-positive findings that later phases may need. Use an empty array when none.
+- coverageGaps: remaining evidence gaps. Use an empty array when none.
+- nextTasks: narrow follow-up tasks. In Gapfill, material nextTasks request another Hunt pass when loop budget remains. Use an empty array when no follow-up pass is needed.
+- summaryForNextPhase: compact, non-empty state summary for the next phase; prefer under 4000 characters.
+- Give every finding, coverage gap, and next task a stable id unique within this phase.
+
+Before ending the phase, self-check the submitted artifact against these requirements. If only a small subset is wrong or missing, call ${REVIEW_PHASE_ARTIFACT_PATCH_TOOL_NAME} with ID-based partial corrections instead of re-emitting the full artifact.
+
+After the artifact tool call, avoid extra assistant commentary for this intermediate phase.`;
 }
 
 export function buildControlInstructions(
@@ -159,5 +238,5 @@ ${phase.instructions}${
 
 - Complete only this phase.
 - Preserve concise notes needed by later phases in your response.
-- ${isLastPhase ? "This is the final phase; provide the final Japanese summary." : "Do not summarize the whole workflow yet."}${buildControlInstructions(run, phase.file)}`;
+- ${isLastPhase ? "This is the final phase; provide the final Japanese summary." : "Do not summarize the whole workflow yet."}${buildControlInstructions(run, phase.file)}${buildArtifactInstructions(run, phase.file, isLastPhase)}`;
 }

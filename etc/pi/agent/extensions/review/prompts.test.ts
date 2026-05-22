@@ -25,6 +25,7 @@ function run(overrides: Partial<ActiveReviewRun> = {}): ActiveReviewRun {
     instructions: "",
     nextPhaseIndex: 1,
     phaseOutputs: [],
+    phaseArtifacts: [],
     phaseInProgress: true,
     gapfillLoopCount: 0,
     ...overrides,
@@ -98,6 +99,104 @@ describe("review prompt rendering", () => {
     );
     expect(prompt).toContain(
       "Output #2 — Completed phase 2: 02-hunt.md (occurrence 2)",
+    );
+  });
+
+  test("structured previous phase artifacts replace full prose context", () => {
+    const prompt = buildPhasePrompt(
+      run({
+        phaseOutputs: [
+          {
+            phaseIndex: 0,
+            phaseFile: "01-recon.md",
+            notes: "verbose assistant prose should not be embedded",
+          },
+        ],
+        phaseArtifacts: [
+          {
+            phaseIndex: 0,
+            phaseFile: "01-recon.md",
+            patchCount: 1,
+            warnings: [],
+            artifact: {
+              runId: "run-1",
+              phaseFile: "01-recon.md",
+              findings: [
+                {
+                  id: "finding-1",
+                  file: "src/app.ts",
+                  issue: "artifact issue",
+                  evidence: "checked test output",
+                  impact: "impact",
+                  suggestedFix: "fix",
+                  confidence: "confirmed",
+                },
+              ],
+              coverageGaps: [],
+              nextTasks: [
+                {
+                  id: "task-1",
+                  question: "q",
+                  scopeHint: "src/app.ts",
+                  evidenceToCheck: ["caller"],
+                  whyItMatters: "could affect decision",
+                },
+              ],
+              summaryForNextPhase: "artifact summary",
+            },
+          },
+        ],
+      }),
+      1,
+    );
+
+    expect(prompt).toContain('<previous_phase_artifacts untrusted="true">');
+    expect(prompt).toContain(
+      "Artifact #1 — Completed phase 1: 01-recon.md (occurrence 1)",
+    );
+    expect(prompt).toContain("artifact issue");
+    expect(prompt).toContain("task-1");
+    expect(prompt).not.toContain(
+      "verbose assistant prose should not be embedded",
+    );
+    expect(prompt).not.toContain('<previous_phase_outputs untrusted="true">');
+  });
+
+  test("fallback notes appear when structured artifact is unavailable", () => {
+    const prompt = buildPhasePrompt(
+      run({
+        phaseArtifacts: [
+          {
+            phaseIndex: 0,
+            phaseFile: "01-recon.md",
+            patchCount: 0,
+            fallbackNotes: "fallback notes",
+            warnings: [
+              {
+                code: "missing_artifact",
+                message: "No structured artifact was submitted.",
+              },
+            ],
+          },
+        ],
+      }),
+      1,
+    );
+
+    expect(prompt).toContain("Structured artifact unavailable");
+    expect(prompt).toContain("missing_artifact");
+    expect(prompt).toContain("fallback notes");
+  });
+
+  test("intermediate phases require artifact tools but final phase does not", () => {
+    const active = run();
+
+    expect(buildPhasePrompt(active, 0)).toContain("review_phase_artifact");
+    expect(buildPhasePrompt(active, 0)).toContain(
+      "review_phase_artifact_patch",
+    );
+    expect(buildPhasePrompt(active, active.phases.length - 1)).not.toContain(
+      "Required structured phase artifact",
     );
   });
 
