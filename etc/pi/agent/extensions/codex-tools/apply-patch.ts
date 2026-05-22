@@ -1,5 +1,4 @@
 import {
-  lstat,
   mkdir,
   readFile,
   realpath,
@@ -55,6 +54,9 @@ type Replacement = { start: number; oldLength: number; newLines: string[] };
 
 const BEGIN = "*** Begin Patch";
 const END = "*** End Patch";
+const ENVIRONMENT_ID = "*** Environment ID:";
+const ENVIRONMENT_ID_POSITION_ERROR =
+  "Environment ID is only allowed immediately after *** Begin Patch";
 const ADD = "*** Add File: ";
 const DELETE = "*** Delete File: ";
 const UPDATE = "*** Update File: ";
@@ -66,17 +68,38 @@ function normalizedPatchLines(input: string): string[] {
   return normalized ? normalized.split("\n") : [];
 }
 
+function invalidEnvironmentIdPositionError(lineNumber: number): Error {
+  return new Error(
+    `Invalid patch line ${lineNumber}: ${ENVIRONMENT_ID_POSITION_ERROR}`,
+  );
+}
+
+function escapedControlCharacter(value: string): string {
+  const codePoint = value.codePointAt(0) ?? 0;
+  return `\\u{${codePoint.toString(16).padStart(4, "0")}}`;
+}
+
+function summarizeBoundaryLine(line: string | undefined): string {
+  if (line === undefined) return "<missing>";
+  const sanitized = line
+    .replace(/[\t ]+/g, " ")
+    .trim()
+    .replace(/[\p{Cc}\p{Cf}]/gu, escapedControlCharacter);
+  if (sanitized.length <= 80) return sanitized || "<empty>";
+  return `${sanitized.slice(0, 77)}...`;
+}
+
 function strictPatchBodyLines(lines: string[]): string[] {
   const first = lines[0]?.trim();
   const last = lines.at(-1)?.trim();
   if (first !== BEGIN) {
     throw new Error(
-      "Invalid patch: The first line of the patch must be '*** Begin Patch'",
+      `Invalid patch: The first line of the patch must be '*** Begin Patch' (actual first line: ${summarizeBoundaryLine(lines[0])})`,
     );
   }
   if (last !== END) {
     throw new Error(
-      "Invalid patch: The last line of the patch must be '*** End Patch'",
+      `Invalid patch: The last line of the patch must be '*** End Patch' (actual last line: ${summarizeBoundaryLine(lines.at(-1))})`,
     );
   }
   return lines.slice(1, -1);
@@ -205,6 +228,16 @@ export function parseApplyPatch(input: string): PatchOperation[] {
   const operations: PatchOperation[] = [];
   let index = 0;
 
+  if ((lines[index] ?? "").trimStart().startsWith(ENVIRONMENT_ID)) {
+    const environmentId = (lines[index] ?? "")
+      .trimStart()
+      .slice(ENVIRONMENT_ID.length)
+      .trim();
+    if (!environmentId)
+      throw new Error("Invalid patch: environment id cannot be empty");
+    index++;
+  }
+
   while (index < lines.length) {
     const line = lines[index]?.trim() ?? "";
     const lineNumber = index + 2;
@@ -248,6 +281,9 @@ export function parseApplyPatch(input: string): PatchOperation[] {
           index++;
           continue;
         }
+        if (current.trimStart().startsWith(ENVIRONMENT_ID)) {
+          throw invalidEnvironmentIdPositionError(index + 2);
+        }
         if (isFileOp(current) || current.startsWith("*")) break;
 
         const parsed = parseUpdateChunk(
@@ -268,6 +304,10 @@ export function parseApplyPatch(input: string): PatchOperation[] {
       continue;
     }
 
+    if (line.trimStart().startsWith(ENVIRONMENT_ID)) {
+      throw invalidEnvironmentIdPositionError(lineNumber);
+    }
+
     throw new Error(
       `Invalid patch line ${lineNumber}: expected file operation header`,
     );
@@ -278,16 +318,6 @@ export function parseApplyPatch(input: string): PatchOperation[] {
 
 function resolvePatchPath(cwd: string, patchPath: string): string {
   return resolve(cwd, patchPath);
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await lstat(path);
-    return true;
-  } catch (error) {
-    if (isEnoent(error)) return false;
-    throw error;
-  }
 }
 
 async function existingParentRealpath(
@@ -322,20 +352,6 @@ async function assertPathInsideWorkspace(
     (await existingParentRealpath(absolutePath, cwdRealPath));
   if (!isPathInside(cwdRealPath, resolvedPath)) {
     throw new Error(`Path escapes workspace: ${patchPath}`);
-  }
-}
-
-async function assertPathAvailable(
-  pendingContent: Map<string, string | null>,
-  absolutePath: string,
-  patchPath: string,
-  operation: "add" | "move",
-): Promise<void> {
-  if (pendingContent.has(absolutePath) || (await pathExists(absolutePath))) {
-    const action = operation === "add" ? "add" : "move file to";
-    throw new Error(
-      `Cannot ${action} existing ${operation === "add" ? "file" : "target"}: ${patchPath}`,
-    );
   }
 }
 
@@ -409,6 +425,13 @@ function normalizeUnicodePunctuation(value: string): string {
     );
 }
 
+const MATCH_NORMALIZERS = [
+  (value: string) => value,
+  (value: string) => value.trimEnd(),
+  (value: string) => value.trim(),
+  normalizeUnicodePunctuation,
+];
+
 function findMatch(
   lines: string[],
   pattern: string[],
@@ -422,13 +445,7 @@ function findMatch(
     endOfFile && lines.length >= pattern.length
       ? Math.max(startAt, lines.length - pattern.length)
       : startAt;
-  const normalizers = [
-    (value: string) => value,
-    (value: string) => value.trimEnd(),
-    (value: string) => value.trim(),
-    normalizeUnicodePunctuation,
-  ];
-  for (const normalize of normalizers) {
+  for (const normalize of MATCH_NORMALIZERS) {
     const normalizedLines = lines.map(normalize);
     const normalizedPattern = pattern.map(normalize);
     const matches: number[] = [];
@@ -440,8 +457,7 @@ function findMatch(
       if (matchesAt(normalizedLines, normalizedPattern, index))
         matches.push(index);
     }
-    if (matches.length === 1) return { kind: "found", index: matches[0] };
-    if (matches.length > 1) throw new Error("Patch context is ambiguous");
+    if (matches.length > 0) return { kind: "found", index: matches[0] };
   }
   return { kind: "missing" };
 }
@@ -576,12 +592,6 @@ async function planChanges(
         absolutePath,
         operation.path,
       );
-      await assertPathAvailable(
-        pendingContent,
-        absolutePath,
-        operation.path,
-        "add",
-      );
       const content =
         operation.lines.length === 0 ? "" : `${operation.lines.join("\n")}\n`;
       pendingContent.set(absolutePath, content);
@@ -620,7 +630,8 @@ async function planChanges(
     const pending = pendingContent.get(absolutePath);
     if (pending === null)
       throw new Error(`Cannot update missing file: ${operation.path}`);
-    if (pending === undefined) {
+    const sourceFromDisk = pending === undefined;
+    if (sourceFromDisk) {
       await assertPathInsideWorkspace(
         cwdRealPath,
         absolutePath,
@@ -640,12 +651,10 @@ async function planChanges(
         targetAbsolutePath,
         targetPath,
       );
-      await assertPathAvailable(
-        pendingContent,
-        targetAbsolutePath,
-        targetPath,
-        "move",
-      );
+      const sourceRealPath = await realpathIfExists(absolutePath);
+      const targetRealPath = await realpathIfExists(targetAbsolutePath);
+      if (sourceRealPath && targetRealPath && sourceRealPath === targetRealPath)
+        throw new Error(`Cannot move file to itself: ${operation.path}`);
     }
     const content = applyUpdateHunks(operation.path, current, operation.hunks);
     pendingContent.set(targetAbsolutePath, content);
@@ -657,12 +666,7 @@ async function planChanges(
       content,
     });
     if (operation.moveTo) {
-      if (!pendingContent.has(absolutePath)) {
-        await assertPathInsideWorkspace(
-          cwdRealPath,
-          absolutePath,
-          operation.path,
-        );
+      if (sourceFromDisk) {
         await assertDeletableFile(absolutePath, operation.path);
       }
       pendingContent.set(absolutePath, null);

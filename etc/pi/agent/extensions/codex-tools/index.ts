@@ -30,6 +30,11 @@ const SHELL_COMMAND_DESCRIPTION = `Runs a shell command and returns its output.
 
 const APPLY_PATCH_DESCRIPTION = `Apply Codex-style file patches without invoking a shell.
 
+This pi extension exposes apply_patch as a JSON tool with an input string:
+{ "input": "*** Begin Patch\\n...\\n*** End Patch" }
+
+For compatibility with resumed/alternate tool calls, raw string arguments and { "patch": string } are normalized internally, but new calls should use { "input": string }.
+
 Patch envelope:
 *** Begin Patch
 [ one or more file sections ]
@@ -207,9 +212,9 @@ function registerCodexTools(pi: ExtensionAPI): void {
       label: "apply_patch",
       description: APPLY_PATCH_DESCRIPTION,
       promptSnippet:
-        "Apply Codex-style file patches directly without shelling out.",
+        "Apply Codex-style file patches directly via the input string field without shelling out.",
       promptGuidelines: [
-        "Use apply_patch for file edits that fit Codex patch grammar.",
+        "Use apply_patch for file edits that fit Codex patch grammar, passing the complete patch as the input string.",
         "Keep apply_patch paths relative to the workspace; never use absolute paths or parent-directory traversal.",
       ],
       parameters: Type.Object({

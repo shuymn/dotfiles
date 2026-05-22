@@ -72,11 +72,13 @@ async function createTempRoot(prefix = "pi-codex-tools-") {
 async function executeApplyPatch(
   pi: ReturnType<typeof createFakePi>,
   cwd: string,
-  input: string,
+  input: unknown,
 ) {
+  const tool = pi.tools.get("apply_patch")!;
+  const params = tool.prepareArguments?.(input) ?? input;
   return pi.tools
     .get("apply_patch")!
-    .execute("call", { input }, undefined, undefined, { cwd });
+    .execute("call", params, undefined, undefined, { cwd });
 }
 
 afterEach(async () => {
@@ -107,6 +109,24 @@ describe("codex-tools extension", () => {
         },
       },
     });
+    expect(pi.tools.get("apply_patch")!).toMatchObject({
+      label: "apply_patch",
+      parameters: {
+        type: "object",
+        properties: {
+          input: { type: "string" },
+        },
+      },
+    });
+    expect(pi.tools.get("apply_patch")!.description).toContain(
+      '{ "input": "*** Begin Patch\\n...\\n*** End Patch" }',
+    );
+    expect(pi.tools.get("apply_patch")!.description).not.toContain(
+      "must not wrap",
+    );
+    expect(pi.tools.get("apply_patch")!.promptGuidelines).toContain(
+      "Use apply_patch for file edits that fit Codex patch grammar, passing the complete patch as the input string.",
+    );
   });
 
   test.each([
@@ -153,6 +173,125 @@ describe("codex-tools extension", () => {
     expect(result.content[0].text).toContain("M hello.txt");
   });
 
+  test.each([
+    [
+      "raw string",
+      "*** Begin Patch\n*** Add File: raw.txt\n+raw\n*** End Patch\n",
+    ],
+    [
+      "input object",
+      {
+        input:
+          "*** Begin Patch\n*** Add File: input.txt\n+input\n*** End Patch\n",
+      },
+    ],
+    [
+      "patch object",
+      {
+        patch:
+          "*** Begin Patch\n*** Add File: patch.txt\n+patch\n*** End Patch\n",
+      },
+    ],
+  ])("apply_patch accepts %s invocation shape", async (_label, input) => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+
+    const result = await executeApplyPatch(pi, root, input);
+
+    expect(result.details.changedFiles).toHaveLength(1);
+    expect(result.content[0].text).toContain("A ");
+  });
+
+  test.each([
+    [
+      "markdown fence",
+      "*** Begin Patch\n*** Add File: fenced.txt\n+fenced\n*** End Patch\n```\n",
+      "```",
+    ],
+    [
+      "unexpected heredoc terminator",
+      "*** Begin Patch\n*** Add File: heredoc.txt\n+heredoc\n*** End Patch\nPATCH\n",
+      "PATCH",
+    ],
+  ])("apply_patch reports actual last line for %s boundary contamination", async (_label, input, lastLine) => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+
+    await expect(executeApplyPatch(pi, root, input)).rejects.toThrow(
+      `actual last line: ${lastLine}`,
+    );
+  });
+
+  test("apply_patch escapes control characters in boundary diagnostics", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+
+    await expect(
+      executeApplyPatch(
+        pi,
+        root,
+        "*** Begin Patch\n*** Add File: color.txt\n+color\n*** End Patch\n\u001b[31mPATCH\n",
+      ),
+    ).rejects.toThrow("actual last line: \\u{001b}[31mPATCH");
+  });
+
+  test("apply_patch truncates long boundary diagnostics", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+    const longLine = "x".repeat(120);
+
+    await expect(
+      executeApplyPatch(
+        pi,
+        root,
+        `*** Begin Patch\n*** Add File: long.txt\n+long\n*** End Patch\n${longLine}\n`,
+      ),
+    ).rejects.toThrow(`${"x".repeat(77)}...`);
+  });
+
+  test("apply_patch accepts non-empty Environment ID preamble", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+
+    const result = await executeApplyPatch(
+      pi,
+      root,
+      "*** Begin Patch\n*** Environment ID: local\n*** Add File: env.txt\n+env\n*** End Patch\n",
+    );
+
+    expect(await readFile(join(root, "env.txt"), "utf8")).toBe("env\n");
+    expect(result.details.changedFiles).toEqual(["env.txt"]);
+  });
+
+  test("apply_patch rejects empty Environment ID preamble", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+
+    await expect(
+      executeApplyPatch(
+        pi,
+        root,
+        "*** Begin Patch\n*** Environment ID:   \n*** Add File: env.txt\n+env\n*** End Patch\n",
+      ),
+    ).rejects.toThrow("environment id cannot be empty");
+  });
+
+  test("apply_patch rejects Environment ID outside the preamble", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+    await writeFile(join(root, "env.txt"), "old\n", "utf8");
+
+    await expect(
+      executeApplyPatch(
+        pi,
+        root,
+        "*** Begin Patch\n*** Update File: env.txt\n*** Environment ID: late\n@@\n-old\n+new\n*** End Patch\n",
+      ),
+    ).rejects.toThrow(
+      "Environment ID is only allowed immediately after *** Begin Patch",
+    );
+  });
+
   test("apply_patch rejects absolute paths", async () => {
     const pi = await createRegisteredPi();
 
@@ -161,6 +300,19 @@ describe("codex-tools extension", () => {
         pi,
         process.cwd(),
         "*** Begin Patch\n*** Add File: /tmp/nope.txt\n+nope\n*** End Patch\n",
+      ),
+    ).rejects.toThrow("file paths must be relative");
+  });
+
+  test("apply_patch rejects parent-directory traversal", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+
+    await expect(
+      executeApplyPatch(
+        pi,
+        root,
+        "*** Begin Patch\n*** Add File: ../nope.txt\n+nope\n*** End Patch\n",
       ),
     ).rejects.toThrow("file paths must be relative");
   });
@@ -180,27 +332,54 @@ describe("codex-tools extension", () => {
     ).rejects.toThrow("Path escapes workspace");
   });
 
-  test("apply_patch rejects add and move targets that already exist", async () => {
+  test("apply_patch allows Add File to overwrite an existing file", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+    await writeFile(join(root, "existing.txt"), "existing\n", "utf8");
+
+    const result = await executeApplyPatch(
+      pi,
+      root,
+      "*** Begin Patch\n*** Add File: existing.txt\n+new\n*** End Patch\n",
+    );
+
+    expect(await readFile(join(root, "existing.txt"), "utf8")).toBe("new\n");
+    expect(result.details.changedFiles).toEqual(["existing.txt"]);
+    expect(result.content[0].text).toContain("A existing.txt");
+  });
+
+  test("apply_patch allows Move to to overwrite an existing target", async () => {
     const pi = await createRegisteredPi();
     const root = await createTempRoot();
     await writeFile(join(root, "existing.txt"), "existing\n", "utf8");
     await writeFile(join(root, "source.txt"), "source\n", "utf8");
 
-    await expect(
-      executeApplyPatch(
-        pi,
-        root,
-        "*** Begin Patch\n*** Add File: existing.txt\n+new\n*** End Patch\n",
-      ),
-    ).rejects.toThrow("Cannot add existing file");
+    const result = await executeApplyPatch(
+      pi,
+      root,
+      "*** Begin Patch\n*** Update File: source.txt\n*** Move to: existing.txt\n@@\n-source\n+moved\n*** End Patch\n",
+    );
+
+    await expect(readFile(join(root, "source.txt"), "utf8")).rejects.toThrow();
+    expect(await readFile(join(root, "existing.txt"), "utf8")).toBe("moved\n");
+    expect(result.details.changedFiles).toEqual(["existing.txt"]);
+    expect(result.content[0].text).toContain("M existing.txt");
+  });
+
+  test("apply_patch rejects Move to targets that resolve to the source", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+    await writeFile(join(root, "source.txt"), "source\n", "utf8");
+    await symlink(join(root, "source.txt"), join(root, "alias.txt"));
 
     await expect(
       executeApplyPatch(
         pi,
         root,
-        "*** Begin Patch\n*** Update File: source.txt\n*** Move to: existing.txt\n@@\n-source\n+moved\n*** End Patch\n",
+        "*** Begin Patch\n*** Update File: source.txt\n*** Move to: alias.txt\n@@\n-source\n+moved\n*** End Patch\n",
       ),
-    ).rejects.toThrow("Cannot move file to existing target");
+    ).rejects.toThrow("Cannot move file to itself");
+    expect(await readFile(join(root, "source.txt"), "utf8")).toBe("source\n");
   });
 
   test("apply_patch inserts add-only hunks at the header location", async () => {
@@ -223,17 +402,35 @@ describe("codex-tools extension", () => {
     );
   });
 
-  test("apply_patch rejects ambiguous repeated context", async () => {
+  test("apply_patch applies repeated context to the first match", async () => {
     const pi = await createRegisteredPi();
     const root = await createTempRoot();
     await writeFile(join(root, "repeated.txt"), "old\nold\n", "utf8");
 
-    await expect(
-      executeApplyPatch(
-        pi,
-        root,
-        "*** Begin Patch\n*** Update File: repeated.txt\n@@\n-old\n+new\n*** End Patch\n",
-      ),
-    ).rejects.toThrow("Patch context is ambiguous");
+    await executeApplyPatch(
+      pi,
+      root,
+      "*** Begin Patch\n*** Update File: repeated.txt\n@@\n-old\n+new\n*** End Patch\n",
+    );
+
+    expect(await readFile(join(root, "repeated.txt"), "utf8")).toBe(
+      "new\nold\n",
+    );
+  });
+
+  test("apply_patch applies repeated context sequentially across hunks", async () => {
+    const pi = await createRegisteredPi();
+    const root = await createTempRoot();
+    await writeFile(join(root, "repeated.txt"), "old\nold\n", "utf8");
+
+    await executeApplyPatch(
+      pi,
+      root,
+      "*** Begin Patch\n*** Update File: repeated.txt\n@@\n-old\n+first\n@@\n-old\n+second\n*** End Patch\n",
+    );
+
+    expect(await readFile(join(root, "repeated.txt"), "utf8")).toBe(
+      "first\nsecond\n",
+    );
   });
 });
