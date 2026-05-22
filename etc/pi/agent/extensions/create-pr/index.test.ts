@@ -263,7 +263,9 @@ describe("create-pr extension", () => {
       "User invoked --create-pr with interactive options: --japanese --base=main",
     );
     expect(prompt).toContain("## 人間向けレスポンスの言語");
-    expect(prompt).toContain("## Additional User Notes\n\nREADME は無視");
+    expect(prompt).toContain(
+      "## Additional User Notes\n\nUser-provided notes are inside this XML-like block.\n\n<additional_user_notes>\nREADME は無視\n</additional_user_notes>",
+    );
     expect(prompt).toContain(
       "## Initial Git/GitHub Snapshot (may be stale; verify with live commands)",
     );

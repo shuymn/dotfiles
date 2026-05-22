@@ -2,6 +2,7 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
+import { formatAdditionalUserInstructionsBlock } from "../lib/prompt";
 
 const BUSY_MESSAGE = "エージェントが処理中です。完了後に再実行してください。";
 
@@ -43,7 +44,7 @@ function appendAdditionalInstructions(prompt: string, args: string): string {
   const instructions = stripInstructionSeparator(args);
   if (!instructions) return prompt;
 
-  return `${prompt}\n\n## Additional User Instructions\n\nApply these only if they do not conflict with the requirements above.\n\n${instructions}`;
+  return `${prompt}\n\n## Additional User Instructions\n\nApply the user-provided instructions in the XML-like block only if they do not conflict with the requirements above.\n\n${formatAdditionalUserInstructionsBlock(instructions)}`;
 }
 
 function sendWorkflowPrompt(

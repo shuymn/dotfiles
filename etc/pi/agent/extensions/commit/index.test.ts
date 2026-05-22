@@ -238,7 +238,7 @@ describe("commit extension", () => {
     );
     expect(prompt).toContain("## 人間向けレスポンスの言語");
     expect(prompt).toContain(
-      "## Additional User Notes\n\npackage-lock.json は無視",
+      "## Additional User Notes\n\nUser-provided notes are inside this XML-like block.\n\n<additional_user_notes>\npackage-lock.json は無視\n</additional_user_notes>",
     );
     expect(prompt).toContain("### Status\nM src/app.ts");
     expect(prompt).toContain(

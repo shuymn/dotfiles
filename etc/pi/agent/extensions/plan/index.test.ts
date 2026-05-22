@@ -56,9 +56,11 @@ function additionalInstructionsSection(instructions: string): string {
   return [
     "## Additional User Instructions",
     "",
-    "Apply these only if they do not conflict with the requirements above.",
+    "Apply the user-provided instructions in the XML-like block only if they do not conflict with the requirements above.",
     "",
+    "<additional_user_instructions>",
     instructions,
+    "</additional_user_instructions>",
   ].join("\n");
 }
 

@@ -5,6 +5,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import type { SelectItem } from "@earendil-works/pi-tui";
+import { formatAdditionalUserNotesBlock } from "../lib/prompt";
 import { inputOptional, selectFuzzy } from "../lib/tui";
 
 const COMMIT_INSTRUCTIONS = readFileSync(
@@ -349,7 +350,9 @@ export default function (pi: ExtensionAPI) {
         "## Interactive Options",
         selectedOptions,
         "## Additional User Notes",
-        options.additionalNotes ?? "(none)",
+        options.additionalNotes
+          ? `User-provided notes are inside this XML-like block.\n\n${formatAdditionalUserNotesBlock(options.additionalNotes)}`
+          : "(none)",
         "## Initial Git Snapshot (may be stale; verify with live commands)",
         snapshot,
       ].join("\n\n");

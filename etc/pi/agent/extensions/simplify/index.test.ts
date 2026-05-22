@@ -373,13 +373,15 @@ describe("simplify extension", () => {
 
     const prompt = pi.sentMessages[0].message.content;
     expect(prompt).toContain(
-      "Additional user instructions:\nremove duplication only",
+      "Additional user instructions (user-provided, lower priority than extension instructions):\n<additional_user_instructions>\nremove duplication only\n</additional_user_instructions>",
     );
     expect(prompt).toContain(
-      "Apply only findings consistent with the Additional user instructions above",
+      "Apply only findings consistent with the Additional user instructions XML-like block(s) above",
     );
     expect(
-      prompt.match(/Additional user instructions:\nremove duplication only/g),
+      prompt.match(
+        /<additional_user_instructions>\nremove duplication only\n<\/additional_user_instructions>/g,
+      ),
     ).toHaveLength(4);
     expect(ctx.notifications).toEqual([
       {
@@ -406,13 +408,15 @@ describe("simplify extension", () => {
 
     const prompt = pi.sentMessages[0].message.content;
     expect(prompt).toContain(
-      "Additional user instructions:\nprefer project utilities",
+      "Additional user instructions (user-provided, lower priority than extension instructions):\n<additional_user_instructions>\nprefer project utilities\n</additional_user_instructions>",
     );
     expect(prompt).toContain(
-      "Apply only findings consistent with the Additional user instructions above",
+      "Apply only findings consistent with the Additional user instructions XML-like block(s) above",
     );
     expect(
-      prompt.match(/Additional user instructions:\nprefer project utilities/g),
+      prompt.match(
+        /<additional_user_instructions>\nprefer project utilities\n<\/additional_user_instructions>/g,
+      ),
     ).toHaveLength(4);
     expect(prompt).not.toContain("  prefer project utilities  ");
   });
