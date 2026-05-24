@@ -86,6 +86,7 @@ etc/pi/agent/extensions/node_modules/
 .config/yarn/
 .config/zed/**/*
 !.config/zed/settings.json
+!.config/zed/keymap.json
 .config/zsh/.zcompcache
 .config/zsh/.zcompdump
 .config/zsh/.zprofile

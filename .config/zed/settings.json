@@ -11,6 +11,7 @@
   "show_edit_predictions": false,
   "agent_ui_font_size": 15.0,
   "terminal": {
+    "copy_on_select": true,
     "dock": "bottom",
     "flexible": true,
     "font_size": 11.0,
@@ -128,6 +129,7 @@
     "metrics": false,
   },
   "vim_mode": true,
+  "soft_wrap": "editor_width",
   "base_keymap": "VSCode",
   "ui_font_size": 15.0,
   "buffer_font_size": 11.0,

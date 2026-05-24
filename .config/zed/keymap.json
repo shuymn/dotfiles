@@ -1,0 +1,9 @@
+[
+  {
+    "context": "Editor && vim_mode == normal",
+    "bindings": {
+      "j": "vim::Down",
+      "k": "vim::Up"
+    }
+  }
+]
