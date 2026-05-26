@@ -81,11 +81,11 @@ allowed-tools: [Bash, Read, Grep, Glob]
 Based on the above context (focusing ONLY on committed changes), create and submit a pull request on GitHub:
 
 ### 1. Analyze Committed Changes
-- Review all commits between current branch and default branch
-- Understand intent from commit messages
-- Identify types and scope of changes
-- Check for breaking changes
-- Classify commits (feature, fix, refactor, docs, etc.)
+- Review all commits between current branch and base branch
+- Understand the intent from commit messages and diff
+- Identify what changed, why it changed, and how it was verified
+- Check for breaking changes, known limitations, and review-order hints
+- Notice if the branch mixes unrelated work; if it does, recommend splitting instead of hiding complexity in the PR body
 
 ### 2. Use PR Template If Exists
 - Follow template format strictly
@@ -93,10 +93,17 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - Delete empty sections
 - Maintain checklist format (- [ ])
 
-### 3. PR Body Format
+### 3. PR Title and Body Format
 
-- If a PR template exists (`.github/pull_request_template.md`), follow it strictly.
-- Otherwise, use the standard format from [pr-templates.md](references/pr-templates.md).
+- Title: short, specific, standalone summary of what the PR does.
+  - Prefer imperative wording in English: "Add ...", "Remove ...", "Fix ...".
+  - Avoid vague titles such as "Fix bug", "Update code", "Phase 1", or "Refactor".
+- Body: explain only what reviewers and future readers cannot get cheaply from the diff.
+  - Always cover: what changed, why it changed, and verification performed.
+  - Include context, trade-offs, limitations, rollout, follow-ups, or review-order hints only when relevant.
+  - Do not duplicate changed-file lists, commit classifications, checklist boilerplate, or obvious implementation details.
+- If a PR template exists (`.github/pull_request_template.md`), follow it strictly but delete empty/non-applicable optional sections when the template allows it.
+- Otherwise, use the concise standard format from [pr-templates.md](references/pr-templates.md).
 - For `--japanese`, use the Japanese format from the same file.
 
 ### 4. Writing Guidelines
@@ -105,6 +112,7 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - Use clear, concise English
 - Keep code references and file paths as-is
 - Be direct and professional
+- Prefer short paragraphs and bullets over long prose
 - Wrap @ symbols in code/paths with backticks to prevent mentions: `@import`, `path/@file`
 
 **Japanese:**
@@ -203,7 +211,8 @@ Based on the above context (focusing ONLY on committed changes), create and subm
 - ONLY analyze committed changes (ignore uncommitted work)
 - Notify if no commits exist between branches
 - Focus on what was committed, not work in progress
-- Be concise, avoid redundancy across sections
+- Be concise; remove sections that add no reviewer value
+- Make the title/body useful as permanent history: specific enough to find later, but not a diff transcript
 - **Without --update**: CREATE new PR using mcp__github__create_pull_request
 - **With --update**: UPDATE existing PR using mcp__github__update_pull_request
 - **With --update**: If no PR exists, notify user and DO NOT create new PR
