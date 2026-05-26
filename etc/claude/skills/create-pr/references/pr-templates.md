@@ -1,75 +1,45 @@
-<!-- do not edit: generated from skills/src/create-pr/references/pr-templates.md; edit source and rebuild -->
+# PR Body Templates
 
-# PR Templates
+These are fallback templates for repositories without `.github/pull_request_template.md`.
+Keep the body short: explain what changed, why it changed, and how it was verified.
+Delete any section that would only repeat the diff or say "none".
 
 ## Standard Format (English)
 
 ```markdown
 ## Summary
-[2-3 sentences explaining purpose and background of commits]
+[1-3 concise bullets or sentences covering the major user-visible or reviewer-relevant changes]
 
-## Changes
-- [Major change from commits]
-- [Major change from commits]
-
-## Motivation
-[Why these commits were necessary]
-
-## Technical Details
-[Implementation approach from commits]
-
-## Impact
-- Affected features: [Features affected by commits]
-- Affected files: [Major files changed]
-- Breaking changes: [Yes/No]
+## Why
+[Context, problem, trade-off, or decision that is not obvious from the code]
 
 ## Testing
-1. [Test step 1]
-2. [Test step 2]
+- [Command/manual check and result]
+```
 
-## Checklist
-- [ ] Code works as expected
-- [ ] Tests have been added/updated
-- [ ] Documentation has been updated (if necessary)
-- [ ] Linter and formatter have been run
-- [ ] Breaking changes are clearly documented
+Add only when relevant:
 
-## Additional Notes
-[Additional information for reviewers]
+```markdown
+## Reviewer Notes
+- [Where to start reviewing, known limitation, follow-up, rollout, or breaking change]
 ```
 
 ## Standard Format (Japanese / --japanese)
 
 ```markdown
 ## 概要
-[コミットの目的と背景を2-3文で説明]
+[ユーザーやレビュアーに重要な変更を1-3個の簡潔な箇条書きまたは文で説明]
 
-## 変更内容
-- [コミットからの主な変更]
-- [コミットからの主な変更]
+## 背景
+[コードだけでは分からない文脈、問題、判断、トレードオフ]
 
-## 変更理由
-[これらのコミットが必要だった理由]
+## テスト
+- [実行したコマンド/手動確認と結果]
+```
 
-## 技術的詳細
-[コミットからの実装アプローチ]
+必要な場合のみ追加:
 
-## 影響範囲
-- 影響を受ける機能:[コミットにより影響を受ける機能]
-- 影響を受けるファイル:[変更された主要ファイル]
-- 破壊的変更:[あり/なし]
-
-## テスト方法
-1. [テスト手順1]
-2. [テスト手順2]
-
-## チェックリスト
-- [ ] コードは正常に動作することを確認した
-- [ ] 適切なテストを追加/更新した
-- [ ] ドキュメントを更新した(必要な場合)
-- [ ] LintやFormatterを実行した
-- [ ] 破壊的変更がある場合は明記した
-
-## その他
-[レビュアーへの追加情報]
+```markdown
+## レビュアー向けメモ
+- [最初に見る場所、既知の制約、フォローアップ、ロールアウト、破壊的変更]
 ```
