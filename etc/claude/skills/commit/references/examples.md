@@ -1,5 +1,3 @@
-<!-- do not edit: generated from skills/src/commit/references/examples.md; edit source and rebuild -->
-
 # Commit Examples and Scenarios
 
 ## Examples of Meaningful Units

@@ -4,9 +4,6 @@ description: "Adversarial verification of code changes — probes target files f
 allowed-tools: [Read, Bash, Grep, Glob, Write]
 ---
 
-<!-- do not edit: generated from skills/src/adversarial-verify/SKILL.md; edit source and rebuild -->
-
-
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

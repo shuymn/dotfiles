@@ -4,9 +4,6 @@ description: Creates meaningful git commits by analyzing changes and committing 
 allowed-tools: [Bash, Read, Grep, Glob]
 ---
 
-<!-- do not edit: generated from skills/src/commit/SKILL.md; edit source and rebuild -->
-
-
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

@@ -10,9 +10,6 @@ description: >-
 allowed-tools: [Read, Grep, Glob]
 ---
 
-<!-- do not edit: generated from skills/src/proofread/SKILL.md; edit source and rebuild -->
-
-
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

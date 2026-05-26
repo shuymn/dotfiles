@@ -4,9 +4,6 @@ description: Reviews committed changes and creates a pull request on GitHub. Use
 allowed-tools: [Bash, Read, Grep, Glob]
 ---
 
-<!-- do not edit: generated from skills/src/create-pr/SKILL.md; edit source and rebuild -->
-
-
 ## Path Resolution
 
 - `<skill-root>` means the directory containing this `SKILL.md`.

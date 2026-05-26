@@ -1,5 +1,3 @@
-<!-- do not edit: generated from skills/src/adversarial-verify/references/attack-vectors.md; edit source and rebuild -->
-
 # Attack Vectors Reference
 
 Structured attack strategies for adversarial verification. Select categories relevant to the change area — do not blindly apply all categories.

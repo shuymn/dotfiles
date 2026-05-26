@@ -1,5 +1,3 @@
-<!-- do not edit: generated from skills/src/proofread/references/tropes.md; edit source and rebuild -->
-
 # AI Writing Tropes Catalog
 
 Any of these patterns used once might be fine. The problem is when multiple
