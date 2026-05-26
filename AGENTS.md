@@ -4,8 +4,8 @@
 
 ## Repo-Specific Rules
 
-- Edit skill sources under `skills/src/**`; do not edit generated artifacts under `etc/claude/skills/**`.
-- There is no `make -C skills build` target; after changing skill sources, validate with `git diff --check -- skills/src` and use `make -C skills sync` only when installing the current artifact tree.
+- Edit skills directly under `etc/claude/skills/**`; there is no separate `skills/` source tree.
+- After changing skills, check for whitespace/conflict markers with `git diff --check -- etc/claude/skills`, then run `make sync-skills` to install them.
 - Use `make link-claude` when you need to refresh `~/.claude/**` symlinks from this repo.
 - Treat `README.md` as user-facing setup docs; keep this file limited to agent-only repository rules.
 
