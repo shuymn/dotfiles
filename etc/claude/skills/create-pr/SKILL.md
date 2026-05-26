@@ -1,0 +1,217 @@
+---
+name: create-pr
+description: Reviews committed changes and creates a pull request on GitHub. Use when the user wants to create a PR, push changes for review, or open a pull request. Requires a GitHub repository. Supports --japanese flag for Japanese descriptions, --base flag to specify target branch, and --update flag to update an existing PR.
+allowed-tools: [Bash, Read, Grep, Glob]
+---
+
+<!-- do not edit: generated from skills/src/create-pr/SKILL.md; edit source and rebuild -->
+
+
+## Path Resolution
+
+- `<skill-root>` means the directory containing this `SKILL.md`.
+- Resolve `scripts/...` and `references/...` relative to `<skill-root>`, not the caller's current working directory.
+- When executing local helpers, use explicit paths such as `<skill-root>/scripts/...`.
+
+# Create Pull Request on GitHub from Committed Changes
+
+## Context
+
+### Git Information
+- Current branch: `git branch --show-current`
+- Remote branches: `git branch -r`
+- Default branch: `git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@'`
+- Repository root: `git rev-parse --show-toplevel`
+- Unpushed commits: `git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || echo "Branch not pushed yet"`
+- Push status: `git status -sb | head -1`
+
+### Committed Changes Only
+**Note**: Replace `origin/HEAD` with `origin/<base-branch>` if `--base=<branch>` is specified
+
+- Commits different from base branch: `git log origin/HEAD..HEAD --oneline`
+- Number of commits ahead: `git rev-list --count origin/HEAD..HEAD`
+- Files changed in commits: `git diff --name-status origin/HEAD..HEAD`
+- Lines added/removed: `git diff --shortstat origin/HEAD..HEAD`
+- Full diff: `git diff origin/HEAD..HEAD`
+
+### Detailed Commit History
+**Note**: Replace `origin/HEAD` with `origin/<base-branch>` if `--base=<branch>` is specified
+
+- Commit messages with body: `git log origin/HEAD..HEAD --format="### %s%n%n%b%n"`
+- Commit authors: `git log origin/HEAD..HEAD --format="%an <%ae>" | sort | uniq`
+
+### PR Templates
+- GitHub template: `cat .github/pull_request_template.md 2>/dev/null || echo "No GitHub template"`
+- Alternative template: `cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo ""`
+
+### Project Information
+- README: `cat README.md 2>/dev/null | head -50 || echo "No README"`
+
+## Language Support
+
+**Default**: English
+**--japanese**: Creates PR in Japanese
+
+## Base Branch Support
+
+**Default**: Repository's default branch (usually `main` or `master`)
+**--base=<branch>**: Specify target branch for the pull request
+
+- Use `--base=<branch>` to create PR against a specific branch
+- Default behavior: Uses repository default branch from `git symbolic-ref --short refs/remotes/origin/HEAD`
+- Examples:
+  - `/create-pr` → Creates PR to default branch
+  - `/create-pr --base=develop` → Creates PR to develop branch
+  - `/create-pr --base=release/v2.0` → Creates PR to release branch
+  - `/create-pr --japanese --base=develop` → Japanese PR to develop branch
+
+## Update PR Support
+
+**--update**: Updates an existing pull request instead of creating a new one
+
+- Use when you've added commits to a branch that already has an open PR
+- Finds the existing PR for the current branch
+- Updates PR title and description based on all commits
+- Useful after addressing review comments or adding more changes
+- Examples:
+  - `/create-pr --update` → Updates existing PR for current branch
+  - `/create-pr --update --japanese` → Updates PR with Japanese description
+- **Note**: Only works if an open PR exists for the current branch
+- If no PR is found, will notify the user (does not create a new PR)
+
+## Your Task
+
+Based on the above context (focusing ONLY on committed changes), create and submit a pull request on GitHub:
+
+### 1. Analyze Committed Changes
+- Review all commits between current branch and default branch
+- Understand intent from commit messages
+- Identify types and scope of changes
+- Check for breaking changes
+- Classify commits (feature, fix, refactor, docs, etc.)
+
+### 2. Use PR Template If Exists
+- Follow template format strictly
+- Fill sections based on committed changes only
+- Delete empty sections
+- Maintain checklist format (- [ ])
+
+### 3. PR Body Format
+
+- If a PR template exists (`.github/pull_request_template.md`), follow it strictly.
+- Otherwise, use the standard format from [pr-templates.md](references/pr-templates.md).
+- For `--japanese`, use the Japanese format from the same file.
+
+### 4. Writing Guidelines
+
+**English:**
+- Use clear, concise English
+- Keep code references and file paths as-is
+- Be direct and professional
+- Wrap @ symbols in code/paths with backticks to prevent mentions: `@import`, `path/@file`
+
+**Japanese:**
+- Use appropriate technical Japanese
+- Keep English proper nouns (libraries, functions) as-is
+- Use clear Japanese without honorifics
+- Use ですます調 for paragraph-style sentences
+- For bullet points, use だ・である調 or noun-ending style (体言止め)
+- Omit final punctuation in bullet points (no `。`)
+
+**Escaping Rules (Important):**
+- For GitHub MCP tools (`mcp__github__create_pull_request`, `mcp__github__update_pull_request`):
+  - Pass `body` as raw Markdown text
+  - Do NOT escape backticks in Markdown (use `` `code` ``, never `\`code\``)
+  - If generated text contains `\` before backticks, normalize it to plain backticks before tool call
+- For `gh` CLI commands:
+  - Prefer `--body-file` to avoid shell-escaping issues
+  - If inline body is unavoidable, use a single-quoted heredoc (`<<'EOF'`) so backticks are preserved as-is
+
+### 5. Execution Steps
+
+#### Standard Flow (Create New PR)
+
+0. **Determine base branch**:
+   - If `--base=<branch>` specified: Use the specified branch
+   - Otherwise: Use repository default branch (`git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@'`)
+
+1. **Ensure changes are pushed**:
+   ```bash
+   git push -u origin [current branch name]
+   ```
+
+2. **Prepare PR content**:
+   - Generate appropriate title summarizing commits
+   - Create PR body following template or standard format
+   - Analyze commits against the determined base branch
+   - Apply escaping rules based on execution method (MCP vs `gh`)
+
+3. **Create pull request**:
+   ```
+   mcp__github__create_pull_request:
+   - title: [Generated title in selected language]
+   - body: [Raw Markdown body in selected language; do NOT escape backticks]
+   - head: [Current branch]
+   - base: [Determined base branch from step 0]
+   ```
+
+4. **After creation**:
+   - Provide PR URL
+   - Confirm success
+   - Explain any errors clearly
+
+#### Update Flow (--update flag)
+
+0. **Get current branch**:
+   ```bash
+   git branch --show-current
+   ```
+
+1. **Find existing PR for current branch**:
+   ```
+   mcp__github__list_pull_requests:
+   - state: open
+   - head: [repository owner]:[current branch]
+   ```
+
+2. **Verify PR exists**:
+   - If no PR found: Notify user and exit (do NOT create new PR)
+   - If PR found: Extract PR number and current base branch
+
+3. **Ensure latest changes are pushed**:
+   ```bash
+   git push origin [current branch name]
+   ```
+
+4. **Prepare updated PR content**:
+   - Generate new title summarizing all commits
+   - Create new PR body following template or standard format
+   - Analyze all commits against the PR's base branch
+   - Apply escaping rules based on execution method (MCP vs `gh`)
+
+5. **Update pull request**:
+   ```
+   mcp__github__update_pull_request:
+   - pull_number: [PR number from step 2]
+   - title: [Generated title in selected language]
+   - body: [Raw Markdown body in selected language; do NOT escape backticks]
+   ```
+
+6. **After update**:
+   - Provide PR URL
+   - Confirm successful update
+   - Explain any errors clearly
+
+## Important Notes
+- ONLY analyze committed changes (ignore uncommitted work)
+- Notify if no commits exist between branches
+- Focus on what was committed, not work in progress
+- Be concise, avoid redundancy across sections
+- **Without --update**: CREATE new PR using mcp__github__create_pull_request
+- **With --update**: UPDATE existing PR using mcp__github__update_pull_request
+- **With --update**: If no PR exists, notify user and DO NOT create new PR
+- **Use AskUserQuestionTool** when you need clarification on:
+  - Whether certain commits should be included in the PR
+  - How to categorize or describe ambiguous changes
+  - Which base branch to use if not specified and multiple options exist
+  - If AskUserQuestionTool is unavailable and multiple independent clarifications are needed, ask in a single message using QID labels (`Q1`, `Q2`, ...); require `QID: <answer>` responses and allow `QID: OTHER(<concise detail>)` when no option fits
