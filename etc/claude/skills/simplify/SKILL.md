@@ -84,7 +84,11 @@ Cap the combined diff context at roughly 60,000 characters. If you must truncate
 
 ## Phase 2 — Three Parallel Reviews
 
-Spawn three sub-agents in parallel via the `Agent` tool — one per review focus. They run **review only** and must not edit files. Pass each sub-agent the same shared context, then append the matching focus block.
+Spawn three sub-agents via the `Agent` tool — one per review focus (code reuse, code quality, efficiency). They run **review only** and must not edit files.
+
+**Tool-call shape (mandatory)**: issue all three `Agent` calls as parallel tool uses **inside a single assistant message**. Do NOT call them sequentially, do NOT wait for one sub-agent's result before dispatching the next, and do NOT split them across multiple assistant turns. Collect all three returned reports before moving to Phase 3.
+
+Pass each sub-agent the same shared context, then append the matching focus block.
 
 ### Shared context (use verbatim in every sub-agent prompt)
 
@@ -139,10 +143,6 @@ Focus: code quality simplification. Look for redundant state, needless branching
 Focus: efficiency. Look for unnecessary computation/API/database calls, serial work that can safely be parallelized, full collection fetches when one item/count is enough, repeated parsing/allocation in hot paths, and waste introduced by the change. Only flag issues with practical impact.
 ```
 
-### Parallel invocation
-
-Issue all three `Agent` calls in a single tool batch so they run concurrently. Each sub-agent returns its findings as text; collect all three results before moving to Phase 3.
-
 ## Phase 3 — Integrate and Apply
 
 Read the three review reports and apply changes directly with `Read` / `Edit` / `Write` / `Bash`.
@@ -195,19 +195,19 @@ If no findings were applied, still produce the summary explaining why (all skipp
 
 Input: `/simplify`
 Phase 1: branch D → unstaged + staged + untracked. Collect both diffs.
-Phase 2: spawn three reviewers with the default scope instruction.
+Phase 2: spawn three reviewers in parallel (one assistant message, three Agent calls) with the default scope instruction.
 Phase 3: apply verified findings, run `bun run check:fast`, summarize in Japanese.
 
 **Example 2 — explicit files**
 
 Input: `/simplify lib/git.ts lib/target-scope.ts please focus on dedup`
 Phase 1: branch A → targets = `lib/git.ts`, `lib/target-scope.ts`. No diff collection.
-Phase 2: scope instruction is the explicit-files variant. Additional user instructions block contains `please focus on dedup`.
+Phase 2: spawn three reviewers in parallel (one assistant message, three Agent calls) with the explicit-files scope instruction. Additional user instructions block contains `please focus on dedup`.
 Phase 3: apply only dedup-aligned findings inside those two files; explain skipped ones.
 
 **Example 3 — base branch review**
 
 Input: `/simplify --base=main`
 Phase 1: branch B → `git diff --name-status -z main...HEAD` defines targets, `git diff main...HEAD` is the diff context.
-Phase 2: base-diff scope instruction. Reviewers ignore unrelated local edits.
+Phase 2: spawn three reviewers in parallel (one assistant message, three Agent calls) with the base-diff scope instruction. Reviewers ignore unrelated local edits.
 Phase 3: apply verified findings only within branch-changed files.
