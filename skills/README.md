@@ -1,27 +1,23 @@
 # skills
 
-Standalone project for skill source, build tooling, and validation.
+Skill sources and install tooling.
 
 ## Layout
 
 - `src/`
   - Source of truth for editable skills.
-  - `src/<skill>/` contains each skill's `SKILL.md`, `references/`, `scripts/`, and optional `tests/`.
-  - Structured reference sections use `*.md.tmpl` + adjacent `*.fragments.json`; build renders them back to plain Markdown artifacts.
-  - `src/common/` contains shared source-only helpers vendored into built artifacts.
-- `tools/skit/`
-  - Go-based CLIs: `skit` for authoring/review checks and `skitkit` for build/sync management. See [`tools/skit/README.md`](tools/skit/README.md).
+  - `src/<skill>/` contains each skill's `SKILL.md` and optional `references/`, `scripts/`, `tests/`.
 - `Makefile`
-  - Entrypoints for build, test, install, reconcile, audit, and sync.
+  - Entrypoints for install and Codex `AGENTS.md` sync.
 
 ## Commands
 
-- `make -C skills build`
-  - Build `../etc/claude/skills/**` from `src/**`.
+- `make -C skills install`
+  - Install skills from `../etc/claude/skills/**` via the `skills` CLI.
 - `make -C skills sync`
-  - Build artifacts via `skitkit`, install managed skills, reconcile stale managed skills, audit Codex duplicates, and sync `AGENTS.md`.
+  - Install skills and sync `AGENTS.md` for Codex.
 
 ## Notes
 
-- `../etc/claude/skills/**` is the committed artifact tree. Do not edit it by hand.
-- `src/common/` is a project internal, not a skill.
+- `../etc/claude/skills/**` is the committed artifact tree consumed by `bunx skills add`.
+- Edit `src/<skill>/SKILL.md` first; copy changes to the artifact tree when ready.
