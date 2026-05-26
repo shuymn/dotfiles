@@ -10,7 +10,11 @@ CLAUDE_CANDIDATES := $(shell find $(CLAUDE_BASE) -type f 2>/dev/null)
 CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
 CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 
-SKILLS_PROJECT := $(abspath skills)
+SKILLS_ROOT := $(abspath $(CLAUDE_BASE)/skills)
+SKILLS_CMD := bunx --bun skills
+SKILLS_AGENTS := codex claude-code
+CODEX_AGENTS_SOURCE := $(abspath $(CLAUDE_BASE)/CLAUDE.md)
+CODEX_AGENTS_TARGET := $(HOME)/.codex/AGENTS.md
 PI_BASE := etc/pi
 PI_HOME := $(HOME)/.pi
 PI_EXTENSIONS_PROJECT ?= $(HOME)/ghq/github.com/shuymn/pi-extensions
@@ -81,8 +85,15 @@ link-pi: ## Create symlinks to the pi agent directory
 	@echo 'Finish linking pi files'
 
 .PHONY: sync-skills
-sync-skills: ## Build, sync, prune codex duplicates, and sync Codex AGENTS.md
-	@$(MAKE) -C "$(SKILLS_PROJECT)" sync
+sync-skills: ## Install skills and sync Codex AGENTS.md
+	@printf '\n[skills-sync] step=install start\n'
+	@$(SKILLS_CMD) add "$(SKILLS_ROOT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
+	@printf '[skills-sync] step=install done\n'
+	@printf '\n[skills-sync] step=codex-agents-md start\n'
+	@mkdir -p $(dir $(CODEX_AGENTS_TARGET))
+	@cp -fv "$(CODEX_AGENTS_SOURCE)" "$(CODEX_AGENTS_TARGET)"
+	@printf '[skills-sync] step=codex-agents-md done\n'
+	@printf '\n[skills-sync] result=success\n'
 
 .PHONY: clean-claude
 clean-claude: ## Remove symlinks from the claude directory (excluding skills)

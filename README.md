@@ -22,16 +22,11 @@ make link-pi
 - `make link-claude`
   - Symlinks `etc/claude/**` into `~/.claude/**` (excluding `etc/claude/skills/**`).
 - `make sync-skills`
-  - Delegates to `skills/Makefile`.
-  - Rebuilds `etc/claude/skills/**` from `skills/src/**` via `skitkit` before installation.
-  - Manages skills from `etc/claude/skills/**` using `bunx --bun skills`.
-  - Reconciles stale managed skills while preserving external/manual skills.
-  - Treats `~/.agents/skills` as canonical and prunes only duplicates from `~/.codex/skills`.
+  - Installs skills from the canonical `etc/claude/skills/**` tree using `bunx --bun skills`.
   - Syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
 - `make link-pi`
   - Symlinks `etc/pi/**` into `~/.pi/**`.
   - Installs pi extensions such as `/commit`.
-- For local skills development commands such as build/test/fmt/lint, use `make -C skills ...`.
 
 ## Install commands via Cargo
 
