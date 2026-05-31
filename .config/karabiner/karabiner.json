@@ -163,13 +163,7 @@
                         "vendor_id": 1149
                     },
                     "ignore": false,
-                    "ignore_vendor_events": true,
-                    "simple_modifications": [
-                        {
-                            "from": { "pointing_button": "button3" },
-                            "to": [{ "key_code": "f13" }]
-                        }
-                    ]
+                    "ignore_vendor_events": true
                 },
                 {
                     "disable_built_in_keyboard_if_exists": true,
