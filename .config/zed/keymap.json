@@ -3,7 +3,14 @@
     "context": "Editor && vim_mode == normal",
     "bindings": {
       "j": "vim::Down",
-      "k": "vim::Up"
+      "k": "vim::Up",
+      "x": ["workspace::SendKeystrokes", "a backspace escape l"]
+    }
+  },
+  {
+    "context": "Editor && vim_mode == visual",
+    "bindings": {
+      "x": "editor::Delete"
     }
   }
 ]
