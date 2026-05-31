@@ -1,0 +1,50 @@
+# Ghostty + tmux
+# Keep Ghostty as a thin terminal emulator. tmux owns sessions, windows,
+# panes, popups, copy-mode, and clipboard behavior.
+
+# Start or attach the default tmux session for every Ghostty window.
+# Ghostty executes this before shell startup files can add Homebrew to PATH.
+command = /opt/homebrew/bin/tmux new-session -A -s main
+
+# Appearance
+font-family = UDEV Gothic NF
+font-size = 12
+theme = Catppuccin Mocha
+background-opacity = 0.90
+background-blur = 25
+window-padding-x = 0
+window-padding-y = 0
+
+# macOS
+macos-option-as-alt = true
+macos-titlebar-style = hidden
+quit-after-last-window-closed = true
+
+# Behavior
+confirm-close-surface = true
+shell-integration = none
+scrollback-limit = 10000
+window-save-state = never
+
+# Keybindings
+# Disable Ghostty's tab/split/window-management shortcuts. tmux owns muxing.
+keybind = clear
+keybind = cmd+n=unbind
+keybind = cmd+t=unbind
+keybind = cmd+w=unbind
+keybind = cmd+shift+t=unbind
+keybind = cmd+shift+]=unbind
+keybind = cmd+shift+[=unbind
+keybind = cmd+d=unbind
+keybind = cmd+shift+d=unbind
+keybind = cmd+enter=unbind
+
+# Keep only terminal-emulator basics.
+keybind = cmd+c=copy_to_clipboard
+keybind = cmd+v=paste_from_clipboard
+keybind = cmd+==increase_font_size:1
+keybind = cmd+-=decrease_font_size:1
+keybind = cmd+0=reset_font_size
+keybind = cmd+comma=open_config
+keybind = cmd+shift+comma=reload_config
+keybind = cmd+q=close_all_windows
