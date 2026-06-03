@@ -12,7 +12,7 @@ CLAUDE_TARGETS := $(patsubst $(CLAUDE_BASE)/%,$(CLAUDE_HOME)/%,$(CLAUDE_FILES))
 
 SKILLS_ROOT := $(abspath $(CLAUDE_BASE)/skills)
 SKILLS_CMD := bunx --bun skills
-SKILLS_AGENTS := codex claude-code
+SKILLS_AGENTS := codex claude-code antigravity-cli
 CODEX_AGENTS_SOURCE := $(abspath $(CLAUDE_BASE)/CLAUDE.md)
 CODEX_AGENTS_TARGET := $(HOME)/.codex/AGENTS.md
 PI_BASE := etc/pi
