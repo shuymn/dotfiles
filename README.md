@@ -38,9 +38,11 @@ make agents     # link/sync Claude, Codex, and pi agent files
 - nix-darwin: macOS settings, Nix daemon settings, shell enablement, Homebrew taps, tap-only formulae, and GUI casks.
 - mise: language runtimes in `.config/mise/config.toml`.
 - aqua: pinned CI/release/lint helper CLIs in `.config/aqua/aqua.yaml`.
-- chezmoi: bootstrap links from `home/` for files not owned by Nix/Home Manager.
+- chezmoi: tracked dotfiles under `home/`, including `.config` entries as normal chezmoi source state.
 
 Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. `make switch` is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
+
+`~/.config` should be a normal directory. Do not symlink the whole directory back to this repo; keep application state and generated files outside git, and manage only intentional dotfiles through `home/dot_config/**`.
 
 ## Agent files
 
