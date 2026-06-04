@@ -1,0 +1,14 @@
+name: Security checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security:
+    permissions:
+      contents: read
+    uses: shuymn/github-actions/.github/workflows/security.yml@efbb466753770f4edec3fe2f9c4ee580611faabc
