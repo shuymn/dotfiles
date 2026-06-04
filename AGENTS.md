@@ -19,7 +19,6 @@
 - Keep chezmoi source state inside `home/**`; do not add symlink templates that point managed targets back to repo-root dotfiles. Preserve root `.chezmoi.toml.tmpl` and `make chezmoi-config` so plain `chezmoi` commands use this checkout after bootstrap.
 - Keep root-template helper scripts under `scripts/**` bootstrap-safe: call them through `/bin/sh`, keep them POSIX-sh compatible unless the caller explicitly uses another shell, and do not require executable bits for template rendering.
 - Keep chezmoi age encryption enabled via root `.chezmoi.toml.tmpl`, but never manage or commit `~/.config/age/key.txt`; it is local-only and must be backed up out-of-band.
-- Treat `install.sh` as a local-only `make apply` wrapper, not as the full bootstrap path; if its behavior changes, update `README.md` and the script together.
 - Keep mise for version-switched runtimes and pinned helper CLIs. Prefer plain `mise install`; `make mise` is only a shortcut. Existing `npm:` and `pipx:` entries may remain, but new global `npm:`/`pipx:`/`cargo:`/`go:`/`gem:` tool entries need an explicit exception reason.
 - Run `make audit-cli-path` before migrating unmanaged global CLIs so PATH-derived evidence drives the move.
 - After Homebrew tap/formula/cask changes, run `make check-brew`; it checks dependency availability and compares formula leaves/casks against the nix-darwin generated Brewfile.

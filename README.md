@@ -15,8 +15,6 @@ mise install
 
 `make` ターゲットは bootstrap 用の薄い wrapper です。Nix 系ターゲットは評価前に `nix/local.nix.tmpl` から ignored な `nix/local.nix` を生成します。
 
-`install.sh` は local checkout から `make apply` を実行するための補助 wrapper です。Nix のインストール、nix-darwin activation、remote `curl | sh` 実行には対応していません。完全な bootstrap には上の手順を使います。
-
 最初の `make apply NIX_ROLE=personal` は `.chezmoi.toml.tmpl` から `~/.config/chezmoi/chezmoi.toml` を生成し、この checkout を `sourceDir` として設定し、選択した `nixRole` を chezmoi data に保存してから dotfiles を適用します。利用できる role は `nix/roles/` 配下のファイルです。その後は、通常の `chezmoi diff`、`chezmoi apply`、`chezmoi managed` がこのリポジトリを参照します。
 
 chezmoi の暗号化には age を使います。既存の暗号化ファイルを復号する場合は、別管理で backup している `~/.config/age/key.txt` を復元します。新しい local identity を作る場合は `make age-key` を使います。key が存在する場合、`.chezmoi.toml.tmpl` は `scripts/age-recipient.sh` 経由で公開 recipient を導出します。age の秘密鍵は chezmoi と git の管理対象外です。
