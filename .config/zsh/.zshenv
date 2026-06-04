@@ -7,10 +7,6 @@ path=( \
   "${GOBIN}"(N-/) \
   /usr/local/bin(N-/) \
   /usr/local/sbin(N-/) \
-  /usr/local/go/bin(N-/) \
-  /usr/local/opt/zplug(N-/) \
-  /usr/local/opt/mysql@5.6/bin(N-/) \
-  /usr/local/opt/curl/bin(N-/) \
   /opt/homebrew/bin(N-/) \
   /opt/homebrew/sbin(N-/) \
   /home/linuxbrew/.linuxbrew/bin(N-/) \
@@ -19,7 +15,6 @@ path=( \
   ~/.serverless/bin(N-/) \
   ~/.cargo/bin(N-/) \
   ~/.poetry/bin(N-/) \
-  ~/.volta/bin(N-/) \
   ~/.grit/bin(N-/) \
   ~/.deno/bin(N-/) \
   ~/.antigravity/antigravity/bin(N-/) \
@@ -29,15 +24,33 @@ path=( \
   "$path[@]" \
 )
 
+# Nix
+if [[ -r /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
+  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+fi
+
+# aqua
+export AQUA_GLOBAL_CONFIG="${XDG_CONFIG_HOME}/aqua/aqua.yaml"
+export AQUA_ROOT_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/aquaproj-aqua"
+
+# Keep Nix-managed mise ahead of old user-local installs, and expose mise shims
+# to non-interactive shells such as editor and agent tasks.
+path=( \
+  ~/.local/share/mise/shims(N-/) \
+  /etc/profiles/per-user/${USER}/bin(N-/) \
+  ~/.nix-profile/bin(N-/) \
+  /run/current-system/sw/bin(N-/) \
+  /nix/var/nix/profiles/default/bin(N-/) \
+  "${AQUA_ROOT_DIR}/bin"(N-/) \
+  "$path[@]" \
+)
+
 typeset -gx -U fpath
 fpath=( \
-  /usr/local/share/zsh/site-functions(N-/) \
-  /usr/local/share/zsh-completions(N-/) \
-  /opt/homebrew/share/zsh/site-functions(N-/) \
-  /opt/homebrew/share/zsh-completions(N-/) \
-  /home/linuxbrew/.linuxbrew/share/zsh/site-functions(N-/) \
-  /home/linuxbrew/.linuxbrew/share/zsh-completions(N-/) \
-  /usr/local/opt/curl/share/zsh/site-functions(N-/) \
+  /etc/profiles/per-user/${USER}/share/zsh/site-functions(N-/) \
+  ~/.nix-profile/share/zsh/site-functions(N-/) \
+  /run/current-system/sw/share/zsh/site-functions(N-/) \
+  /nix/var/nix/profiles/default/share/zsh/site-functions(N-/) \
   $fpath \
 )
 

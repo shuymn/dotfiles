@@ -1,0 +1,7 @@
+{
+  system = {{ if eq .chezmoi.arch "arm64" }}"aarch64-darwin"{{ else if eq .chezmoi.arch "amd64" }}"x86_64-darwin"{{ else }}{{ .chezmoi.arch | quote }}{{ end }};
+  username = {{ .chezmoi.username | quote }};
+  homeDirectory = {{ .chezmoi.homeDir | quote }};
+  hostName = {{ output "hostname" "-s" | trim | quote }};
+  computerName = {{ output "scutil" "--get" "ComputerName" | trim | quote }};
+}

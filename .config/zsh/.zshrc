@@ -22,6 +22,11 @@ add_pkg_config_path() {
   fi
 }
 
+# activate runtime manager
+if has "mise"; then
+  eval "$(mise activate zsh)"
+fi
+
 # load primitive config
 load "${XDG_CONFIG_HOME:?}/zsh/config/01_init.zsh"
 

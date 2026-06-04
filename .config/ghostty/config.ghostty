@@ -3,8 +3,8 @@
 # panes, popups, copy-mode, and clipboard behavior.
 
 # Start or attach the default tmux session for every Ghostty window.
-# Ghostty executes this before shell startup files can add Homebrew to PATH.
-command = /opt/homebrew/bin/tmux new-session -A -s main
+# Run zsh so ~/.zshenv can add Nix/Homebrew tools to PATH first.
+command = /bin/zsh -lc "exec tmux new-session -A -s main"
 
 # Appearance
 font-family = UDEV Gothic NF

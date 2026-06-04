@@ -7,12 +7,15 @@ __pycache__/
 
 etc/pi/agent/extensions/node_modules/
 
+nix/local.nix
+
 .config/.copilot/
 .config/.semgrep/
 .config/.wrangler/
 .config/anyenv/
 .config/atlassian-cli/
 .config/Autodesk/
+.config/chezmoi/
 .config/algia/
 .config/brittany/
 .config/byobu/
@@ -64,6 +67,8 @@ etc/pi/agent/extensions/node_modules/
 .config/nautilus/
 .config/nextjs-nodejs/
 .config/nix/
+!.config/nix/
+!.config/nix/nix.conf
 .config/nixpkgs/
 .config/obs-studio/
 .config/op/
