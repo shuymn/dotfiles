@@ -8,14 +8,14 @@
 git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 make install-nix
-make apply NIX_ROLE=personal
+make apply NIX_ROLE=personal # personal 環境にする場合。未指定時は minimal
 make switch
 mise install
 ```
 
 `make` ターゲットは初期セットアップ用の薄いラッパー。利用できるターゲットは `make help` または `Makefile` で確認する。Nix 系ターゲットは評価前に Git 管理外のローカル Nix 設定を生成する。
 
-最初の `make apply NIX_ROLE=personal` は chezmoi 設定を生成し、このリポジトリを管理元にして dotfiles を適用する。その後は通常の `chezmoi diff` / `chezmoi apply` がこのリポジトリを参照する。
+最初の `make apply` は chezmoi 設定を生成し、このリポジトリを管理元にして dotfiles を適用する。その後は通常の `chezmoi diff` / `chezmoi apply` がこのリポジトリを参照する。
 
 chezmoi の暗号化には age を使う。秘密鍵はローカル限定で、chezmoi と git の管理対象外。既存の暗号化ファイルを復号する場合は別管理のバックアップから復元し、新しいローカル鍵を作る場合は `make age-key` を使う。
 

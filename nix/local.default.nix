@@ -4,5 +4,5 @@
   homeDirectory = "/Users/user";
   hostName = "localhost";
   computerName = "Mac";
-  role = "personal";
+  role = "minimal";
 }

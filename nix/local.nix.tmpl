@@ -1,4 +1,4 @@
-{{- $role := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "personal") -}}
+{{- $role := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "minimal") -}}
 {
   system = {{ if eq .chezmoi.arch "arm64" }}"aarch64-darwin"{{ else if eq .chezmoi.arch "amd64" }}"x86_64-darwin"{{ else }}{{ .chezmoi.arch | quote }}{{ end }};
   username = {{ .chezmoi.username | quote }};

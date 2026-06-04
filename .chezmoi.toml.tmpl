@@ -1,4 +1,4 @@
-{{- $nixRole := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "personal") -}}
+{{- $nixRole := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "minimal") -}}
 sourceDir = {{ .chezmoi.workingTree | quote }}
 encryption = "age"
 

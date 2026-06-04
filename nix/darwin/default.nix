@@ -1,7 +1,7 @@
 { localConfig, ... }:
 
 let
-  role = localConfig.role or "personal";
+  role = localConfig.role or "minimal";
   roleModule = ./roles + "/${role}.nix";
 in
 {
