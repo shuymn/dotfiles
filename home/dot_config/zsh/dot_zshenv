@@ -29,6 +29,10 @@ DOTFILES_NIX_PROFILE_DIRS=( \
   /nix/var/nix/profiles/default \
 )
 
+if [[ -r /etc/profiles/per-user/${DOTFILES_USER}/etc/profile.d/hm-session-vars.sh ]]; then
+  source /etc/profiles/per-user/${DOTFILES_USER}/etc/profile.d/hm-session-vars.sh
+fi
+
 # Keep Nix-managed mise ahead of old user-local installs, and expose mise shims
 # to non-interactive shells such as editor and agent tasks.
 path=( \
