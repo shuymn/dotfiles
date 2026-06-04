@@ -3,6 +3,15 @@ DOTPATH := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 CHEZMOI ?= chezmoi
 CHEZMOI_STATE_DIR ?= $(HOME)/.local/state/chezmoi
 CHEZMOI_STATE ?= $(CHEZMOI_STATE_DIR)/chezmoistate.boltdb
+CHEZMOI_CONFIG ?= $(HOME)/.config/chezmoi/chezmoi.toml
+CHEZMOI_CONFIG_TEMPLATE ?= $(DOTPATH)/.chezmoi.toml.tmpl
+AGE_KEY ?= $(HOME)/.config/age/key.txt
+NIX_LOCAL_FLAKE := path:$(DOTPATH)
+NIX_LOCAL_CONFIG ?= $(DOTPATH)/nix/local.nix
+NIX_LOCAL_TEMPLATE ?= $(DOTPATH)/nix/local.nix.tmpl
+NIX_ROLE ?=
+NIX_LOCAL_ENV := DOTFILES_NIX_LOCAL=$(NIX_LOCAL_CONFIG)
+CHEZMOI_TEMPLATE_ENV := $(if $(NIX_ROLE),DOTFILES_NIX_ROLE=$(NIX_ROLE),)
 NIX ?= nix
 NIX_FLAGS ?= --extra-experimental-features nix-command --extra-experimental-features flakes
 NIX_CMD := $(NIX) $(NIX_FLAGS)
@@ -10,12 +19,9 @@ CHEZMOI_BOOTSTRAP ?= $(NIX_CMD) shell nixpkgs\#chezmoi -c chezmoi
 CHEZMOI_RUN := $(shell command -v $(CHEZMOI) >/dev/null 2>&1 && printf '%s' '$(CHEZMOI)' || printf '%s' '$(CHEZMOI_BOOTSTRAP)')
 CHEZMOI_CMD := $(CHEZMOI_RUN) --source=$(DOTPATH) --persistent-state=$(CHEZMOI_STATE)
 
-NIX_LOCAL_FLAKE := path:$(DOTPATH)
-NIX_LOCAL_CONFIG ?= $(DOTPATH)/nix/local.nix
-NIX_LOCAL_TEMPLATE ?= $(DOTPATH)/nix/local.nix.tmpl
-NIX_LOCAL_ENV := DOTFILES_NIX_LOCAL=$(NIX_LOCAL_CONFIG)
 DARWIN_CONFIG ?= default
 SUDO ?= sudo
+BREW ?= $(shell if command -v brew >/dev/null 2>&1; then command -v brew; elif [ -x /opt/homebrew/bin/brew ]; then printf '%s' /opt/homebrew/bin/brew; elif [ -x /usr/local/bin/brew ]; then printf '%s' /usr/local/bin/brew; else printf '%s' brew; fi)
 
 CLAUDE_BASE := etc/claude
 CLAUDE_HOME := $(HOME)/.claude
@@ -53,8 +59,9 @@ install-nix: ## Install Nix if missing
 	fi
 
 .PHONY: local
-local:
-	@$(CHEZMOI_CMD) execute-template < "$(NIX_LOCAL_TEMPLATE)" > "$(NIX_LOCAL_CONFIG)"
+local: ## Generate local Nix host config from chezmoi data
+	@mkdir -p "$(dir $(NIX_LOCAL_CONFIG))"
+	@$(CHEZMOI_TEMPLATE_ENV) $(CHEZMOI_CMD) execute-template < "$(NIX_LOCAL_TEMPLATE)" > "$(NIX_LOCAL_CONFIG)"
 
 .PHONY: check
 check: local ## Check the Nix flake
@@ -65,18 +72,42 @@ check-brew: local ## Check Homebrew against the nix-darwin generated Brewfile
 	@tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
 	trap 'rm -f "$$tmpfile"' EXIT; \
 	$(NIX_LOCAL_ENV) $(NIX_CMD) eval --impure --raw "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).config.homebrew.brewfile" > "$$tmpfile"; \
-	brew bundle check --file="$$tmpfile"
+	$(BREW) bundle check --file="$$tmpfile"
 
 .PHONY: audit-cli-path
-audit-cli-path: ## List non-Nix/non-mise PATH executables to classify
-	@zsh -lc 'for dir in $$path; do \
-		case "$$dir" in \
-			$$HOME/.local/share/mise/shims|/etc/profiles/per-user/*/bin|/run/current-system/sw/bin|/nix/var/nix/profiles/default/bin|/usr/bin|/bin|/usr/sbin|/sbin) continue ;; \
-		esac; \
-		[ -d "$$dir" ] || continue; \
-		printf "%s\n" "$$dir"; \
-		find -L "$$dir" -maxdepth 1 -type f -perm +111 -print 2>/dev/null | sed "s#^$$dir/##" | sort | sed "s#^#  #"; \
-	done'
+audit-cli-path: ## Classify non-Nix/non-mise PATH owners and shadows
+	@zsh -lc 'emulate -L zsh; setopt null_glob; \
+		owner() { \
+			case "$$1" in \
+				$$HOME/.local/share/mise/shims/*|$$HOME/.local/share/mise/installs/*) print mise ;; \
+				/etc/profiles/per-user/*/bin/*|/run/current-system/sw/bin/*|/nix/var/nix/profiles/default/bin/*|$$HOME/.nix-profile/bin/*) print nix ;; \
+				/opt/homebrew/bin/*|/opt/homebrew/sbin/*|/usr/local/bin/*|/usr/local/sbin/*|/home/linuxbrew/.linuxbrew/bin/*|/home/linuxbrew/.linuxbrew/sbin/*) print brew ;; \
+				/usr/bin/*|/bin/*|/usr/sbin/*|/sbin/*) print system ;; \
+				*) print unmanaged ;; \
+			esac; \
+		}; \
+		needs_attention() { [[ "$$1" = brew || "$$1" = unmanaged ]]; }; \
+		typeset -A seen; \
+		for dir in $$path; do \
+			[[ -d "$$dir" ]] || continue; \
+			for file in "$$dir"/*; do \
+				[[ -f "$$file" && -x "$$file" ]] || continue; \
+				cmd="$${file:t}"; \
+				[[ -n "$${seen[$$cmd]}" ]] && continue; \
+				seen[$$cmd]=1; \
+				paths=($$(whence -a -p "$$cmd" 2>/dev/null)); \
+				[[ $${#paths[@]} -gt 0 ]] || continue; \
+				first="$${paths[1]}"; \
+				first_owner=$$(owner "$$first"); \
+				needs_attention "$$first_owner" && printf "%s\tfirst=%s\t%s\n" "$$cmd" "$$first_owner" "$$first"; \
+				for p in "$${paths[@]}"; do \
+					[[ "$$p" = "$$first" ]] && continue; \
+					p_owner=$$(owner "$$p"); \
+					[[ "$$p_owner" = "$$first_owner" ]] && continue; \
+					needs_attention "$$p_owner" && printf "%s\tshadow=%s\t%s\n" "$$cmd" "$$p_owner" "$$p"; \
+				done; \
+			done; \
+		done | sort'
 
 .PHONY: build
 build: local ## Build the nix-darwin profile without switching

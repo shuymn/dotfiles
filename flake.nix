@@ -23,7 +23,7 @@
     }:
     let
       localConfigPath = builtins.getEnv "DOTFILES_NIX_LOCAL";
-      localConfig =
+      defaultConfig =
         if localConfigPath == "" then
           import ./nix/local.default.nix
         else
@@ -32,36 +32,37 @@
         "1password-cli"
         "claude-code"
       ];
-      system = localConfig.system;
-      username = localConfig.username;
+      mkDarwinConfiguration =
+        localConfig:
+        nix-darwin.lib.darwinSystem {
+          system = localConfig.system;
+          specialArgs = {
+            inherit localConfig unfreePackageNames;
+          };
+          modules = [
+            ./nix/darwin.nix
+            home-manager.darwinModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.extraSpecialArgs = {
+                inherit localConfig;
+              };
+              home-manager.users.${localConfig.username} = import ./nix/home.nix;
+            }
+          ];
+        };
     in
     {
-      darwinConfigurations.default = nix-darwin.lib.darwinSystem {
-        inherit system;
-        specialArgs = {
-          inherit localConfig unfreePackageNames;
-        };
-        modules = [
-          ./nix/darwin.nix
-          home-manager.darwinModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = {
-              inherit localConfig;
-            };
-            home-manager.users.${username} = import ./nix/home.nix;
-          }
-        ];
+      darwinConfigurations.default = mkDarwinConfiguration defaultConfig;
+
+      packages.${defaultConfig.system} = {
+        darwin-rebuild = nix-darwin.packages.${defaultConfig.system}.darwin-rebuild;
       };
 
-      packages.${system} = {
-        darwin-rebuild = nix-darwin.packages.${system}.darwin-rebuild;
-      };
-
-      apps.${system}.darwin-rebuild = {
+      apps.${defaultConfig.system}.darwin-rebuild = {
         type = "app";
-        program = "${nix-darwin.packages.${system}.darwin-rebuild}/bin/darwin-rebuild";
+        program = "${nix-darwin.packages.${defaultConfig.system}.darwin-rebuild}/bin/darwin-rebuild";
         meta.description = "Run nix-darwin rebuild for this dotfiles flake";
       };
     };
