@@ -1,4 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>shuymn/github-actions#main"]
+  "extends": ["github>shuymn/github-actions#main"],
+  "nix": {
+    "enabled": true
+  }
 }
