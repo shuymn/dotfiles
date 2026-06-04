@@ -1,5 +1,10 @@
+# Go
+export GOPATH="${GOPATH:-${HOME}/go}"
+export GOBIN="${GOBIN:-${GOPATH}/bin}"
+
 typeset -gx -U path
 path=( \
+  "${GOBIN}"(N-/) \
   /usr/local/bin(N-/) \
   /usr/local/sbin(N-/) \
   /usr/local/go/bin(N-/) \
@@ -36,18 +41,10 @@ fpath=( \
   $fpath \
 )
 
-# autoload
-autoload -Uz run-help
-autoload -Uz add-zsh-hook
-autoload -Uz colors && colors
-autoload -Uz compinit && compinit -d "${XDG_CACHE_HOME}/zsh/.zcompdump"
-autoload -U +X bashcompinit && bashcompinit
-
 # Language
 export LANGUAGE="en_US.UTF-8"
 export LANG="${LANGUAGE}"
-export LC_ALL="${LANGUAGE}"
-export LC_TYPE="${LANGUAGE}"
+export LC_CTYPE="${LANGUAGE}"
 
 # Editor
 export EDITOR=hx
@@ -79,18 +76,7 @@ export HISTFILE="${XDG_CACHE_HOME}/zsh/.zsh_history"
 export HISTSIZE=10000
 export SAVEHIST=1000000
 
-# Key binding
-bindkey -v
-
 setopt no_global_rcs
 
-# golang
-export GOPATH="$(go env GOPATH)"
-export GOBIN="$GOPATH/bin"
-if [[ -d "${GOBIN}" ]]; then
-  export PATH="$GOBIN:$PATH"
-fi
-
 # dotpath
-export DOTPATH=${0:A:h}
-. "$HOME/.cargo/env"
+export DOTPATH="${0:A:h}"
