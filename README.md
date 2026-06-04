@@ -49,6 +49,7 @@ make local                         # regenerate ignored nix/local.nix from chezm
 make chezmoi-config NIX_ROLE=personal # set or refresh this machine's role
 make age-key                       # create a local age identity and refresh chezmoi config
 make check-brew                    # check Homebrew against nix-darwin's generated Brewfile
+make check-ownership               # check Home Manager does not claim dotfile targets
 make audit-cli-path                # classify non-Nix/non-mise PATH owners and shadows
 make agents                        # link/sync Claude, Codex, and pi agent files
 ```
@@ -56,11 +57,17 @@ make agents                        # link/sync Claude, Codex, and pi agent files
 ## Ownership
 
 - Nix/Home Manager: daily CLI tools, shell-owned user packages, and `mise`; common packages live in `nix/profiles/common.nix`, optional groups in `nix/profiles/*.nix`, and roles in `nix/roles/*.nix`.
-- nix-darwin: macOS settings, Nix daemon settings, shell enablement, Homebrew taps, tap-only formulae, and GUI casks.
+- nix-darwin: macOS settings, Nix daemon/client settings, shell enablement, Homebrew taps, tap-only formulae, and GUI casks.
 - Nix host config: ignored `nix/local.nix` generated from `nix/local.nix.tmpl`; tracked `nix/local.default.nix` is only a generic fallback.
 - mise: language runtimes and pinned tool backends in `.config/mise/config.toml` plus `.config/mise/mise.lock`.
 - chezmoi: tracked dotfiles under `home/`, including `.config` entries as normal chezmoi source state.
 - age: local chezmoi encryption identity at `~/.config/age/key.txt`; never tracked, back up out-of-band.
+
+One target path has one writer. In this repo, Home Manager is the environment declaration layer: package groups, profile composition, Home Manager enablement, and shell-owned package availability. chezmoi is the dotfile placement layer: files that should appear in `$HOME`, including application config under `~/.config`.
+
+Do not add Home Manager `home.file`, `xdg.*File`, or file-writing `home.activation` logic for targets that belong under `home/**`. If a target becomes simpler as a Home Manager module, migrate it fully in one change: remove or ignore the corresponding chezmoi source, add the Home Manager owner, and update this ownership section.
+
+Keep Nix client settings in `nix/darwin.nix` through `nix.settings`; do not add a separate `home/dot_config/nix/nix.conf` for normal flake behavior.
 
 Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. nix-darwin activation is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
 

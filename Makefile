@@ -63,8 +63,18 @@ local: ## Generate local Nix host config from chezmoi data
 	@mkdir -p "$(dir $(NIX_LOCAL_CONFIG))"
 	@$(CHEZMOI_TEMPLATE_ENV) $(CHEZMOI_CMD) execute-template < "$(NIX_LOCAL_TEMPLATE)" > "$(NIX_LOCAL_CONFIG)"
 
+.PHONY: check-ownership
+check-ownership: ## Check Home Manager does not claim dotfile targets
+	@matches="$$(find nix -name '*.nix' -print0 \
+		| xargs -0 grep -nE 'home[.]file|home[.]activation|xdg[.](configFile|dataFile|stateFile|cacheFile)' 2>/dev/null || true)"; \
+	if [ -n "$$matches" ]; then \
+		printf '%s\n' "$$matches" >&2; \
+		echo "Home Manager must not manage dotfile targets. Keep target files under home/** or migrate ownership fully." >&2; \
+		exit 1; \
+	fi
+
 .PHONY: check
-check: local ## Check the Nix flake
+check: check-ownership local ## Check the Nix flake
 	@$(NIX_LOCAL_ENV) $(NIX_CMD) flake check --impure "$(NIX_LOCAL_FLAKE)"
 
 .PHONY: check-brew
