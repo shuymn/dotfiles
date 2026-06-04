@@ -4,9 +4,9 @@ CHEZMOI ?= chezmoi
 CHEZMOI_STATE_DIR ?= $(HOME)/.local/state/chezmoi
 CHEZMOI_STATE ?= $(CHEZMOI_STATE_DIR)/chezmoistate.boltdb
 NIX ?= nix
-NIX_FLAGS ?= --extra-experimental-features 'nix-command flakes'
+NIX_FLAGS ?= --extra-experimental-features nix-command --extra-experimental-features flakes
 NIX_CMD := $(NIX) $(NIX_FLAGS)
-CHEZMOI_BOOTSTRAP ?= $(NIX_CMD) shell nixpkgs#chezmoi -c chezmoi
+CHEZMOI_BOOTSTRAP ?= $(NIX_CMD) shell nixpkgs\#chezmoi -c chezmoi
 CHEZMOI_RUN := $(shell command -v $(CHEZMOI) >/dev/null 2>&1 && printf '%s' '$(CHEZMOI)' || printf '%s' '$(CHEZMOI_BOOTSTRAP)')
 CHEZMOI_CMD := $(CHEZMOI_RUN) --source=$(DOTPATH) --persistent-state=$(CHEZMOI_STATE)
 
