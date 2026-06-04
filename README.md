@@ -8,15 +8,14 @@ I am the bone of my dotfiles.
 git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 make install-nix
-make chezmoi-config NIX_ROLE=personal
-chezmoi apply
+make apply NIX_ROLE=personal
 make switch
 mise install
 ```
 
 `make` targets are bootstrap-safe wrappers. Nix targets generate ignored `nix/local.nix` from `nix/local.nix.tmpl` before evaluation, so username, home directory, host name, ComputerName, and selected role stay out of commits.
 
-The first `make chezmoi-config NIX_ROLE=personal` writes `~/.config/chezmoi/chezmoi.toml` from `.chezmoi.toml.tmpl` with this checkout as `sourceDir` and stores the selected `nixRole` in chezmoi data. Available roles are the files under `nix/roles/`. After that, plain `chezmoi diff`, `chezmoi apply`, and `chezmoi managed` use this repo without extra flags.
+The first `make apply NIX_ROLE=personal` writes `~/.config/chezmoi/chezmoi.toml` from `.chezmoi.toml.tmpl` with this checkout as `sourceDir`, stores the selected `nixRole` in chezmoi data, and applies the managed dotfiles. Available roles are the files under `nix/roles/`. After that, plain `chezmoi diff`, `chezmoi apply`, and `chezmoi managed` use this repo without extra flags.
 
 chezmoi encryption uses age. Restore `~/.config/age/key.txt` from an out-of-band backup when decrypting existing encrypted files, or run `make age-key` to create a new local identity before adding encrypted files. The age secret key is intentionally ignored by chezmoi and git.
 
