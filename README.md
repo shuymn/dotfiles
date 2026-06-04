@@ -50,7 +50,7 @@ make age-key                       # create a local age identity and refresh che
 make check-brew                    # check Homebrew against nix-darwin's generated Brewfile
 make check-ownership               # check Home Manager does not claim dotfile targets
 make audit-cli-path                # classify non-Nix/non-mise PATH owners and shadows
-make agents                        # link/sync Claude, Codex, and pi agent files
+make agents                        # apply agent dotfiles and runtime syncs
 ```
 
 ## Ownership
@@ -82,7 +82,9 @@ chezmoi source state lives under `home/` via `.chezmoiroot`. Keep managed home f
 
 ## Agent files
 
-`make agents` links Claude and pi files, installs skills, and syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
+Static Claude, Codex, and pi agent dotfiles are managed by chezmoi under `home/dot_claude/**`, `home/dot_codex/**`, and `home/dot_pi/**`. `~/.codex/AGENTS.md` and `~/.pi/agent/AGENTS.md` are chezmoi-managed symlinks to `~/.claude/CLAUDE.md`.
+
+`make agents` applies those agent dotfile targets, installs skills from `etc/claude/skills/**`, and runs `pi install` for the local pi extensions checkout when present.
 
 # License
 

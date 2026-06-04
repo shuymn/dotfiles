@@ -6,7 +6,7 @@
 
 - Edit skills directly under `etc/claude/skills/**`; there is no separate `skills/` source tree.
 - After changing skills, check for whitespace/conflict markers with `git diff --check -- etc/claude/skills`, then run `make sync-skills` to install them.
-- Use `make link-claude` when you need to refresh `~/.claude/**` symlinks from this repo.
+- Keep static Claude, Codex, and pi agent dotfiles under `home/dot_claude/**`, `home/dot_codex/**`, and `home/dot_pi/**`; `make agents` applies those chezmoi targets and then runs runtime syncs.
 - Treat `README.md` as user-facing setup docs; keep this file limited to agent-only repository rules.
 - Keep Nix/Home Manager activation single-path through nix-darwin; prefer `make switch` so ignored `nix/local.nix` is regenerated before activation. Do not add standalone `homeConfigurations` or recommend `home-manager switch` unless non-Darwin support is explicitly requested.
 - Keep host-specific Nix values out of commits: generate ignored `nix/local.nix` from `nix/local.nix.tmpl` via chezmoi data, keep tracked `nix/local.default.nix` generic, and do not commit real username, home directory, host name, or ComputerName.

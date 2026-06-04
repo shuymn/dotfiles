@@ -66,8 +66,8 @@ remaining() {
     return
   fi
   local days=$((diff_sec / 86400))
-  local hours=$(( (diff_sec % 86400) / 3600 ))
-  local mins=$(( (diff_sec % 3600) / 60 ))
+  local hours=$(((diff_sec % 86400) / 3600))
+  local mins=$(((diff_sec % 3600) / 60))
   if [ "$days" -gt 0 ]; then
     echo "${days}d"
   elif [ "$hours" -gt 0 ]; then

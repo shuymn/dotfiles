@@ -24,21 +24,18 @@ SUDO ?= sudo
 BREW ?= $(shell if command -v brew >/dev/null 2>&1; then command -v brew; elif [ -x /opt/homebrew/bin/brew ]; then printf '%s' /opt/homebrew/bin/brew; elif [ -x /usr/local/bin/brew ]; then printf '%s' /usr/local/bin/brew; else printf '%s' brew; fi)
 
 CLAUDE_BASE := etc/claude
-CLAUDE_HOME := $(HOME)/.claude
-CLAUDE_EXCLUSIONS := $(CLAUDE_BASE)/hooks/hooks.json $(CLAUDE_BASE)/skills/%
-CLAUDE_CANDIDATES := $(shell find $(CLAUDE_BASE) -type f 2>/dev/null)
-CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
-
 SKILLS_ROOT := $(abspath $(CLAUDE_BASE)/skills)
 SKILLS_CMD := bunx --bun skills
 SKILLS_AGENTS := codex claude-code
-CODEX_AGENTS_SOURCE := $(abspath $(CLAUDE_BASE)/CLAUDE.md)
-CODEX_AGENTS_TARGET := $(HOME)/.codex/AGENTS.md
 
-PI_BASE := etc/pi
-PI_HOME := $(HOME)/.pi
 PI_EXTENSIONS_PROJECT ?= $(HOME)/ghq/github.com/shuymn/pi-extensions
-PI_CANDIDATES := $(shell find $(PI_BASE) -type f -print 2>/dev/null)
+
+AGENT_CHEZMOI_TARGETS := \
+	$(HOME)/.claude/CLAUDE.md \
+	$(HOME)/.claude/statusline.sh \
+	$(HOME)/.codex/AGENTS.md \
+	$(HOME)/.pi/agent/AGENTS.md \
+	$(HOME)/.pi/agent/keybindings.json
 
 MISE ?= mise
 
@@ -162,41 +159,20 @@ mise: ## Install mise-managed global tools
 	@$(MISE) install -C "$(HOME)"
 
 .PHONY: agents
-agents: link-claude sync-skills link-pi ## Link and sync agent files
+agents: agent-dotfiles sync-skills install-pi ## Apply agent dotfiles and runtime syncs
 
-.PHONY: link-claude
-link-claude:
-	@$(foreach file,$(CLAUDE_FILES), \
-		mkdir -p $(dir $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file))) && \
-		ln -sfn $(abspath $(file)) $(patsubst etc/claude/%,$(CLAUDE_HOME)/%,$(file));)
+.PHONY: agent-dotfiles
+agent-dotfiles: chezmoi-config
+	@$(CHEZMOI_CMD) apply $(foreach target,$(AGENT_CHEZMOI_TARGETS),"$(target)")
 
 .PHONY: sync-skills
 sync-skills:
 	@$(SKILLS_CMD) add "$(SKILLS_ROOT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
-	@mkdir -p $(dir $(CODEX_AGENTS_TARGET))
-	@cp -f "$(CODEX_AGENTS_SOURCE)" "$(CODEX_AGENTS_TARGET)"
 
-.PHONY: link-pi
-link-pi:
-	@if [ -d "$(PI_HOME)" ]; then \
-		find "$(PI_HOME)" -type l -print | while IFS= read -r link; do \
-			target=$$(readlink "$$link"); \
-			case "$$target" in \
-				$(abspath $(PI_BASE))/*) \
-					rel=$${target#$(abspath $(PI_BASE))/}; \
-					source="$(PI_BASE)/$$rel"; \
-					case " $(PI_CANDIDATES) " in *" $$source "*) ;; *) rm -f "$$link" ;; esac; \
-					;; \
-			esac; \
-		done; \
-	fi
-	@$(foreach file,$(PI_CANDIDATES), \
-		mkdir -p $(dir $(patsubst etc/pi/%,$(PI_HOME)/%,$(file))) && \
-		ln -sfn $(abspath $(file)) $(patsubst etc/pi/%,$(PI_HOME)/%,$(file));)
+.PHONY: install-pi
+install-pi:
 	@if [ -d "$(PI_EXTENSIONS_PROJECT)" ]; then \
 		pi install "$(PI_EXTENSIONS_PROJECT)" >/dev/null; \
 	else \
 		echo "Skip pi-extensions package install: $(PI_EXTENSIONS_PROJECT) not found"; \
 	fi
-	@mkdir -p $(PI_HOME)/agent
-	@ln -sfn $(abspath $(CLAUDE_BASE)/CLAUDE.md) $(PI_HOME)/agent/AGENTS.md

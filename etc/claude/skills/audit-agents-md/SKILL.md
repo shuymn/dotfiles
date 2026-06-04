@@ -31,7 +31,7 @@ Before auditing, resolve how the file is managed:
 2. Check for obvious managed-copy relationships (sync scripts, copy targets, "do not edit" notes, build/install tooling)
 3. Identify the editable source of truth; if none is found, treat the target as the editable canonical file
 4. Audit may inspect copies, but proposals and edits must target the editable source of truth
-5. Report the relationship to the user (e.g., "`~/.codex/AGENTS.md` is a generated copy of `~/.dotfiles/etc/claude/CLAUDE.md`; audit may inspect the copy, edits must target the source")
+5. Report the relationship to the user (e.g., "`~/.codex/AGENTS.md` is a chezmoi-managed symlink to `~/.claude/CLAUDE.md`; edits must target the source under `home/dot_claude/CLAUDE.md`")
 
 ## Audit Criteria
 
@@ -130,12 +130,12 @@ Check for:
 1. Resolve the source-of-truth relationship for the target file
 2. Read the target file and the editable source if it is different
 3. If the file is in a project, also read:
-   - Available skills by inspecting the skills directories or manifests that actually exist in the current environment; do not assume `.claude-plugin` or `ls`
-   - Project structure (top-level files and directories)
-   - README/docs and CI workflows to detect documentation and command redundancy
-   - Linter configs (`.eslintrc*`, `.prettierrc*`, `rustfmt.toml`, etc.)
-   - Relevant global instruction files that actually exist in the current environment (for example `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or an identified managed source) to check for redundancy across levels
-   - Other instruction files in the same directory or managed set (check for divergent copies vs intentional generated copies)
+    - Available skills by inspecting the skills directories or manifests that actually exist in the current environment; do not assume `.claude-plugin` or `ls`
+    - Project structure (top-level files and directories)
+    - README/docs and CI workflows to detect documentation and command redundancy
+    - Linter configs (`.eslintrc*`, `.prettierrc*`, `rustfmt.toml`, etc.)
+    - Relevant global instruction files that actually exist in the current environment (for example `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or an identified managed source) to check for redundancy across levels
+    - Other instruction files in the same directory or managed set (check for divergent copies vs intentional generated copies)
 4. Count instruction lines (exclude blanks, comments, section headers)
 5. Determine whether the user asked for audit-only findings or for rewrite/apply work
 
@@ -156,21 +156,21 @@ Only do this step when the user asked for changes or explicitly approved a rewri
 If any criterion is WARN or FAIL and changes were requested:
 
 1. Draft a revised version of the file
-   - Keep only minimal requirements that are non-inferable and repository-specific
-   - Remove generic tool mandates unless backed by repository constraints
-   - Replace broad codebase overviews with only non-obvious navigation hints
-   - Move non-negotiable rules to the top; if needed, add a short final recap instead of repeating them throughout the file
-   - If the audited file is a generated copy, draft changes against the editable source of truth instead
+    - Keep only minimal requirements that are non-inferable and repository-specific
+    - Remove generic tool mandates unless backed by repository constraints
+    - Replace broad codebase overviews with only non-obvious navigation hints
+    - Move non-negotiable rules to the top; if needed, add a short final recap instead of repeating them throughout the file
+    - If the audited file is a generated copy, draft changes against the editable source of truth instead
 2. Show a diff summary: what was removed, what was added, what was reworded, and which file is the correct edit target
 3. Present the rewrite options to the user:
-   - If AskUserQuestionTool is available, present options for:
-     - Apply the full rewrite
-     - Apply selectively (user picks which changes)
-     - Keep current version
-   - If AskUserQuestionTool is unavailable, ask in a single message using QID labels and require one of:
-     - `Q1: APPLY_FULL`
-     - `Q1: APPLY_SELECTIVE(<concise selection>)`
-     - `Q1: KEEP_CURRENT`
+    - If AskUserQuestionTool is available, present options for:
+        - Apply the full rewrite
+        - Apply selectively (user picks which changes)
+        - Keep current version
+    - If AskUserQuestionTool is unavailable, ask in a single message using QID labels and require one of:
+        - `Q1: APPLY_FULL`
+        - `Q1: APPLY_SELECTIVE(<concise selection>)`
+        - `Q1: KEEP_CURRENT`
 
 If all criteria PASS: report the audit results and confirm no changes needed.
 
