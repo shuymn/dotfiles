@@ -1,9 +1,0 @@
-cargo-update v8.1.2:
-    cargo-install-update
-    cargo-install-update-config
-dum v0.1.19:
-    dum
-mocword v0.1.0:
-    mocword
-tree-sitter-cli v0.20.6:
-    tree-sitter

@@ -18,10 +18,6 @@ if has "bat"; then
   alias cat='bat --paging=never'
 fi
 
-if has "btm"; then
-  alias top='btm'
-fi
-
 if has "procs"; then
   alias ps='procs'
 fi
@@ -194,10 +190,6 @@ if has "fzf"; then
     alias cr='change-repository'
   fi
 
-  if has "tmux" && has "tig"; then
-    alias tig='TERM=xterm-256color tig'
-  fi
-
   if has "gh"; then
     gh-pr-checkout-fzf() {
       gh pr checkout "$(gh pr list | fzf | cut -f1)"
@@ -205,18 +197,6 @@ if has "fzf"; then
     alias review='gh-pr-checkout-fzf'
   fi
 
-  if has "aws-vault"; then
-    eva() {
-      local profile
-      profile=$(aws-vault list --profiles | fzf) &&
-        unset AWS_VAULT &&
-        export $(aws-vault exec "$profile" --prompt=osascript -- env | grep AWS_)
-    }
-
-    uva() {
-      unset $(env | grep AWS_ | sed 's/=.*//g')
-    }
-  fi
 fi
 
 if has "pbcopy"; then

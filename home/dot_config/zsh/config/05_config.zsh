@@ -35,13 +35,6 @@ function set_terminal_title() {
 }
 add-zsh-hook precmd set_terminal_title
 
-# starship
-# if has "starship"; then
-#   export STARSHIP_CONFIG="${HOME}/.config/starship/starship.toml"
-#   eval "$(starship init zsh)"
-#   starship_precmd_user_func="set_terminal_title"
-# fi
-
 # capsule
 if has "capsule"; then
     eval "$(capsule init zsh)"
@@ -103,28 +96,11 @@ if has "brew" && uname | grep Darwin 1> /dev/null 2>&1; then
   export HOMEBREW_NO_ENV_HINTS="true"
 fi
 
-# aws-vault
-if has "aws-vault"; then
-  eval "$(aws-vault --completion-script-zsh)"
-  # export AWS_SESSION_TOKEN_TTL=12h
-fi
-
-# granted
-if has "granted"; then
-  export GRANTED_ENABLE_AUTO_REASSUME=true
-fi
-
 # terraform
 if has "terraform"; then
   autoload -U +X bashcompinit && bashcompinit
   complete -o nospace -C "$(command -v terraform)" terraform
 fi
-
-# ghg
-add_path "$HOME/.ghg/bin"
-
-# Haskell
-load "${HOME}/.ghcup/env"
 
 # atuin
 if has "atuin"; then
@@ -141,12 +117,6 @@ add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # bat / delta
 export BAT_THEME="ansi"
-
-# rye
-load "${HOME}/.rye/env"
-
-# GritQL
-load "${HOME}/.grit/bin/env"
 
 # edit-command-line
 autoload -Uz edit-command-line

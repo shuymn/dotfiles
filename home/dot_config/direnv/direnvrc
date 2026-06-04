@@ -1,7 +1,0 @@
-if type asdf >/dev/null 2>&1; then
-  source "$(asdf direnv hook asdf)"
-fi
-
-use_aws_profile() {
-  export $(aws-vault exec $1 --prompt=osascript -- env | grep AWS_ | grep -v AWS_VAULT)
-}
