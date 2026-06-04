@@ -22,28 +22,20 @@ script_dir() {
 }
 
 require_local_checkout() {
-  if [[ ! -f "${DOTPATH}/Makefile" ]]; then
-    errorf "${DOTPATH}: Makefile not found"
-  fi
-
-  if [[ ! -f "${DOTPATH}/install.sh" ]]; then
-    errorf "${DOTPATH}: install.sh not found"
-  fi
-
   if [[ ! -d "${DOTPATH}/.git" ]]; then
     errorf "${DOTPATH}: not a git checkout; clone the repository locally before running install.sh"
   fi
 }
 
-link() {
-  echo "Applying dotfiles..."
+apply_dotfiles() {
+  echo "Applying chezmoi-managed dotfiles..."
   make -C "${DOTPATH}" apply
   echo "Finish applying"
 }
 
 install() {
   require_local_checkout
-  link
+  apply_dotfiles
 }
 
 DOTPATH="$(script_dir)"
