@@ -2,6 +2,8 @@
 export GOPATH="${GOPATH:-${HOME}/go}"
 export GOBIN="${GOBIN:-${GOPATH}/bin}"
 
+typeset -gx DOTFILES_USER="${USER:-${USERNAME:-$(id -un)}}"
+typeset -gx USER="${USER:-${DOTFILES_USER}}"
 typeset -gx -U path
 path=( \
   /usr/local/bin(N-/) \
@@ -28,22 +30,24 @@ export AQUA_ROOT_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/aquaproj-aqua"
 # to non-interactive shells such as editor and agent tasks.
 path=( \
   ~/.local/share/mise/shims(N-/) \
-  /etc/profiles/per-user/${USER}/bin(N-/) \
+  /etc/profiles/per-user/${DOTFILES_USER}/bin(N-/) \
   ~/.nix-profile/bin(N-/) \
   /run/current-system/sw/bin(N-/) \
   /nix/var/nix/profiles/default/bin(N-/) \
   "${AQUA_ROOT_DIR}/bin"(N-/) \
   "$path[@]" \
 )
+path=(${^path}(N-/))
 
 typeset -gx -U fpath
 fpath=( \
-  /etc/profiles/per-user/${USER}/share/zsh/site-functions(N-/) \
+  /etc/profiles/per-user/${DOTFILES_USER}/share/zsh/site-functions(N-/) \
   ~/.nix-profile/share/zsh/site-functions(N-/) \
   /run/current-system/sw/share/zsh/site-functions(N-/) \
   /nix/var/nix/profiles/default/share/zsh/site-functions(N-/) \
   $fpath \
 )
+fpath=(${^fpath}(N-/))
 
 # Language
 export LANGUAGE="en_US.UTF-8"

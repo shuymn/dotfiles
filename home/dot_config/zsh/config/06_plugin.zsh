@@ -1,6 +1,6 @@
 # zsh fast syntax highlighting
 for plugin in \
-  "/etc/profiles/per-user/${USER}/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" \
+  "/etc/profiles/per-user/${DOTFILES_USER}/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" \
   "${HOME}/.nix-profile/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" \
   "/run/current-system/sw/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" \
   "/nix/var/nix/profiles/default/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
