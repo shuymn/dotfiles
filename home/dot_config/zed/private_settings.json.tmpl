@@ -1,3 +1,7 @@
+{{- $role := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "personal") -}}
+{{- $zedRole := ternary "personal" "minimal" (eq $role "personal") -}}
+{{- $extensions := includeTemplate (printf "zed/extensions.%s.jsonc" $zedRole) . | trim | replace "\n" "\n  " -}}
+{{- $lsp := includeTemplate (printf "zed/lsp.%s.jsonc" $zedRole) . | trim | replace "\n" "\n  " -}}
 // Zed settings
 //
 // For information on how to configure Zed, see the Zed
@@ -22,6 +26,20 @@
     "opencode": {
       "show_free_models": false,
       "show_zen_models": false,
+    },
+  },
+  "auto_install_extensions": {{ $extensions }},
+  "load_direnv": "shell_hook",
+  "lsp": {{ $lsp }},
+  "languages": {
+    "Nix": {
+      "language_servers": ["nixd", "!nil"],
+      "formatter": {
+        "external": {
+          "command": "nixfmt",
+          "arguments": [],
+        },
+      },
     },
   },
   "diff_view_style": "unified",

@@ -1,0 +1,30 @@
+{
+  "astro-language-server": {
+    "binary": {
+      "path": "astro-ls",
+    },
+  },
+  "biome": {
+    "binary": {
+      "path": "biome",
+      "arguments": ["lsp-proxy"],
+    },
+  },
+  "nixd": {
+    "binary": {
+      "path": "nixd",
+    },
+  },
+  "prisma-language-server": {
+    "binary": {
+      "path": "prisma-language-server",
+      "arguments": ["--stdio"],
+    },
+  },
+  "vscode-html-language-server": {
+    "binary": {
+      "path": "vscode-html-language-server",
+      "arguments": ["--stdio"],
+    },
+  },
+}

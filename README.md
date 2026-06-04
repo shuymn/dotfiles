@@ -68,7 +68,11 @@ Do not add Home Manager `home.file`, `xdg.*File`, or file-writing `home.activati
 
 Keep Nix client settings in `nix/darwin.nix` through `nix.settings`; do not add a separate `home/dot_config/nix/nix.conf` for normal flake behavior.
 
+Git is split the same way: shared behavior lives in `home/dot_gitconfig`, while identity, signing, allowed signers, and machine-specific CLI state stay in ignored local files under `~/.config/git/`. The tracked config includes `~/.config/git/config.local` at the end so local values can override shared defaults.
+
 Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. nix-darwin activation is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
+
+Zed follows that split: the GUI app stays as a Homebrew cask in `nix/darwin.nix`, settings and keymaps live under `home/dot_config/zed/**`, and editor-facing tools such as `nixd` and `nixfmt` come from Nix/Home Manager. Zed loads `direnv` so project flake/dev shell environments can provide project-local toolchains. Zed extensions are rendered by chezmoi from `nixRole`: `personal` keeps the full interactive extension set, while other roles get the minimal Nix extension set. Avoid auto-installing or keeping Zed extensions that fetch their own LSP/tool binaries unless they are pinned to local Nix or project-provided binaries.
 
 Put daily interactive CLIs and editor-facing development tools in Nix/Home Manager. Put version-switched runtimes and pinned helper CLIs in mise. Use mise backends directly instead of maintaining separate global aqua, npm, pipx, cargo, or uv tool layers.
 

@@ -1,0 +1,83 @@
+[pull]
+	rebase = true
+	ff = only
+
+[commit]
+	verbose = true
+
+[push]
+	default = current
+	autoSetupRemote = true
+
+[init]
+	defaultBranch = main
+
+[alias]
+	push-f = push --force-with-lease --force-if-includes
+
+[rerere]
+	enabled = true
+	autoupdate = true
+
+[core]
+	pager = delta
+	fsmonitor = false
+	untrackedCache = true
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	light = false
+
+[merge]
+	conflictStyle = zdiff3
+
+[diff]
+	colorMoved = plain
+	algorithm = histogram
+	mnemonicPrefix = true
+	renames = true
+
+[credential "https://github.com"]
+	helper =
+	helper = "!gh auth git-credential"
+
+[credential "https://gist.github.com"]
+	helper =
+	helper = "!gh auth git-credential"
+
+[column]
+	ui = auto
+
+[branch]
+	sort = -committerdate
+
+[fetch]
+	prune = true
+	pruneTags = true
+	all = true
+
+[help]
+	autoCorrect = prompt
+
+[rebase]
+	autoSquash = true
+	autoStash = true
+	updateRefs = true
+
+[gtr "editor"]
+	default = zed
+
+[gtr "ai"]
+	default = codex
+
+[gtr "worktrees"]
+	dir = .worktrees
+
+[tag]
+	sort = version:refname
+
+[include]
+	path = ~/.config/git/config.local

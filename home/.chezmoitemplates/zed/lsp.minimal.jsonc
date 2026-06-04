@@ -1,0 +1,19 @@
+{
+  "biome": {
+    "binary": {
+      "path": "biome",
+      "arguments": ["lsp-proxy"],
+    },
+  },
+  "nixd": {
+    "binary": {
+      "path": "nixd",
+    },
+  },
+  "vscode-html-language-server": {
+    "binary": {
+      "path": "vscode-html-language-server",
+      "arguments": ["--stdio"],
+    },
+  },
+}

@@ -2,6 +2,10 @@
 # and must never be managed by chezmoi or committed to this repository.
 .config/age/**
 
+# Local Git identity, signing, and machine-specific CLI state.
+.config/git/config.local
+.config/git/allowed_signers
+
 # Local chezmoi state/cache.
 .local/state/chezmoi/**
 .cache/chezmoi/**
