@@ -66,6 +66,11 @@ build: local ## Build the nix-darwin profile without switching
 switch: local ## Apply nix-darwin and Home Manager
 	@$(SUDO) env HOME=/var/root PATH="$$PATH" $(NIX_LOCAL_ENV) $(NIX_CMD) run --impure "$(NIX_LOCAL_FLAKE)#darwin-rebuild" -- switch --flake "$(NIX_LOCAL_FLAKE)#$(DARWIN_CONFIG)" --impure
 
+.PHONY: gc
+gc: ## Delete old Nix generations and garbage collect the store
+	@nix-collect-garbage -d
+	@$(SUDO) nix-collect-garbage -d
+
 .PHONY: apply
 apply: ## Apply chezmoi dotfile links
 	@mkdir -p "$(CHEZMOI_STATE_DIR)"
