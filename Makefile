@@ -34,6 +34,8 @@ PI_HOME := $(HOME)/.pi
 PI_EXTENSIONS_PROJECT ?= $(HOME)/ghq/github.com/shuymn/pi-extensions
 PI_CANDIDATES := $(shell find $(PI_BASE) -type f -print 2>/dev/null)
 
+MISE ?= mise
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -75,6 +77,10 @@ gc: ## Delete old Nix generations and garbage collect the store
 apply: ## Apply chezmoi dotfile links
 	@mkdir -p "$(CHEZMOI_STATE_DIR)"
 	@$(CHEZMOI_CMD) apply
+
+.PHONY: mise
+mise: ## Install mise-managed global tools
+	@$(MISE) install -C "$(HOME)"
 
 .PHONY: agents
 agents: link-claude sync-skills link-pi ## Link and sync agent files

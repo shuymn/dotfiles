@@ -71,8 +71,6 @@
       };
 
       packages.${system} = {
-        aqua = pkgs.callPackage ./nix/packages/aqua.nix { };
-        pi-coding-agent = pkgs.callPackage ./nix/packages/pi-coding-agent.nix { };
         darwin-rebuild = nix-darwin.packages.${system}.darwin-rebuild;
       };
 

@@ -1,9 +1,5 @@
 { pkgs, localConfig, ... }:
 
-let
-  aqua = pkgs.callPackage ./packages/aqua.nix { };
-  pi-coding-agent = pkgs.callPackage ./packages/pi-coding-agent.nix { };
-in
 {
   home.username = localConfig.username;
   home.homeDirectory = localConfig.homeDirectory;
@@ -14,7 +10,6 @@ in
   home.packages = with pkgs; [
     _1password-cli
     age
-    aqua
     atuin
     bash
     bat
@@ -41,7 +36,6 @@ in
     mo
     neovim
     opencode
-    pi-coding-agent
     pre-commit
     ripgrep
     rustup
