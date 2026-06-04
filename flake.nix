@@ -33,7 +33,6 @@
       unfreePackageNames = [
         "1password-cli"
         "claude-code"
-        "tart"
       ];
       allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) unfreePackageNames;
       system = localConfig.system;

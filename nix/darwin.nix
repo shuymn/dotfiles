@@ -12,11 +12,13 @@
       "nix-command"
       "flakes"
     ];
+    nix-path = [ "nixpkgs=flake:nixpkgs" ];
     trusted-users = [
       "root"
       localConfig.username
     ];
   };
+  nix.nixPath = [ "nixpkgs=flake:nixpkgs" ];
 
   networking = {
     computerName = localConfig.computerName;
@@ -50,6 +52,7 @@
 
     brews = [
       "coderabbitai/tap/git-gtr"
+      "shuymn/tap/capsule"
       "shuymn/tap/kastty"
       "shuymn/tap/pommitlint"
       "songmu/tap/maltmill"

@@ -42,17 +42,15 @@ make agents     # link/sync Claude, Codex, and pi agent files
 
 Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. `make switch` is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
 
+Put daily interactive CLIs and editor-facing development tools in Nix/Home Manager. Keep aqua as the global default for pinned project helper CLIs, and let repository-local `aqua.yaml` override versions when a project needs it. Do not manage the same CLI in both global layers.
+
+Do not use global `cargo install` as a managed CLI layer. Prefer Nix/Home Manager, Homebrew tap formulae, aqua, or project-local flakes for Rust-built tools.
+
 `~/.config` should be a normal directory. Do not symlink the whole directory back to this repo; keep application state and generated files outside git, and manage only intentional dotfiles through `home/dot_config/**`.
 
 ## Agent files
 
 `make agents` links Claude and pi files, installs skills, and syncs `etc/claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
-
-## Cargo tools
-
-```bash
-awk '/^[a-z]/ {print $1}' ./etc/cargo/cargo-installed.txt | xargs cargo install --locked
-```
 
 # License
 

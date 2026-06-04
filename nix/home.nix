@@ -19,53 +19,39 @@ in
     bash
     bat
     beads
-    cargo-binstall
-    cargo-cache
-    cargo-nextest
-    cargo-update
     chezmoi
     claude-code
-    cloudflared
-    cmake
     curl
     delta
     direnv
     eza
     fd
     fzf
-    gdu
     gh
     ghq
     git
-    git-secrets
     gnused
-    go-licenses
-    go-task
     golangci-lint
     gopls
-    goreleaser
     gotools
     govulncheck
     helix
     jq
     mise
     mo
-    moq
     neovim
     opencode
     pi-coding-agent
     pre-commit
     ripgrep
     rustup
-    sd
     semgrep
+    shellcheck
+    shfmt
     sops
     sqlmap
-    tart
     tmux
-    vhs
     vim
-    wget
     yamllint
     yq
     zoxide
