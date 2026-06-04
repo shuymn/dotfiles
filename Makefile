@@ -122,8 +122,28 @@ gc: ## Delete old Nix generations and garbage collect the store
 	@nix-collect-garbage -d
 	@$(SUDO) nix-collect-garbage -d
 
+.PHONY: age-key
+age-key: ## Generate local age identity for chezmoi encryption
+	@if [ -e "$(AGE_KEY)" ]; then \
+		echo "$(AGE_KEY) already exists"; \
+	else \
+		mkdir -p "$(dir $(AGE_KEY))"; \
+		umask 077; \
+		if command -v age-keygen >/dev/null 2>&1; then \
+			age-keygen -o "$(AGE_KEY)"; \
+		else \
+			$(NIX_CMD) shell nixpkgs\#age -c age-keygen -o "$(AGE_KEY)"; \
+		fi; \
+	fi
+	@$(MAKE) chezmoi-config NIX_ROLE="$(NIX_ROLE)"
+
+.PHONY: chezmoi-config
+chezmoi-config: ## Generate chezmoi config for plain chezmoi commands
+	@mkdir -p "$(CHEZMOI_STATE_DIR)" "$(dir $(CHEZMOI_CONFIG))"
+	@$(CHEZMOI_TEMPLATE_ENV) $(CHEZMOI_CMD) execute-template < "$(CHEZMOI_CONFIG_TEMPLATE)" > "$(CHEZMOI_CONFIG)"
+
 .PHONY: apply
-apply: ## Apply chezmoi dotfile links
+apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 	@mkdir -p "$(CHEZMOI_STATE_DIR)"
 	@$(CHEZMOI_CMD) apply
 

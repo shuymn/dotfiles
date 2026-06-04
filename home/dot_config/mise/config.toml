@@ -4,6 +4,7 @@ lockfile_platforms = ["macos-arm64", "linux-x64"]
 disable_backends = ["asdf", "vfox"]
 npm.package_manager = "bun"
 pipx.uvx = true
+sops.age_key_file = "~/.config/age/key.txt"
 
 [tools]
 node = "24.15.0"

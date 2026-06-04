@@ -1,0 +1,7 @@
+# Local encryption identity. The age secret key must be backed up out-of-band
+# and must never be managed by chezmoi or committed to this repository.
+.config/age/**
+
+# Local chezmoi state/cache.
+.local/state/chezmoi/**
+.cache/chezmoi/**

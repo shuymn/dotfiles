@@ -7,6 +7,11 @@ __pycache__/
 
 etc/pi/agent/extensions/node_modules/
 
+# Local-only Nix host config generated from chezmoi data.
 nix/local.nix
+
+# Local-only age identities must never enter chezmoi source state.
+home/dot_config/age/
+home/private_dot_config/age/
 
 .config/

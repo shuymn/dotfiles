@@ -8,14 +8,19 @@ I am the bone of my dotfiles.
 git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 make install-nix
-make apply
+make chezmoi-config NIX_ROLE=personal
+chezmoi apply
 make switch
-make mise
+mise install
 ```
 
-`make switch` applies the nix-darwin system profile and the embedded Home Manager profile. It generates ignored `nix/local.nix` from `nix/local.nix.tmpl` before switching, so user name, home directory, host name, and ComputerName stay out of tracked Nix files.
+`make` targets are bootstrap-safe wrappers. Nix targets generate ignored `nix/local.nix` from `nix/local.nix.tmpl` before evaluation, so username, home directory, host name, ComputerName, and selected role stay out of commits.
 
-Nix/Home Manager activation is intentionally single-path: use `make switch`, which runs `darwin-rebuild switch` with the embedded Home Manager module. Do not run a separate standalone `home-manager switch` for this repo.
+The first `make chezmoi-config NIX_ROLE=personal` writes `~/.config/chezmoi/chezmoi.toml` from `.chezmoi.toml.tmpl` with this checkout as `sourceDir` and stores the selected `nixRole` in chezmoi data. Available roles are the files under `nix/roles/`. After that, plain `chezmoi diff`, `chezmoi apply`, and `chezmoi managed` use this repo without extra flags.
+
+chezmoi encryption uses age. Restore `~/.config/age/key.txt` from an out-of-band backup when decrypting existing encrypted files, or run `make age-key` to create a new local identity before adding encrypted files. The age secret key is intentionally ignored by chezmoi and git.
+
+Nix/Home Manager activation is intentionally single-path through nix-darwin: use `make switch` from this checkout so the local Nix config is regenerated before activation. Do not run a separate standalone `home-manager switch` for this repo.
 
 On the first nix-darwin activation, if `/etc/bashrc` or `/etc/zshrc` blocks activation, back them up and retry:
 
@@ -28,24 +33,36 @@ make switch
 ## Daily commands
 
 ```bash
-make check      # validate the flake
-make build      # build the nix-darwin profile without switching
-make switch     # apply nix-darwin + Home Manager
-make apply      # apply chezmoi-managed dotfile links
-make mise       # install mise-managed global tools
-make check-brew # check Homebrew against nix-darwin's generated Brewfile
-make audit-cli-path # list non-Nix/non-mise PATH executables to classify
-make agents     # link/sync Claude, Codex, and pi agent files
+make check
+make build
+make switch
+chezmoi diff
+chezmoi apply
+chezmoi managed
+mise install
+```
+
+Useful shortcuts:
+
+```bash
+make local                         # regenerate ignored nix/local.nix from chezmoi data
+make chezmoi-config NIX_ROLE=personal # set or refresh this machine's role
+make age-key                       # create a local age identity and refresh chezmoi config
+make check-brew                    # check Homebrew against nix-darwin's generated Brewfile
+make audit-cli-path                # classify non-Nix/non-mise PATH owners and shadows
+make agents                        # link/sync Claude, Codex, and pi agent files
 ```
 
 ## Ownership
 
-- Nix/Home Manager: daily CLI tools, shell-owned user packages, and `mise`.
+- Nix/Home Manager: daily CLI tools, shell-owned user packages, and `mise`; common packages live in `nix/profiles/common.nix`, optional groups in `nix/profiles/*.nix`, and roles in `nix/roles/*.nix`.
 - nix-darwin: macOS settings, Nix daemon settings, shell enablement, Homebrew taps, tap-only formulae, and GUI casks.
+- Nix host config: ignored `nix/local.nix` generated from `nix/local.nix.tmpl`; tracked `nix/local.default.nix` is only a generic fallback.
 - mise: language runtimes and pinned tool backends in `.config/mise/config.toml` plus `.config/mise/mise.lock`.
 - chezmoi: tracked dotfiles under `home/`, including `.config` entries as normal chezmoi source state.
+- age: local chezmoi encryption identity at `~/.config/age/key.txt`; never tracked, back up out-of-band.
 
-Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. `make switch` is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
+Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. nix-darwin activation is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
 
 Put daily interactive CLIs and editor-facing development tools in Nix/Home Manager. Put version-switched runtimes and pinned helper CLIs in mise. Use mise backends directly instead of maintaining separate global aqua, npm, pipx, cargo, or uv tool layers.
 
@@ -54,6 +71,8 @@ Do not use global `cargo install`, `npm install -g`, `pipx install`, or `uv tool
 Existing mise `npm:` and `pipx:` global tools are retained for now, but treat new additions through those backends as exceptions that require an explicit reason.
 
 `~/.config` should be a normal directory. Do not symlink the whole directory back to this repo; keep application state and generated files outside git, and manage only intentional dotfiles through `home/dot_config/**`.
+
+chezmoi source state lives under `home/` via `.chezmoiroot`. Keep managed home files in that source state instead of symlinking targets back to repo-root files.
 
 ## Agent files
 
