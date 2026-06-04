@@ -48,6 +48,7 @@ make switch
 1つの target path には1つの writer だけを持たせます。
 
 - nix-darwin / Home Manager は環境宣言層です。macOS 設定、Nix 設定、package availability、Homebrew 経由の GUI app などを持ちます。
+- Nix module は `nix/home/**` と `nix/darwin/**` に分け、どちらも `nix/local.nix` の同じ role 名で role module を選びます。
 - chezmoi は `$HOME` に現れる dotfile の配置層です。Home Manager file module と同じ target を二重管理しません。
 - mise は version-switched runtime と pinned helper CLI を持ちます。repo-specific tool は project-local environment に置きます。
 - host identity、signing key、age key、machine-specific state は local-only です。

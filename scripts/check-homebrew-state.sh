@@ -22,12 +22,12 @@ trap 'rm -f "$expected_formulae" "$actual_formulae" "$expected_casks" "$actual_c
 
 fail=0
 if ! diff -u "$expected_formulae" "$actual_formulae" >&2; then
-  echo "Homebrew formula leaves must match nix/darwin.nix brews." >&2
+  echo "Homebrew formula leaves must match the nix-darwin Homebrew declaration." >&2
   fail=1
 fi
 
 if ! diff -u "$expected_casks" "$actual_casks" >&2; then
-  echo "Homebrew casks must match nix/darwin.nix casks." >&2
+  echo "Homebrew casks must match the nix-darwin Homebrew declaration." >&2
   fail=1
 fi
 

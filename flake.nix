@@ -40,7 +40,7 @@
             inherit localConfig unfreePackageNames;
           };
           modules = [
-            ./nix/darwin.nix
+            ./nix/darwin
             home-manager.darwinModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
@@ -48,7 +48,7 @@
               home-manager.extraSpecialArgs = {
                 inherit localConfig;
               };
-              home-manager.users.${localConfig.username} = import ./nix/home.nix;
+              home-manager.users.${localConfig.username} = import ./nix/home;
             }
           ];
         };
