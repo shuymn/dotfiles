@@ -12,7 +12,6 @@ path=( \
   /opt/homebrew/sbin(N-/) \
   /home/linuxbrew/.linuxbrew/bin(N-/) \
   /home/linuxbrew/.linuxbrew/sbin(N-/) \
-  ~/.local/bin(N-/) \
   ~/.lmstudio/bin(N-/) \
   "$path[@]" \
 )
