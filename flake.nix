@@ -17,8 +17,6 @@
 
   outputs =
     {
-      self,
-      nixpkgs,
       home-manager,
       nix-darwin,
       ...
@@ -34,23 +32,10 @@
         "1password-cli"
         "claude-code"
       ];
-      allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) unfreePackageNames;
       system = localConfig.system;
       username = localConfig.username;
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfreePredicate = allowUnfreePredicate;
-      };
     in
     {
-      homeConfigurations.default = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
-        extraSpecialArgs = {
-          inherit localConfig;
-        };
-        modules = [ ./nix/home.nix ];
-      };
-
       darwinConfigurations.default = nix-darwin.lib.darwinSystem {
         inherit system;
         specialArgs = {
@@ -77,6 +62,7 @@
       apps.${system}.darwin-rebuild = {
         type = "app";
         program = "${nix-darwin.packages.${system}.darwin-rebuild}/bin/darwin-rebuild";
+        meta.description = "Run nix-darwin rebuild for this dotfiles flake";
       };
     };
 }

@@ -60,6 +60,24 @@ local:
 check: local ## Check the Nix flake
 	@$(NIX_LOCAL_ENV) $(NIX_CMD) flake check --impure "$(NIX_LOCAL_FLAKE)"
 
+.PHONY: check-brew
+check-brew: local ## Check Homebrew against the nix-darwin generated Brewfile
+	@tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
+	trap 'rm -f "$$tmpfile"' EXIT; \
+	$(NIX_LOCAL_ENV) $(NIX_CMD) eval --impure --raw "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).config.homebrew.brewfile" > "$$tmpfile"; \
+	brew bundle check --file="$$tmpfile"
+
+.PHONY: audit-cli-path
+audit-cli-path: ## List non-Nix/non-mise PATH executables to classify
+	@zsh -lc 'for dir in $$path; do \
+		case "$$dir" in \
+			$$HOME/.local/share/mise/shims|/etc/profiles/per-user/*/bin|/run/current-system/sw/bin|/nix/var/nix/profiles/default/bin|/usr/bin|/bin|/usr/sbin|/sbin) continue ;; \
+		esac; \
+		[ -d "$$dir" ] || continue; \
+		printf "%s\n" "$$dir"; \
+		find -L "$$dir" -maxdepth 1 -type f -perm +111 -print 2>/dev/null | sed "s#^$$dir/##" | sort | sed "s#^#  #"; \
+	done'
+
 .PHONY: build
 build: local ## Build the nix-darwin profile without switching
 	@$(NIX_LOCAL_ENV) $(NIX_CMD) build --impure --no-link "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).system"

@@ -36,9 +36,9 @@ require_local_checkout() {
 }
 
 link() {
-  echo "Linking dotfiles..."
-  make -C "${DOTPATH}" link
-  echo "Finish linking"
+  echo "Applying dotfiles..."
+  make -C "${DOTPATH}" apply
+  echo "Finish applying"
 }
 
 install() {
