@@ -1,4 +1,9 @@
-{ lib, localConfig, unfreePackageNames, ... }:
+{
+  lib,
+  localConfig,
+  unfreePackageNames,
+  ...
+}:
 
 {
   system.stateVersion = 5;
@@ -42,5 +47,31 @@
       autoUpdate = false;
       brewfile = true;
     };
+
+    taps = [
+      "coderabbitai/tap"
+      "shuymn/tap"
+    ];
+
+    brews = [
+      "coderabbitai/tap/git-gtr"
+      "shuymn/tap/capsule"
+      "shuymn/tap/kastty"
+      "shuymn/tap/pommitlint"
+    ];
+
+    casks = [
+      "appcleaner"
+      "codex"
+      "ghostty"
+      "hammerspoon"
+      "jordanbaird-ice"
+      "karabiner-elements"
+      "linearmouse"
+      "raycast"
+      "ukelele"
+      "visual-studio-code"
+      "zed"
+    ];
   };
 }
