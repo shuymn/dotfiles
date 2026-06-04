@@ -119,7 +119,6 @@ chezmoi-config: ## Generate chezmoi config for plain chezmoi commands
 
 .PHONY: apply
 apply: chezmoi-config ## Apply chezmoi-managed dotfiles
-	@mkdir -p "$(CHEZMOI_STATE_DIR)"
 	@$(CHEZMOI_CMD) apply
 
 .PHONY: mise
@@ -130,15 +129,15 @@ mise: ## Install mise-managed global tools
 agents: agent-dotfiles sync-skills install-pi ## Apply agent dotfiles and runtime syncs
 
 .PHONY: agent-dotfiles
-agent-dotfiles: chezmoi-config
+agent-dotfiles: chezmoi-config ## Apply only static agent dotfiles
 	@$(CHEZMOI_CMD) apply $(foreach target,$(AGENT_CHEZMOI_TARGETS),"$(target)")
 
 .PHONY: sync-skills
-sync-skills:
+sync-skills: ## Install repo-owned skills into configured agent runtimes
 	@$(SKILLS_CMD) add "$(SKILLS_ROOT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
 
 .PHONY: install-pi
-install-pi:
+install-pi: ## Install the local pi extensions package when present
 	@if [ -d "$(PI_EXTENSIONS_PROJECT)" ]; then \
 		pi install "$(PI_EXTENSIONS_PROJECT)" >/dev/null; \
 	else \
