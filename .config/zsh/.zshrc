@@ -42,6 +42,3 @@ load "${XDG_CONFIG_HOME:?}/zsh/config/06_plugin.zsh"
 
 # load local config
 load "${XDG_CONFIG_HOME:?}/zsh/config/99_local.zsh"
-
-# bun completions
-[ -s "${HOME}/.bun/_bun" ] && source "${HOME}/.bun/_bun"

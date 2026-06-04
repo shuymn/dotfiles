@@ -112,7 +112,7 @@ function set_terminal_title() {
   # example: "zsh - dotfiles"
   print -Pn "\033]0;${process_name} - ${current_dir}\007"
 }
-precmd_functions+=(set_terminal_title)
+add-zsh-hook precmd set_terminal_title
 
 # starship
 # if has "starship"; then
@@ -130,12 +130,12 @@ fi
 if has "fzf"; then
   load "${HOME}/.fzf.sh"
 
-  export FZF_DEFAULT_COMMAND='fd --type f --hidden'
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
   export FZF_DEFAULT_OPTS='--height 40% --reverse --border'
 
   export FZF_CTRL_T_COMMAND=$FZF_DEFAULT_COMMAND
   export FZF_CTRL_T_OPTS='--preview \
-    "[[ $(file --mine {}) =~ binary ]] && \
+    "[[ $(file --mime {}) =~ binary ]] && \
     echo {} is a binary file || \
     (bat --style=number,header,grid --color=always {} || \
     highlight -O ansi -l {} || \
@@ -143,7 +143,7 @@ if has "fzf"; then
     rougify {} || \
     cat {}) 2> /dev/null | head -500"'
 
-  export FZF_ALT_C_COMMAND='fd --type d --hidden'
+  export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
   export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'eza -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
 
   history-fzf() {
@@ -248,7 +248,8 @@ fi
 
 # terraform
 if has "terraform"; then
-  complete -o nospace -C /usr/local/bin/terraform terraform
+  autoload -U +X bashcompinit && bashcompinit
+  complete -o nospace -C "$(command -v terraform)" terraform
 fi
 
 # volta
@@ -277,9 +278,6 @@ add_path "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # bat / delta
 export BAT_THEME="ansi"
-
-# bun completions
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # rye
 load "${HOME}/.rye/env"
