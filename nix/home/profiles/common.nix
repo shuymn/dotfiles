@@ -85,6 +85,7 @@
 
       opt.autoread = true
       opt.breakindent = true
+      opt.clipboard = "unnamedplus"
       opt.confirm = true
       opt.cursorline = true
       opt.ignorecase = true
