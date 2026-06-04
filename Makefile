@@ -44,7 +44,7 @@ AGENT_CHEZMOI_TARGETS := \
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| sort \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install-nix
 install-nix: ## Install Nix if missing
@@ -69,8 +69,12 @@ check-ownership: ## Check Home Manager does not claim dotfile targets
 		exit 1; \
 	fi
 
+.PHONY: check-source-state
+check-source-state: ## Check chezmoi source state does not include local-only targets
+	@/bin/sh "$(DOTPATH)/scripts/check-source-state.sh"
+
 .PHONY: check
-check: check-ownership local ## Check the Nix flake
+check: check-ownership check-source-state local ## Check source state, dotfile ownership, and the Nix flake
 	@$(NIX_LOCAL_ENV) $(NIX_CMD) flake check --impure "$(NIX_LOCAL_FLAKE)"
 
 .PHONY: check-brew
@@ -78,7 +82,8 @@ check-brew: local ## Check Homebrew against the nix-darwin generated Brewfile
 	@tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
 	trap 'rm -f "$$tmpfile"' EXIT; \
 	$(NIX_LOCAL_ENV) $(NIX_CMD) eval --impure --raw "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).config.homebrew.brewfile" > "$$tmpfile"; \
-	$(BREW) bundle check --file="$$tmpfile"
+	$(BREW) bundle check --file="$$tmpfile"; \
+	BREW="$(BREW)" /bin/sh "$(DOTPATH)/scripts/check-homebrew-state.sh" "$$tmpfile"
 
 .PHONY: audit-cli-path
 audit-cli-path: ## Classify non-Nix/non-mise PATH owners and shadows

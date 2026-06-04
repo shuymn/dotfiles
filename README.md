@@ -37,7 +37,7 @@ make switch
 
 | コマンド | 用途 |
 | --- | --- |
-| `make check` | `nix/local.nix` を再生成し、ownership check と Nix flake check を実行します。 |
+| `make check` | source-state / ownership check、`nix/local.nix` の再生成、Nix flake check を実行します。 |
 | `make build` | nix-darwin profile を build します。activation はしません。 |
 | `make switch` | `nix/local.nix` を再生成し、nix-darwin と Home Manager を適用します。 |
 | `chezmoi diff` | dotfile の未適用差分を確認します。 |
@@ -53,8 +53,9 @@ make switch
 | `make local` | chezmoi data から ignored な `nix/local.nix` を再生成します。 |
 | `make chezmoi-config NIX_ROLE=personal` | このマシンの role を設定または更新します。 |
 | `make age-key` | local age identity を作成し、chezmoi config を更新します。 |
-| `make check-brew` | nix-darwin が生成する Brewfile と Homebrew 状態を確認します。 |
+| `make check-brew` | nix-darwin が生成する Brewfile に対して Homebrew の依存充足、top-level formula、cask 状態を確認します。 |
 | `make check-ownership` | Home Manager が dotfile target を管理していないことを確認します。 |
+| `make check-source-state` | chezmoi source state に local-only target や repo-root symlink が混ざっていないことを確認します。 |
 | `make audit-cli-path` | PATH 上の non-Nix / non-mise owner と shadow を分類します。 |
 | `make agents` | agent dotfiles を適用し、runtime sync を実行します。 |
 | `chezmoi managed` | chezmoi が管理している target を一覧します。 |

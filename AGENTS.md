@@ -22,6 +22,7 @@
 - Treat `install.sh` as a local-only `make apply` wrapper, not as the full bootstrap path; if its behavior changes, update `README.md` and the script together.
 - Keep mise for version-switched runtimes and pinned helper CLIs. Prefer plain `mise install`; `make mise` is only a shortcut. Existing `npm:` and `pipx:` entries may remain, but new global `npm:`/`pipx:`/`cargo:`/`go:`/`gem:` tool entries need an explicit exception reason.
 - Run `make audit-cli-path` before migrating unmanaged global CLIs so PATH-derived evidence drives the move.
+- After Homebrew tap/formula/cask changes, run `make check-brew`; it checks dependency availability and compares formula leaves/casks against the nix-darwin generated Brewfile.
 - After Nix or activation-path changes, run `make check` so chezmoi-generated `nix/local.nix` and ownership checks are included. After chezmoi source-state changes, run `chezmoi diff`; run `chezmoi apply` only when applying to the live home directory is intended.
 
 <!-- Maintenance: Update this file when skill source/build ownership or Claude sync workflow changes. -->
