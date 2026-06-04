@@ -21,25 +21,27 @@ if [[ -r /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
   source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 fi
 
+typeset -g -a DOTFILES_NIX_PROFILE_DIRS
+DOTFILES_NIX_PROFILE_DIRS=( \
+  /etc/profiles/per-user/${DOTFILES_USER} \
+  ~/.nix-profile \
+  /run/current-system/sw \
+  /nix/var/nix/profiles/default \
+)
+
 # Keep Nix-managed mise ahead of old user-local installs, and expose mise shims
 # to non-interactive shells such as editor and agent tasks.
 path=( \
   ~/.local/share/mise/shims(N-/) \
-  /etc/profiles/per-user/${DOTFILES_USER}/bin(N-/) \
-  ~/.nix-profile/bin(N-/) \
-  /run/current-system/sw/bin(N-/) \
-  /nix/var/nix/profiles/default/bin(N-/) \
+  ${^DOTFILES_NIX_PROFILE_DIRS}/bin(N-/) \
   "$path[@]" \
 )
 path=(${^path}(N-/))
 
 typeset -gx -U fpath
 fpath=( \
-  /etc/profiles/per-user/${DOTFILES_USER}/share/zsh/site-functions(N-/) \
-  ~/.nix-profile/share/zsh/site-functions(N-/) \
-  /run/current-system/sw/share/zsh/site-functions(N-/) \
-  /nix/var/nix/profiles/default/share/zsh/site-functions(N-/) \
-  $fpath \
+  ${^DOTFILES_NIX_PROFILE_DIRS}/share/zsh/site-functions(N-/) \
+  "$fpath[@]" \
 )
 fpath=(${^fpath}(N-/))
 
