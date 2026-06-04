@@ -4,7 +4,6 @@ export GOBIN="${GOBIN:-${GOPATH}/bin}"
 
 typeset -gx -U path
 path=( \
-  "${GOBIN}"(N-/) \
   /usr/local/bin(N-/) \
   /usr/local/sbin(N-/) \
   /opt/homebrew/bin(N-/) \
@@ -12,14 +11,6 @@ path=( \
   /home/linuxbrew/.linuxbrew/bin(N-/) \
   /home/linuxbrew/.linuxbrew/sbin(N-/) \
   ~/.local/bin(N-/) \
-  ~/.serverless/bin(N-/) \
-  ~/.cargo/bin(N-/) \
-  ~/.poetry/bin(N-/) \
-  ~/.grit/bin(N-/) \
-  ~/.deno/bin(N-/) \
-  ~/.antigravity/antigravity/bin(N-/) \
-  ~/.codeium/windsurf/bin(N-/) \
-  ~/.opencode/bin(N-/) \
   ~/.lmstudio/bin(N-/) \
   "$path[@]" \
 )

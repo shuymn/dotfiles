@@ -1,11 +1,11 @@
-{ lib, localConfig, ... }:
+{ lib, localConfig, unfreePackageNames, ... }:
 
 {
   system.stateVersion = 5;
   system.primaryUser = localConfig.username;
 
   nixpkgs.hostPlatform = localConfig.system;
-  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "tart" ];
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) unfreePackageNames;
 
   nix.settings = {
     experimental-features = [
@@ -33,7 +33,12 @@
     onActivation = {
       autoUpdate = false;
       upgrade = false;
-      cleanup = "none";
+      cleanup = "check";
+    };
+
+    global = {
+      autoUpdate = false;
+      brewfile = true;
     };
 
     taps = [
@@ -51,7 +56,6 @@
     ];
 
     casks = [
-      "1password-cli"
       "appcleaner"
       "choosy"
       "codex"
@@ -60,6 +64,7 @@
       "jordanbaird-ice"
       "karabiner-elements"
       "linearmouse"
+      "lm-studio"
       "orbstack"
       "raycast"
       "ukelele"

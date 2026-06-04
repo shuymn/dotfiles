@@ -34,13 +34,13 @@ make agents     # link/sync Claude, Codex, and pi agent files
 
 ## Ownership
 
-- Nix/Home Manager: base CLI tools, `mise`, `aqua`, and `pi`.
+- Nix/Home Manager: daily CLI tools, shell-owned user packages, `mise`, `aqua`, and `pi`.
 - nix-darwin: macOS settings, Nix daemon settings, shell enablement, Homebrew taps, tap-only formulae, and GUI casks.
-- mise: runtimes in `.config/mise/config.toml`.
-- aqua: pinned CI/release helper CLIs in `.config/aqua/aqua.yaml`.
-- chezmoi: dotfile links from `home/`.
+- mise: language runtimes in `.config/mise/config.toml`.
+- aqua: pinned CI/release/lint helper CLIs in `.config/aqua/aqua.yaml`.
+- chezmoi: bootstrap links from `home/` for files not owned by Nix/Home Manager.
 
-Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. `.Brewfile` mirrors the nix-darwin Homebrew module as an inventory fallback; do not run `brew bundle` and `make switch` as competing reconciliation commands.
+Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. `make switch` is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
 
 ## Agent files
 

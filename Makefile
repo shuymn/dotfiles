@@ -25,7 +25,7 @@ CLAUDE_FILES := $(filter-out $(CLAUDE_EXCLUSIONS), $(CLAUDE_CANDIDATES))
 
 SKILLS_ROOT := $(abspath $(CLAUDE_BASE)/skills)
 SKILLS_CMD := bunx --bun skills
-SKILLS_AGENTS := codex claude-code antigravity-cli
+SKILLS_AGENTS := codex claude-code
 CODEX_AGENTS_SOURCE := $(abspath $(CLAUDE_BASE)/CLAUDE.md)
 CODEX_AGENTS_TARGET := $(HOME)/.codex/AGENTS.md
 

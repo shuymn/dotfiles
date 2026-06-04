@@ -30,11 +30,17 @@
           import ./nix/local.default.nix
         else
           import localConfigPath;
+      unfreePackageNames = [
+        "1password-cli"
+        "claude-code"
+        "tart"
+      ];
+      allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) unfreePackageNames;
       system = localConfig.system;
       username = localConfig.username;
       pkgs = import nixpkgs {
         inherit system;
-        config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [ "tart" ];
+        config.allowUnfreePredicate = allowUnfreePredicate;
       };
     in
     {
@@ -49,7 +55,7 @@
       darwinConfigurations.default = nix-darwin.lib.darwinSystem {
         inherit system;
         specialArgs = {
-          inherit localConfig;
+          inherit localConfig unfreePackageNames;
         };
         modules = [
           ./nix/darwin.nix
