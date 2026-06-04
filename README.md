@@ -64,6 +64,7 @@ make switch
 - nix-darwin: macOS 設定、Nix daemon/client 設定、shell 有効化、Homebrew taps、tap-only formulae、GUI casks。
 - Nix host config: ignored な `nix/local.nix` を `nix/local.nix.tmpl` から生成します。tracked な `nix/local.default.nix` は generic fallback です。
 - mise: 言語 runtime と pinned helper CLI。設定は `.config/mise/config.toml` と `.config/mise/mise.lock` です。
+- Renovate: GitHub Actions で self-hosted Renovate を実行します。`mise.lock` 更新のため self-hosted global config で `allowedUnsafeExecutions = ["mise"]` を許可し、repo variable `RENOVATE_APP_CLIENT_ID` と repo secret `RENOVATE_APP_PRIVATE_KEY` から GitHub App installation token を発行して PR を作成します。`.github/renovate.json` は Mend-hosted Renovate App の二重実行を防ぐため `enabled=false` にし、実設定は `.github/renovate-self-hosted.json` に置きます。
 - chezmoi: `home/` 配下の tracked dotfiles。`~/.config` 配下の application config も通常の chezmoi source state として管理します。
 - age: chezmoi encryption 用の local identity は `~/.config/age/key.txt` に置きます。これは tracking せず、別経路で backup します。
 

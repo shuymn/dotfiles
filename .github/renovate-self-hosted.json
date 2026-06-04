@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-global-schema.json",
+  "platform": "github",
+  "repositories": ["shuymn/dotfiles"],
+  "requireConfig": "ignored",
+  "extends": ["github>shuymn/github-actions#main"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update renovatebot/github-action renovate-version input",
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/renovate-run\\.yml$/"],
+      "matchStrings": ["renovate-version:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "renovate"
+    }
+  ],
+  "nix": {
+    "enabled": true
+  },
+  "allowedUnsafeExecutions": ["mise"]
+}
