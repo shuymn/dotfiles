@@ -1,8 +1,8 @@
 # dotfiles
 
-I am the bone of my dotfiles.
+個人用の dotfiles リポジトリです。chezmoi でホームディレクトリのファイルを配置し、nix-darwin / Home Manager で macOS とユーザー環境を宣言します。
 
-## Install
+## インストール
 
 ```bash
 git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles
@@ -13,15 +13,17 @@ make switch
 mise install
 ```
 
-`make` targets are bootstrap-safe wrappers. Nix targets generate ignored `nix/local.nix` from `nix/local.nix.tmpl` before evaluation, so username, home directory, host name, ComputerName, and selected role stay out of commits.
+`make` ターゲットは bootstrap 用の薄い wrapper です。Nix 系ターゲットは評価前に `nix/local.nix.tmpl` から ignored な `nix/local.nix` を生成します。
 
-The first `make apply NIX_ROLE=personal` writes `~/.config/chezmoi/chezmoi.toml` from `.chezmoi.toml.tmpl` with this checkout as `sourceDir`, stores the selected `nixRole` in chezmoi data, and applies the managed dotfiles. Available roles are the files under `nix/roles/`. After that, plain `chezmoi diff`, `chezmoi apply`, and `chezmoi managed` use this repo without extra flags.
+`install.sh` は local checkout から `make apply` を実行するための補助 wrapper です。Nix のインストール、nix-darwin activation、remote `curl | sh` 実行には対応していません。完全な bootstrap には上の手順を使います。
 
-chezmoi encryption uses age. Restore `~/.config/age/key.txt` from an out-of-band backup when decrypting existing encrypted files, or run `make age-key` to create a new local identity before adding encrypted files. The age secret key is intentionally ignored by chezmoi and git.
+最初の `make apply NIX_ROLE=personal` は `.chezmoi.toml.tmpl` から `~/.config/chezmoi/chezmoi.toml` を生成し、この checkout を `sourceDir` として設定し、選択した `nixRole` を chezmoi data に保存してから dotfiles を適用します。利用できる role は `nix/roles/` 配下のファイルです。その後は、通常の `chezmoi diff`、`chezmoi apply`、`chezmoi managed` がこのリポジトリを参照します。
 
-Nix/Home Manager activation is intentionally single-path through nix-darwin: use `make switch` from this checkout so the local Nix config is regenerated before activation. Do not run a separate standalone `home-manager switch` for this repo.
+chezmoi の暗号化には age を使います。既存の暗号化ファイルを復号する場合は、別管理で backup している `~/.config/age/key.txt` を復元します。新しい local identity を作る場合は `make age-key` を使います。key が存在する場合、`.chezmoi.toml.tmpl` は `scripts/age-recipient.sh` 経由で公開 recipient を導出します。age の秘密鍵は chezmoi と git の管理対象外です。
 
-On the first nix-darwin activation, if `/etc/bashrc` or `/etc/zshrc` blocks activation, back them up and retry:
+Nix / Home Manager の activation は nix-darwin 経由に一本化しています。`make switch` は activation 前に local Nix config を再生成します。このリポジトリでは standalone の `home-manager switch` flow は使いません。
+
+nix-darwin activation が既存の `/etc/bashrc` または `/etc/zshrc` を報告した場合は、backup してから再実行します。
 
 ```bash
 sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
@@ -29,69 +31,73 @@ sudo mv /etc/zshrc /etc/zshrc.before-nix-darwin
 make switch
 ```
 
-## Daily commands
+## よく使うコマンド
 
-```bash
-make check
-make build
-make switch
-chezmoi diff
-chezmoi apply
-chezmoi managed
-mise install
-```
+普段は次のコマンドだけを使います。
 
-Useful shortcuts:
+| コマンド | 用途 |
+| --- | --- |
+| `make check` | `nix/local.nix` を再生成し、ownership check と Nix flake check を実行します。 |
+| `make build` | nix-darwin profile を build します。activation はしません。 |
+| `make switch` | `nix/local.nix` を再生成し、nix-darwin と Home Manager を適用します。 |
+| `chezmoi diff` | dotfile の未適用差分を確認します。 |
+| `chezmoi apply` | dotfile を live home directory に適用します。 |
+| `mise install` | mise-managed runtime / helper tools を install します。 |
 
-```bash
-make local                         # regenerate ignored nix/local.nix from chezmoi data
-make chezmoi-config NIX_ROLE=personal # set or refresh this machine's role
-make age-key                       # create a local age identity and refresh chezmoi config
-make check-brew                    # check Homebrew against nix-darwin's generated Brewfile
-make check-ownership               # check Home Manager does not claim dotfile targets
-make audit-cli-path                # classify non-Nix/non-mise PATH owners and shadows
-make agents                        # apply agent dotfiles and runtime syncs
-```
+## 状況別コマンド
 
-## Ownership
+次のコマンドは、上の主要コマンドが内部で呼ぶ部品、または特定の確認をしたいときの補助です。
 
-- Nix/Home Manager: daily CLI tools, shell-owned user packages, and `mise`; common packages live in `nix/profiles/common.nix`, optional groups in `nix/profiles/*.nix`, and roles in `nix/roles/*.nix`.
-- nix-darwin: macOS settings, Nix daemon/client settings, shell enablement, Homebrew taps, tap-only formulae, and GUI casks.
-- Nix host config: ignored `nix/local.nix` generated from `nix/local.nix.tmpl`; tracked `nix/local.default.nix` is only a generic fallback.
-- mise: language runtimes and pinned tool backends in `.config/mise/config.toml` plus `.config/mise/mise.lock`.
-- chezmoi: tracked dotfiles under `home/`, including `.config` entries as normal chezmoi source state.
-- age: local chezmoi encryption identity at `~/.config/age/key.txt`; never tracked, back up out-of-band.
+| コマンド | 用途 |
+| --- | --- |
+| `make local` | chezmoi data から ignored な `nix/local.nix` を再生成します。 |
+| `make chezmoi-config NIX_ROLE=personal` | このマシンの role を設定または更新します。 |
+| `make age-key` | local age identity を作成し、chezmoi config を更新します。 |
+| `make check-brew` | nix-darwin が生成する Brewfile と Homebrew 状態を確認します。 |
+| `make check-ownership` | Home Manager が dotfile target を管理していないことを確認します。 |
+| `make audit-cli-path` | PATH 上の non-Nix / non-mise owner と shadow を分類します。 |
+| `make agents` | agent dotfiles を適用し、runtime sync を実行します。 |
+| `chezmoi managed` | chezmoi が管理している target を一覧します。 |
 
-One target path has one writer. In this repo, Home Manager is the environment declaration layer: package groups, profile composition, Home Manager enablement, and shell-owned package availability. chezmoi is the dotfile placement layer: files that should appear in `$HOME`, including application config under `~/.config`.
+## 所有モデル
 
-Do not add Home Manager `home.file`, `xdg.*File`, or file-writing `home.activation` logic for targets that belong under `home/**`. If a target becomes simpler as a Home Manager module, migrate it fully in one change: remove or ignore the corresponding chezmoi source, add the Home Manager owner, and update this ownership section.
+- Nix / Home Manager: 日常的な CLI、shell-owned user packages、`mise`。共通 package は `nix/profiles/common.nix`、任意 group は `nix/profiles/*.nix`、role composition は `nix/roles/*.nix` にあります。
+- nix-darwin: macOS 設定、Nix daemon/client 設定、shell 有効化、Homebrew taps、tap-only formulae、GUI casks。
+- Nix host config: ignored な `nix/local.nix` を `nix/local.nix.tmpl` から生成します。tracked な `nix/local.default.nix` は generic fallback です。
+- mise: 言語 runtime と pinned helper CLI。設定は `.config/mise/config.toml` と `.config/mise/mise.lock` です。
+- chezmoi: `home/` 配下の tracked dotfiles。`~/.config` 配下の application config も通常の chezmoi source state として管理します。
+- age: chezmoi encryption 用の local identity は `~/.config/age/key.txt` に置きます。これは tracking せず、別経路で backup します。
 
-Keep Nix client settings in `nix/darwin.nix` through `nix.settings`; do not add a separate `home/dot_config/nix/nix.conf` for normal flake behavior.
+1つの target path には1つの writer だけを持たせます。このリポジトリでは、Home Manager は package group、profile composition、Home Manager 有効化、shell-owned package availability などの環境宣言層です。chezmoi は `$HOME` に現れるファイルを配置する層で、`~/.config` 配下の application config も含みます。
 
-Git is split the same way: shared behavior lives in `home/dot_gitconfig`, while identity, signing, allowed signers, and machine-specific CLI state stay in ignored local files under `~/.config/git/`. The tracked config includes `~/.config/git/config.local` at the end so local values can override shared defaults.
+`home/**` 配下の target は、現状では Home Manager file module ではなく chezmoi が管理しています。target を Home Manager に移す場合は、対応する chezmoi source を同じ変更で削除または ignore し、この section も更新します。
 
-Homebrew is intentionally limited to GUI casks and tap-only formulae that are not in nixpkgs. nix-darwin activation is the only Homebrew reconciliation path; do not keep or run a parallel Brewfile.
+Nix client 設定は `nix/darwin.nix` の `nix.settings` にあります。通常の flake behavior 用に separate な `home/dot_config/nix/nix.conf` はありません。
 
-Zed follows that split: the GUI app stays as a Homebrew cask in `nix/darwin.nix`, settings and keymaps live under `home/dot_config/zed/**`, and editor-facing tools such as `nixd` and `nixfmt` come from Nix/Home Manager. Zed loads `direnv` so project flake/dev shell environments can provide project-local toolchains. Zed extensions are rendered by chezmoi from `nixRole`: `personal` keeps the full interactive extension set, while other roles get the minimal Nix extension set. Avoid auto-installing or keeping Zed extensions that fetch their own LSP/tool binaries unless they are pinned to local Nix or project-provided binaries.
+Git は shared behavior と local identity を分けています。共通設定は `home/dot_gitconfig`、identity、signing key、allowed signers、machine-specific CLI state は ignored な `~/.config/git/` 配下です。tracked config の最後で `~/.config/git/config.local` を include するため、local value は shared default を override できます。
 
-Put daily interactive CLIs and editor-facing development tools in Nix/Home Manager. Put version-switched runtimes and pinned helper CLIs in mise. Use mise backends directly instead of maintaining separate global aqua, npm, pipx, cargo, or uv tool layers.
+Homebrew は nixpkgs にない GUI casks と tap-only formulae に限定しています。Homebrew の reconciliation は nix-darwin activation 経由だけで、このリポジトリには parallel Brewfile はありません。
 
-Do not use global `cargo install`, `npm install -g`, `pipx install`, or `uv tool install` as managed CLI layers. Prefer mise backends for versioned global tools and project-local environments for repo-specific tools.
+Zed も同じ分離に従います。GUI app は `nix/darwin.nix` の Homebrew cask、settings と keymap は `home/dot_config/zed/**`、`nixd` や `nixfmt` など editor-facing tools は Nix / Home Manager です。Zed は `direnv` を読み込み、project flake / dev shell が project-local toolchain を提供できます。Zed extensions は chezmoi が `nixRole` から render し、`personal` は full interactive extension set、それ以外の role は minimal Nix extension set になります。
 
-Existing mise `npm:` and `pipx:` global tools are retained for now, but treat new additions through those backends as exceptions that require an explicit reason.
+日常的な interactive CLI と editor-facing development tools は Nix / Home Manager に置きます。version-switched runtimes と pinned helper CLIs は mise に置きます。mise backend が separate global aqua、npm、pipx、cargo、uv tool layer を置き換えます。
 
-`~/.config` should be a normal directory. Do not symlink the whole directory back to this repo; keep application state and generated files outside git, and manage only intentional dotfiles through `home/dot_config/**`.
+global `cargo install`、`npm install -g`、`pipx install`、`uv tool install` はこのリポジトリの managed CLI layer ではありません。versioned global tools は mise backend、repo-specific tools は project-local environment に置きます。
 
-chezmoi source state lives under `home/` via `.chezmoiroot`. Keep managed home files in that source state instead of symlinking targets back to repo-root files.
+既存の mise `npm:` / `pipx:` global tools は現時点では残しています。これらの backend で新しい tool を追加する場合は、明示的な理由が必要です。
 
-## Agent files
+`~/.config` は通常の directory です。application state と generated files は git の外に置き、意図した dotfiles だけを `home/dot_config/**` で管理します。
 
-Static Claude, Codex, and pi agent dotfiles are managed by chezmoi under `home/dot_claude/**`, `home/dot_codex/**`, and `home/dot_pi/**`. `~/.codex/AGENTS.md` and `~/.pi/agent/AGENTS.md` are chezmoi-managed symlinks to `~/.claude/CLAUDE.md`.
+chezmoi source state は `.chezmoiroot` により `home/` 配下にあります。managed home files は repo root への symlink ではなく、この source state に置きます。
 
-Repo-owned skills live under `etc/claude/skills/**`. The `skills` CLI is pinned through mise as `npm:skills`; the runtime install remains additive so system, plugin, and ad-hoc skills can coexist.
+## Agent ファイル
 
-`make agents` applies those agent dotfile targets, installs all skills under `etc/claude/skills/**`, and runs `pi install` for the local pi extensions checkout when present.
+静的な Claude、Codex、pi agent dotfiles は、chezmoi により `home/dot_claude/**`、`home/dot_codex/**`、`home/dot_pi/**` で管理します。`~/.codex/AGENTS.md` と `~/.pi/agent/AGENTS.md` は、`~/.claude/CLAUDE.md` への chezmoi-managed symlink です。
 
-# License
+repo-owned skills は `etc/claude/skills/**` にあります。`skills` CLI は mise の `npm:skills` で pin しています。runtime install は additive なので、system、plugin、ad-hoc skills と共存できます。
+
+`make agents` は agent dotfile targets を適用し、`etc/claude/skills/**` の全 skill を install し、local pi extensions checkout が存在する場合は `pi install` も実行します。
+
+# ライセンス
 
 MIT
