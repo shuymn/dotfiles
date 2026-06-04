@@ -134,6 +134,10 @@ url = "https://nodejs.org/dist/v24.15.0/node-v24.15.0-darwin-arm64.tar.gz"
 version = "0.78.0"
 backend = "npm:@earendil-works/pi-coding-agent"
 
+[[tools."npm:skills"]]
+version = "1.5.10"
+backend = "npm:skills"
+
 [[tools.pinact]]
 version = "4.0.0"
 backend = "aqua:suzuki-shunsuke/pinact"

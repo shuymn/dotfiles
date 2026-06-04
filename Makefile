@@ -24,8 +24,9 @@ SUDO ?= sudo
 BREW ?= $(shell if command -v brew >/dev/null 2>&1; then command -v brew; elif [ -x /opt/homebrew/bin/brew ]; then printf '%s' /opt/homebrew/bin/brew; elif [ -x /usr/local/bin/brew ]; then printf '%s' /usr/local/bin/brew; else printf '%s' brew; fi)
 
 CLAUDE_BASE := etc/claude
+MISE ?= mise
 SKILLS_ROOT := $(abspath $(CLAUDE_BASE)/skills)
-SKILLS_CMD := bunx --bun skills
+SKILLS_CMD := $(MISE) exec -- skills
 SKILLS_AGENTS := codex claude-code
 
 PI_EXTENSIONS_PROJECT ?= $(HOME)/ghq/github.com/shuymn/pi-extensions
@@ -36,8 +37,6 @@ AGENT_CHEZMOI_TARGETS := \
 	$(HOME)/.codex/AGENTS.md \
 	$(HOME)/.pi/agent/AGENTS.md \
 	$(HOME)/.pi/agent/keybindings.json
-
-MISE ?= mise
 
 .DEFAULT_GOAL := help
 

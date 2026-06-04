@@ -88,7 +88,9 @@ chezmoi source state lives under `home/` via `.chezmoiroot`. Keep managed home f
 
 Static Claude, Codex, and pi agent dotfiles are managed by chezmoi under `home/dot_claude/**`, `home/dot_codex/**`, and `home/dot_pi/**`. `~/.codex/AGENTS.md` and `~/.pi/agent/AGENTS.md` are chezmoi-managed symlinks to `~/.claude/CLAUDE.md`.
 
-`make agents` applies those agent dotfile targets, installs skills from `etc/claude/skills/**`, and runs `pi install` for the local pi extensions checkout when present.
+Repo-owned skills live under `etc/claude/skills/**`. The `skills` CLI is pinned through mise as `npm:skills`; the runtime install remains additive so system, plugin, and ad-hoc skills can coexist.
+
+`make agents` applies those agent dotfile targets, installs all skills under `etc/claude/skills/**`, and runs `pi install` for the local pi extensions checkout when present.
 
 # License
 
