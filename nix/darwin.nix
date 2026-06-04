@@ -70,6 +70,7 @@
       "lm-studio"
       "orbstack"
       "raycast"
+      "tailscale-app"
       "ukelele"
       "visual-studio-code"
       "xdevplatform/tap/xurl"
