@@ -82,38 +82,7 @@ check-brew: local ## Check Homebrew against the nix-darwin generated Brewfile
 
 .PHONY: audit-cli-path
 audit-cli-path: ## Classify non-Nix/non-mise PATH owners and shadows
-	@zsh -lc 'emulate -L zsh; setopt null_glob; \
-		owner() { \
-			case "$$1" in \
-				$$HOME/.local/share/mise/shims/*|$$HOME/.local/share/mise/installs/*) print mise ;; \
-				/etc/profiles/per-user/*/bin/*|/run/current-system/sw/bin/*|/nix/var/nix/profiles/default/bin/*|$$HOME/.nix-profile/bin/*) print nix ;; \
-				/opt/homebrew/bin/*|/opt/homebrew/sbin/*|/usr/local/bin/*|/usr/local/sbin/*|/home/linuxbrew/.linuxbrew/bin/*|/home/linuxbrew/.linuxbrew/sbin/*) print brew ;; \
-				/usr/bin/*|/bin/*|/usr/sbin/*|/sbin/*) print system ;; \
-				*) print unmanaged ;; \
-			esac; \
-		}; \
-		needs_attention() { [[ "$$1" = brew || "$$1" = unmanaged ]]; }; \
-		typeset -A seen; \
-		for dir in $$path; do \
-			[[ -d "$$dir" ]] || continue; \
-			for file in "$$dir"/*; do \
-				[[ -f "$$file" && -x "$$file" ]] || continue; \
-				cmd="$${file:t}"; \
-				[[ -n "$${seen[$$cmd]}" ]] && continue; \
-				seen[$$cmd]=1; \
-				paths=($$(whence -a -p "$$cmd" 2>/dev/null)); \
-				[[ $${#paths[@]} -gt 0 ]] || continue; \
-				first="$${paths[1]}"; \
-				first_owner=$$(owner "$$first"); \
-				needs_attention "$$first_owner" && printf "%s\tfirst=%s\t%s\n" "$$cmd" "$$first_owner" "$$first"; \
-				for p in "$${paths[@]}"; do \
-					[[ "$$p" = "$$first" ]] && continue; \
-					p_owner=$$(owner "$$p"); \
-					[[ "$$p_owner" = "$$first_owner" ]] && continue; \
-					needs_attention "$$p_owner" && printf "%s\tshadow=%s\t%s\n" "$$cmd" "$$p_owner" "$$p"; \
-				done; \
-			done; \
-		done | sort'
+	@zsh -lc 'source "$(DOTPATH)/scripts/audit-cli-path.zsh"'
 
 .PHONY: build
 build: local ## Build the nix-darwin profile without switching

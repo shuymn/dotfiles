@@ -9,47 +9,7 @@ nixRole = {{ $nixRole | quote }}
 identity = "~/.config/age/key.txt"
 {{- $ageIdentity := print .chezmoi.homeDir "/.config/age/key.txt" }}
 {{- if stat $ageIdentity }}
-{{- $ageRecipient := output "/bin/sh" "-c" `
-set -eu
-identity=$1
-
-if command -v age-keygen >/dev/null 2>&1; then
-  exec age-keygen -y "$identity"
-fi
-
-for candidate in \
-  "$HOME/.nix-profile/bin/age-keygen" \
-  "/etc/profiles/per-user/${USER:-}/bin/age-keygen" \
-  "/run/current-system/sw/bin/age-keygen" \
-  "/nix/var/nix/profiles/default/bin/age-keygen"
-do
-  if [ -x "$candidate" ]; then
-    exec "$candidate" -y "$identity"
-  fi
-done
-
-nix_bin=""
-if command -v nix >/dev/null 2>&1; then
-  nix_bin=$(command -v nix)
-else
-  for candidate in \
-    "$HOME/.nix-profile/bin/nix" \
-    "/run/current-system/sw/bin/nix" \
-    "/nix/var/nix/profiles/default/bin/nix"
-  do
-    if [ -x "$candidate" ]; then
-      nix_bin=$candidate
-      break
-    fi
-  done
-fi
-
-if [ -n "$nix_bin" ]; then
-  exec "$nix_bin" --extra-experimental-features nix-command --extra-experimental-features flakes shell nixpkgs#age -c age-keygen -y "$identity"
-fi
-
-echo "age-keygen not found; install Nix or age before generating chezmoi config" >&2
-exit 1
-` "age-recipient" $ageIdentity }}
+{{- $ageRecipientScript := print .chezmoi.workingTree "/scripts/age-recipient.sh" }}
+{{- $ageRecipient := output "/bin/sh" $ageRecipientScript $ageIdentity }}
 recipient = {{ $ageRecipient | trim | quote }}
 {{- end }}
