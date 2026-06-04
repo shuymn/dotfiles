@@ -1,5 +1,5 @@
 if has "tmux" && [[ $TERM_PROGRAM == "iTerm.app" ]]; then
-  export ITERM_ENABLE_SHELL_INTEGRATION_WITH_TMUX=YES
+    export ITERM_ENABLE_SHELL_INTEGRATION_WITH_TMUX=YES
 fi
 
 # if has "fzf" && has "tmux"; then
@@ -25,6 +25,6 @@ fi
 # fi
 
 # tmux package manager
-if has "tmux" && [[ ! -d "${HOME}/.tmux/plugins/tpm" ]]; then
-  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-fi
+# if has "tmux" && [[ ! -d "${HOME}/.tmux/plugins/tpm" ]]; then
+#   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+# fi

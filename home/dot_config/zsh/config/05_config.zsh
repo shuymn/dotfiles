@@ -5,33 +5,33 @@ bindkey '^j' down-line-or-history
 
 # direnv
 if has "direnv"; then
-  export DIRENV_WARN_TIMEOUT=30s
+    export DIRENV_WARN_TIMEOUT=30s
 
-  eval "$(direnv hook zsh)"
+    eval "$(direnv hook zsh)"
 fi
 
 # terminal title
 function set_terminal_title() {
-  # get directory name
-  local current_dir=""
-  if [[ "$PWD" == "$HOME" ]]; then
-    current_dir="~"
-  else
-    # get last part of current directory
-    current_dir=${PWD##*/}
-    # if current directory is /, display /
-    if [[ "${current_dir}" == "" ]]; then
-      current_dir="/"
+    # get directory name
+    local current_dir=""
+    if [[ "$PWD" == "$HOME" ]]; then
+        current_dir="~"
+    else
+        # get last part of current directory
+        current_dir=${PWD##*/}
+        # if current directory is /, display /
+        if [[ "${current_dir}" == "" ]]; then
+            current_dir="/"
+        fi
     fi
-  fi
 
-  # get process name and remove leading dash if present
-  local process_name=$(ps -p $$ -o comm=)
-  process_name=${process_name##*/} # Remove path
-  process_name=${process_name#-}   # Remove leading dash if present
+    # get process name and remove leading dash if present
+    local process_name=$(ps -p $$ -o comm=)
+    process_name=${process_name##*/} # Remove path
+    process_name=${process_name#-}   # Remove leading dash if present
 
-  # example: "zsh - dotfiles"
-  print -Pn "\033]0;${process_name} - ${current_dir}\007"
+    # example: "zsh - dotfiles"
+    print -Pn "\033]0;${process_name} - ${current_dir}\007"
 }
 add-zsh-hook precmd set_terminal_title
 
@@ -42,13 +42,13 @@ fi
 
 # fzf
 if has "fzf"; then
-  load "${HOME}/.fzf.sh"
+    load "${HOME}/.fzf.sh"
 
-  export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
-  export FZF_DEFAULT_OPTS='--height 40% --reverse --border'
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+    export FZF_DEFAULT_OPTS='--height 40% --reverse --border'
 
-  export FZF_CTRL_T_COMMAND=$FZF_DEFAULT_COMMAND
-  export FZF_CTRL_T_OPTS='--preview \
+    export FZF_CTRL_T_COMMAND=$FZF_DEFAULT_COMMAND
+    export FZF_CTRL_T_OPTS='--preview \
     "[[ $(file --mime {}) =~ binary ]] && \
     echo {} is a binary file || \
     (bat --style=number,header,grid --color=always {} || \
@@ -57,45 +57,45 @@ if has "fzf"; then
     rougify {} || \
     cat {}) 2> /dev/null | head -500"'
 
-  export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
-  export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'eza -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+    export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'eza -aT --level=2 --ignore-glob=\".git\" {} | head -200'"
 
-  history-fzf() {
-    local tac
+    history-fzf() {
+        local tac
 
-    if type tac > /dev/null 2>&1; then
-      tac="tac"
-    else
-      tac="tail -r"
+        if type tac >/dev/null 2>&1; then
+            tac="tac"
+        else
+            tac="tail -r"
+        fi
+
+        BUFFER=$(history -n 1 | eval $tac | fzf --query "$LBUFFER")
+        CURSOR=$#BUFFER
+
+        zle reset-prompt
+    }
+
+    # zoxide
+    if has "zoxide"; then
+        eval "$(zoxide init --cmd j zsh)"
     fi
-
-    BUFFER=$(history -n 1 | eval $tac | fzf --query "$LBUFFER")
-    CURSOR=$#BUFFER
-
-    zle reset-prompt
-  }
-
-  # zoxide
-  if has "zoxide"; then
-    eval "$(zoxide init --cmd j zsh)"
-  fi
 fi
 
-if has "brew" && uname | grep Darwin 1> /dev/null 2>&1; then
-  export HOMEBREW_NO_ENV_HINTS="true"
+if has "brew" && uname | grep Darwin 1>/dev/null 2>&1; then
+    export HOMEBREW_NO_ENV_HINTS="true"
 fi
 
 # terraform
 if has "terraform"; then
-  autoload -U +X bashcompinit && bashcompinit
-  complete -o nospace -C "$(command -v terraform)" terraform
+    autoload -U +X bashcompinit && bashcompinit
+    complete -o nospace -C "$(command -v terraform)" terraform
 fi
 
 # atuin
 if has "atuin"; then
-  export ATUIN_NOBIND="true"
-  eval "$(atuin init zsh)"
-  bindkey '^r' _atuin_search_widget
+    export ATUIN_NOBIND="true"
+    eval "$(atuin init zsh)"
+    bindkey '^r' _atuin_search_widget
 fi
 
 # 1password-cli
@@ -107,3 +107,6 @@ export BAT_THEME="ansi"
 # edit-command-line
 autoload -Uz edit-command-line
 zle -N edit-command-line
+
+# pi-coding-agent
+export PI_SKIP_VERSION_CHECK=1
