@@ -2,9 +2,10 @@
 
 {
   home.packages = with pkgs; [
-    astro-language-server
-    beads
     biome
+    claude-code
+    delta
+    direnv
     ghq
     golangci-lint
     gopls
@@ -13,11 +14,14 @@
     mo
     nixd
     nixfmt
+    opencode
     pre-commit
-    prisma-language-server
     rustup
+    semgrep
     shellcheck
     shfmt
+    sops
+    sqlmap
     vscode-langservers-extracted
     yamllint
   ];

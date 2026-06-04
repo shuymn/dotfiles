@@ -2,14 +2,13 @@
 
 {
   home.packages = with pkgs; [
+    _1password-cli
     age
     atuin
     bash
     bat
     chezmoi
     curl
-    delta
-    direnv
     eza
     fd
     fzf

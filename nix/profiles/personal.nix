@@ -2,11 +2,8 @@
 
 {
   home.packages = with pkgs; [
-    _1password-cli
-    claude-code
-    opencode
-    semgrep
-    sops
-    sqlmap
+    astro-language-server
+    beads
+    prisma-language-server
   ];
 }
