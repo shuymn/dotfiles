@@ -48,12 +48,6 @@ export LANGUAGE="en_US.UTF-8"
 export LANG="${LANGUAGE}"
 export LC_CTYPE="${LANGUAGE}"
 
-# Editor
-export EDITOR=hx
-export CVSEDITOR="${EDITOR}"
-export SVN_EDITOR="${EDITOR}"
-export GIT_EDITOR="${EDITOR}"
-
 # Pager
 export PAGER=less
 # Less status line

@@ -22,12 +22,6 @@ if has "procs"; then
   alias ps='procs'
 fi
 
-if has "hx"; then
-  alias vi='hx'
-  alias vim='hx'
-  alias zshrc="hx ${XDG_CONFIG_HOME}/zsh/.zshrc"
-fi
-
 if has "fzf"; then
   change-branch() {
     local all && all=false
