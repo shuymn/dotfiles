@@ -11,6 +11,7 @@
     gopls
     gotools
     govulncheck
+    nix-direnv
     nixd
     nixfmt
     pre-commit

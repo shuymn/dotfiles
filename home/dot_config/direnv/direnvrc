@@ -1,0 +1,5 @@
+# nix-direnv: cache `use flake` evaluation and register devShells as GC roots
+nix_direnv="/etc/profiles/per-user/$USER/share/nix-direnv/direnvrc"
+if [ -f "$nix_direnv" ]; then
+    source "$nix_direnv"
+fi
