@@ -1,0 +1,5 @@
+{
+  imports = [
+    ../profiles/work.nix
+  ];
+}
