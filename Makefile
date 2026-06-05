@@ -4,6 +4,7 @@ CHEZMOI ?= chezmoi
 CHEZMOI_STATE_DIR ?= $(HOME)/.local/state/chezmoi
 CHEZMOI_STATE ?= $(CHEZMOI_STATE_DIR)/chezmoistate.boltdb
 CHEZMOI_CONFIG ?= $(HOME)/.config/chezmoi/chezmoi.toml
+NIX_ROLE_FILE ?= $(HOME)/.config/chezmoi/nix-role
 CHEZMOI_CONFIG_TEMPLATE ?= $(DOTPATH)/.chezmoi.toml.tmpl
 AGE_KEY ?= $(HOME)/.config/age/key.txt
 NIX_LOCAL_FLAKE := path:$(DOTPATH)
@@ -120,6 +121,7 @@ age-key: ## Generate local age identity for chezmoi encryption
 .PHONY: chezmoi-config
 chezmoi-config: ## Generate chezmoi config for plain chezmoi commands
 	@mkdir -p "$(CHEZMOI_STATE_DIR)" "$(dir $(CHEZMOI_CONFIG))"
+	@if [ -n "$(NIX_ROLE)" ]; then printf '%s\n' "$(NIX_ROLE)" > "$(NIX_ROLE_FILE)"; fi
 	@$(CHEZMOI_TEMPLATE_ENV) $(CHEZMOI_CMD) execute-template < "$(CHEZMOI_CONFIG_TEMPLATE)" > "$(CHEZMOI_CONFIG)"
 
 .PHONY: apply

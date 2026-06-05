@@ -1,4 +1,9 @@
-{{- $nixRole := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "minimal") -}}
+{{- $roleFile := joinPath .chezmoi.homeDir ".config" "chezmoi" "nix-role" -}}
+{{- $persistedRole := "" -}}
+{{- if stat $roleFile -}}
+{{-   $persistedRole = include $roleFile | trim -}}
+{{- end -}}
+{{- $nixRole := env "DOTFILES_NIX_ROLE" | default ($persistedRole | default (index . "nixRole" | default "minimal")) -}}
 sourceDir = {{ .chezmoi.workingTree | quote }}
 encryption = "age"
 
