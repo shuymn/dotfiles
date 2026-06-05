@@ -12,7 +12,6 @@
     govulncheck
     nixd
     nixfmt
-    opencode
     pre-commit
     rustup
     semgrep
