@@ -11,7 +11,6 @@
     gopls
     gotools
     govulncheck
-    mo
     nixd
     nixfmt
     opencode
