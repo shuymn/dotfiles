@@ -3,7 +3,6 @@
 {
   home.packages = with pkgs; [
     biome
-    claude-code
     delta
     direnv
     ghq

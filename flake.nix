@@ -30,7 +30,6 @@
           import localConfigPath;
       unfreePackageNames = [
         "1password-cli"
-        "claude-code"
       ];
       mkDarwinConfiguration =
         localConfig:
