@@ -34,6 +34,11 @@
   users.users.${localConfig.username}.home = localConfig.homeDirectory;
   programs.zsh.enable = true;
 
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   homebrew = {
     enable = true;
 
