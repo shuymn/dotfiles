@@ -67,7 +67,6 @@
 
     casks = [
       "appcleaner"
-      "codex"
       "ghostty"
       "hammerspoon"
       "jordanbaird-ice"
