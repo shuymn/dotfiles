@@ -154,6 +154,10 @@ checksum = "sha256:3260e0d6fa7d89e4b9a7cc6c120345db9217c4e0571742e9a76db2ba3ff63
 url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.0.0/pinact_darwin_arm64.tar.gz"
 provenance = "github-attestations"
 
+[[tools."pipx:microsandbox"]]
+version = "0.5.4"
+backend = "pipx:microsandbox"
+
 [[tools."pipx:tavily-cli"]]
 version = "0.1.3"
 backend = "pipx:tavily-cli"
