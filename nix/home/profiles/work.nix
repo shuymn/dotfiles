@@ -2,7 +2,6 @@
 
 {
   home.packages = with pkgs; [
-    agent-browser
     awscli2
     circleci-cli
     colima
