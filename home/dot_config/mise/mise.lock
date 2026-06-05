@@ -172,6 +172,10 @@ checksum = "sha256:3a0373cc39fefd494754ef555267f245c720cddbaaabf63a7c9a4269f1e56
 url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260602/cpython-3.14.5+20260602-aarch64-apple-darwin-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
+[[tools.task]]
+version = "3.51.1"
+backend = "aqua:go-task/task"
+
 [[tools.terraform]]
 version = "1.15.5"
 backend = "aqua:hashicorp/terraform"
