@@ -2,6 +2,7 @@
 
 {
   home.packages = with pkgs; [
+    agent-browser
     biome
     delta
     direnv
