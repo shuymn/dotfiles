@@ -11,7 +11,6 @@
 
     casks = [
       "choosy"
-      "lm-studio"
       "orbstack"
       "tailscale-app"
       "xdevplatform/tap/xurl"

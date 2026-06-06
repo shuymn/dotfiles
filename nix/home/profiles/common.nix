@@ -2,27 +2,13 @@
 
 {
   home.packages = with pkgs; [
-    _1password-cli
     age
     atuin
     bash
-    bat
     chezmoi
     curl
-    eza
-    fd
-    fzf
-    gh
     git
-    gnused
-    jq
     mise
-    ripgrep
-    tmux
-    yq
-    zoxide
-    zsh-completions
-    zsh-fast-syntax-highlighting
   ];
 
   home.sessionVariables = {

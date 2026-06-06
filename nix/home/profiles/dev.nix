@@ -2,26 +2,40 @@
 
 {
   home.packages = with pkgs; [
+    _1password-cli
     agent-browser
+    bat
     biome
     delta
     direnv
+    eza
+    fd
+    fzf
+    gh
     ghq
+    gnused
     golangci-lint
     gopls
     gotools
     govulncheck
+    jq
     nix-direnv
     nixd
     nixfmt
     pre-commit
+    ripgrep
     rustup
     semgrep
     shellcheck
     shfmt
     sops
     sqlmap
+    tmux
     vscode-langservers-extracted
     yamllint
+    yq
+    zoxide
+    zsh-completions
+    zsh-fast-syntax-highlighting
   ];
 }

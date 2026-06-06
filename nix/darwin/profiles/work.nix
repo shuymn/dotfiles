@@ -11,7 +11,6 @@
     casks = [
       "gcloud-cli"
       "keepingyouawake"
-      "lm-studio"
     ];
   };
 }

@@ -54,28 +54,11 @@
     };
 
     taps = [
-      "coderabbitai/tap"
       "shuymn/tap"
     ];
 
     brews = [
-      "coderabbitai/tap/git-gtr"
       "shuymn/tap/capsule"
-      "shuymn/tap/kastty"
-      "shuymn/tap/pommitlint"
-    ];
-
-    casks = [
-      "appcleaner"
-      "ghostty"
-      "hammerspoon"
-      "jordanbaird-ice"
-      "karabiner-elements"
-      "linearmouse"
-      "raycast"
-      "ukelele"
-      "visual-studio-code"
-      "zed"
     ];
   };
 }
