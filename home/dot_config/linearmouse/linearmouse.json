@@ -1,0 +1,117 @@
+{
+  "$schema": "https:\/\/schema.linearmouse.app\/0.11.2",
+  "schemes": [
+    {
+      "buttons": {
+        "universalBackForward": true
+      },
+      "if": {
+        "device": {
+          "category": "mouse",
+          "productID": "0xd030",
+          "productName": "Keychron Link ",
+          "vendorID": "0x3434"
+        }
+      },
+      "pointer": {
+        "acceleration": "unset",
+        "disableAcceleration": true,
+        "redirectsToScroll": false,
+        "speed": "unset"
+      }
+    },
+    {
+      "buttons": {
+        "mappings": [
+          {
+            "action": "missionControl",
+            "button": 2,
+            "command": false,
+            "control": false,
+            "option": false,
+            "shift": false
+          },
+          {
+            "action": {
+              "keyPress": ["optionRight", "s"]
+            },
+            "command": false,
+            "control": false,
+            "option": false,
+            "scroll": "right",
+            "shift": false
+          },
+          {
+            "action": {
+              "keyPress": ["optionRight", "a"]
+            },
+            "command": false,
+            "control": false,
+            "option": false,
+            "scroll": "left",
+            "shift": false
+          }
+        ],
+        "universalBackForward": true
+      },
+      "if": {
+        "device": {
+          "category": "mouse",
+          "productID": "0x80fd",
+          "productName": "TB550 2.4GHz Receiver",
+          "vendorID": "0x47d"
+        }
+      },
+      "pointer": {
+        "acceleration": "unset",
+        "disableAcceleration": false,
+        "redirectsToScroll": false,
+        "speed": "unset"
+      }
+    },
+    {
+      "buttons": {
+        "mappings": [
+          {
+            "action": "missionControl",
+            "button": 2,
+            "command": false,
+            "control": false,
+            "option": false,
+            "shift": false
+          },
+          {
+            "action": {
+              "keyPress": ["optionRight", "s"]
+            },
+            "command": false,
+            "control": false,
+            "option": false,
+            "scroll": "right",
+            "shift": false
+          },
+          {
+            "action": {
+              "keyPress": ["optionRight", "a"]
+            },
+            "command": false,
+            "control": false,
+            "option": false,
+            "scroll": "left",
+            "shift": false
+          }
+        ],
+        "universalBackForward": true
+      },
+      "if": {
+        "device": {
+          "category": "mouse",
+          "productID": "0x27da",
+          "productName": "Karabiner DriverKit VirtualHIDPointing 1.8.0",
+          "serialNumber": "pqrs.org:Karabiner-DriverKit-VirtualHIDPointing",
+          "vendorID": "0x16c0"
+        }
+      }
+    }
+  ]
+}
