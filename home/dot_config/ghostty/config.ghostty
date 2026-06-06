@@ -23,8 +23,10 @@ quit-after-last-window-closed = true
 # Behavior
 confirm-close-surface = true
 shell-integration = none
+shell-integration-features = ssh-terminfo,ssh-env
 scrollback-limit = 10000
 window-save-state = never
+bell-features = title,border,no-audio,no-system
 
 # Keybindings
 # Disable Ghostty's tab/split/window-management shortcuts. tmux owns muxing.
@@ -47,4 +49,5 @@ keybind = cmd+-=decrease_font_size:1
 keybind = cmd+0=reset_font_size
 keybind = cmd+comma=open_config
 keybind = cmd+shift+comma=reload_config
+keybind = cmd+shift+p=toggle_command_palette
 keybind = cmd+q=close_all_windows
