@@ -24,20 +24,7 @@ DARWIN_CONFIG ?= default
 SUDO ?= sudo
 BREW ?= $(shell if command -v brew >/dev/null 2>&1; then command -v brew; elif [ -x /opt/homebrew/bin/brew ]; then printf '%s' /opt/homebrew/bin/brew; elif [ -x /usr/local/bin/brew ]; then printf '%s' /usr/local/bin/brew; else printf '%s' brew; fi)
 
-CLAUDE_BASE := etc/claude
-MISE ?= mise
-SKILLS_ROOT := $(abspath $(CLAUDE_BASE)/skills)
-SKILLS_CMD := $(MISE) exec -- skills
-SKILLS_AGENTS := codex claude-code
-
 PI_EXTENSIONS_PROJECT ?= $(HOME)/ghq/github.com/shuymn/pi-extensions
-
-AGENT_CHEZMOI_TARGETS := \
-	$(HOME)/.claude/CLAUDE.md \
-	$(HOME)/.claude/statusline.sh \
-	$(HOME)/.codex/AGENTS.md \
-	$(HOME)/.pi/agent/AGENTS.md \
-	$(HOME)/.pi/agent/keybindings.json
 
 .DEFAULT_GOAL := help
 
@@ -131,17 +118,6 @@ apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 .PHONY: mise
 mise: ## Install mise-managed global tools
 	@$(MISE) install -C "$(HOME)"
-
-.PHONY: agents
-agents: agent-dotfiles sync-skills install-pi ## Apply agent dotfiles and runtime syncs
-
-.PHONY: agent-dotfiles
-agent-dotfiles: chezmoi-config ## Apply only static agent dotfiles
-	@$(CHEZMOI_CMD) apply $(foreach target,$(AGENT_CHEZMOI_TARGETS),"$(target)")
-
-.PHONY: sync-skills
-sync-skills: ## Install repo-owned skills into configured agent runtimes
-	@$(SKILLS_CMD) add "$(SKILLS_ROOT)" -g -y $(foreach agent,$(SKILLS_AGENTS),-a $(agent)) --skill '*'
 
 .PHONY: install-pi
 install-pi: ## Install the local pi extensions package when present

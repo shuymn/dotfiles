@@ -41,7 +41,6 @@ make switch
 | `chezmoi diff` | dotfile の未適用差分を確認する |
 | `chezmoi apply` | dotfile を実際のホームディレクトリに適用する |
 | `mise install` | mise 管理の実行環境と補助ツールをインストールする |
-| `make agents` | agent 用 dotfiles とリポジトリ管理の skills を反映する |
 
 ## 所有モデル
 
@@ -52,7 +51,3 @@ make switch
 - chezmoi は `$HOME` に現れる dotfile の配置層。Home Manager の file モジュールと同じ対象パスを二重管理しない
 - mise はバージョン切り替え対象の実行環境と、バージョン固定した補助 CLI を持つ。リポジトリ固有のツールはプロジェクトローカルの環境に置く
 - ホスト ID、署名鍵、age 鍵、マシン固有の状態はローカル限定
-
-## Agent ファイル
-
-静的な agent 用 dotfiles は chezmoi の管理元に置く。リポジトリ管理の skills は `etc/claude/skills/**` が管理元で、実行環境への反映は `make agents` に寄せる。

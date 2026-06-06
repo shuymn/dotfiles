@@ -4,10 +4,6 @@
 
 ## Repo-Specific Rules
 
-- Edit skills directly under `etc/claude/skills/**`; there is no separate `skills/` source tree.
-- After changing skills, check for whitespace/conflict markers with `git diff --check -- etc/claude/skills`, then run `make sync-skills` to install them.
-- `make sync-skills` installs every skill directory under `etc/claude/skills/**`; runtime system/plugin skills outside that source tree are intentionally unmanaged.
-- Keep static Claude, Codex, and pi agent dotfiles under `home/dot_claude/**`, `home/dot_codex/**`, and `home/dot_pi/**`; `make agents` applies those chezmoi targets and then runs runtime syncs.
 - Treat `README.md` as a user-facing current-state overview, not an exhaustive mirror of code. Keep code/config as the source of truth for details that can be read directly, and avoid README updates that merely restate those internals.
 - Keep Nix/Home Manager activation single-path through nix-darwin; prefer `make switch` so ignored `nix/local.nix` is regenerated before activation. Do not add standalone `homeConfigurations` or recommend `home-manager switch` unless non-Darwin support is explicitly requested.
 - Keep host-specific Nix values out of commits: generate ignored `nix/local.nix` from `nix/local.nix.tmpl` via chezmoi data, keep tracked `nix/local.default.nix` generic, and do not commit real username, home directory, host name, or ComputerName.
@@ -24,4 +20,4 @@
 - After Homebrew tap/formula/cask changes, run `make check-brew`; it checks dependency availability and compares formula leaves/casks against the nix-darwin generated Brewfile.
 - After Nix or activation-path changes, run `make check` so chezmoi-generated `nix/local.nix` and ownership checks are included. After chezmoi source-state changes, run `chezmoi diff`; run `chezmoi apply` only when applying to the live home directory is intended.
 
-<!-- Maintenance: Update this file when skill source/build ownership or Claude sync workflow changes. -->
+<!-- Maintenance: Update this file when skill or dotfile ownership changes. -->
