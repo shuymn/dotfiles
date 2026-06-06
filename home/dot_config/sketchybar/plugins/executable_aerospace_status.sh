@@ -1,5 +1,25 @@
 #!/bin/sh
 
+AEROSPACE_STATE_DIR="${TMPDIR:-/tmp}/sketchybar-aerospace"
+
+set_cached() {
+  state_value=$1
+  shift
+  state_file="$AEROSPACE_STATE_DIR/status.$NAME"
+
+  old_state=
+  if [ -r "$state_file" ]; then
+    IFS= read -r old_state <"$state_file" || old_state=
+  fi
+
+  if [ "$state_value" = "$old_state" ]; then
+    return 0
+  fi
+
+  mkdir -p "$AEROSPACE_STATE_DIR" || return 1
+  sketchybar --set "$NAME" "$@" && printf '%s\n' "$state_value" >"$state_file"
+}
+
 case "$NAME" in
 *.mode)
   mode=$(aerospace list-modes --current 2>/dev/null || printf '?')
@@ -27,7 +47,7 @@ case "$NAME" in
     ;;
   esac
 
-  sketchybar --set "$NAME" \
+  set_cached "$mode_label|$mode_label_color|$mode_background_color" \
     label="$mode_label" \
     label.color="$mode_label_color" \
     background.color="$mode_background_color"
@@ -69,6 +89,6 @@ case "$NAME" in
     state_color=0xff8b949e
   fi
 
-  sketchybar --set "$NAME" label="$window_state" label.color="$state_color"
+  set_cached "$window_state|$state_color" label="$window_state" label.color="$state_color"
   ;;
 esac

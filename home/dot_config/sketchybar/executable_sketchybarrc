@@ -1,6 +1,9 @@
 #!/bin/sh
 
 PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
+AEROSPACE_STATE_DIR="${TMPDIR:-/tmp}/sketchybar-aerospace"
+
+rm -rf "$AEROSPACE_STATE_DIR"
 
 sketchybar --bar \
     position=top \
@@ -48,7 +51,7 @@ sketchybar --add item aerospace.layout left \
     --set aerospace.layout \
     label="TILE" \
     background.drawing=on \
-    background.color=0xff262b33 \
+    background.color=0xff3a4048 \
     script="$PLUGIN_DIR/aerospace_status.sh" \
     --subscribe aerospace.layout \
     aerospace_workspace_change \

@@ -1,6 +1,8 @@
 #!/bin/sh
 
 WORKSPACES="1 2 3 4 5 6 7 8 9 10"
+AEROSPACE_STATE_DIR="${TMPDIR:-/tmp}/sketchybar-aerospace"
+STATE_FILE="$AEROSPACE_STATE_DIR/workspaces.state"
 
 is_occupied() {
   case "$1" in
@@ -56,18 +58,39 @@ focused_workspace() {
   aerospace list-workspaces --focused 2>/dev/null || printf ''
 }
 
-windows_occupied_set() {
-  printf '%s\n' "$1" | awk 'NF { seen[$1] = 1 } END { for (workspace in seen) printf " %s ", workspace }'
+previous_snapshot() {
+  [ -r "$STATE_FILE" ] && cat "$STATE_FILE"
 }
 
-workspace_window_count() {
-  printf '%s\n' "$1" | awk -v workspace="$2" '$1 == workspace { count++ } END { print count + 0 }'
+write_snapshot() {
+  snapshot=$1
+  tmp_file="$STATE_FILE.$$"
+  mkdir -p "$AEROSPACE_STATE_DIR" || return 1
+  printf '%s' "$snapshot" >"$tmp_file" && mv "$tmp_file" "$STATE_FILE"
+}
+
+windows_occupied_set() {
+  printf '%s\n' "$1" | awk -v workspaces="$WORKSPACES" '
+    NF { seen[$1] = 1 }
+    END {
+      n = split(workspaces, ordered, " ")
+      for (i = 1; i <= n; i++) {
+        if (seen[ordered[i]]) printf " %s ", ordered[i]
+      }
+    }
+  '
 }
 
 render_current_state() {
   active_workspace=${FOCUSED_WORKSPACE:-$(focused_workspace)}
   windows=$(collect_windows)
   occupied=$(windows_occupied_set "$windows")
+  snapshot=$(printf '%s\n%s\n' "$active_workspace" "$occupied")
+
+  if [ "$snapshot" = "$(previous_snapshot)" ]; then
+    return 0
+  fi
+
   command=sketchybar
 
   for workspace in $WORKSPACES; do
@@ -82,51 +105,14 @@ render_current_state() {
     command="$command$(render_workspace "$workspace" "$role")"
   done
 
-  eval "$command"
+  eval "$command" && write_snapshot "$snapshot"
 }
 
-optimistic_previous_role() {
-  workspace=$1
-  transition=$2
-  windows=$3
-  count=$(workspace_window_count "$windows" "$workspace")
-
-  if [ "$transition" = move ]; then
-    count=$((count - 1))
-  fi
-
-  if [ "$count" -gt 0 ] 2>/dev/null; then
-    printf occupied
-  else
-    printf empty
-  fi
-}
-
-render_optimistic_state() {
-  target_workspace=$1
-  transition=${2:-focus}
-  current_workspace=$(focused_workspace)
-  command=sketchybar
-
-  if [ -n "$current_workspace" ] && [ "$current_workspace" != "$target_workspace" ]; then
-    windows=$(collect_windows)
-    previous_role=$(optimistic_previous_role "$current_workspace" "$transition" "$windows")
-    command="$command$(render_workspace "$current_workspace" "$previous_role")"
-  fi
-
-  command="$command$(render_workspace "$target_workspace" active)"
-  eval "$command"
-}
-
-case "$1" in
-optimistic)
-  [ -n "$2" ] || exit 0
-  render_optimistic_state "$2" "$3"
-  ;;
-*)
-  # Let AeroSpace settle, then paint one authoritative snapshot in a single
-  # SketchyBar batch. FOCUSED_WORKSPACE from AeroSpace is used when available.
+# Let AeroSpace settle after workspace changes, then paint one authoritative
+# snapshot in a single SketchyBar batch. FOCUSED_WORKSPACE from AeroSpace is
+# used when available.
+if [ "$SENDER" = aerospace_workspace_change ]; then
   sleep 0.05
-  render_current_state
-  ;;
-esac
+fi
+
+render_current_state
