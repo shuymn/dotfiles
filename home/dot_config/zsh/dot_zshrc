@@ -1,41 +1,10 @@
-# utilility functions
-has() {
-  type "$1" >/dev/null 2>&1
-  return $?
-}
+# Load shared helpers first; later files may use has/load/add_path.
+builtin source "${XDG_CONFIG_HOME:?}/zsh/config/00_helpers.zsh"
 
-load() {
-  if [[ -f "$@" ]]; then
-    builtin source "$@"
-  fi
-}
-
-add_path() {
-  if [[ -d "$@" ]]; then
-    export PATH="$@:$PATH"
-  fi
-}
-
-add_pkg_config_path() {
-  if [[ -d "$@" ]]; then
-    export PKG_CONFIG_PATH="$@:$PKG_CONFIG_PATH"
-  fi
-}
-
-# activate runtime manager
-if has "mise"; then
-  eval "$(mise activate zsh)"
-fi
-
-for config in \
-  01_init.zsh \
-  02_alias.zsh \
-  03_command.zsh \
-  04_tmux.zsh \
-  05_config.zsh \
-  06_plugin.zsh \
-  99_local.zsh
-do
-  load "${XDG_CONFIG_HOME:?}/zsh/config/${config}"
+for config in "${XDG_CONFIG_HOME}/zsh/config"/[0-9][0-9]_*.zsh(N); do
+  [[ "${config:t}" == "00_helpers.zsh" ]] && continue
+  load "${config}"
 done
+
+load "${XDG_CONFIG_HOME}/zsh/config/99_local.zsh"
 unset config
