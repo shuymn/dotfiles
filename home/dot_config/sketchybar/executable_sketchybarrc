@@ -27,7 +27,7 @@ sketchybar --default \
     background.corner_radius=4 \
     background.drawing=off
 
-set -- aerospace_workspace_change aerospace_focus_change aerospace_mode_change aerospace_layout_change
+set -- aerospace_workspace_change aerospace_focus_change aerospace_monitor_change aerospace_mode_change aerospace_layout_change
 
 for event; do
     sketchybar --add event "$event"
@@ -56,6 +56,7 @@ sketchybar --add item aerospace.layout left \
     --subscribe aerospace.layout \
     aerospace_workspace_change \
     aerospace_focus_change \
+    aerospace_monitor_change \
     aerospace_layout_change
 
 for workspace in 1 2 3 4 5 6 7 8 9 10; do
@@ -78,7 +79,7 @@ sketchybar --set aerospace.workspace.1 \
     script="$PLUGIN_DIR/aerospace_workspace.sh" \
     --subscribe aerospace.workspace.1 \
     aerospace_workspace_change \
-    aerospace_focus_change
+    aerospace_monitor_change
 
 sketchybar --add item clock right \
     --set clock \
