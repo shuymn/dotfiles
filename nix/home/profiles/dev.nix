@@ -23,7 +23,6 @@
     nixd
     nixfmt
     pre-commit
-    ripgrep
     rustup
     semgrep
     shellcheck
