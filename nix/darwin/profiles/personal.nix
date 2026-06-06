@@ -1,35 +1,138 @@
 { lib, ... }:
 
 let
-  workspaceKeys = map (workspaceNumber: {
-    key = if workspaceNumber == 10 then "0" else toString workspaceNumber;
-    workspace = toString workspaceNumber;
-  }) (lib.range 1 10);
+  baseAerospaceSettings = lib.importTOML ../aerospace.toml;
 
-  optimisticWorkspaceCommand =
-    workspace: action:
-    ''exec-and-forget /bin/sh -c "$HOME/.config/sketchybar/plugins/aerospace_workspace.sh optimistic ${workspace} ${action}"'';
+  workspaceKeys = map (workspace: {
+    key = if workspace == "10" then "0" else workspace;
+    inherit workspace;
+  }) baseAerospaceSettings.persistent-workspaces;
 
   workspaceBindings = builtins.listToAttrs (
     (map (item: {
       name = "alt-${item.key}";
-      value = [
-        (optimisticWorkspaceCommand item.workspace "focus")
-        "workspace ${item.workspace}"
-      ];
+      value = "workspace ${item.workspace}";
     }) workspaceKeys)
     ++ (map (item: {
       name = "alt-shift-${item.key}";
       value = [
-        (optimisticWorkspaceCommand item.workspace "move")
         "move-node-to-workspace ${item.workspace}"
         "workspace ${item.workspace}"
       ];
     }) workspaceKeys)
   );
 
-  aerospaceSettings = lib.recursiveUpdate (lib.importTOML ../aerospace.toml) {
-    mode.main.binding = workspaceBindings;
+  aerospaceKeys = [
+    "a"
+    "b"
+    "c"
+    "d"
+    "e"
+    "f"
+    "g"
+    "h"
+    "i"
+    "j"
+    "k"
+    "l"
+    "m"
+    "n"
+    "o"
+    "p"
+    "q"
+    "r"
+    "s"
+    "t"
+    "u"
+    "v"
+    "w"
+    "x"
+    "y"
+    "z"
+  ]
+  ++ map toString (lib.range 0 9)
+  ++ map (number: "keypad${toString number}") (lib.range 0 9)
+  ++ map (number: "f${toString number}") (lib.range 1 20)
+  ++ [
+    "minus"
+    "equal"
+    "period"
+    "comma"
+    "slash"
+    "backslash"
+    "quote"
+    "semicolon"
+    "backtick"
+    "leftSquareBracket"
+    "rightSquareBracket"
+    "space"
+    "enter"
+    "esc"
+    "backspace"
+    "tab"
+    "pageUp"
+    "pageDown"
+    "home"
+    "end"
+    "forwardDelete"
+    "sectionSign"
+    "keypadClear"
+    "keypadDecimalMark"
+    "keypadDivide"
+    "keypadEnter"
+    "keypadEqual"
+    "keypadMinus"
+    "keypadMultiply"
+    "keypadPlus"
+    "left"
+    "down"
+    "up"
+    "right"
+  ];
+
+  modifierSets =
+    let
+      modifiers = [
+        "cmd"
+        "alt"
+        "ctrl"
+        "shift"
+      ];
+      combinations =
+        remaining:
+        if remaining == [ ] then
+          [ [ ] ]
+        else
+          let
+            first = builtins.head remaining;
+            restCombinations = combinations (builtins.tail remaining);
+          in
+          restCombinations ++ map (combination: [ first ] ++ combination) restCombinations;
+    in
+    map (combination: lib.concatStringsSep "-" combination) (combinations modifiers);
+
+  modifiedAerospaceKeys = lib.flatten (
+    map (
+      modifierSet: map (key: if modifierSet == "" then key else "${modifierSet}-${key}") aerospaceKeys
+    ) modifierSets
+  );
+
+  swallowBindingsFor = mode: lib.genAttrs modifiedAerospaceKeys (_: "mode ${mode}");
+
+  nonMainModeBindings =
+    mode: (swallowBindingsFor mode) // (baseAerospaceSettings.mode.${mode}.binding or { });
+
+  nonMainModeOverrides =
+    lib.genAttrs
+      (builtins.filter (mode: mode != "main") (builtins.attrNames baseAerospaceSettings.mode))
+      (mode: {
+        binding = nonMainModeBindings mode;
+      });
+
+  aerospaceSettings = lib.recursiveUpdate baseAerospaceSettings {
+    mode = nonMainModeOverrides // {
+      main.binding = workspaceBindings;
+    };
   };
 in
 {
