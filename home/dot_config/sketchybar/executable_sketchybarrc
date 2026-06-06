@@ -5,49 +5,85 @@ PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
 sketchybar --bar \
     position=top \
     height=32 \
-    color=0xee1f2328 \
-    border_color=0xff30363d \
-    border_width=1 \
+    color=0xff1f2328 \
+    border_color=0xff3a4048 \
+    border_width=0 \
     corner_radius=0 \
     padding_left=8 \
     padding_right=8
 
 sketchybar --default \
-    icon.color=0xffc9d1d9 \
+    icon.drawing=off \
     label.color=0xffc9d1d9 \
-    icon.font="SF Pro:Semibold:12.0" \
-    label.font="SF Pro:Medium:12.0" \
-    padding_left=4 \
-    padding_right=4 \
-    background.height=22 \
-    background.corner_radius=6 \
+    label.font="SF Pro Text:Medium:13.0" \
+    padding_left=3 \
+    padding_right=3 \
+    label.padding_left=8 \
+    label.padding_right=8 \
+    background.height=24 \
+    background.corner_radius=4 \
     background.drawing=off
 
-set -- aerospace_workspace_change aerospace_focus_change aerospace_mode_change
+set -- aerospace_workspace_change aerospace_focus_change aerospace_mode_change aerospace_layout_change
 
 for event; do
     sketchybar --add event "$event"
 done
 
+sketchybar --add item aerospace.mode left \
+    --set aerospace.mode \
+    label="M" \
+    label.font="SF Pro Text:Semibold:13.0" \
+    label.width=24 \
+    label.align=center \
+    label.padding_left=0 \
+    label.padding_right=0 \
+    background.drawing=on \
+    background.color=0xff3a4048 \
+    script="$PLUGIN_DIR/aerospace_status.sh" \
+    --subscribe aerospace.mode \
+    aerospace_mode_change
+
+sketchybar --add item aerospace.layout left \
+    --set aerospace.layout \
+    label="TILE" \
+    background.drawing=on \
+    background.color=0xff262b33 \
+    script="$PLUGIN_DIR/aerospace_status.sh" \
+    --subscribe aerospace.layout \
+    aerospace_workspace_change \
+    aerospace_focus_change \
+    aerospace_layout_change
+
 for workspace in 1 2 3 4 5 6 7 8 9 10; do
+    label=$workspace
+    if [ "$workspace" = 10 ]; then
+        label=0
+    fi
+
     sketchybar --add item "aerospace.workspace.$workspace" left \
         --set "aerospace.workspace.$workspace" \
-        icon.drawing=off \
-        label="$workspace" \
-        script="$PLUGIN_DIR/aerospace_workspace.sh" \
-        click_script="aerospace workspace $workspace" \
-        --subscribe "aerospace.workspace.$workspace" \
-        aerospace_workspace_change \
-        aerospace_focus_change
+        label="$label" \
+        label.width=24 \
+        label.align=center \
+        label.padding_left=0 \
+        label.padding_right=0 \
+        click_script="aerospace workspace $workspace"
 done
 
-sketchybar --add item aerospace.status right \
-    --set aerospace.status \
-    icon="AeroSpace" \
-    icon.padding_right=8 \
-    label="loading" \
-    script="$PLUGIN_DIR/aerospace_status.sh" \
-    --subscribe aerospace.status \
-    "$@"
+sketchybar --set aerospace.workspace.1 \
+    script="$PLUGIN_DIR/aerospace_workspace.sh" \
+    --subscribe aerospace.workspace.1 \
+    aerospace_workspace_change \
+    aerospace_focus_change
+
+sketchybar --add item clock right \
+    --set clock \
+    label="--/-- --:--:--" \
+    label.font="SF Pro Text:Semibold:13.0" \
+    background.drawing=on \
+    background.color=0xff3a4048 \
+    script="$PLUGIN_DIR/clock.sh" \
+    update_freq=1
 
 sketchybar --update
