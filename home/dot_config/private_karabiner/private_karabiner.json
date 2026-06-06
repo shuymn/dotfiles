@@ -87,15 +87,6 @@
                     "manipulate_caps_lock_led": false
                 },
                 {
-                    "identifiers": {
-                        "is_pointing_device": true,
-                        "product_id": 33021,
-                        "vendor_id": 1149
-                    },
-                    "ignore": false,
-                    "ignore_vendor_events": true
-                },
-                {
                     "disable_built_in_keyboard_if_exists": true,
                     "identifiers": {
                         "is_keyboard": true,
