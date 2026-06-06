@@ -24,8 +24,10 @@ indent_size = 2
 trim_trailing_whitespace = false
 
 [*.sh]
-indent_style = space
 indent_size = 2
 
 [*.lua]
 indent_style = tab
+
+[*.nix]
+indent_size = 2
