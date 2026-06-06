@@ -66,6 +66,10 @@
       wvous-tr-corner = 1;
     };
 
+    spaces = {
+      spans-displays = true;
+    };
+
     finder = {
       AppleShowAllFiles = true;
       FXDefaultSearchScope = "SCcf";
@@ -86,10 +90,6 @@
       "com.apple.desktopservices" = {
         DSDontWriteNetworkStores = true;
         DSDontWriteUSBStores = true;
-      };
-
-      "org.hammerspoon.Hammerspoon" = {
-        MJConfigFile = "~/.config/hammerspoon/init.lua";
       };
     };
   };

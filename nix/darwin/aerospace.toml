@@ -1,0 +1,143 @@
+config-version = 2
+
+# nix-darwin が launchd 経由で起動するので false 必須
+start-at-login = false
+
+persistent-workspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+
+# Layout defaults
+default-root-container-layout = "tiles"
+default-root-container-orientation = "auto"
+
+# Focus/status behavior
+automatically-unhide-macos-hidden-apps = false
+on-focused-monitor-changed = [
+  "move-mouse monitor-lazy-center",
+  "exec-and-forget sketchybar --trigger aerospace_focus_change",
+]
+on-focus-changed = [
+  "move-mouse window-lazy-center",
+  "exec-and-forget sketchybar --trigger aerospace_focus_change",
+]
+on-mode-changed = ["exec-and-forget sketchybar --trigger aerospace_mode_change"]
+exec-on-workspace-change = [
+  "/bin/bash",
+  "-c",
+  "sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE",
+]
+
+[exec]
+inherit-env-vars = true
+
+[exec.env-vars]
+PATH = "/run/current-system/sw/bin:/opt/homebrew/bin:/opt/homebrew/sbin:${PATH}"
+
+[gaps]
+inner.horizontal = 10
+inner.vertical = 10
+outer.top = 42
+outer.right = 10
+outer.bottom = 10
+outer.left = 10
+
+[workspace-to-monitor-force-assignment]
+1 = "main"
+2 = "main"
+3 = "main"
+4 = "main"
+5 = "main"
+6 = ["secondary", "main"]
+7 = ["secondary", "main"]
+8 = ["secondary", "main"]
+9 = ["secondary", "main"]
+10 = ["secondary", "main"]
+
+[[on-window-detected]]
+check-further-callbacks = true
+run = "layout floating"
+
+[[on-window-detected]]
+if.app-id = "com.google.Chrome"
+run = ["layout tiling", "move-node-to-workspace 1"]
+
+[[on-window-detected]]
+if.app-id = "dev.zed.Zed"
+run = ["layout tiling", "move-node-to-workspace 2"]
+
+[[on-window-detected]]
+if.app-id = "com.spotify.client"
+run = ["layout tiling", "move-node-to-workspace 6", "move up"]
+
+[[on-window-detected]]
+if.app-id = "com.hnc.Discord"
+run = ["layout tiling", "move-node-to-workspace 6", "move down"]
+
+[[on-window-detected]]
+if.app-id = "com.openai.codex"
+run = ["layout tiling", "move-node-to-workspace 8"]
+
+[[on-window-detected]]
+if.app-id = "com.mitchellh.ghostty"
+run = ["layout tiling", "move-node-to-workspace 7"]
+
+[mode.main.binding]
+# Focus windows
+alt-h = "focus left"
+alt-j = "focus down"
+alt-k = "focus up"
+alt-l = "focus right"
+
+# Move windows
+alt-shift-h = "move left"
+alt-shift-j = "move down"
+alt-shift-k = "move up"
+alt-shift-l = "move right"
+
+# Switch workspaces
+alt-1 = "workspace 1"
+alt-2 = "workspace 2"
+alt-3 = "workspace 3"
+alt-4 = "workspace 4"
+alt-5 = "workspace 5"
+alt-6 = "workspace 6"
+alt-7 = "workspace 7"
+alt-8 = "workspace 8"
+alt-9 = "workspace 9"
+alt-0 = "workspace 10"
+alt-a = 'exec-and-forget aerospace workspace "$(aerospace list-workspaces --monitor mouse --visible)" && aerospace workspace --no-stdin --wrap-around prev'
+alt-s = 'exec-and-forget aerospace workspace "$(aerospace list-workspaces --monitor mouse --visible)" && aerospace workspace --no-stdin --wrap-around next'
+alt-tab = "workspace-back-and-forth"
+
+# Move windows to workspaces
+alt-shift-1 = ["move-node-to-workspace 1","workspace 1"]
+alt-shift-2 = ["move-node-to-workspace 2", "workspace 2"]
+alt-shift-3 = ["move-node-to-workspace 3", "workspace 3"]
+alt-shift-4 = ["move-node-to-workspace 4", "workspace 4"]
+alt-shift-5 = ["move-node-to-workspace 5", "workspace 5"]
+alt-shift-6 = ["move-node-to-workspace 6", "workspace 6"]
+alt-shift-7 = ["move-node-to-workspace 7", "workspace 7"]
+alt-shift-8 = ["move-node-to-workspace 8", "workspace 8"]
+alt-shift-9 = ["move-node-to-workspace 9", "workspace 9"]
+alt-shift-0 = ["move-node-to-workspace 10", "workspace 10"]
+
+# Layouts
+alt-slash = "layout tiles horizontal vertical"
+alt-comma = "layout accordion horizontal vertical"
+alt-shift-space = "layout floating tiling"
+alt-f = "fullscreen"
+
+# Modes
+alt-shift-semicolon = "mode service"
+alt-shift-r = "mode resize"
+
+[mode.service.binding]
+r = ["flatten-workspace-tree", "mode main"]
+f = ["layout floating tiling", "mode main"]
+
+[mode.resize.binding]
+h = "resize width -50"
+j = "resize height +50"
+k = "resize height -50"
+l = "resize width +50"
+esc = "mode main"
+enter = "mode main"

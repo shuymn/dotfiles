@@ -9,3 +9,7 @@
 # Local chezmoi state/cache.
 .local/state/chezmoi/**
 .cache/chezmoi/**
+
+{{- if ne .nixRole "personal" }}
+.config/sketchybar/**
+{{- end }}

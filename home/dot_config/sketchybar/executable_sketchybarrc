@@ -1,0 +1,53 @@
+#!/bin/sh
+
+PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
+
+sketchybar --bar \
+    position=top \
+    height=32 \
+    color=0xee1f2328 \
+    border_color=0xff30363d \
+    border_width=1 \
+    corner_radius=0 \
+    padding_left=8 \
+    padding_right=8
+
+sketchybar --default \
+    icon.color=0xffc9d1d9 \
+    label.color=0xffc9d1d9 \
+    icon.font="SF Pro:Semibold:12.0" \
+    label.font="SF Pro:Medium:12.0" \
+    padding_left=4 \
+    padding_right=4 \
+    background.height=22 \
+    background.corner_radius=6 \
+    background.drawing=off
+
+set -- aerospace_workspace_change aerospace_focus_change aerospace_mode_change
+
+for event; do
+    sketchybar --add event "$event"
+done
+
+for workspace in 1 2 3 4 5 6 7 8 9 10; do
+    sketchybar --add item "aerospace.workspace.$workspace" left \
+        --set "aerospace.workspace.$workspace" \
+        icon.drawing=off \
+        label="$workspace" \
+        script="$PLUGIN_DIR/aerospace_workspace.sh" \
+        click_script="aerospace workspace $workspace" \
+        --subscribe "aerospace.workspace.$workspace" \
+        aerospace_workspace_change \
+        aerospace_focus_change
+done
+
+sketchybar --add item aerospace.status right \
+    --set aerospace.status \
+    icon="AeroSpace" \
+    icon.padding_right=8 \
+    label="loading" \
+    script="$PLUGIN_DIR/aerospace_status.sh" \
+    --subscribe aerospace.status \
+    "$@"
+
+sketchybar --update

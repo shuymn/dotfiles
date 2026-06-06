@@ -14,8 +14,6 @@
     casks = [
       "appcleaner"
       "ghostty"
-      "hammerspoon"
-      "jordanbaird-ice"
       "karabiner-elements"
       "linearmouse"
       "lm-studio"
