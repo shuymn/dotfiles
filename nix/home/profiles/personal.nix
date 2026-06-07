@@ -5,5 +5,6 @@
     astro-language-server
     beads
     prisma-language-server
+    spindle
   ];
 }

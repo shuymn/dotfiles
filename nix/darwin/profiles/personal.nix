@@ -1,7 +1,13 @@
-{ lib, ... }:
+{ lib, localConfig, pkgs, ... }:
 
 let
   baseAerospaceSettings = lib.importTOML ../aerospace.toml;
+  spindlePackage = pkgs.spindle;
+  spindleBin = lib.getExe spindlePackage;
+  jqBin = lib.getExe pkgs.jq;
+  spindleShare = "${spindlePackage}/share/spindle";
+  spindleStateDir = "${localConfig.homeDirectory}/.local/state/spindle";
+  spindleEmit = "${localConfig.homeDirectory}/.config/spindle/emit.sh";
 
   workspaceKeys = map (workspace: {
     key = if workspace == "10" then "0" else workspace;
@@ -130,6 +136,12 @@ let
       });
 
   aerospaceSettings = lib.recursiveUpdate baseAerospaceSettings {
+    exec.env-vars = {
+      JQ_BIN = jqBin;
+      SPINDLE_BIN = spindleBin;
+      SPINDLE_EMIT = spindleEmit;
+      SPINDLE_STATE_DIR = spindleStateDir;
+    };
     mode = nonMainModeOverrides // {
       main.binding = workspaceBindings;
     };
@@ -172,4 +184,42 @@ in
       order = "above";
     };
   };
+
+  launchd.user.agents.spindle.serviceConfig = {
+    ProgramArguments = [
+      "/bin/sh"
+      "-c"
+      ''
+        set -eu
+        spindle_state_dir=$1
+        spindle_share=$2
+
+        umask 077
+        mkdir -p "$spindle_state_dir"
+        cp "$spindle_share/capabilities.json" "$spindle_state_dir/capabilities.json"
+        rm -f "$spindle_state_dir/extensions.json" "$spindle_state_dir/spindle.sock"
+
+        for extension_manifest in "$spindle_share"/extensions/*/extension.json; do
+          ${lib.escapeShellArg spindleBin} --state-dir "$spindle_state_dir" install --trust-runtime "$extension_manifest" >/dev/null
+        done
+
+        exec ${lib.escapeShellArg spindleBin} --state-dir "$spindle_state_dir" daemon
+      ''
+      "spindle-daemon"
+      spindleStateDir
+      spindleShare
+    ];
+    RunAtLoad = true;
+    KeepAlive = true;
+    StandardOutPath = "${localConfig.homeDirectory}/Library/Logs/spindle.out.log";
+    StandardErrorPath = "${localConfig.homeDirectory}/Library/Logs/spindle.err.log";
+  };
+
+  system.activationScripts.postActivation.text = lib.mkAfter ''
+    spindle_user_uid="$(${lib.getExe' pkgs.coreutils "id"} -u ${lib.escapeShellArg localConfig.username} 2>/dev/null || true)"
+    if [ -n "$spindle_user_uid" ]; then
+      /usr/bin/pkill -u "$spindle_user_uid" -f ${lib.escapeShellArg "spindle --state-dir ${spindleStateDir} daemon"} || true
+      /bin/launchctl asuser "$spindle_user_uid" /bin/launchctl kickstart -k "gui/$spindle_user_uid/org.nixos.spindle" || true
+    fi
+  '';
 }
