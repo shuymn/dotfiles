@@ -17,6 +17,8 @@
       "nix-command"
       "flakes"
     ];
+    min-free = 20 * 1024 * 1024 * 1024;
+    max-free = 80 * 1024 * 1024 * 1024;
     nix-path = [ "nixpkgs=flake:nixpkgs" ];
     trusted-users = [
       "root"
@@ -29,11 +31,10 @@
   nix.gc = {
     automatic = true;
     interval = {
-      Weekday = 0;
       Hour = 3;
       Minute = 0;
     };
-    options = "--delete-older-than 30d";
+    options = "--delete-older-than 7d";
   };
   nix.nixPath = [ "nixpkgs=flake:nixpkgs" ];
 
