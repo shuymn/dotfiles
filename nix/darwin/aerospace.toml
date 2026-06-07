@@ -13,17 +13,19 @@ default-root-container-orientation = "auto"
 automatically-unhide-macos-hidden-apps = false
 on-focused-monitor-changed = [
   "move-mouse monitor-lazy-center",
-  "exec-and-forget sketchybar --trigger aerospace_monitor_change",
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.monitor.changed'",
 ]
 on-focus-changed = [
   "move-mouse window-lazy-center",
-  "exec-and-forget sketchybar --trigger aerospace_focus_change",
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.focus.changed'",
 ]
-on-mode-changed = ["exec-and-forget sketchybar --trigger aerospace_mode_change"]
+on-mode-changed = [
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.mode.changed'"
+]
 exec-on-workspace-change = [
   "/bin/sh",
   "-c",
-  "sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE",
+  "SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.workspace.changed",
 ]
 
 [exec]
@@ -58,7 +60,7 @@ run = "layout floating"
 
 [[on-window-detected]]
 if.app-id = "com.google.Chrome"
-run = ["layout tiling", "move-node-to-workspace 1"]
+run = ["move-node-to-workspace 1"]
 
 [[on-window-detected]]
 if.app-id = "dev.zed.Zed"
@@ -73,12 +75,16 @@ if.app-id = "com.hnc.Discord"
 run = ["layout tiling", "move-node-to-workspace 6", "move down"]
 
 [[on-window-detected]]
+if.app-id = "com.mitchellh.ghostty"
+run = ["layout tiling", "move-node-to-workspace 7"]
+
+[[on-window-detected]]
 if.app-id = "com.openai.codex"
 run = ["layout tiling", "move-node-to-workspace 8"]
 
 [[on-window-detected]]
-if.app-id = "com.mitchellh.ghostty"
-run = ["layout tiling", "move-node-to-workspace 7"]
+if.app-id = "com.tinyspeck.slackmacgap"
+run = ["layout tiling", "move-node-to-workspace 9"]
 
 [mode.main.binding]
 # Focus windows
@@ -101,20 +107,19 @@ alt-tab = "workspace-back-and-forth"
 # Layouts
 alt-slash = [
   "layout tiles horizontal vertical",
-  "exec-and-forget sketchybar --trigger aerospace_layout_change"
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
 ]
 alt-comma = [
   "layout accordion horizontal vertical",
-  "exec-and-forget sketchybar --trigger aerospace_layout_change"
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
 ]
 alt-shift-space = [
   "layout floating tiling",
-  "exec-and-forget sketchybar --trigger aerospace_layout_change"
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
 ]
 alt-f = [
-  "layout tiling",
   "fullscreen",
-  "exec-and-forget sketchybar --trigger aerospace_layout_change"
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
 ]
 
 # Modes
@@ -126,7 +131,7 @@ esc = "mode main"
 r = ["flatten-workspace-tree", "mode main"]
 f = [
   "layout floating tiling",
-  "exec-and-forget sketchybar --trigger aerospace_layout_change",
+  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'",
   "mode main"
 ]
 

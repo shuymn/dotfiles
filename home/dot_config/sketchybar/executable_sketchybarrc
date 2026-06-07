@@ -1,9 +1,7 @@
 #!/bin/sh
 
 PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
-AEROSPACE_STATE_DIR="${TMPDIR:-/tmp}/sketchybar-aerospace"
-
-rm -rf "$AEROSPACE_STATE_DIR"
+SPINDLE_EMIT="${SPINDLE_EMIT:-$HOME/.config/spindle/emit.sh}"
 
 sketchybar --bar \
     position=top \
@@ -27,12 +25,6 @@ sketchybar --default \
     background.corner_radius=4 \
     background.drawing=off
 
-set -- aerospace_workspace_change aerospace_focus_change aerospace_monitor_change aerospace_mode_change aerospace_layout_change
-
-for event; do
-    sketchybar --add event "$event"
-done
-
 sketchybar --add item aerospace.mode left \
     --set aerospace.mode \
     label="M" \
@@ -42,22 +34,13 @@ sketchybar --add item aerospace.mode left \
     label.padding_left=0 \
     label.padding_right=0 \
     background.drawing=on \
-    background.color=0xff3a4048 \
-    script="$PLUGIN_DIR/aerospace_status.sh" \
-    --subscribe aerospace.mode \
-    aerospace_mode_change
+    background.color=0xff3a4048
 
 sketchybar --add item aerospace.layout left \
     --set aerospace.layout \
     label="TILE" \
     background.drawing=on \
-    background.color=0xff3a4048 \
-    script="$PLUGIN_DIR/aerospace_status.sh" \
-    --subscribe aerospace.layout \
-    aerospace_workspace_change \
-    aerospace_focus_change \
-    aerospace_monitor_change \
-    aerospace_layout_change
+    background.color=0xff3a4048
 
 for workspace in 1 2 3 4 5 6 7 8 9 10; do
     label=$workspace
@@ -72,14 +55,8 @@ for workspace in 1 2 3 4 5 6 7 8 9 10; do
         label.align=center \
         label.padding_left=0 \
         label.padding_right=0 \
-        click_script="aerospace workspace $workspace"
+        click_script="WORKSPACE=$workspace SPINDLE_SOURCE=sketchybar \"$SPINDLE_EMIT\" sketchybar.workspace.clicked"
 done
-
-sketchybar --set aerospace.workspace.1 \
-    script="$PLUGIN_DIR/aerospace_workspace.sh" \
-    --subscribe aerospace.workspace.1 \
-    aerospace_workspace_change \
-    aerospace_monitor_change
 
 sketchybar --add item clock right \
     --set clock \
@@ -91,3 +68,11 @@ sketchybar --add item clock right \
     update_freq=1
 
 sketchybar --update
+
+if [ -x "$SPINDLE_EMIT" ]; then
+    SPINDLE_SOURCE=aerospace "$SPINDLE_EMIT" aerospace.mode.changed || true
+    SPINDLE_SOURCE=aerospace "$SPINDLE_EMIT" aerospace.layout.changed || true
+    AEROSPACE_FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused 2>/dev/null || true)
+    export AEROSPACE_FOCUSED_WORKSPACE
+    SPINDLE_SOURCE=aerospace "$SPINDLE_EMIT" aerospace.workspace.changed || true
+fi
