@@ -31,13 +31,13 @@ update_check = false
 # search_mode = "fuzzy"
 
 ## which filter mode to use
-## possible values: global, host, session, directory
-filter_mode = "session"
+## possible values: global, host, session, session-preload, directory, workspace
+filter_mode = "workspace"
+workspaces = true
 
 ## which filter mode to use when atuin is invoked from a shell up-key binding
 ## the accepted values are identical to those of "filter_mode"
 ## leave unspecified to use same mode set in "filter_mode"
-# filter_mode_shell_up_key_binding = "session"
 
 ## which style to use
 ## possible values: auto, full, compact
@@ -49,7 +49,8 @@ inline_height = 30
 
 ## enable or disable showing a preview of the selected command
 ## useful when the command is longer than the terminal width and is cut off
-# show_preview = false
+show_preview = true
+max_preview_height = 4
 
 ## what to do when the escape key is pressed when searching
 ## possible values: return-original, return-query
@@ -87,3 +88,7 @@ invert = true
 show_tabs = false
 keymap_mode = "vim-insert"
 keymap_cursor = { emacs = "blink-underline", vim_insert = "blink-bar", vim_normal = "blink-block" }
+command_chaining = true
+
+[ui]
+columns = ["exit", "duration", "time", "command"]
