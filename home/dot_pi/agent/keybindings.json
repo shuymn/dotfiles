@@ -2,8 +2,10 @@
   "app.session.rename": [],
   "app.models.save": [],
   "app.session.toggleSort": [],
-  "tui.editor.cursorUp": ["up", "ctrl+p"],
-  "tui.editor.cursorDown": ["down", "ctrl+n"],
+  "tui.editor.cursorUp": ["up", "ctrl+p", "ctrl+k"],
+  "tui.editor.cursorDown": ["down", "ctrl+n", "ctrl+j"],
   "tui.editor.cursorLeft": ["left", "alt+h"],
-  "tui.editor.cursorRight": ["right", "alt+l"]
+  "tui.editor.cursorRight": ["right", "alt+l"],
+  "tui.select.up": ["up", "ctrl+p", "ctrl+k"],
+  "tui.select.down": ["down", "ctrl+n", "ctrl+j"]
 }
