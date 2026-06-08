@@ -2,6 +2,8 @@
   "app.session.rename": [],
   "app.models.save": [],
   "app.session.toggleSort": [],
-  "tui.input.submit": ["cmd+enter"],
-  "app.message.followUp": ["enter"]
+  "tui.editor.cursorUp": ["up", "ctrl+p"],
+  "tui.editor.cursorDown": ["down", "ctrl+n"],
+  "tui.editor.cursorLeft": ["left", "alt+h"],
+  "tui.editor.cursorRight": ["right", "alt+l"]
 }
