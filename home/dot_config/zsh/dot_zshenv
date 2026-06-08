@@ -74,9 +74,11 @@ export CLICOLOR=1
 export LSCOLORS=ExFxBxDxCxegedabagacad
 
 # History
-export HISTFILE="${XDG_CACHE_HOME}/zsh/.zsh_history"
+# Keep zsh history session-local for arrow-up navigation. Atuin is the
+# durable cross-session history store.
+export HISTFILE=/dev/null
 export HISTSIZE=10000
-export SAVEHIST=1000000
+export SAVEHIST=0
 
 setopt no_global_rcs
 
