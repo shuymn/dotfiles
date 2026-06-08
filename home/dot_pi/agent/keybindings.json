@@ -1,5 +1,7 @@
 {
   "app.session.rename": [],
   "app.models.save": [],
-  "app.session.toggleSort": []
+  "app.session.toggleSort": [],
+  "tui.input.submit": ["cmd+enter"],
+  "app.message.followUp": ["enter"]
 }
