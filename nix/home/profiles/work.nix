@@ -2,6 +2,7 @@
 
 {
   home.packages = with pkgs; [
+    acli
     awscli2
     circleci-cli
     colima

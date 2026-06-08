@@ -30,6 +30,7 @@
           import localConfigPath;
       unfreePackageNames = [
         "1password-cli"
+        "acli"
       ];
       spindleSourcesFor = localConfig:
         let

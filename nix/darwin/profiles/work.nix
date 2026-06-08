@@ -10,6 +10,7 @@
 
     casks = [
       "gcloud-cli"
+      "jordanbaird-ice"
       "keepingyouawake"
     ];
   };
