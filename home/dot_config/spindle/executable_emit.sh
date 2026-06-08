@@ -8,25 +8,10 @@ fi
 
 event_type=$1
 data=${2:-}
+SPINDLE_LIB="${SPINDLE_LIB:-$HOME/.config/spindle/lib-path.sh}"
 
-find_bin() {
-  name=$1
-
-  if command_path=$(command -v "$name" 2>/dev/null); then
-    printf '%s\n' "$command_path"
-    return 0
-  fi
-  if [ -n "${USER:-}" ] && [ -x "/etc/profiles/per-user/$USER/bin/$name" ]; then
-    printf '%s\n' "/etc/profiles/per-user/$USER/bin/$name"
-    return 0
-  fi
-  if [ -x "/run/current-system/sw/bin/$name" ]; then
-    printf '%s\n' "/run/current-system/sw/bin/$name"
-    return 0
-  fi
-
-  return 1
-}
+# shellcheck source=/dev/null
+. "$SPINDLE_LIB"
 
 if [ -z "${JQ_BIN:-}" ]; then
   JQ_BIN=$(find_bin jq) || {
@@ -37,18 +22,18 @@ fi
 
 if [ -z "$data" ]; then
   case "$event_type" in
-  aerospace.workspace.changed)
-    if [ -n "${AEROSPACE_FOCUSED_WORKSPACE:-}" ]; then
-      # shellcheck disable=SC2016 # jq filter variables are intentionally single-quoted.
-      data=$("$JQ_BIN" -cn --arg focused_workspace "$AEROSPACE_FOCUSED_WORKSPACE" '{focused_workspace:$focused_workspace}')
-    fi
-    ;;
-  sketchybar.workspace.clicked)
-    if [ -n "${WORKSPACE:-}" ]; then
-      # shellcheck disable=SC2016 # jq filter variables are intentionally single-quoted.
-      data=$("$JQ_BIN" -cn --arg workspace "$WORKSPACE" '{workspace:$workspace}')
-    fi
-    ;;
+    aerospace.workspace.changed)
+      if [ -n "${AEROSPACE_FOCUSED_WORKSPACE:-}" ]; then
+        # shellcheck disable=SC2016 # jq filter variables are intentionally single-quoted.
+        data=$("$JQ_BIN" -cn --arg focused_workspace "$AEROSPACE_FOCUSED_WORKSPACE" '{focused_workspace:$focused_workspace}')
+      fi
+      ;;
+    sketchybar.workspace.clicked)
+      if [ -n "${WORKSPACE:-}" ]; then
+        # shellcheck disable=SC2016 # jq filter variables are intentionally single-quoted.
+        data=$("$JQ_BIN" -cn --arg workspace "$WORKSPACE" '{workspace:$workspace}')
+      fi
+      ;;
   esac
 fi
 

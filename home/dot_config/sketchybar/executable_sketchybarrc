@@ -4,75 +4,72 @@ PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
 SPINDLE_EMIT="${SPINDLE_EMIT:-$HOME/.config/spindle/emit.sh}"
 
 sketchybar --bar \
-    position=top \
-    height=32 \
-    color=0xff1f2328 \
-    border_color=0xff3a4048 \
-    border_width=0 \
-    corner_radius=0 \
-    padding_left=8 \
-    padding_right=8
+  position=top \
+  height=32 \
+  color=0xff1f2328 \
+  border_color=0xff3a4048 \
+  border_width=0 \
+  corner_radius=0 \
+  padding_left=8 \
+  padding_right=8
 
 sketchybar --default \
-    icon.drawing=off \
-    label.color=0xffc9d1d9 \
-    label.font="SF Pro Text:Medium:13.0" \
-    padding_left=3 \
-    padding_right=3 \
-    label.padding_left=8 \
-    label.padding_right=8 \
-    background.height=24 \
-    background.corner_radius=4 \
-    background.drawing=off
+  icon.drawing=off \
+  label.color=0xffc9d1d9 \
+  label.font="SF Pro Text:Medium:13.0" \
+  padding_left=3 \
+  padding_right=3 \
+  label.padding_left=8 \
+  label.padding_right=8 \
+  background.height=24 \
+  background.corner_radius=4 \
+  background.drawing=off
 
 sketchybar --add item aerospace.mode left \
-    --set aerospace.mode \
-    label="M" \
-    label.font="SF Pro Text:Semibold:13.0" \
+  --set aerospace.mode \
+  label="M" \
+  label.font="SF Pro Text:Semibold:13.0" \
+  label.width=24 \
+  label.align=center \
+  label.padding_left=0 \
+  label.padding_right=0 \
+  background.drawing=on \
+  background.color=0xff3a4048
+
+sketchybar --add item aerospace.layout left \
+  --set aerospace.layout \
+  label="TILE" \
+  background.drawing=on \
+  background.color=0xff3a4048
+
+for workspace in 1 2 3 4 5 6 7 8 9 10; do
+  label=$workspace
+  if [ "$workspace" = 10 ]; then
+    label=0
+  fi
+
+  sketchybar --add item "aerospace.workspace.$workspace" left \
+    --set "aerospace.workspace.$workspace" \
+    label="$label" \
     label.width=24 \
     label.align=center \
     label.padding_left=0 \
     label.padding_right=0 \
-    background.drawing=on \
-    background.color=0xff3a4048
-
-sketchybar --add item aerospace.layout left \
-    --set aerospace.layout \
-    label="TILE" \
-    background.drawing=on \
-    background.color=0xff3a4048
-
-for workspace in 1 2 3 4 5 6 7 8 9 10; do
-    label=$workspace
-    if [ "$workspace" = 10 ]; then
-        label=0
-    fi
-
-    sketchybar --add item "aerospace.workspace.$workspace" left \
-        --set "aerospace.workspace.$workspace" \
-        label="$label" \
-        label.width=24 \
-        label.align=center \
-        label.padding_left=0 \
-        label.padding_right=0 \
-        click_script="WORKSPACE=$workspace SPINDLE_SOURCE=sketchybar \"$SPINDLE_EMIT\" sketchybar.workspace.clicked"
+    click_script="WORKSPACE=$workspace SPINDLE_SOURCE=sketchybar \"$SPINDLE_EMIT\" sketchybar.workspace.clicked"
 done
 
 sketchybar --add item clock right \
-    --set clock \
-    label="--/-- --:--:--" \
-    label.font="SF Pro Text:Semibold:13.0" \
-    background.drawing=on \
-    background.color=0xff3a4048 \
-    script="$PLUGIN_DIR/clock.sh" \
-    update_freq=1
+  --set clock \
+  label="--/-- --:--:--" \
+  label.font="SF Pro Text:Semibold:13.0" \
+  background.drawing=on \
+  background.color=0xff3a4048 \
+  script="$PLUGIN_DIR/clock.sh" \
+  update_freq=1
 
 sketchybar --update
 
-if [ -x "$SPINDLE_EMIT" ]; then
-    SPINDLE_SOURCE=aerospace "$SPINDLE_EMIT" aerospace.mode.changed || true
-    SPINDLE_SOURCE=aerospace "$SPINDLE_EMIT" aerospace.layout.changed || true
-    AEROSPACE_FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused 2>/dev/null || true)
-    export AEROSPACE_FOCUSED_WORKSPACE
-    SPINDLE_SOURCE=aerospace "$SPINDLE_EMIT" aerospace.workspace.changed || true
+SPINDLE_BOOTSTRAP="${SPINDLE_BOOTSTRAP:-$HOME/.config/spindle/bootstrap-sketchybar.sh}"
+if [ -x "$SPINDLE_BOOTSTRAP" ]; then
+  "$SPINDLE_BOOTSTRAP"
 fi

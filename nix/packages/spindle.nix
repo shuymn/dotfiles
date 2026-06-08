@@ -111,41 +111,38 @@ let
               "event": "workspace-indicator.sketchybar.message.requested",
               "capabilities": ["sketchybar.ui.write"]
             }
+          ],
+          "clock": [
+            {
+              "source": "clock",
+              "event": "clock.sketchybar.message.requested",
+              "capabilities": ["sketchybar.ui.write"]
+            }
           ]
         }
       }
       JSON
 
-      for extension in aerospace sketchybar workspace-indicator; do
-        install -d "$out/share/spindle/extensions/$extension"
-      done
+      install_extension_package() {
+        extension_id="$1"
+        extension_bin="$2"
 
-      cat >"$out/share/spindle/extensions/aerospace/extension.json" <<JSON
+        install -d "$out/share/spindle/extensions/$extension_id/bin"
+        install -m755 "$out/bin/$extension_bin" \
+          "$out/share/spindle/extensions/$extension_id/bin/$extension_id"
+        cat >"$out/share/spindle/extensions/$extension_id/extension.json" <<JSON
       {
-        "id": "aerospace",
+        "id": "$extension_id",
         "version": "0.1.0",
-        "entrypoint": "$out/bin/spindle-aerospace",
         "runtime": "stdio-jsonl"
       }
       JSON
-
-      cat >"$out/share/spindle/extensions/sketchybar/extension.json" <<JSON
-      {
-        "id": "sketchybar",
-        "version": "0.1.0",
-        "entrypoint": "$out/bin/spindle-sketchybar",
-        "runtime": "stdio-jsonl"
       }
-      JSON
 
-      cat >"$out/share/spindle/extensions/workspace-indicator/extension.json" <<JSON
-      {
-        "id": "workspace-indicator",
-        "version": "0.1.0",
-        "entrypoint": "$out/bin/spindle-workspace-indicator",
-        "runtime": "stdio-jsonl"
-      }
-      JSON
+      install_extension_package aerospace spindle-aerospace
+      install_extension_package clock spindle-clock
+      install_extension_package sketchybar spindle-sketchybar
+      install_extension_package workspace-indicator spindle-workspace-indicator
     '';
   };
 in
