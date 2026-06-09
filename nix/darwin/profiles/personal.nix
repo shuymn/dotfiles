@@ -200,16 +200,13 @@ in
         spindle_share=$2
 
         umask 077
-        mkdir -p "$spindle_state_dir"
-        cp "$spindle_share/capabilities.json" "$spindle_state_dir/capabilities.json"
-        rm -f "$spindle_state_dir/extensions.json" "$spindle_state_dir/spindle.sock"
 
         export SPINDLE_STATE_DIR="$spindle_state_dir"
         export SPINDLE_SKETCHYBAR_STATE_DIR="$spindle_state_dir"
 
-        for extension_package in "$spindle_share"/extensions/*/; do
-          ${lib.escapeShellArg spindleBin} --state-dir "$spindle_state_dir" install --trust-runtime "$extension_package" >/dev/null
-        done
+        ${lib.escapeShellArg spindleBin} --state-dir "$spindle_state_dir" bootstrap \
+          --extension-dir "$spindle_share/extensions" \
+          --trust-runtime
 
         exec ${lib.escapeShellArg spindleBin} --state-dir "$spindle_state_dir" daemon
       ''
