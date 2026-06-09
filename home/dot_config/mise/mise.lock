@@ -176,16 +176,16 @@ version = "1.5.10"
 backend = "npm:skills"
 
 [[tools.opencode]]
-version = "1.15.13"
+version = "1.16.2"
 backend = "aqua:anomalyco/opencode"
 
 [tools.opencode."platforms.linux-x64"]
-checksum = "sha256:51785a07c009f27c5125a5235c5a0ff78433dace07f73fbc44eb672ead4b3d79"
-url = "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-linux-x64.tar.gz"
+checksum = "sha256:06a79c5bb7f8d01716b2440712cf67facd36db59188809aeb232374b206bd429"
+url = "https://github.com/anomalyco/opencode/releases/download/v1.16.2/opencode-linux-x64.tar.gz"
 
 [tools.opencode."platforms.macos-arm64"]
-checksum = "sha256:be369a38d15a22e83fad34874d1bc7ddead8084e07df292b28d079287d54ab0c"
-url = "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-darwin-arm64.zip"
+checksum = "sha256:01585ff4d15820bd3a878e4bc7cacfb1ea75e236d1fed8c2f5f3595edc8b7ab5"
+url = "https://github.com/anomalyco/opencode/releases/download/v1.16.2/opencode-darwin-arm64.zip"
 
 [[tools.pinact]]
 version = "4.0.0"
