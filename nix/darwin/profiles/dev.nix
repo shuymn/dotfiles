@@ -12,12 +12,17 @@
     ];
 
     casks = [
+      "1password"
       "appcleaner"
       "ghostty"
+      "google-chrome"
       "karabiner-elements"
       "linearmouse"
       "lm-studio"
       "raycast"
+      "slack"
+      "spotify"
+      "tableplus"
       "ukelele"
       "visual-studio-code"
       "zed"
