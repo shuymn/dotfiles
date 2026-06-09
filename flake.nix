@@ -24,15 +24,13 @@
     let
       localConfigPath = builtins.getEnv "DOTFILES_NIX_LOCAL";
       defaultConfig =
-        if localConfigPath == "" then
-          import ./nix/local.default.nix
-        else
-          import localConfigPath;
+        if localConfigPath == "" then import ./nix/local.default.nix else import localConfigPath;
       unfreePackageNames = [
         "1password-cli"
         "acli"
       ];
-      spindleSourcesFor = localConfig:
+      spindleSourcesFor =
+        localConfig:
         let
           spindlePath = "${localConfig.homeDirectory}/ghq/github.com/shuymn/spindle";
           extensionsPath = "${localConfig.homeDirectory}/ghq/github.com/shuymn/spindle-extensions";
@@ -54,11 +52,14 @@
             home-manager.darwinModules.home-manager
             {
               nixpkgs.overlays = [
-                (final: _prev:
+                (
+                  final: _prev:
                   let
                     spindleSources = spindleSourcesFor localConfig;
                   in
                   {
+                    glimpseui = final.callPackage ./nix/packages/glimpseui.nix { };
+
                     spindle =
                       if spindleSources.hasSources then
                         final.callPackage ./nix/packages/spindle.nix {
@@ -93,7 +94,13 @@
 
       packages.${defaultConfig.system} = {
         darwin-rebuild = nix-darwin.packages.${defaultConfig.system}.darwin-rebuild;
-      } // (if defaultSpindleSources.hasSources then { spindle = defaultDarwinConfiguration.pkgs.spindle; } else { });
+      }
+      // (
+        if defaultSpindleSources.hasSources then
+          { spindle = defaultDarwinConfiguration.pkgs.spindle; }
+        else
+          { }
+      );
 
       apps.${defaultConfig.system}.darwin-rebuild = {
         type = "app";

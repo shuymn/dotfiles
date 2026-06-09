@@ -13,6 +13,7 @@
     fzf
     gh
     ghq
+    glimpseui
     gnused
     golangci-lint
     gopls
