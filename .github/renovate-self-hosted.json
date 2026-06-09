@@ -10,9 +10,19 @@
       "customType": "regex",
       "description": "Update renovatebot/github-action renovate-version input",
       "managerFilePatterns": ["/^\\.github\\/workflows\\/renovate-run\\.yml$/"],
-      "matchStrings": ["renovate-version:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "matchStrings": [
+        "renovate-version:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
       "datasourceTemplate": "npm",
       "depNameTemplate": "renovate"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Nix packages annotated with renovate comments",
+      "managerFilePatterns": ["/^nix\\/packages\\/.*\\.nix$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\";"
+      ]
     }
   ],
   "nix": {
