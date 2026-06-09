@@ -4,7 +4,7 @@
   "repositories": ["shuymn/dotfiles"],
   "requireConfig": "ignored",
   "extends": ["github>shuymn/github-actions#main"],
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "1 days",
   "customManagers": [
     {
       "customType": "regex",
