@@ -23,6 +23,12 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\";"
       ]
+    },
+    {
+      "description": "Automerge mise minor/patch updates",
+      "matchManagers": ["mise"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
     }
   ],
   "nix": {
