@@ -14,6 +14,7 @@
     casks = [
       "1password"
       "appcleaner"
+      "codex-app"
       "ghostty"
       "google-chrome"
       "karabiner-elements"
