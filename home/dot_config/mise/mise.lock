@@ -51,17 +51,17 @@ checksum = "sha256:8c847d0a29aa4b3101b3361e0b3ee7fb53c7e497adc9ed1afc9615538cd40
 url = "https://github.com/ast-grep/ast-grep/releases/download/0.43.0/app-aarch64-apple-darwin.zip"
 
 [[tools.betterleaks]]
-version = "1.4.0"
+version = "v1.4.1"
 backend = "aqua:betterleaks/betterleaks"
 
 [tools.betterleaks."platforms.linux-x64"]
-checksum = "sha256:e2cb2b909baf64f48abaf2487c1a5874751196bd9d715e4fd68f7f94b0fbf601"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.4.0/betterleaks_1.4.0_linux_x64.tar.gz"
+checksum = "sha256:2635ff988d9194cd3070155138589081a54a3438d79ca9b83268addd2fd844cc"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.4.1/betterleaks_1.4.1_linux_x64.tar.gz"
 provenance = "cosign"
 
 [tools.betterleaks."platforms.macos-arm64"]
-checksum = "sha256:28fb6458b9359b160855526219924005a9cd2b187439106f92b85213e4ea6381"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.4.0/betterleaks_1.4.0_darwin_arm64.tar.gz"
+checksum = "sha256:0656a339d4a99fc3a037d0d31b70f3b3f4fec1e38459bf837e204540043c9b76"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.4.1/betterleaks_1.4.1_darwin_arm64.tar.gz"
 provenance = "cosign"
 
 [[tools.bun]]
