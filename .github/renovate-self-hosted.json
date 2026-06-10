@@ -23,7 +23,9 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\";"
       ]
-    },
+    }
+  ],
+  "packageRules": [
     {
       "description": "Automerge mise minor/patch updates",
       "matchManagers": ["mise"],
