@@ -1,5 +1,5 @@
 {{- $role := env "DOTFILES_NIX_ROLE" | default (index . "nixRole" | default "minimal") -}}
-{{- $zedRole := ternary $role "minimal" (or (eq $role "personal") (eq $role "work")) -}}
+{{- $zedRole := ternary $role "minimal" (or (eq $role "personal") (eq $role "personal-lite") (eq $role "work")) -}}
 {{- $extensions := includeTemplate (printf "zed/extensions.%s.jsonc" $zedRole) . | trim | replace "\n" "\n  " -}}
 {{- $lsp := includeTemplate (printf "zed/lsp.%s.jsonc" $zedRole) . | trim | replace "\n" "\n  " -}}
 // Zed settings
