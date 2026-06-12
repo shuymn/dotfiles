@@ -19,3 +19,7 @@ fi
 if has "pbcopy"; then
   alias teee='tee >(pbcopy)'
 fi
+
+if has "assume"; then
+   alias assume=". assume"
+fi
