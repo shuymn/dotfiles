@@ -29,7 +29,7 @@ let
     cargoLock = {
       lockFile = "${extensionsSrc}/Cargo.lock";
       outputHashes = {
-        "spindle-extension-sdk-0.1.0" = "sha256-6CUUVqBtYYE/1WVEP6U/eRN+gVcm8RwLOx2jYzuUSyM=";
+        "spindle-extension-sdk-0.1.0" = "sha256-kaoWe2fVeexus+RHSp1r4RceyR+kFAFLOkQ2DaCN8Jo=";
       };
     };
 
