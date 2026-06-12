@@ -19,7 +19,6 @@
       "google-chrome"
       "karabiner-elements"
       "linearmouse"
-      "lm-studio"
       "raycast"
       "slack"
       "spotify"

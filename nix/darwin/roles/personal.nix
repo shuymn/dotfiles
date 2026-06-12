@@ -1,6 +1,7 @@
 {
   imports = [
-    ../profiles/dev.nix
+    ./personal-lite.nix
+    ../profiles/llm.nix
     ../profiles/personal.nix
   ];
 }

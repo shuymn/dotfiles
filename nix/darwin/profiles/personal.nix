@@ -160,11 +160,8 @@ in
     ];
 
     casks = [
-      "choosy"
       "discord"
       "obsidian"
-      "orbstack"
-      "tailscale-app"
       "xdevplatform/tap/xurl"
       "zotero"
     ];

@@ -2,7 +2,7 @@
 
 {
   home.packages = with pkgs; [
-    beads
-    spindle
+    astro-language-server
+    prisma-language-server
   ];
 }
