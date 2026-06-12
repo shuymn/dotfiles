@@ -141,6 +141,10 @@ url = "https://dl.google.com/go/go1.26.4.linux-amd64.tar.gz"
 checksum = "sha256:b62ad2b6d7d2464f12a5bcad7ff47f19d08325773b5efd21610e445a05a9bf53"
 url = "https://dl.google.com/go/go1.26.4.darwin-arm64.tar.gz"
 
+[[tools."http:cursor-agent"]]
+version = "2026.06.04-5fd875e"
+backend = "http:cursor-agent"
+
 [[tools.lefthook]]
 version = "2.1.9"
 backend = "aqua:evilmartians/lefthook"

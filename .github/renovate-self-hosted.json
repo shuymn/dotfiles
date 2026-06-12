@@ -5,6 +5,15 @@
   "requireConfig": "ignored",
   "extends": ["github>shuymn/github-actions#main"],
   "minimumReleaseAge": "1 days",
+  "customDatasources": {
+    "cursor-agent": {
+      "defaultRegistryUrlTemplate": "https://formulae.brew.sh/api/cask/cursor-cli.json",
+      "format": "json",
+      "transformTemplates": [
+        "{ \"releases\": [{ \"version\": version, \"releaseTimestamp\": $substring(version, 0, 4) & '-' & $substring(version, 5, 2) & '-' & $substring(version, 8, 2) & 'T00:00:00Z' }] }"
+      ]
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -55,6 +64,15 @@
       "matchStrings": ["codex = \"(?<currentValue>[^\"]+)\""],
       "datasourceTemplate": "npm",
       "depNameTemplate": "@openai/codex"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise cursor-agent version via Homebrew cask API",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"http:cursor-agent\"\\s*=\\s*\\{[^}]*version\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "custom.cursor-agent",
+      "depNameTemplate": "cursor-agent",
+      "versioningTemplate": "loose"
     }
   ],
   "packageRules": [
@@ -67,13 +85,13 @@
     {
       "description": "Disable timestamp-less mise lookups (tracked via regex managers)",
       "matchManagers": ["mise"],
-      "matchDepNames": ["claude", "codex", "go", "python"],
+      "matchDepNames": ["claude", "codex", "go", "python", "http:cursor-agent"],
       "enabled": false
     },
     {
       "description": "Automerge minor/patch for regex-managed mise tools",
       "matchManagers": ["custom.regex"],
-      "matchPackageNames": ["@anthropic-ai/claude-code", "@openai/codex"],
+      "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "cursor-agent"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     }
