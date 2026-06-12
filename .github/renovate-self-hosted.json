@@ -23,12 +23,41 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\";"
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise claude version via npm (aqua/github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["claude = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@anthropic-ai/claude-code"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise codex version via npm (aqua/github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["codex = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@openai/codex"
     }
   ],
   "packageRules": [
     {
       "description": "Automerge mise minor/patch updates",
       "matchManagers": ["mise"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Disable timestamp-less mise lookup for claude/codex (tracked via regex managers)",
+      "matchManagers": ["mise"],
+      "matchPackageNames": ["claude", "codex"],
+      "enabled": false
+    },
+    {
+      "description": "Automerge minor/patch for regex-managed mise tools",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["@anthropic-ai/claude-code", "@openai/codex"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     }
