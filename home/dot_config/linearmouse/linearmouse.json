@@ -50,11 +50,29 @@
       "buttons" : {
         "mappings" : [
           {
-            "action" : "missionControl",
+            "action" : {
+              "keyPress" : [
+                "option",
+                "s"
+              ]
+            },
             "command" : false,
             "control" : false,
             "option" : false,
             "scroll" : "right",
+            "shift" : false
+          },
+          {
+            "action" : {
+              "keyPress" : [
+                "option",
+                "a"
+              ]
+            },
+            "command" : false,
+            "control" : false,
+            "option" : false,
+            "scroll" : "left",
             "shift" : false
           }
         ],
