@@ -26,6 +26,22 @@
     },
     {
       "customType": "regex",
+      "description": "Track mise go version via golang-version (github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\\ngo = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "golang-version",
+      "depNameTemplate": "go"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise python version via python-version (github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\\npython = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "python-version",
+      "depNameTemplate": "python"
+    },
+    {
+      "customType": "regex",
       "description": "Track mise claude version via npm (aqua/github-tags lacks releaseTimestamp)",
       "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
       "matchStrings": ["claude = \"(?<currentValue>[^\"]+)\""],
@@ -49,9 +65,9 @@
       "automerge": true
     },
     {
-      "description": "Disable timestamp-less mise lookup for claude/codex (tracked via regex managers)",
+      "description": "Disable timestamp-less mise lookups (tracked via regex managers)",
       "matchManagers": ["mise"],
-      "matchPackageNames": ["claude", "codex"],
+      "matchDepNames": ["claude", "codex", "go", "python"],
       "enabled": false
     },
     {
