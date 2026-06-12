@@ -17,6 +17,7 @@
 - Keep chezmoi age encryption enabled via root `.chezmoi.toml.tmpl`, but never manage or commit `~/.config/age/key.txt`; it is local-only and must be backed up out-of-band.
 - Keep mise for version-switched runtimes and pinned helper CLIs. Prefer plain `mise install`; `make mise` is only a shortcut. Existing `npm:` and `pipx:` entries may remain, but new global `npm:`/`pipx:`/`cargo:`/`go:`/`gem:` tool entries need an explicit exception reason.
 - Run `make audit-cli-path` before migrating unmanaged global CLIs so PATH-derived evidence drives the move.
+- After adding or renaming mise tools, run `make check-mise-renovate`; tools that resolve to Renovate datasources without `releaseTimestamp` (or unsupported/unknown Renovate paths) can stay pending forever under `minimumReleaseAge`. Fix per `docs/renovate-mise-release-age.md` (prefer a timestamped backend, else a regex custom manager plus disabled mise lookup).
 - After Homebrew tap/formula/cask changes, run `make check-brew`; it checks dependency availability and compares formula leaves/casks against the nix-darwin generated Brewfile.
 - After Nix or activation-path changes, run `make check` so chezmoi-generated `nix/local.nix` and ownership checks are included. After chezmoi source-state changes, run `chezmoi diff`; run `chezmoi apply` only when applying to the live home directory is intended.
 
