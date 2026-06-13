@@ -61,7 +61,7 @@ tab=$(printf '\t')
 # tasks.*.tools. Values are reduced like Renovate's parseVersion(): string,
 # first string from an array, or a table's version string.
 tools_file=$tmpdir/tools.tsv
-"$python_bin" - "$config" > "$tools_file" <<'PY'
+"$python_bin" - "$config" >"$tools_file" <<'PY'
 import sys
 
 try:
@@ -109,7 +109,7 @@ if [ ! -s "$tools_file" ]; then
 fi
 
 registry_tools=$tmpdir/registry-tools.tsv
-"$python_bin" - "$tmpdir/mise-registry.json" > "$registry_tools" <<'PY'
+"$python_bin" - "$tmpdir/mise-registry.json" >"$registry_tools" <<'PY'
 import json
 import sys
 
@@ -131,8 +131,8 @@ PY
 
 regex_tracked=$tmpdir/regex-tracked.txt
 disabled_mise=$tmpdir/disabled-mise.txt
-: > "$regex_tracked"
-: > "$disabled_mise"
+: >"$regex_tracked"
+: >"$disabled_mise"
 if [ -f "$renovate_config" ]; then
   "$python_bin" - "$renovate_config" "$regex_tracked" "$disabled_mise" <<'PY'
 import json
@@ -151,7 +151,10 @@ with open(regex_tracked_path, "w", encoding="utf-8") as regex_tracked:
             pattern = re.sub(r"^\(\?m\)", "", pattern)
             pattern = re.sub(r"^\\n", "", pattern)
             pattern = re.sub(r"^\^", "", pattern)
-            match = re.match(r"(?:\\?[\"'])?([A-Za-z0-9@/:_.-]+)(?:\\?[\"'])?\s*=", pattern)
+            match = re.match(
+                r"(?:\\?[\"'])?([A-Za-z0-9@/:_.-]+)(?:\\?[\"'])?(?:\s|\\s[+*?]?)*=",
+                pattern,
+            )
             if match:
                 regex_tracked.write(f"{match.group(1)}\n")
 
@@ -236,13 +239,13 @@ static_datasource_any() {
 
 verdict_for_datasource() {
   case $1 in
-    java-version | JavaVersion) echo "NG no releaseTimestamp ($2)" ;;
-    git-tags | GitTags | git-refs | GitRefs) echo "NG no releaseTimestamp ($2)" ;;
-    github-tags | GithubTags | github-releases | GithubReleases | npm | Npm | \
-      pypi | Pypi | crate | Crate | rubygems | Rubygems | go | Go | \
-      nuget | Nuget | NodeVersion | node-version | RubyVersion | ruby-version | \
-      HexpmBob | hexpm-bob) echo "OK $2" ;;
-    *) echo "WARN unknown datasource ($2)" ;;
+  java-version | JavaVersion) echo "NG no releaseTimestamp ($2)" ;;
+  git-tags | GitTags | git-refs | GitRefs) echo "NG no releaseTimestamp ($2)" ;;
+  github-tags | GithubTags | github-releases | GithubReleases | npm | Npm | \
+    pypi | Pypi | crate | Crate | rubygems | Rubygems | go | Go | \
+    nuget | Nuget | NodeVersion | node-version | RubyVersion | ruby-version | \
+    HexpmBob | hexpm-bob) echo "OK $2" ;;
+  *) echo "WARN unknown datasource ($2)" ;;
   esac
 }
 
@@ -251,76 +254,76 @@ classify_backend() {
   name=$2
   version=$3
   case $backend in
-    core)
-      ds=$(static_datasource "$tmpdir/mise-tooling.ts" "$name")
-      if [ -n "$ds" ]; then
-        verdict_for_datasource "$ds" "core static $name -> $ds"
-      else
-        echo "WARN core tool is not in Renovate static mappings"
-      fi
-      ;;
-    asdf)
-      ds=$(static_datasource "$tmpdir/asdf-tooling.ts" "$name")
-      if [ -n "$ds" ]; then
-        verdict_for_datasource "$ds" "asdf static $name -> $ds"
-      else
-        echo "WARN asdf tool is not in Renovate static mappings"
-      fi
-      ;;
-    vfox)
-      ds=$(static_datasource_any "$name")
-      if [ -n "$ds" ]; then
-        verdict_for_datasource "$ds" "vfox static $name -> $ds"
-      else
-        echo "WARN vfox tool is not in Renovate static mappings"
-      fi
-      ;;
-    aqua)
-      ds=$(static_datasource_any "$name")
-      if [ -n "$ds" ]; then
-        verdict_for_datasource "$ds" "aqua static $name -> $ds"
-      else
-        echo "OK aqua -> github-tags"
-      fi
-      ;;
-    github | ubi) echo "OK $backend -> github-releases" ;;
-    npm) echo "OK npm -> npm" ;;
-    pipx)
-      case $name in
-        git+https://github.com/*.git) echo "OK pipx GitHub git -> github-tags" ;;
-        git+*) echo "NG no releaseTimestamp (pipx git -> git-refs)" ;;
-        http://* | https://*) echo "WARN pipx URL is unsupported by Renovate" ;;
-        */*) echo "OK pipx GitHub shorthand -> github-tags" ;;
-        *) echo "OK pipx -> pypi" ;;
+  core)
+    ds=$(static_datasource "$tmpdir/mise-tooling.ts" "$name")
+    if [ -n "$ds" ]; then
+      verdict_for_datasource "$ds" "core static $name -> $ds"
+    else
+      echo "WARN core tool is not in Renovate static mappings"
+    fi
+    ;;
+  asdf)
+    ds=$(static_datasource "$tmpdir/asdf-tooling.ts" "$name")
+    if [ -n "$ds" ]; then
+      verdict_for_datasource "$ds" "asdf static $name -> $ds"
+    else
+      echo "WARN asdf tool is not in Renovate static mappings"
+    fi
+    ;;
+  vfox)
+    ds=$(static_datasource_any "$name")
+    if [ -n "$ds" ]; then
+      verdict_for_datasource "$ds" "vfox static $name -> $ds"
+    else
+      echo "WARN vfox tool is not in Renovate static mappings"
+    fi
+    ;;
+  aqua)
+    ds=$(static_datasource_any "$name")
+    if [ -n "$ds" ]; then
+      verdict_for_datasource "$ds" "aqua static $name -> $ds"
+    else
+      echo "OK aqua -> github-tags"
+    fi
+    ;;
+  github | ubi) echo "OK $backend -> github-releases" ;;
+  npm) echo "OK npm -> npm" ;;
+  pipx)
+    case $name in
+    git+https://github.com/*.git) echo "OK pipx GitHub git -> github-tags" ;;
+    git+*) echo "NG no releaseTimestamp (pipx git -> git-refs)" ;;
+    http://* | https://*) echo "WARN pipx URL is unsupported by Renovate" ;;
+    */*) echo "OK pipx GitHub shorthand -> github-tags" ;;
+    *) echo "OK pipx -> pypi" ;;
+    esac
+    ;;
+  cargo)
+    case $name in
+    http://* | https://*)
+      case $version in
+      tag:*) echo "NG no releaseTimestamp (cargo URL tag -> git-tags)" ;;
+      branch:* | rev:*) echo "NG no releaseTimestamp (cargo URL ref -> git-refs)" ;;
+      *) echo "WARN cargo URL requires tag:/branch:/rev: version" ;;
       esac
       ;;
-    cargo)
+    *) echo "OK cargo -> crate" ;;
+    esac
+    ;;
+  gem) echo "OK gem -> rubygems" ;;
+  go) echo "OK go -> go" ;;
+  dotnet) echo "OK dotnet -> nuget" ;;
+  spm)
+    case $name in
+    http://* | https://*)
       case $name in
-        http://* | https://*)
-          case $version in
-            tag:*) echo "NG no releaseTimestamp (cargo URL tag -> git-tags)" ;;
-            branch:* | rev:*) echo "NG no releaseTimestamp (cargo URL ref -> git-refs)" ;;
-            *) echo "WARN cargo URL requires tag:/branch:/rev: version" ;;
-          esac
-          ;;
-        *) echo "OK cargo -> crate" ;;
+      https://github.com/*.git) echo "OK spm GitHub URL -> github-releases" ;;
+      *) echo "WARN spm non-GitHub URL is unsupported by Renovate" ;;
       esac
       ;;
-    gem) echo "OK gem -> rubygems" ;;
-    go) echo "OK go -> go" ;;
-    dotnet) echo "OK dotnet -> nuget" ;;
-    spm)
-      case $name in
-        http://* | https://*)
-          case $name in
-            https://github.com/*.git) echo "OK spm GitHub URL -> github-releases" ;;
-            *) echo "WARN spm non-GitHub URL is unsupported by Renovate" ;;
-          esac
-          ;;
-        *) echo "OK spm -> github-releases" ;;
-      esac
-      ;;
-    *) echo "WARN unknown backend ($backend)" ;;
+    *) echo "OK spm -> github-releases" ;;
+    esac
+    ;;
+  *) echo "WARN unknown backend ($backend)" ;;
   esac
 }
 
@@ -328,10 +331,10 @@ classify() {
   tool=$1
   version=$2
   case $tool in
-    *:*)
-      classify_backend "${tool%%:*}" "${tool#*:}" "$version"
-      return
-      ;;
+  *:*)
+    classify_backend "${tool%%:*}" "${tool#*:}" "$version"
+    return
+    ;;
   esac
 
   ds=$(static_datasource_any "$tool")
@@ -357,20 +360,20 @@ while IFS="$tab" read -r tool version; do
   [ -n "$tool" ] || continue
   result=$(classify "$tool" "$version")
   case $result in
-    OK*) ;;
-    NG* | WARN*)
-      if is_listed "$regex_tracked" "$tool" && is_listed "$disabled_mise" "$tool"; then
-        result="OK regex custom manager and disabled mise lookup in $renovate_config"
-      else
-        if is_listed "$regex_tracked" "$tool"; then
-          result="NG regex custom manager exists but mise lookup is not disabled in $renovate_config"
-        fi
-        fail=1
+  OK*) ;;
+  NG* | WARN*)
+    if is_listed "$regex_tracked" "$tool" && is_listed "$disabled_mise" "$tool"; then
+      result="OK regex custom manager and disabled mise lookup in $renovate_config"
+    else
+      if is_listed "$regex_tracked" "$tool"; then
+        result="NG regex custom manager exists but mise lookup is not disabled in $renovate_config"
       fi
-      ;;
+      fail=1
+    fi
+    ;;
   esac
   printf '%-45s %s\n' "$tool" "$result"
-done < "$tools_file"
+done <"$tools_file"
 
 if [ "$fail" -ne 0 ]; then
   cat >&2 <<'EOF'
