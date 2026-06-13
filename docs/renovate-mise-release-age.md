@@ -44,7 +44,9 @@ mise manager 側の lookup も disable 済みの tool は `OK` になる。
 `home/dot_config/mise/mise.lock` を同期する。regex custom manager だけで version を
 更新したケースや、一部 backend で native artifact update が取りこぼすケースでも
 lockfile が stale のまま残らないようにするため。これには self-hosted Renovate の
-`allowedCommands` と `allowedUnsafeExecutions` の両方が必要。
+`allowedCommands` と `allowedUnsafeExecutions` に加えて、GitHub Action 上の
+Renovate コンテナで `mise` が見つかるよう `postUpgradeTasks.installTools.mise`
+も必要。
 
 ## 対処（優先順）
 

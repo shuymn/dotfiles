@@ -102,6 +102,9 @@
         "commands": ["mise trust config.toml", "mise lock"],
         "fileFilters": ["home/dot_config/mise/mise.lock"],
         "executionMode": "update",
+        "installTools": {
+          "mise": {}
+        },
         "workingDirTemplate": "{{{packageFileDir}}}"
       }
     }
