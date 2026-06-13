@@ -67,6 +67,10 @@ url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d
 version = "0.139.0"
 backend = "aqua:openai/codex"
 
+[tools.codex."platforms.linux-x64"]
+checksum = "sha256:f79ebac185b6dcc826401ef660516190a8db54c5c963f1717e40261a62be1c7c"
+url = "https://github.com/openai/codex/releases/download/rust-v0.139.0/codex-x86_64-unknown-linux-musl.zst"
+
 [tools.codex."platforms.macos-arm64"]
 checksum = "sha256:bb0110c0d51f45d35acbddb38d2eb0194f7cd03eaf2e4b3496d63933d0d269d0"
 url = "https://github.com/openai/codex/releases/download/rust-v0.139.0/codex-aarch64-apple-darwin.zst"
@@ -74,6 +78,11 @@ url = "https://github.com/openai/codex/releases/download/rust-v0.139.0/codex-aar
 [[tools."github:ast-grep/ast-grep"]]
 version = "0.43.0"
 backend = "github:ast-grep/ast-grep"
+
+[tools."github:ast-grep/ast-grep"."platforms.linux-x64"]
+checksum = "sha256:a26253a9c821d935f7e383e40f0de7c2ca62a4121de1f73a6d81ec32eae631e0"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.43.0/app-x86_64-unknown-linux-gnu.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/429542387"
 
 [tools."github:ast-grep/ast-grep"."platforms.macos-arm64"]
 checksum = "sha256:8c847d0a29aa4b3101b3361e0b3ee7fb53c7e497adc9ed1afc9615538cd40782"
@@ -84,6 +93,11 @@ url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/429542
 version = "3.51.1"
 backend = "github:go-task/task"
 
+[tools."github:go-task/task"."platforms.linux-x64"]
+checksum = "sha256:da7e92f0ff961ef2aae7cfecbad8d1fd2a08d7b09ba968673adf7ff389b243b5"
+url = "https://github.com/go-task/task/releases/download/v3.51.1/task_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/go-task/task/releases/assets/422054344"
+
 [tools."github:go-task/task"."platforms.macos-arm64"]
 checksum = "sha256:a0330f0df20dd1187e323f284a7f365c0ea1f2f271c1e154811e9fc4724bed13"
 url = "https://github.com/go-task/task/releases/download/v3.51.1/task_darwin_arm64.tar.gz"
@@ -92,6 +106,12 @@ url_api = "https://api.github.com/repos/go-task/task/releases/assets/422054327"
 [[tools."github:k1LoW/mo"]]
 version = "1.5.6"
 backend = "github:k1LoW/mo"
+
+[tools."github:k1LoW/mo"."platforms.linux-x64"]
+checksum = "sha256:3195dfcd6735fabade901a6153f21cfa61913955f1c50564fdf59c6350cbc2d3"
+url = "https://github.com/k1LoW/mo/releases/download/v1.5.6/mo_v1.5.6_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/438102433"
+provenance = "github-attestations"
 
 [tools."github:k1LoW/mo"."platforms.macos-arm64"]
 checksum = "sha256:737f420617119bcaf9f467cdd638391341154e21c1e23f7deecb2596c2fdb706"
@@ -103,6 +123,12 @@ provenance = "github-attestations"
 version = "0.75.8"
 backend = "github:k1LoW/octocov"
 
+[tools."github:k1LoW/octocov"."platforms.linux-x64"]
+checksum = "sha256:6c8451a3c1e535e47e60e681e69c35676d09bc9260d01ea904565c6d05138eee"
+url = "https://github.com/k1LoW/octocov/releases/download/v0.75.8/octocov_v0.75.8_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/425711376"
+provenance = "github-attestations"
+
 [tools."github:k1LoW/octocov"."platforms.macos-arm64"]
 checksum = "sha256:c09bb0ecf98f588866167bf69eb83dd8b46eb39592a53c4b6f2e7bf7c2fed8db"
 url = "https://github.com/k1LoW/octocov/releases/download/v0.75.8/octocov_v0.75.8_darwin_arm64.zip"
@@ -113,6 +139,12 @@ provenance = "github-attestations"
 version = "1.5.6"
 backend = "github:suzuki-shunsuke/ghalint"
 
+[tools."github:suzuki-shunsuke/ghalint"."platforms.linux-x64"]
+checksum = "sha256:98ee0e3330de7286f470d1e89c03ff7ce70d7a5998ba0f15969c400447be579c"
+url = "https://github.com/suzuki-shunsuke/ghalint/releases/download/v1.5.6/ghalint_1.5.6_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/ghalint/releases/assets/409631220"
+provenance = "github-attestations"
+
 [tools."github:suzuki-shunsuke/ghalint"."platforms.macos-arm64"]
 checksum = "sha256:1262cac411e27b4653e6b66b7b06580ebcc2026fdd903e12e6cb0e4591639de6"
 url = "https://github.com/suzuki-shunsuke/ghalint/releases/download/v1.5.6/ghalint_1.5.6_darwin_arm64.tar.gz"
@@ -122,6 +154,12 @@ provenance = "github-attestations"
 [[tools."github:suzuki-shunsuke/pinact"]]
 version = "4.1.0"
 backend = "github:suzuki-shunsuke/pinact"
+
+[tools."github:suzuki-shunsuke/pinact"."platforms.linux-x64"]
+checksum = "sha256:8fcbf1b3e95551c82fd995535e3c1defa70e23299ce36eb3afd6c98778de6ca0"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249966"
+provenance = "github-attestations"
 
 [tools."github:suzuki-shunsuke/pinact"."platforms.macos-arm64"]
 checksum = "sha256:b670063ccfa178cdb5c7107d14e3de896f10b93edcc7dbe38b840cb99f2536db"
@@ -202,16 +240,16 @@ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20
 provenance = "github-attestations"
 
 [[tools.terraform]]
-version = "1.15.5"
+version = "1.15.6"
 backend = "aqua:hashicorp/terraform"
 
 [tools.terraform."platforms.linux-x64"]
-checksum = "sha256:702b2136af6728c8ff037f843dd2dbce2b7ad88786b7381d1d72aefa250f601c"
-url = "https://releases.hashicorp.com/terraform/1.15.5/terraform_1.15.5_linux_amd64.zip"
+checksum = "sha256:a7150d3b0e1b5c466ad42e8c499954a3c54645f8b56b385fa025d34f7e88faa9"
+url = "https://releases.hashicorp.com/terraform/1.15.6/terraform_1.15.6_linux_amd64.zip"
 
 [tools.terraform."platforms.macos-arm64"]
-checksum = "sha256:01137660510005b918bba82154866fbeac4393163d8277c2abe861dfb5842c3c"
-url = "https://releases.hashicorp.com/terraform/1.15.5/terraform_1.15.5_darwin_arm64.zip"
+checksum = "sha256:8d4c6791a744332bc7ca3962c61ab2ed8e5d25a7299f176f5edffb9cb525e85f"
+url = "https://releases.hashicorp.com/terraform/1.15.6/terraform_1.15.6_darwin_arm64.zip"
 
 [[tools.uv]]
 version = "0.11.19"
