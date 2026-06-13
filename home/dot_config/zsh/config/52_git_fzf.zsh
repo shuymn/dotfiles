@@ -155,7 +155,7 @@ if has "ghq"; then
       return
     fi
 
-    cd "$(ghq list --full-path | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200')"
+    cd "$(ghq list --full-path | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200' --preview-window='right:60%:wrap')"
   }
   alias cr='change-repository'
 fi
