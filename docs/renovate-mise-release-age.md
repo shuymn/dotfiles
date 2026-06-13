@@ -39,6 +39,13 @@ make check-mise-renovate
 または未分類の `WARN` があると非ゼロ終了する。regex custom manager で追跡し、
 mise manager 側の lookup も disable 済みの tool は `OK` になる。
 
+このリポジトリでは Renovate が `home/dot_config/mise/config.toml` を更新するたびに
+`postUpgradeTasks` で `mise trust config.toml` → `mise lock` も実行して
+`home/dot_config/mise/mise.lock` を同期する。regex custom manager だけで version を
+更新したケースや、一部 backend で native artifact update が取りこぼすケースでも
+lockfile が stale のまま残らないようにするため。これには self-hosted Renovate の
+`allowedCommands` と `allowedUnsafeExecutions` の両方が必要。
+
 ## 対処（優先順）
 
 1. **timestamp のある backend / datasource に変更**:

@@ -94,10 +94,21 @@
       "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "cursor-agent"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
+    },
+    {
+      "description": "Refresh mise.lock after updates to the tracked mise config",
+      "matchFileNames": ["home/dot_config/mise/config.toml"],
+      "postUpgradeTasks": {
+        "commands": ["mise trust config.toml", "mise lock"],
+        "fileFilters": ["home/dot_config/mise/mise.lock"],
+        "executionMode": "update",
+        "workingDirTemplate": "{{{packageFileDir}}}"
+      }
     }
   ],
   "nix": {
     "enabled": true
   },
+  "allowedCommands": ["^mise trust config\\.toml$", "^mise lock$"],
   "allowedUnsafeExecutions": ["mise"]
 }
