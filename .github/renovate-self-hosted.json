@@ -12,6 +12,13 @@
       "transformTemplates": [
         "{ \"releases\": [{ \"version\": version, \"releaseTimestamp\": $substring(version, 0, 4) & '-' & $substring(version, 5, 2) & '-' & $substring(version, 8, 2) & 'T00:00:00Z' }] }"
       ]
+    },
+    "pypi-json": {
+      "defaultRegistryUrlTemplate": "https://pypi.org/pypi/{{packageName}}/json",
+      "format": "json",
+      "transformTemplates": [
+        "{ \"releases\": $append([], $map($filter($keys(releases), function($v) { $exists($lookup(releases, $v)[0].upload_time) }), function($v) { { \"version\": $v, \"releaseTimestamp\": $lookup(releases, $v)[0].upload_time } })), \"homepage\": info.project_urls.Homepage, \"sourceUrl\": info.project_urls.Repository }"
+      ]
     }
   },
   "customManagers": [
@@ -67,6 +74,24 @@
     },
     {
       "customType": "regex",
+      "description": "Track mise tavily-cli version via PyPI JSON API",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"pipx:tavily-cli\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "custom.pypi-json",
+      "depNameTemplate": "tavily-cli",
+      "versioningTemplate": "pep440"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise microsandbox version via PyPI JSON API",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"pipx:microsandbox\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "custom.pypi-json",
+      "depNameTemplate": "microsandbox",
+      "versioningTemplate": "pep440"
+    },
+    {
+      "customType": "regex",
       "description": "Track mise cursor-agent version via Homebrew cask API",
       "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
       "matchStrings": ["\"http:cursor-agent\"\\s*=\\s*\\{[^}]*version\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
@@ -83,15 +108,15 @@
       "automerge": true
     },
     {
-      "description": "Disable timestamp-less mise lookups (tracked via regex managers)",
+      "description": "Disable mise lookups tracked via regex managers",
       "matchManagers": ["mise"],
-      "matchDepNames": ["claude", "codex", "go", "python", "http:cursor-agent"],
+      "matchDepNames": ["claude", "codex", "go", "python", "http:cursor-agent", "pipx:tavily-cli", "pipx:microsandbox"],
       "enabled": false
     },
     {
       "description": "Automerge minor/patch for regex-managed mise tools",
       "matchManagers": ["custom.regex"],
-      "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "cursor-agent"],
+      "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "cursor-agent", "tavily-cli", "microsandbox"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     },

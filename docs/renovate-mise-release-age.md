@@ -24,6 +24,11 @@ Renovate の解決の要点（`lib/modules/manager/mise/`）:
    `cargo:https://...` は `tag:` なら `git-tags`、`branch:` / `rev:` なら `git-refs`。
    `pipx:git+...` の非 GitHub URL は `git-refs`。
    `spm:` の非 GitHub URL は Renovate では unsupported。
+4. plain `pipx:` の PyPI package は通常 `pypi` datasource になるが、Renovate 43.212.4
+   では `info.home_page = null` を返す package で JSON API parse → simple fallback が壊れ、
+   `pipx:tavily-cli` と `pipx:microsandbox` は `no-result` になることがある。
+   このリポジトリでは `custom.pypi-json` + regex custom manager に逃がし、mise manager
+   側の lookup を disable して回避している。
 
 ## 検知
 
@@ -57,12 +62,13 @@ Renovate コンテナで `mise` が見つかるよう `postUpgradeTasks.installT
 2. **regex custom manager で別 datasource を参照**（インストール方法を変えずに、
    mise manager より適した datasource を使う場合や timestamp のない経路を回避する場合）:
    `.github/renovate-self-hosted.json` に regex custom manager を追加し、
-   `packageRules` の "Disable timestamp-less mise lookups" ルールの
+   `packageRules` の "Disable mise lookups tracked via regex managers" ルールの
    `matchDepNames` に tool 名を追加して mise manager 側の検出を止める
    （mise manager の `packageName` はリポジトリ名になることがあるため
    `matchPackageNames` ではマッチしない）。
    既存例: `go`（golang-version）、`python`（python-version）、
-   `claude`（npm: @anthropic-ai/claude-code）、`codex`（npm: @openai/codex）。
+   `claude`（npm: @anthropic-ai/claude-code）、`codex`（npm: @openai/codex）、
+   `tavily-cli` / `microsandbox`（custom.pypi-json; native pipx/pypi lookup workaround）。
    automerge は datasource/manager 単位のルールに依存するため、必要なら
    "Automerge minor/patch for regex-managed mise tools" ルールにも追加する。
 

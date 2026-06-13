@@ -358,6 +358,10 @@ EOF
 fail=0
 while IFS="$tab" read -r tool version; do
   [ -n "$tool" ] || continue
+  if is_listed "$regex_tracked" "$tool" && is_listed "$disabled_mise" "$tool"; then
+    printf '%-45s %s\n' "$tool" "OK regex custom manager and disabled mise lookup in $renovate_config"
+    continue
+  fi
   result=$(classify "$tool" "$version")
   case $result in
   OK*) ;;
