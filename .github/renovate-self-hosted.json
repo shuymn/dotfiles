@@ -5,6 +5,9 @@
   "requireConfig": "ignored",
   "extends": ["github>shuymn/github-actions#main"],
   "minimumReleaseAge": "1 days",
+  "lockFileMaintenance": {
+    "schedule": ["at any time"]
+  },
   "customDatasources": {
     "cursor-agent": {
       "defaultRegistryUrlTemplate": "https://formulae.brew.sh/api/cask/cursor-cli.json",
