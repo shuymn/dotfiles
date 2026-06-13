@@ -7,5 +7,6 @@
   "tui.editor.cursorLeft": ["left", "alt+h"],
   "tui.editor.cursorRight": ["right", "alt+l"],
   "tui.select.up": ["up", "ctrl+p", "ctrl+k"],
-  "tui.select.down": ["down", "ctrl+n", "ctrl+j"]
+  "tui.select.down": ["down", "ctrl+n", "ctrl+j"],
+  "tui.input.newLine": ["shift+enter", "ctrl+j"]
 }
