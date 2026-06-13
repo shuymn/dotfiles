@@ -64,12 +64,12 @@ checksum = "blake3:dcfb97183240b03b503fb55f444e1ac012b99132d4c5520f70c64328ddd7c
 url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.172/darwin-arm64/claude"
 
 [[tools.codex]]
-version = "0.138.0"
+version = "0.139.0"
 backend = "aqua:openai/codex"
 
 [tools.codex."platforms.macos-arm64"]
-checksum = "sha256:72fb66cc5d17cec494e0330fb93c381f4bec4950cf44e14c1ec24bfcd785f4d9"
-url = "https://github.com/openai/codex/releases/download/rust-v0.138.0/codex-aarch64-apple-darwin.zst"
+checksum = "sha256:bb0110c0d51f45d35acbddb38d2eb0194f7cd03eaf2e4b3496d63933d0d269d0"
+url = "https://github.com/openai/codex/releases/download/rust-v0.139.0/codex-aarch64-apple-darwin.zst"
 
 [[tools."github:ast-grep/ast-grep"]]
 version = "0.43.0"
@@ -172,7 +172,7 @@ checksum = "sha256:39189dab4eeb15706c424af0ac08a3044c9e48f7db12a7d77f6b7aafc7dd5
 url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "0.79.0"
+version = "0.79.1"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:skills"]]
