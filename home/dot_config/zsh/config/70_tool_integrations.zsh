@@ -18,6 +18,7 @@ fi
 # atuin
 if has "atuin"; then
   export ATUIN_NOBIND="true"
+  unset ATUIN_TMUX_POPUP
   eval "$(atuin init zsh)"
   bindkey '^r' _atuin_search_widget
 fi
