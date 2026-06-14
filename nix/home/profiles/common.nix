@@ -92,6 +92,7 @@
       opt.scrolloff = 4
       opt.sidescrolloff = 8
       opt.signcolumn = "yes"
+      opt.showtabline = 2
       opt.smartcase = true
       opt.splitbelow = true
       opt.splitright = true
@@ -109,6 +110,19 @@
       vim.keymap.set("n", "x", '"_x', { silent = true })
       vim.keymap.set("x", "x", '"_x', { silent = true })
 
+      local function open_file_explorer()
+        local path = vim.api.nvim_buf_get_name(0)
+        if path == "" then
+          path = vim.uv.cwd()
+        end
+        require("mini.files").open(path, true)
+      end
+
+      vim.keymap.set("n", "<leader>e", open_file_explorer, { desc = "File explorer" })
+      vim.keymap.set("n", "<leader>tn", "<cmd>tabnew<CR>", { desc = "New tab" })
+      vim.keymap.set("n", "<leader>tc", "<cmd>tabclose<CR>", { desc = "Close tab" })
+      vim.keymap.set("n", "<leader>tl", "<cmd>tabnext<CR>", { desc = "Next tab" })
+      vim.keymap.set("n", "<leader>th", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
       vim.keymap.set("n", "<leader><leader>", "<cmd>FzfLua commands<CR>", { desc = "Command palette" })
       vim.keymap.set("n", "<leader>?", "<cmd>FzfLua keymaps<CR>", { desc = "Search keymaps" })
       vim.keymap.set("n", "<leader>ff", "<cmd>FzfLua files<CR>", { desc = "Find files" })
@@ -141,10 +155,12 @@
 
       require("mini.ai").setup({})
       require("mini.comment").setup({})
+      require("mini.files").setup({})
       require("mini.pairs").setup({})
       require("mini.statusline").setup({
         use_icons = false,
       })
+      require("mini.tabline").setup({})
       require("mini.surround").setup({})
       require("gitsigns").setup({})
       require("fzf-lua").setup({})
