@@ -5,6 +5,10 @@ if has "terraform"; then
   alias tf="terraform"
 fi
 
+if has "lazygit"; then
+  alias lg="lazygit"
+fi
+
 if has "eza"; then
   alias ls='eza --classify --group-directories-first --icons'
   alias ll='eza --classify --group-directories-first --icons --long --header --git'

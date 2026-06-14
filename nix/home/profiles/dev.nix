@@ -19,6 +19,7 @@
     gotools
     govulncheck
     jq
+    lazygit
     nix-direnv
     nixd
     nixfmt

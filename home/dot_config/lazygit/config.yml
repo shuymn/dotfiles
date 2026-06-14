@@ -1,0 +1,141 @@
+---
+# Lazygit configuration managed by chezmoi.
+# Bias: keep Lazygit as a high-signal review surface for human/agent changes.
+
+gui:
+  showCommandLog: true
+  showRandomTip: false
+  nerdFontsVersion: "3"
+
+git:
+  # Use Hunk as the primary diff pager because it is optimized for reviewing
+  # agent-authored changesets. Keep Lazygit's built-in pager one keystroke away
+  # with `|` for cases where the plain view is faster.
+  pagers:
+    - pager: hunk pager
+    - {}
+  # Agent workflows often rewrite local history during cleanup. Require force
+  # pushes to happen explicitly outside the TUI via a reviewed command/alias.
+  disableForcePushing: true
+  log:
+    order: topo-order
+    showGraph: always
+    showWholeGraph: false
+  branchLogCmd: >-
+    git log --graph --color=always --abbrev-commit --decorate --date=relative
+    --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset %C(dim)%cr%Creset
+    %C(auto)%d%Creset' {{branchName}} --
+  allBranchesLogCmds:
+    - >-
+      git log --graph --all --color=always --abbrev-commit --decorate
+      --date=relative --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset
+      %C(dim)%cr%Creset %C(auto)%d%Creset'
+
+confirmOnQuit: true
+promptToReturnFromSubprocess: true
+
+# Read/review-first keymap: Lazygit should not mutate repositories except when
+# explicitly editing a file/hunk in $EDITOR. Disable common write paths so the
+# TUI can be used safely as an inspector during agent workflows.
+keybinding:
+  universal:
+    select: <disabled>
+    remove: <disabled>
+    new: <disabled>
+    executeShellCommand: <disabled>
+    createRebaseOptionsMenu: <disabled>
+    pushFiles: <disabled>
+    pullFiles: <disabled>
+    createPatchOptionsMenu: <disabled>
+    undo: <disabled>
+    redo: <disabled>
+    openDiffTool: <disabled>
+  files:
+    commitChanges: <disabled>
+    commitChangesWithoutHook: <disabled>
+    amendLastCommit: <disabled>
+    commitChangesWithEditor: <disabled>
+    findBaseCommitForFixup: <disabled>
+    confirmDiscard: <disabled>
+    ignoreFile: <disabled>
+    stashAllChanges: <disabled>
+    viewStashOptions: <disabled>
+    toggleStagedAll: <disabled>
+    viewResetOptions: <disabled>
+    fetch: <disabled>
+    openMergeOptions: <disabled>
+  branches:
+    createPullRequest: <disabled>
+    viewPullRequestOptions: <disabled>
+    checkoutBranchByName: <disabled>
+    forceCheckoutBranch: <disabled>
+    checkoutPreviousBranch: <disabled>
+    rebaseBranch: <disabled>
+    renameBranch: <disabled>
+    mergeIntoCurrentBranch: <disabled>
+    moveCommitsToNewBranch: <disabled>
+    viewGitFlowOptions: <disabled>
+    fastForward: <disabled>
+    createTag: <disabled>
+    pushTag: <disabled>
+    setUpstream: <disabled>
+    fetchRemote: <disabled>
+    addForkRemote: <disabled>
+  worktrees:
+    viewWorktreeOptions: <disabled>
+  commits:
+    squashDown: <disabled>
+    renameCommit: <disabled>
+    renameCommitWithEditor: <disabled>
+    viewResetOptions: <disabled>
+    markCommitAsFixup: <disabled>
+    setFixupMessage: <disabled>
+    createFixupCommit: <disabled>
+    squashAboveCommits: <disabled>
+    moveDownCommit: <disabled>
+    moveUpCommit: <disabled>
+    amendToCommit: <disabled>
+    resetCommitAuthor: <disabled>
+    pickCommit: <disabled>
+    revertCommit: <disabled>
+    cherryPickCopy: <disabled>
+    pasteCommits: <disabled>
+    markCommitAsBaseForRebase: <disabled>
+    tagCommit: <disabled>
+    checkoutCommit: <disabled>
+    resetCherryPick: <disabled>
+    startInteractiveRebase: <disabled>
+  amendAttribute:
+    resetAuthor: <disabled>
+    setAuthor: <disabled>
+    addCoAuthor: <disabled>
+  stash:
+    popStash: <disabled>
+    renameStash: <disabled>
+  commitFiles:
+    checkoutCommitFile: <disabled>
+  main:
+    toggleSelectHunk: <disabled>
+    pickBothHunks: <disabled>
+  submodules:
+    init: <disabled>
+    update: <disabled>
+    bulkMenu: <disabled>
+  commitMessage:
+    commitMenu: <disabled>
+
+customCommands:
+  - context: global
+    description: Review working tree with Hunk
+    command: hunk diff --watch
+    output: terminal
+
+  - context: global
+    description: Review staged changes with Hunk
+    command: hunk diff --staged --watch
+    output: terminal
+
+  - context: commits, subCommits
+    description: Review selected commit with Hunk
+    command: hunk show {{.SelectedCommit.Hash}}
+    output: terminal
