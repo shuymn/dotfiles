@@ -31,8 +31,8 @@ git:
       --date=relative --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset
       %C(dim)%cr%Creset %C(auto)%d%Creset'
 
-confirmOnQuit: true
-promptToReturnFromSubprocess: true
+confirmOnQuit: false
+promptToReturnFromSubprocess: false
 
 # Read/review-first keymap: Lazygit should not mutate repositories except when
 # explicitly editing a file/hunk in $EDITOR. Disable common write paths so the
