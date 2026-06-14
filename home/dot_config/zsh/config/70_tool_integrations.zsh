@@ -26,7 +26,7 @@ fi
 # 1password-cli
 load "${HOME}/.config/op/plugins.sh"
 
-# bat / delta
+# bat
 export BAT_THEME="ansi"
 
 # pi-coding-agent

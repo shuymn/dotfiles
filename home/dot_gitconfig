@@ -20,16 +20,10 @@
 	autoupdate = true
 
 [core]
-	pager = delta
+	pager = cat
 	fsmonitor = false
 	untrackedCache = true
 
-[interactive]
-	diffFilter = delta --color-only
-
-[delta]
-	navigate = true
-	light = false
 
 [merge]
 	conflictStyle = zdiff3

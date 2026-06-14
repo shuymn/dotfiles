@@ -6,7 +6,6 @@
     agent-browser
     bat
     biome
-    delta
     direnv
     eza
     fd
