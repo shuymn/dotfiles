@@ -213,10 +213,6 @@ url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-arm64.tar.gz"
 version = "0.79.1"
 backend = "npm:@earendil-works/pi-coding-agent"
 
-[[tools."npm:skills"]]
-version = "1.5.10"
-backend = "npm:skills"
-
 [[tools."pipx:microsandbox"]]
 version = "0.5.6"
 backend = "pipx:microsandbox"
