@@ -134,6 +134,25 @@ url = "https://github.com/k1LoW/octocov/releases/download/v0.75.8/octocov_v0.75.
 url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/425709466"
 provenance = "github-attestations"
 
+[[tools."github:modem-dev/hunk"]]
+version = "0.15.3"
+backend = "github:modem-dev/hunk"
+
+[tools."github:modem-dev/hunk"."platforms.macos-arm64"]
+checksum = "sha256:e301a78dc524cb928fc74ee459c2bb2db521538975ebe4191f597d50987eaa8b"
+url = "https://github.com/modem-dev/hunk/releases/download/v0.15.3/hunkdiff-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/446728396"
+provenance = "github-attestations"
+
+[[tools."github:ogulcancelik/herdr"]]
+version = "0.6.10"
+backend = "github:ogulcancelik/herdr"
+
+[tools."github:ogulcancelik/herdr"."platforms.macos-arm64"]
+checksum = "sha256:f48bbaafd60b3a33d783eca4dfe7243a3f96e557e55240f6ed53dd0b9b73670b"
+url = "https://github.com/ogulcancelik/herdr/releases/download/v0.6.10/herdr-macos-aarch64"
+url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/444589143"
+
 [[tools."github:suzuki-shunsuke/ghalint"]]
 version = "1.5.6"
 backend = "github:suzuki-shunsuke/ghalint"

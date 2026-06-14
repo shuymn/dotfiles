@@ -1,10 +1,10 @@
-# Ghostty + tmux
-# Keep Ghostty as a thin terminal emulator. tmux owns sessions, windows,
-# panes, popups, copy-mode, and clipboard behavior.
+# Ghostty + Herdr
+# Keep Ghostty as a thin terminal emulator. Herdr owns sessions, workspaces,
+# tabs, panes, copy-mode, and clipboard behavior.
 
-# Start or attach the default tmux session for every Ghostty window.
-# Run zsh so ~/.zshenv can add Nix/Homebrew tools to PATH first.
-command = /bin/zsh -lc "exec tmux new-session -A -s main"
+# Start or attach the default Herdr session for every Ghostty window.
+# Run zsh so ~/.zshenv can add Nix/Homebrew/mise tools to PATH first.
+command = /bin/zsh -lc "exec herdr"
 
 # Appearance
 font-family = UDEV Gothic NF
@@ -29,7 +29,7 @@ window-save-state = never
 bell-features = title,border,no-audio,no-system
 
 # Keybindings
-# Disable Ghostty's tab/split/window-management shortcuts. tmux owns muxing.
+# Disable Ghostty's tab/split/window-management shortcuts. Herdr owns muxing.
 keybind = clear
 keybind = cmd+n=unbind
 keybind = cmd+t=unbind

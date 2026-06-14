@@ -29,5 +29,7 @@ betterleaks = "v1.4.1"
 "pipx:microsandbox" = "0.5.6"
 claude = "2.1.174"
 codex = "0.139.0"
+"github:modem-dev/hunk" = "v0.15.3"
+"github:ogulcancelik/herdr" = "v0.6.10"
 
 "http:cursor-agent" = { version = "2026.06.04-5fd875e", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent", strip_components = 1 }

@@ -1,0 +1,91 @@
+# Herdr is the terminal multiplexer layer; keep Ghostty thin and keep tmux-style
+# muscle memory where Herdr can express it directly. Workflow-specific helpers
+# such as synchronized panes and persistent popups should live in scripts/plugins,
+# not in this base config.
+
+onboarding = false
+
+[terminal]
+default_shell = "zsh"
+shell_mode = "auto"
+new_cwd = "follow"
+
+[session]
+resume_agents_on_restore = true
+
+[theme]
+name = "terminal"
+
+[ui]
+sidebar_width = 32
+sidebar_min_width = 20
+sidebar_max_width = 40
+mobile_width_threshold = 72
+mouse_capture = true
+right_click_passthrough_modifier = "ctrl"
+redraw_on_focus_gained = true
+mouse_scroll_lines = 3
+confirm_close = true
+prompt_new_tab_name = false
+show_agent_labels_on_pane_borders = true
+agent_panel_scope = "all"
+accent = "#cba6f7"
+
+[ui.toast]
+delivery = "herdr"
+delay_seconds = 1
+
+[ui.toast.herdr]
+position = "bottom-right"
+
+[ui.toast.clipboard]
+enabled = true
+position = "bottom-center"
+
+[ui.sound]
+enabled = false
+
+[advanced]
+scrollback_limit_bytes = 104857600
+
+[remote]
+manage_ssh_config = true
+
+[experimental]
+pane_history = false
+kitty_graphics = false
+reveal_hidden_cursor_for_cjk_ime = true
+cjk_ime_agents = ["pi", "claude", "codex", "cursor", "opencode"]
+cjk_ime_cursor_shape = "steady_block"
+switch_ascii_input_source_in_prefix = true
+
+[keys]
+prefix = "ctrl+b"
+
+# tmux-style core movement/actions.
+split_horizontal = "prefix+s"
+split_vertical = "prefix+v"
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+zoom = "prefix+z"
+copy_mode = "prefix+["
+
+# Keep prefix+r as reload like the current tmux config; move resize mode aside.
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"
+settings = "prefix+comma"
+
+# Useful Herdr-native navigation that does not conflict with the tmux-like keys.
+switch_workspace = "prefix+shift+1..9"
+focus_agent = "prefix+alt+1..9"
+open_worktree = "prefix+shift+o"
+remove_worktree = "prefix+alt+d"
+last_pane = "prefix+backtick"
+
+[[keys.command]]
+key = "prefix+shift+y"
+type = "pane"
+command = "/bin/zsh"
+description = "temporary shell in focused cwd"

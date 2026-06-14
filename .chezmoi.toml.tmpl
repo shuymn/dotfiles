@@ -6,6 +6,10 @@
 {{- $nixRole := env "DOTFILES_NIX_ROLE" | default ($persistedRole | default (index . "nixRole" | default "minimal")) -}}
 sourceDir = {{ .chezmoi.workingTree | quote }}
 encryption = "age"
+color = false
+
+[diff]
+pager = "hunk patch -"
 
 [data]
 nixRole = {{ $nixRole | quote }}
