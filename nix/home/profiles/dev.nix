@@ -33,6 +33,7 @@
     tmux
     vscode-langservers-extracted
     yamllint
+    yazi
     yq
     zoxide
     zsh-completions
