@@ -27,7 +27,7 @@ betterleaks = "v1.4.1"
 "pipx:tavily-cli" = "0.1.4"
 "github:go-task/task" = "3.51.1"
 "pipx:microsandbox" = "0.5.6"
-claude = "2.1.172"
+claude = "2.1.173"
 codex = "0.139.0"
 
 "http:cursor-agent" = { version = "2026.06.04-5fd875e", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent", strip_components = 1 }
