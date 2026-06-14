@@ -73,18 +73,26 @@ focus_pane_up = "prefix+k"
 focus_pane_right = "prefix+l"
 zoom = "prefix+z"
 copy_mode = "prefix+["
+# Free these tmux-style swap-pane defaults for workspace movement.
+swap_pane_down = ""
+swap_pane_up = ""
+previous_workspace = "prefix+shift+k"
+next_workspace = "prefix+shift+j"
 
 # Keep prefix+r as reload like the current tmux config; move resize mode aside.
 reload_config = "prefix+r"
 resize_mode = "prefix+shift+r"
 settings = "prefix+comma"
 
-# Useful Herdr-native navigation that does not conflict with the tmux-like keys.
-switch_workspace = "prefix+shift+1..9"
-focus_agent = "prefix+alt+1..9"
-open_worktree = "prefix+shift+o"
-remove_worktree = "prefix+alt+d"
-last_pane = "prefix+backtick"
+# Keep splits/tabs following the focused pane, but start new workspaces from home
+# instead of inheriting the focused pane's project directory.
+new_workspace = ""
+
+[[keys.command]]
+key = "prefix+shift+c"
+type = "shell"
+command = "herdr workspace create --cwd ~ --focus"
+description = "new workspace from home"
 
 [[keys.command]]
 key = "prefix+shift+y"
