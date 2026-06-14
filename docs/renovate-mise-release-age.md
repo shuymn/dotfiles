@@ -44,14 +44,22 @@ make check-mise-renovate
 または未分類の `WARN` があると非ゼロ終了する。regex custom manager で追跡し、
 mise manager 側の lookup も disable 済みの tool は `OK` になる。
 
-このリポジトリでは Renovate が `home/dot_config/mise/config.toml` を更新するたびに
-`postUpgradeTasks` で `mise trust config.toml` → `mise lock` も実行して
+このリポジトリでは Renovate の mise native artifact update を
+`skipArtifactsUpdate: true` で無効化し、`home/dot_config/mise/config.toml` を
+更新する branch の最終状態に対して `postUpgradeTasks` で
+`mise trust config.toml` → `mise lock` を一度だけ実行して
 `home/dot_config/mise/mise.lock` を同期する。regex custom manager だけで version を
 更新したケースや、一部 backend で native artifact update が取りこぼすケースでも
-lockfile が stale のまま残らないようにするため。これには self-hosted Renovate の
-`allowedCommands` と `allowedUnsafeExecutions` に加えて、GitHub Action 上の
-Renovate コンテナで `mise` が見つかるよう `postUpgradeTasks.installTools.mise`
-も必要。
+lockfile が stale のまま残らないようにするため。
+
+`mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
+config version と lockfile version が一致していることも確認する。mise.lock では
+一部の `github:` tool の先頭 `v` が正規化で落ちるため、この検証では先頭 `v` の有無だけは
+同一バージョンとして扱う。
+
+これには self-hosted Renovate の `allowedCommands` と `allowedUnsafeExecutions` に加えて、
+GitHub Action 上の Renovate コンテナで `mise` が見つかるよう
+`postUpgradeTasks.installTools.mise` も必要。
 
 ## 対処（優先順）
 

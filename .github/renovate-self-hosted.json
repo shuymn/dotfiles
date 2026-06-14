@@ -105,6 +105,11 @@
   ],
   "packageRules": [
     {
+      "description": "Do not let Renovate update mise.lock natively",
+      "matchManagers": ["mise"],
+      "skipArtifactsUpdate": true
+    },
+    {
       "description": "Automerge mise minor/patch updates",
       "matchManagers": ["mise"],
       "matchUpdateTypes": ["minor", "patch"],
@@ -127,9 +132,9 @@
       "description": "Refresh mise.lock after updates to the tracked mise config",
       "matchFileNames": ["home/dot_config/mise/config.toml"],
       "postUpgradeTasks": {
-        "commands": ["mise trust config.toml", "mise lock"],
+        "commands": ["mise trust config.toml", "mise lock", "sh ../../../scripts/check-mise-lock-consistency.sh"],
         "fileFilters": ["home/dot_config/mise/mise.lock"],
-        "executionMode": "update",
+        "executionMode": "branch",
         "installTools": {
           "mise": {}
         },
@@ -140,6 +145,6 @@
   "nix": {
     "enabled": true
   },
-  "allowedCommands": ["^mise trust config\\.toml$", "^mise lock$"],
+  "allowedCommands": ["^mise trust config\\.toml$", "^mise lock$", "^sh \\.\\./\\.\\./\\.\\./scripts/check-mise-lock-consistency\\.sh$"],
   "allowedUnsafeExecutions": ["mise"]
 }
