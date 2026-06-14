@@ -4,16 +4,23 @@
 
 [commit]
 	verbose = true
+	cleanup = scissors
 
 [push]
 	default = current
 	autoSetupRemote = true
+	followTags = true
 
 [init]
 	defaultBranch = main
 
 [alias]
 	push-f = push --force-with-lease --force-if-includes
+	root = rev-parse --show-toplevel
+	files = diff --name-status
+	staged-files = diff --cached --name-status
+	adiff = !git --no-pager diff --no-ext-diff --color=never --find-renames --find-copies --unified=80
+	astaged = !git --no-pager diff --cached --no-ext-diff --color=never --find-renames --find-copies --unified=80
 
 [rerere]
 	enabled = true
@@ -24,15 +31,16 @@
 	fsmonitor = false
 	untrackedCache = true
 
-
 [merge]
 	conflictStyle = zdiff3
 
 [diff]
+	context = 3
 	colorMoved = plain
 	algorithm = histogram
 	mnemonicPrefix = true
-	renames = true
+	renames = copies
+	interHunkContext = 10
 
 [credential "https://github.com"]
 	helper =
@@ -52,6 +60,7 @@
 	prune = true
 	pruneTags = true
 	all = true
+	writeCommitGraph = true
 
 [help]
 	autoCorrect = prompt
@@ -72,6 +81,16 @@
 
 [tag]
 	sort = version:refname
+
+[status]
+	branch = true
+	showUntrackedFiles = all
+
+[log]
+	date = iso
+
+[blame]
+	ignoreRevsFile = .git-blame-ignore-revs
 
 [include]
 	path = ~/.config/git/config.local
