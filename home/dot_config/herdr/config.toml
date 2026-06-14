@@ -32,7 +32,9 @@ agent_panel_scope = "all"
 accent = "#cba6f7"
 
 [ui.toast]
-delivery = "herdr"
+# Route Herdr background notifications through the outer terminal so Ghostty can
+# surface them as macOS notifications instead of keeping them as in-app toasts.
+delivery = "terminal"
 delay_seconds = 1
 
 [ui.toast.herdr]

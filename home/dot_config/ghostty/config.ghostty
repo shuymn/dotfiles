@@ -24,9 +24,12 @@ quit-after-last-window-closed = true
 confirm-close-surface = true
 shell-integration = none
 shell-integration-features = ssh-terminfo,ssh-env
+# Let Herdr's terminal-delivered notifications and agent OSC notifications become
+# macOS notifications from Ghostty.
+desktop-notifications = true
 scrollback-limit = 10000
 window-save-state = never
-bell-features = title,border,no-audio,no-system
+bell-features = title,border,attention,system,no-audio
 
 # Keybindings
 # Disable Ghostty's tab/split/window-management shortcuts. Herdr owns muxing.
