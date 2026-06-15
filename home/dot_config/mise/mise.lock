@@ -15,17 +15,17 @@ url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_
 provenance = "github-attestations"
 
 [[tools.betterleaks]]
-version = "v1.4.1"
+version = "v1.5.0"
 backend = "aqua:betterleaks/betterleaks"
 
 [tools.betterleaks."platforms.linux-x64"]
-checksum = "sha256:2635ff988d9194cd3070155138589081a54a3438d79ca9b83268addd2fd844cc"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.4.1/betterleaks_1.4.1_linux_x64.tar.gz"
+checksum = "sha256:b883e8c61a3a14c90ff46a08c203cf88fe340ed88251d4c049db5530ec0ac54b"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.5.0/betterleaks_1.5.0_linux_x64.tar.gz"
 provenance = "cosign"
 
 [tools.betterleaks."platforms.macos-arm64"]
-checksum = "sha256:0656a339d4a99fc3a037d0d31b70f3b3f4fec1e38459bf837e204540043c9b76"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.4.1/betterleaks_1.4.1_darwin_arm64.tar.gz"
+checksum = "sha256:a341e534f152bd10fa8309d74e2ab7eadb634f16ddeb7c3f43ca54f8a016905b"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.5.0/betterleaks_1.5.0_darwin_arm64.tar.gz"
 provenance = "cosign"
 
 [[tools.bun]]
@@ -215,6 +215,10 @@ backend = "http:cursor-agent"
 [[tools.lazygit]]
 version = "0.61.1"
 backend = "aqua:jesseduffield/lazygit"
+
+[tools.lazygit."platforms.linux-x64"]
+checksum = "sha256:1b91e660700f2332696726b635202576b543e2bc49b639830dccd26bc5160d5d"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.61.1/lazygit_0.61.1_linux_x86_64.tar.gz"
 
 [tools.lazygit."platforms.macos-arm64"]
 checksum = "sha256:cb665faec92d1574d398296869c084d2b9686464a42806558b967bb87cd07bc9"
