@@ -21,6 +21,7 @@
 	staged-files = diff --cached --name-status
 	adiff = !git --no-pager diff --no-ext-diff --color=never --find-renames --find-copies --unified=80
 	astaged = !git --no-pager diff --cached --no-ext-diff --color=never --find-renames --find-copies --unified=80
+	prune-gone = "!git fetch --prune && git for-each-ref --format='%(upstream:track) %(refname:short)' refs/heads | awk '$1 == \"[gone]\" { sub(/^\\[gone\\] /, \"\"); print }' | while IFS= read -r branch; do git branch -d \"$branch\"; done"
 
 [rerere]
 	enabled = true
