@@ -29,5 +29,27 @@ load "${HOME}/.config/op/plugins.sh"
 # bat
 export BAT_THEME="ansi"
 
+# yazi
+if has "yazi"; then
+  yy() {
+    local tmp cwd yazi_status
+    tmp="$(mktemp -t "yazi-cwd.XXXXXX")" || return
+
+    {
+      command yazi --cwd-file="$tmp" "$@"
+      yazi_status=$?
+
+      cwd="$(command cat -- "$tmp" 2>/dev/null)"
+      if [[ "$cwd" != "$PWD" && -d "$cwd" ]]; then
+        builtin cd -- "$cwd"
+      fi
+    } always {
+      command rm -f -- "$tmp"
+    }
+
+    return "$yazi_status"
+  }
+fi
+
 # pi-coding-agent
 export PI_SKIP_VERSION_CHECK=1
