@@ -1,5 +1,19 @@
 { pkgs, ... }:
 
+let
+  lspPackages = with pkgs; [
+    basedpyright
+    gopls
+    lua-language-server
+    nixd
+    ruff
+    taplo
+    typescript
+    typescript-language-server
+    vscode-langservers-extracted
+    yaml-language-server
+  ];
+in
 {
   home.packages = with pkgs; [
     _1password-cli
@@ -15,13 +29,11 @@
     glimpseui
     gnused
     golangci-lint
-    gopls
     gotools
     govulncheck
     jq
     lazygit
     nix-direnv
-    nixd
     nixfmt
     pre-commit
     rustup
@@ -31,12 +43,11 @@
     sops
     sqlmap
     tmux
-    vscode-langservers-extracted
     yamllint
     yazi
     yq
     zoxide
     zsh-completions
     zsh-fast-syntax-highlighting
-  ];
+  ] ++ lspPackages;
 }
