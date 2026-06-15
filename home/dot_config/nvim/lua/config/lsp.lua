@@ -30,6 +30,18 @@ enable_lsp("gopls", "gopls", {
   root_markers = { "go.work", "go.mod", ".git" },
 })
 
+enable_lsp("nixd", "nixd", {
+  filetypes = { "nix" },
+  root_markers = { "flake.nix", ".git" },
+  settings = {
+    nixd = {
+      formatting = {
+        command = { "nixfmt" },
+      },
+    },
+  },
+})
+
 enable_lsp("basedpyright", "basedpyright-langserver", {
   cmd = { "basedpyright-langserver", "--stdio" },
   filetypes = { "python" },
