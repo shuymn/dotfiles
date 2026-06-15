@@ -8,6 +8,14 @@ vim.cmd.colorscheme("catppuccin")
 
 require("mini.icons").setup({})
 require("mini.ai").setup({})
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "json", "jsonc" },
+	callback = function()
+		vim.b.miniai_config = {
+			n_lines = 10000,
+		}
+	end,
+})
 require("mini.comment").setup({})
 require("mini.bracketed").setup({})
 require("mini.completion").setup({
