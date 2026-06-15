@@ -62,8 +62,12 @@ run = "layout floating"
 if.app-id = "com.google.Chrome"
 run = ["move-node-to-workspace 1"]
 
+# [[on-window-detected]]
+# if.app-id = "dev.zed.Zed"
+# run = ["layout tiling", "move-node-to-workspace 2"]
+
 [[on-window-detected]]
-if.app-id = "dev.zed.Zed"
+if.app-id = "com.mitchellh.ghostty"
 run = ["layout tiling", "move-node-to-workspace 2"]
 
 [[on-window-detected]]
@@ -73,10 +77,6 @@ run = ["layout tiling", "move-node-to-workspace 6", "move up"]
 [[on-window-detected]]
 if.app-id = "com.hnc.Discord"
 run = ["layout tiling", "move-node-to-workspace 6", "move down"]
-
-[[on-window-detected]]
-if.app-id = "com.mitchellh.ghostty"
-run = ["layout tiling", "move-node-to-workspace 7"]
 
 [[on-window-detected]]
 if.app-id = "com.openai.codex"
