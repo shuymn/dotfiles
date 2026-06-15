@@ -125,17 +125,34 @@ keybinding:
     commitMenu: <disabled>
 
 customCommands:
-  - context: global
+  - key: C
+    context: global
+    description: Run pi commit command
+    prompts:
+      - type: input
+        title: commit args
+        key: CommitArgs
+        initialValue: "--english"
+    command: >-
+      zsh -ic 'source ~/.config/zsh/config/99_local.zsh;
+      if [ -n "$1" ]; then commit "$1"; else commit; fi' --
+      {{.Form.CommitArgs | quote}}
+    output: terminal
+
+  - key: W
+    context: global
     description: Review working tree with Hunk
     command: hunk diff --watch
     output: terminal
 
-  - context: global
+  - key: S
+    context: global
     description: Review staged changes with Hunk
     command: hunk diff --staged --watch
     output: terminal
 
-  - context: commits, subCommits
+  - key: H
+    context: commits, subCommits
     description: Review selected commit with Hunk
     command: hunk show {{.SelectedCommit.Hash}}
     output: terminal
