@@ -29,7 +29,7 @@
       gitsigns-nvim
       fzf-lua
       {
-        plugin = github-nvim-theme;
+        plugin = catppuccin-nvim;
         optional = true;
       }
       {
@@ -147,11 +147,13 @@
         end,
       })
 
-      vim.cmd.packadd("github-nvim-theme")
+      vim.cmd.packadd("catppuccin-nvim")
       vim.cmd.packadd("nvim-treesitter")
 
-      require("github-theme").setup({})
-      vim.cmd.colorscheme("github_dark")
+      require("catppuccin").setup({
+        flavour = "mocha",
+      })
+      vim.cmd.colorscheme("catppuccin")
 
       require("mini.ai").setup({})
       require("mini.comment").setup({})

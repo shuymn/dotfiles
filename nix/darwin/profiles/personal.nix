@@ -179,8 +179,8 @@ in
       enable = true;
       width = 2.0;
       hidpi = true;
-      active_color = "0x66c9d1d9";
-      inactive_color = "0x0030363d";
+      active_color = "0x66cba6f7";
+      inactive_color = "0x00313244";
       style = "round";
       order = "above";
     };

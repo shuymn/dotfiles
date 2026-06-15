@@ -6,8 +6,8 @@ SPINDLE_EMIT="${SPINDLE_EMIT:-$HOME/.config/spindle/emit.sh}"
 sketchybar --bar \
   position=top \
   height=32 \
-  color=0xff1f2328 \
-  border_color=0xff3a4048 \
+  color=0xff1e1e2e \
+  border_color=0xff313244 \
   border_width=0 \
   corner_radius=0 \
   padding_left=8 \
@@ -15,7 +15,7 @@ sketchybar --bar \
 
 sketchybar --default \
   icon.drawing=off \
-  label.color=0xffc9d1d9 \
+  label.color=0xffcdd6f4 \
   label.font="SF Pro Text:Medium:13.0" \
   padding_left=3 \
   padding_right=3 \
@@ -34,13 +34,13 @@ sketchybar --add item aerospace.mode left \
   label.padding_left=0 \
   label.padding_right=0 \
   background.drawing=on \
-  background.color=0xff3a4048
+  background.color=0xff313244
 
 sketchybar --add item aerospace.layout left \
   --set aerospace.layout \
   label="TILE" \
   background.drawing=on \
-  background.color=0xff3a4048
+  background.color=0xff313244
 
 for workspace in 1 2 3 4 5 6 7 8 9 10; do
   label=$workspace
@@ -63,7 +63,7 @@ sketchybar --add item clock right \
   label="--/-- --:--:--" \
   label.font="SF Pro Text:Semibold:13.0" \
   background.drawing=on \
-  background.color=0xff3a4048 \
+  background.color=0xff313244 \
   script="$PLUGIN_DIR/clock.sh" \
   update_freq=1
 
