@@ -53,14 +53,14 @@ checksum = "sha256:d8b96221828ad6f97ac7ac0ab7e95872341af763001e8803e8267652c2652
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.174"
+version = "2.1.175"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.174/linux-x64/claude"
+url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.175/linux-x64/claude"
 
 [tools.claude."platforms.macos-arm64"]
-url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.174/darwin-arm64/claude"
+url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.175/darwin-arm64/claude"
 
 [[tools.codex]]
 version = "0.139.0"
@@ -138,6 +138,12 @@ provenance = "github-attestations"
 version = "0.15.3"
 backend = "github:modem-dev/hunk"
 
+[tools."github:modem-dev/hunk"."platforms.linux-x64"]
+checksum = "sha256:70895b5224a0beb09ac3ff1bc7ff442c32fa5e017649af71b45221bf829c0b5b"
+url = "https://github.com/modem-dev/hunk/releases/download/v0.15.3/hunkdiff-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/446728395"
+provenance = "github-attestations"
+
 [tools."github:modem-dev/hunk"."platforms.macos-arm64"]
 checksum = "sha256:e301a78dc524cb928fc74ee459c2bb2db521538975ebe4191f597d50987eaa8b"
 url = "https://github.com/modem-dev/hunk/releases/download/v0.15.3/hunkdiff-darwin-arm64.tar.gz"
@@ -147,6 +153,11 @@ provenance = "github-attestations"
 [[tools."github:ogulcancelik/herdr"]]
 version = "0.6.10"
 backend = "github:ogulcancelik/herdr"
+
+[tools."github:ogulcancelik/herdr"."platforms.linux-x64"]
+checksum = "sha256:78d298d5a1ef076b4607e8e3c92d98f5de9f0cb30daf31aa910a1a6e9abb4fa1"
+url = "https://github.com/ogulcancelik/herdr/releases/download/v0.6.10/herdr-linux-x86_64"
+url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/444589142"
 
 [tools."github:ogulcancelik/herdr"."platforms.macos-arm64"]
 checksum = "sha256:f48bbaafd60b3a33d783eca4dfe7243a3f96e557e55240f6ed53dd0b9b73670b"
