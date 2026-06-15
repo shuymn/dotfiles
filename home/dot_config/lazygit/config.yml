@@ -139,6 +139,17 @@ customCommands:
       {{.Form.CommitArgs | quote}}
     output: terminal
 
+  - key: P
+    context: global
+    description: Push current branch
+    prompts:
+      - type: confirm
+        title: Push current branch
+        body: Run git push for the current branch?
+        key: ConfirmPush
+    command: git push
+    output: terminal
+
   - key: W
     context: global
     description: Review working tree with Hunk
