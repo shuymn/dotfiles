@@ -32,7 +32,6 @@ in
     gotools
     govulncheck
     jq
-    lazygit
     nix-direnv
     nixfmt
     pre-commit

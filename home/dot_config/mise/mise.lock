@@ -212,6 +212,14 @@ url = "https://dl.google.com/go/go1.26.4.darwin-arm64.tar.gz"
 version = "2026.06.04-5fd875e"
 backend = "http:cursor-agent"
 
+[[tools.lazygit]]
+version = "0.61.1"
+backend = "aqua:jesseduffield/lazygit"
+
+[tools.lazygit."platforms.macos-arm64"]
+checksum = "sha256:cb665faec92d1574d398296869c084d2b9686464a42806558b967bb87cd07bc9"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.61.1/lazygit_0.61.1_darwin_arm64.tar.gz"
+
 [[tools.lefthook]]
 version = "2.1.9"
 backend = "aqua:evilmartians/lefthook"
