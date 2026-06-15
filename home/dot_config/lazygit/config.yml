@@ -12,7 +12,7 @@ git:
   # agent-authored changesets. Keep Lazygit's built-in pager one keystroke away
   # with `|` for cases where the plain view is faster.
   pagers:
-    - pager: hunk pager
+    - pager: hunk pager --transparent-bg
     - {}
   # Agent workflows often rewrite local history during cleanup. Require force
   # pushes to happen explicitly outside the TUI via a reviewed command/alias.
