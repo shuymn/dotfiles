@@ -3,7 +3,7 @@
   "platform": "github",
   "repositories": ["shuymn/dotfiles"],
   "requireConfig": "ignored",
-  "extends": ["github>shuymn/github-actions#main"],
+  "globalExtends": ["github>shuymn/github-actions#main"],
   "minimumReleaseAge": "1 days",
   "lockFileMaintenance": {
     "schedule": ["at any time"]
