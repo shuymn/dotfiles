@@ -151,18 +151,13 @@ url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/446728396
 provenance = "github-attestations"
 
 [[tools."github:ogulcancelik/herdr"]]
-version = "0.6.10"
+version = "v0.7.0"
 backend = "github:ogulcancelik/herdr"
 
-[tools."github:ogulcancelik/herdr"."platforms.linux-x64"]
-checksum = "sha256:78d298d5a1ef076b4607e8e3c92d98f5de9f0cb30daf31aa910a1a6e9abb4fa1"
-url = "https://github.com/ogulcancelik/herdr/releases/download/v0.6.10/herdr-linux-x86_64"
-url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/444589142"
-
 [tools."github:ogulcancelik/herdr"."platforms.macos-arm64"]
-checksum = "sha256:f48bbaafd60b3a33d783eca4dfe7243a3f96e557e55240f6ed53dd0b9b73670b"
-url = "https://github.com/ogulcancelik/herdr/releases/download/v0.6.10/herdr-macos-aarch64"
-url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/444589143"
+checksum = "sha256:0946c1c5de396d1404906c81c84a0cef47af5e15c9aac3c058c3936b833fe311"
+url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.0/herdr-macos-aarch64"
+url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/448342844"
 
 [[tools."github:suzuki-shunsuke/ghalint"]]
 version = "1.5.6"
