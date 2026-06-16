@@ -156,7 +156,7 @@ open_picker = function(kind)
 		return extra.pickers.history({ scope = ":" }, opts)
 	end
 
-	return pick.builtin.files({}, opts)
+	return pick.builtin.files({ tool = "git" }, opts)
 end
 
 vim.keymap.set("n", "<leader><space>", open_picker, { desc = "Picker" })
