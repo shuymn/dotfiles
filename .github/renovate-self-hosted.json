@@ -6,7 +6,9 @@
   "globalExtends": ["github>shuymn/github-actions#main"],
   "minimumReleaseAge": "1 days",
   "lockFileMaintenance": {
-    "schedule": ["at any time"]
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null,
+    "prCreation": "immediate"
   },
   "customDatasources": {
     "cursor-agent": {
@@ -77,6 +79,14 @@
     },
     {
       "customType": "regex",
+      "description": "Track mise pi coding agent version via npm (native mise artifact update drops scoped npm lock entry)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"npm:@earendil-works/pi-coding-agent\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@earendil-works/pi-coding-agent"
+    },
+    {
+      "customType": "regex",
       "description": "Track mise tavily-cli version via PyPI JSON API",
       "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
       "matchStrings": ["\"pipx:tavily-cli\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
@@ -118,13 +128,13 @@
     {
       "description": "Disable mise lookups tracked via regex managers",
       "matchManagers": ["mise"],
-      "matchDepNames": ["claude", "codex", "go", "python", "http:cursor-agent", "pipx:tavily-cli", "pipx:microsandbox"],
+      "matchDepNames": ["claude", "codex", "go", "python", "http:cursor-agent", "npm:@earendil-works/pi-coding-agent", "pipx:tavily-cli", "pipx:microsandbox"],
       "enabled": false
     },
     {
       "description": "Automerge minor/patch for regex-managed mise tools",
       "matchManagers": ["custom.regex"],
-      "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "cursor-agent", "tavily-cli", "microsandbox"],
+      "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "@earendil-works/pi-coding-agent", "cursor-agent", "tavily-cli", "microsandbox"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     },
@@ -140,6 +150,11 @@
         },
         "workingDirTemplate": "{{{packageFileDir}}}"
       }
+    },
+    {
+      "description": "Use the repository-wide one-day stability period for npm updates",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "1 days"
     }
   ],
   "nix": {
