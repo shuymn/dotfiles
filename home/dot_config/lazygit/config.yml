@@ -4,8 +4,13 @@
 
 gui:
   showCommandLog: true
+  commandLogSize: 4
   showRandomTip: false
   nerdFontsVersion: "3"
+  showNumstatInFilesView: true
+  scrollOffMargin: 1
+  expandFocusedSidePanel: true
+  expandedSidePanelWeight: 2
 
 git:
   # Use Hunk as the primary diff pager because it is optimized for reviewing
@@ -148,6 +153,17 @@ customCommands:
         body: Run git push for the current branch?
         key: ConfirmPush
     command: git push
+    output: terminal
+
+  - key: p
+    context: global
+    description: Pull current branch
+    prompts:
+      - type: confirm
+        title: Pull current branch
+        body: Run git pull for the current branch?
+        key: ConfirmPull
+    command: git pull
     output: terminal
 
   - key: W
