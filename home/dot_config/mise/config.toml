@@ -28,7 +28,7 @@ lefthook = "2.1.9"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
-claude = "2.1.176"
+claude = "2.1.177"
 codex = "0.139.0"
 "npm:@earendil-works/pi-coding-agent" = "0.79.1"
 "npm:skills" = "1.5.11"
