@@ -60,16 +60,12 @@ backend = "aqua:anthropics/claude-code"
 url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.178/darwin-arm64/claude"
 
 [[tools.codex]]
-version = "0.139.0"
+version = "0.140.0"
 backend = "aqua:openai/codex"
 
-[tools.codex."platforms.linux-x64"]
-checksum = "sha256:f79ebac185b6dcc826401ef660516190a8db54c5c963f1717e40261a62be1c7c"
-url = "https://github.com/openai/codex/releases/download/rust-v0.139.0/codex-x86_64-unknown-linux-musl.zst"
-
 [tools.codex."platforms.macos-arm64"]
-checksum = "sha256:bb0110c0d51f45d35acbddb38d2eb0194f7cd03eaf2e4b3496d63933d0d269d0"
-url = "https://github.com/openai/codex/releases/download/rust-v0.139.0/codex-aarch64-apple-darwin.zst"
+checksum = "sha256:5e38113f213d0ba1982a04ba2d4f19fa2f1971e3493639b2c61905d764b7548e"
+url = "https://github.com/openai/codex/releases/download/rust-v0.140.0/codex-aarch64-apple-darwin.zst"
 
 [[tools."github:ast-grep/ast-grep"]]
 version = "0.43.0"
