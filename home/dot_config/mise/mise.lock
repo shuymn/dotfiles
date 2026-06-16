@@ -154,6 +154,11 @@ provenance = "github-attestations"
 version = "v0.7.0"
 backend = "github:ogulcancelik/herdr"
 
+[tools."github:ogulcancelik/herdr"."platforms.linux-x64"]
+checksum = "sha256:ad2a5d480a4e04609a9dd30a19ec07854578df6b5f0ea9299246963baf40363b"
+url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.0/herdr-linux-x86_64"
+url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/448342843"
+
 [tools."github:ogulcancelik/herdr"."platforms.macos-arm64"]
 checksum = "sha256:0946c1c5de396d1404906c81c84a0cef47af5e15c9aac3c058c3936b833fe311"
 url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.0/herdr-macos-aarch64"
