@@ -250,10 +250,6 @@ url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-linux-x64.tar.gz"
 checksum = "sha256:39189dab4eeb15706c424af0ac08a3044c9e48f7db12a7d77f6b7aafc7dd5df6"
 url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-arm64.tar.gz"
 
-[[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "0.79.1"
-backend = "npm:@earendil-works/pi-coding-agent"
-
 [[tools."npm:skills"]]
 version = "1.5.11"
 backend = "npm:skills"
