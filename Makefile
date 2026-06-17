@@ -122,7 +122,7 @@ apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 
 .PHONY: mise
 mise: ## Install mise-managed global tools
-	@$(MISE) install -C "$(HOME)"
+	@MISE_LOCKED=1 $(MISE) install -C "$(HOME)"
 
 .PHONY: install-pi
 install-pi: ## Install the local pi extensions package when present

@@ -1,7 +1,7 @@
 [settings]
 disable_backends = ["asdf", "vfox"]
 lockfile = true
-lockfile_platforms = ["macos-arm64"]
+lockfile_platforms = ["macos-arm64", "linux-x64"]
 minimum_release_age = "1d"
 npm.package_manager = "bun"
 pipx.uvx = true
