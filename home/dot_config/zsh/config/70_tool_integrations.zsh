@@ -55,6 +55,16 @@ fi
 export PI_SKIP_VERSION_CHECK=1
 
 # git-gtr
-_gtr_init="${XDG_CACHE_HOME:-$HOME/.cache}/gtr/init-gtr.zsh"
+_gtr_init="${XDG_CACHE_HOME:-$HOME/.cache}/gtr/init-cw.zsh"
 [[ -f "$_gtr_init" ]] || eval "$(git gtr init zsh --as cw)" || true
 source "$_gtr_init" 2>/dev/null || true; unset _gtr_init
+
+# Start work quickly with a disposable branch name, then rename with
+# `git gtr mv <old> <new>` once the task name is clear.
+gtr-wip() {
+  local branch="wip/$(date +%Y%m%d-%H%M%S)"
+
+  git gtr new "$branch" "$@" || return
+  cd "$(git gtr go "$branch")" || return
+}
+alias gwip="gtr-wip"
