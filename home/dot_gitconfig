@@ -72,13 +72,10 @@
 	updateRefs = true
 
 [gtr "editor"]
-	default = zed
+	default = none
 
 [gtr "ai"]
-	default = codex
-
-[gtr "worktrees"]
-	dir = .worktrees
+	default = claude
 
 [tag]
 	sort = version:refname

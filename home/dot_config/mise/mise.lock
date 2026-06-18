@@ -134,6 +134,20 @@ url = "https://github.com/k1LoW/octocov/releases/download/v0.75.8/octocov_v0.75.
 url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/425709466"
 provenance = "github-attestations"
 
+[[tools."github:k1LoW/roots"]]
+version = "0.4.1"
+backend = "github:k1LoW/roots"
+
+[tools."github:k1LoW/roots"."platforms.linux-x64"]
+checksum = "sha256:f67112927422b18e72ba5827a5e42e6e4ca771127ef65bf89daa6b03ae23de55"
+url = "https://github.com/k1LoW/roots/releases/download/v0.4.1/roots_v0.4.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/331596651"
+
+[tools."github:k1LoW/roots"."platforms.macos-arm64"]
+checksum = "sha256:7d658c375cbc331d075b18fcab15cf24147046b9c88d5587886f6e2e545b8b2a"
+url = "https://github.com/k1LoW/roots/releases/download/v0.4.1/roots_v0.4.1_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/331596657"
+
 [[tools."github:modem-dev/hunk"]]
 version = "0.15.3"
 backend = "github:modem-dev/hunk"

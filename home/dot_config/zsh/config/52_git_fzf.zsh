@@ -155,7 +155,7 @@ if has "ghq"; then
       return
     fi
 
-    cd "$(ghq list --full-path | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200' --preview-window='right:60%:wrap')"
+    cd "$(ghq list --full-path | roots | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200' --preview-window='right:60%:wrap')"
   }
   alias cr='change-repository'
 fi
@@ -164,5 +164,5 @@ if has "gh"; then
   gh-pr-checkout-fzf() {
     gh pr checkout "$(gh pr list | fzf | cut -f1)"
   }
-  alias review='gh-pr-checkout-fzf'
+  alias cbpr='gh-pr-checkout-fzf'
 fi
