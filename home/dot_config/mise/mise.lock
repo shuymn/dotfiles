@@ -122,6 +122,12 @@ provenance = "github-attestations"
 version = "v1.6.0"
 backend = "github:k1LoW/mo"
 
+[tools."github:k1LoW/mo"."platforms.macos-arm64"]
+checksum = "sha256:34c504ea22b26749b1e7320da320b9da58c0bc57ec46ece929c55664a48f7d3d"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.0/mo_v1.6.0_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/451297336"
+provenance = "github-attestations"
+
 [[tools."github:k1LoW/octocov"]]
 version = "0.75.8"
 backend = "github:k1LoW/octocov"
@@ -269,7 +275,7 @@ checksum = "sha256:4fc3266a3702eebc39cc37661cf4eeceeade307e242ab64e4d7ce7949197e
 url = "https://nodejs.org/dist/v24.17.0/node-v24.17.0-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "0.79.6"
+version = "0.79.7"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:skills"]]
