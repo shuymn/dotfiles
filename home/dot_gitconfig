@@ -71,11 +71,8 @@
 	autoStash = true
 	updateRefs = true
 
-[gtr "editor"]
-	default = none
-
-[gtr "ai"]
-	default = claude
+[wt]
+	basedir = ../{gitroot}-worktrees
 
 [tag]
 	sort = version:refname

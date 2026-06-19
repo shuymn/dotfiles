@@ -54,17 +54,52 @@ fi
 # pi-coding-agent
 export PI_SKIP_VERSION_CHECK=1
 
-# git-gtr
-_gtr_init="${XDG_CACHE_HOME:-$HOME/.cache}/gtr/init-cw.zsh"
-[[ -f "$_gtr_init" ]] || eval "$(git gtr init zsh --as cw)" || true
-source "$_gtr_init" 2>/dev/null || true; unset _gtr_init
+# git-wt
+if has "git-wt"; then
+  _git_wt_visible_list() {
+    emulate -L zsh
+    setopt pipefail no_aliases
+
+    local tmp_root tmp_real
+    tmp_root="${TMPDIR:-/tmp}"
+    tmp_root="${tmp_root%/}"
+    tmp_real="$(cd "$tmp_root" 2>/dev/null && pwd -P)"
+
+    git-wt | awk -v tmp_root="$tmp_root" -v tmp_real="$tmp_real" '
+      NR == 1 { print; next }
+      {
+        path = ($1 == "*") ? $2 : $1
+        if (tmp_root != "" && index(path, tmp_root "/tmp.") == 1) next
+        if (tmp_real != "" && index(path, tmp_real "/tmp.") == 1) next
+        print
+      }
+    '
+  }
+
+  cw() {
+    emulate -L zsh
+    setopt pipefail no_aliases
+
+    if ! has "fzf"; then
+      print -u2 "cw: fzf is required"
+      return 1
+    fi
+
+    local selection target_path
+    selection="$(_git_wt_visible_list | fzf --header-lines=1)" || return
+    target_path="$(awk '{ if ($1 == "*") print $2; else print $1 }' <<< "$selection")"
+
+    [[ -n "$target_path" ]] && cd "$target_path"
+  }
+fi
 
 # Start work quickly with a disposable branch name, then rename with
-# `git gtr mv <old> <new>` once the task name is clear.
-gtr-wip() {
+# `git wt -m <old> <new>` once the task name is clear.
+wt-wip() {
   local branch="wip/$(date +%Y%m%d-%H%M%S)"
+  local target_path
 
-  git gtr new "$branch" "$@" || return
-  cd "$(git gtr go "$branch")" || return
+  target_path="$(git-wt "$branch" "$@")" || return
+  cd "$target_path"
 }
-alias gwip="gtr-wip"
+alias gwip="wt-wip"

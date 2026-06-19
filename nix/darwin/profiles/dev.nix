@@ -1,12 +1,10 @@
 {
   homebrew = {
     taps = [
-      "coderabbitai/tap"
       "shuymn/tap"
     ];
 
     brews = [
-      "coderabbitai/tap/git-gtr"
       "shuymn/tap/kastty"
       "shuymn/tap/pommitlint"
     ];
