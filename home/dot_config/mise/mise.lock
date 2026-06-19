@@ -279,7 +279,7 @@ version = "0.79.7"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:skills"]]
-version = "1.5.11"
+version = "1.5.12"
 backend = "npm:skills"
 
 [[tools."pipx:microsandbox"]]
