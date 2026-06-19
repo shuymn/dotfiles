@@ -31,7 +31,7 @@ lefthook = "2.1.9"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
 claude = "2.1.181"
-codex = "0.140.0"
+codex = "0.141.0"
 "npm:@earendil-works/pi-coding-agent" = "0.79.6"
 "npm:skills" = "1.5.11"
 "pipx:microsandbox" = "0.5.7"
