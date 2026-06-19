@@ -15,39 +15,42 @@ let
   ];
 in
 {
-  home.packages = with pkgs; [
-    _1password-cli
-    agent-browser
-    bat
-    biome
-    direnv
-    eza
-    fd
-    fzf
-    ghq
-    glimpseui
-    gnused
-    golangci-lint
-    gotools
-    govulncheck
-    jq
-    nix-direnv
-    nixfmt
-    pre-commit
-    rustup
-    semgrep
-    shellcheck
-    shfmt
-    sops
-    sqlmap
-    tmux
-    yamllint
-    yazi
-    yq
-    zoxide
-    zsh-completions
-    zsh-fast-syntax-highlighting
-  ] ++ lspPackages;
+  home.packages =
+    with pkgs;
+    [
+      _1password-cli
+      agent-browser
+      bat
+      biome
+      direnv
+      eza
+      fd
+      fzf
+      ghq
+      glimpseui
+      gnused
+      golangci-lint
+      gotools
+      govulncheck
+      jq
+      nix-direnv
+      nixfmt
+      pre-commit
+      rustup
+      semgrep
+      shellcheck
+      shfmt
+      sops
+      sqlmap
+      tmux
+      yamllint
+      yazi
+      yq
+      zoxide
+      zsh-completions
+      zsh-fast-syntax-highlighting
+    ]
+    ++ lspPackages;
 
   programs.gh = {
     enable = true;
