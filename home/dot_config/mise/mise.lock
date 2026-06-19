@@ -102,6 +102,22 @@ checksum = "sha256:a0330f0df20dd1187e323f284a7f365c0ea1f2f271c1e154811e9fc4724be
 url = "https://github.com/go-task/task/releases/download/v3.51.1/task_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/go-task/task/releases/assets/422054327"
 
+[[tools."github:k1LoW/git-wt"]]
+version = "0.29.0"
+backend = "github:k1LoW/git-wt"
+
+[tools."github:k1LoW/git-wt"."platforms.linux-x64"]
+checksum = "sha256:5d04c89ce105a63edb38c89c17813bfc902dbc20ca20f27c44948cbfe6b055f8"
+url = "https://github.com/k1LoW/git-wt/releases/download/v0.29.0/git-wt_v0.29.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/git-wt/releases/assets/438021416"
+provenance = "github-attestations"
+
+[tools."github:k1LoW/git-wt"."platforms.macos-arm64"]
+checksum = "sha256:4cf0a9bf8d6b63f75788c60b7d90cb2079c86cd41207d34820ab82d67f08ce8c"
+url = "https://github.com/k1LoW/git-wt/releases/download/v0.29.0/git-wt_v0.29.0_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/git-wt/releases/assets/438021391"
+provenance = "github-attestations"
+
 [[tools."github:k1LoW/mo"]]
 version = "1.5.6"
 backend = "github:k1LoW/mo"
