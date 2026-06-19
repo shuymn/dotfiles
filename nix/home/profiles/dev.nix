@@ -24,7 +24,6 @@ in
     eza
     fd
     fzf
-    gh
     ghq
     glimpseui
     gnused
@@ -49,4 +48,12 @@ in
     zsh-completions
     zsh-fast-syntax-highlighting
   ] ++ lspPackages;
+
+  programs.gh = {
+    enable = true;
+  };
+
+  programs.gh-dash = {
+    enable = true;
+  };
 }

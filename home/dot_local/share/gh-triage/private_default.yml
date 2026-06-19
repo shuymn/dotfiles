@@ -1,0 +1,18 @@
+done:
+  max: 1000
+  conditions:
+    - owner == 'shuymn' && merged
+    - owner == 'shuymn' && closed && is_issue
+    - owner == 'shuymn' && closed && author contains '[bot]'
+
+read:
+  max: 1000
+  conditions:
+    - owner == 'shuymn' && is_release
+    - owner == 'shuymn' && author contains '[bot]' && me not in reviewers
+    - owner == 'shuymn' && is_pull_request && me not in reviewers && approved
+
+list:
+  max: 1000
+  conditions:
+    - owner == 'shuymn' && unread
