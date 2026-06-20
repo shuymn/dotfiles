@@ -168,6 +168,12 @@ url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/331596657"
 version = "v0.16.0"
 backend = "github:modem-dev/hunk"
 
+[tools."github:modem-dev/hunk"."platforms.linux-x64"]
+checksum = "sha256:0dd80c7679265df72617877a02dafefd6ac6a834528e10257567642eb2c05ea6"
+url = "https://github.com/modem-dev/hunk/releases/download/v0.16.0/hunkdiff-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/452418846"
+provenance = "github-attestations"
+
 [tools."github:modem-dev/hunk"."platforms.macos-arm64"]
 checksum = "sha256:1143eb8bcbdf64cd1dea9d94cb2ed2757810c384b36477495b7045ef0492be96"
 url = "https://github.com/modem-dev/hunk/releases/download/v0.16.0/hunkdiff-darwin-arm64.tar.gz"
@@ -319,6 +325,11 @@ url = "https://releases.hashicorp.com/terraform/1.15.6/terraform_1.15.6_darwin_a
 [[tools.uv]]
 version = "0.11.23"
 backend = "aqua:astral-sh/uv"
+
+[tools.uv."platforms.linux-x64"]
+checksum = "sha256:6be47081100ff1ce0ac7e85ba2ac12e32f2ffa6f946d78bf7f24ee9ce3a46181"
+url = "https://github.com/astral-sh/uv/releases/download/0.11.23/uv-x86_64-unknown-linux-musl.tar.gz"
+provenance = "github-attestations"
 
 [tools.uv."platforms.macos-arm64"]
 checksum = "sha256:71ef9de85db820749b3b12b7585624ee279e9c5afcbc6f8236bc3d628c4305b0"
