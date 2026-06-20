@@ -165,19 +165,13 @@ url = "https://github.com/k1LoW/roots/releases/download/v0.4.1/roots_v0.4.1_darw
 url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/331596657"
 
 [[tools."github:modem-dev/hunk"]]
-version = "0.15.3"
+version = "v0.16.0"
 backend = "github:modem-dev/hunk"
 
-[tools."github:modem-dev/hunk"."platforms.linux-x64"]
-checksum = "sha256:70895b5224a0beb09ac3ff1bc7ff442c32fa5e017649af71b45221bf829c0b5b"
-url = "https://github.com/modem-dev/hunk/releases/download/v0.15.3/hunkdiff-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/446728395"
-provenance = "github-attestations"
-
 [tools."github:modem-dev/hunk"."platforms.macos-arm64"]
-checksum = "sha256:e301a78dc524cb928fc74ee459c2bb2db521538975ebe4191f597d50987eaa8b"
-url = "https://github.com/modem-dev/hunk/releases/download/v0.15.3/hunkdiff-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/446728396"
+checksum = "sha256:1143eb8bcbdf64cd1dea9d94cb2ed2757810c384b36477495b7045ef0492be96"
+url = "https://github.com/modem-dev/hunk/releases/download/v0.16.0/hunkdiff-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/452418844"
 provenance = "github-attestations"
 
 [[tools."github:ogulcancelik/herdr"]]
