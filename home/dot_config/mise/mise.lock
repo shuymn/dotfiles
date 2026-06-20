@@ -281,7 +281,7 @@ checksum = "sha256:4fc3266a3702eebc39cc37661cf4eeceeade307e242ab64e4d7ce7949197e
 url = "https://nodejs.org/dist/v24.17.0/node-v24.17.0-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "0.79.7"
+version = "0.79.8"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:skills"]]
