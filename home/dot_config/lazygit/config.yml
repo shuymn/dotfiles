@@ -3,6 +3,7 @@
 # Bias: keep Lazygit as a high-signal review surface for human/agent changes.
 
 gui:
+  mouseEvents: false
   showCommandLog: true
   commandLogSize: 4
   showRandomTip: false
