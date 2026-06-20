@@ -91,15 +91,36 @@ if has "git-wt"; then
 
     [[ -n "$target_path" ]] && cd "$target_path"
   }
+
+  _git_wt_create_wip() {
+    local branch="wip/$(date +%Y%m%d-%H%M%S)"
+    local target_path
+
+    target_path="$(git-wt "$branch" "$@")" || return
+    print -r -- "$branch"
+    print -r -- "$target_path"
+  }
+
+  # Start work quickly with a disposable branch name, then rename with
+  # `git wt -m <old> <new>` once the task name is clear.
+  wt-wip() {
+    local branch target_path
+    { read -r branch; read -r target_path } < <(_git_wt_create_wip "$@") || return
+    cd "$target_path"
+  }
+  gwip() {
+    wt-wip "$@"
+  }
+
+  if has "herdr"; then
+    hwip() {
+      emulate -L zsh
+      setopt no_aliases
+
+      local branch target_path
+      { read -r branch; read -r target_path } < <(_git_wt_create_wip "$@") || return
+      herdr workspace create --cwd "$target_path" --label "$branch" --focus || return
+      cd "$target_path"
+    }
+  fi
 fi
-
-# Start work quickly with a disposable branch name, then rename with
-# `git wt -m <old> <new>` once the task name is clear.
-wt-wip() {
-  local branch="wip/$(date +%Y%m%d-%H%M%S)"
-  local target_path
-
-  target_path="$(git-wt "$branch" "$@")" || return
-  cd "$target_path"
-}
-alias gwip="wt-wip"
