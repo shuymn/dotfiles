@@ -11,6 +11,7 @@
     docker-compose
     granted
     grpcurl
+    phpactor
     watch
   ];
 }
