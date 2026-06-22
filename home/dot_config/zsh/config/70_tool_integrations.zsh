@@ -32,7 +32,7 @@ export BAT_THEME="ansi"
 # yazi
 if has "yazi"; then
   yy() {
-    local tmp cwd yazi_status
+    local tmp cwd yazi_status cd_status
     tmp="$(mktemp -t "yazi-cwd.XXXXXX")" || return
 
     {
@@ -42,6 +42,10 @@ if has "yazi"; then
       cwd="$(command cat -- "$tmp" 2>/dev/null)"
       if [[ "$cwd" != "$PWD" && -d "$cwd" ]]; then
         builtin cd -- "$cwd"
+        cd_status=$?
+        if ((cd_status != 0 && yazi_status == 0)); then
+          yazi_status=$cd_status
+        fi
       fi
     } always {
       command rm -f -- "$tmp"
