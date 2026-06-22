@@ -22,7 +22,6 @@ in
       agent-browser
       bat
       biome
-      direnv
       eza
       fd
       fzf
@@ -33,7 +32,6 @@ in
       gotools
       govulncheck
       jq
-      nix-direnv
       nixfmt
       pre-commit
       rustup
@@ -51,6 +49,16 @@ in
       zsh-fast-syntax-highlighting
     ]
     ++ lspPackages;
+
+  programs.direnv = {
+    enable = true;
+    enableBashIntegration = false;
+    enableFishIntegration = false;
+    enableNushellIntegration = false;
+    enableZshIntegration = false;
+
+    nix-direnv.enable = true;
+  };
 
   programs.gh = {
     enable = true;
