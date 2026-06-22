@@ -242,6 +242,19 @@ url = "https://dl.google.com/go/go1.26.4.darwin-arm64.tar.gz"
 version = "2026.06.04-5fd875e"
 backend = "http:cursor-agent"
 
+[[tools."http:cursor-agent"]]
+version = "2026.06.04-5fd875e"
+backend = "http:cursor-agent"
+
+[tools."http:cursor-agent".options]
+strip_components = "1"
+
+[tools."http:cursor-agent"."platforms.linux-x64"]
+url = "https://downloads.cursor.com/lab/2026.06.04-5fd875e/linux/x64/agent-cli-package.tar.gz"
+
+[tools."http:cursor-agent"."platforms.macos-arm64"]
+url = "https://downloads.cursor.com/lab/2026.06.04-5fd875e/darwin/arm64/agent-cli-package.tar.gz"
+
 [[tools.lazygit]]
 version = "0.62.2"
 backend = "aqua:jesseduffield/lazygit"
