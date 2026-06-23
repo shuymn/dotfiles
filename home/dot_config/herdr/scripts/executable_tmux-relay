@@ -1,0 +1,48 @@
+#!/bin/sh
+set -eu
+
+HERDR_BIN=${HERDR_BIN_PATH:-herdr}
+
+notify() {
+  title=$1
+  body=$2
+  "$HERDR_BIN" notification show "$title" --body "$body" --position bottom-right --sound none >/dev/null 2>&1 || true
+}
+
+fail() {
+  message=$1
+  notify "tmux sync" "$message"
+  printf '%s\n' "$message" >&2
+  exit 1
+}
+
+usage() {
+  fail "usage: tmux-relay 3|5"
+}
+
+if [ "$#" -ne 1 ]; then
+  usage
+fi
+
+case $1 in
+  3|5) tmux_key=$1 ;;
+  *) usage ;;
+esac
+
+if ! command -v "$HERDR_BIN" >/dev/null 2>&1; then
+  printf '%s\n' "herdr is not available on PATH" >&2
+  exit 127
+fi
+
+pane_id=${HERDR_ACTIVE_PANE_ID:-}
+if [ -z "$pane_id" ]; then
+  fail "missing Herdr active pane id; focus the tmux sync tab and retry"
+fi
+
+process_info=$("$HERDR_BIN" pane process-info --pane "$pane_id") || fail "failed to inspect active Herdr pane"
+
+if ! printf '%s\n' "$process_info" | grep -Eq '"name":"tmux"|"argv0":"([^"]*/)?tmux"|"argv":\["([^"]*/)?tmux"'; then
+  fail "active Herdr pane does not appear to be running tmux"
+fi
+
+"$HERDR_BIN" pane send-keys "$pane_id" ctrl+b "$tmux_key" >/dev/null || fail "failed to relay tmux prefix+$tmux_key"

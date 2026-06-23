@@ -1,0 +1,168 @@
+#!/bin/sh
+set -eu
+
+SOCKET_NAME="herdr-sync"
+HERDR_BIN=${HERDR_BIN_PATH:-herdr}
+
+notify() {
+  title=$1
+  body=$2
+  "$HERDR_BIN" notification show "$title" --body "$body" --position bottom-right --sound none >/dev/null 2>&1 || true
+}
+
+fail() {
+  message=$1
+  notify "tmux sync" "$message"
+  printf '%s\n' "$message" >&2
+  exit 1
+}
+
+absolute_path_for() {
+  path=$1
+  case $path in
+    /*) printf '%s\n' "$path" ;;
+    */*)
+      path_dir=$(CDPATH='' cd "$(dirname "$path")" && pwd) || return 1
+      printf '%s/%s\n' "$path_dir" "$(basename "$path")"
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+if [ "${HERDR_TMUX_SYNC_TAB_SCRIPT+x}" = "x" ]; then
+  case $HERDR_TMUX_SYNC_TAB_SCRIPT in
+    /*) SCRIPT_PATH=$HERDR_TMUX_SYNC_TAB_SCRIPT ;;
+    *) fail "HERDR_TMUX_SYNC_TAB_SCRIPT must be an absolute path" ;;
+  esac
+else
+  case $0 in
+    /*) SCRIPT_PATH=$0 ;;
+    */*) SCRIPT_PATH=$(absolute_path_for "$0") || fail "failed to resolve script path: $0" ;;
+    *)
+      if [ -z "${HOME:-}" ]; then
+        fail "HOME is required to locate tmux-sync-tab"
+      fi
+      SCRIPT_PATH=$HOME/.config/herdr/scripts/tmux-sync-tab
+      ;;
+  esac
+fi
+
+SCRIPT_DIR=$(CDPATH='' cd "$(dirname "$SCRIPT_PATH")" && pwd) || fail "failed to resolve script directory: $SCRIPT_PATH"
+if [ "${HERDR_TMUX_SYNC_CONFIG+x}" = "x" ]; then
+  case $HERDR_TMUX_SYNC_CONFIG in
+    /*) CONFIG_PATH=$HERDR_TMUX_SYNC_CONFIG ;;
+    *) fail "HERDR_TMUX_SYNC_CONFIG must be an absolute path" ;;
+  esac
+else
+  CONFIG_PATH=$SCRIPT_DIR/../../tmux/herdr-sync.conf
+fi
+
+shell_quote() {
+  printf "'"
+  printf '%s' "$1" | sed "s/'/'\\\\''/g"
+  printf "'"
+}
+
+session_name_for_cwd() {
+  cwd=$1
+  checksum=$(printf '%s' "$cwd" | cksum | awk '{print $1}')
+  leaf=$(basename "$cwd")
+  safe_leaf=$(printf '%s' "$leaf" | LC_ALL=C tr -cs 'A-Za-z0-9_-' '-' | sed 's/^-*//; s/-*$//')
+  if [ -z "$safe_leaf" ]; then
+    safe_leaf="cwd"
+  fi
+  safe_leaf=$(printf '%.40s' "$safe_leaf")
+  printf 'herdr-sync-%s-%s\n' "$safe_leaf" "$checksum"
+}
+
+close_tab() {
+  tab_id=$1
+  "$HERDR_BIN" tab close "$tab_id" >/dev/null 2>&1 || true
+}
+
+client_fail() {
+  tab_id=$1
+  status=$2
+  message=$3
+  notify "tmux sync" "$message"
+  close_tab "$tab_id"
+  exit "$status"
+}
+
+client_mode() {
+  if [ "$#" -ne 2 ]; then
+    fail "usage: tmux-sync-tab --client <herdr-tab-id> <tmux-session>"
+  fi
+
+  tab_id=$1
+  session=$2
+  cwd=$(pwd -P 2>/dev/null || pwd)
+  shell_path=${SHELL:-/bin/zsh}
+  if [ ! -x "$shell_path" ]; then
+    shell_path=/bin/zsh
+  fi
+  if [ ! -x "$shell_path" ]; then
+    shell_path=/bin/sh
+  fi
+
+  [ -r "$CONFIG_PATH" ] || client_fail "$tab_id" 1 "tmux config not found: $CONFIG_PATH"
+
+  command -v tmux >/dev/null 2>&1 || client_fail "$tab_id" 127 "tmux is not available on PATH"
+
+  if ! tmux -L "$SOCKET_NAME" has-session -t "$session" 2>/dev/null; then
+    tmux -L "$SOCKET_NAME" -f "$CONFIG_PATH" new-session -d -s "$session" -c "$cwd" "$shell_path" \
+      || client_fail "$tab_id" "$?" "failed to create tmux session: $session"
+  fi
+
+  tmux -L "$SOCKET_NAME" source-file "$CONFIG_PATH" \
+    || client_fail "$tab_id" "$?" "failed to load tmux config: $CONFIG_PATH"
+
+  status=0
+  tmux -L "$SOCKET_NAME" -f "$CONFIG_PATH" attach-session -t "$session" || status=$?
+  close_tab "$tab_id"
+  exit "$status"
+}
+
+if [ "${1:-}" = "--client" ]; then
+  shift
+  client_mode "$@"
+fi
+
+if ! command -v "$HERDR_BIN" >/dev/null 2>&1; then
+  printf '%s\n' "herdr is not available on PATH" >&2
+  exit 127
+fi
+
+active_cwd=${HERDR_ACTIVE_PANE_CWD:-${HERDR_PANE_CWD:-$(pwd -P 2>/dev/null || pwd)}}
+if [ ! -d "$active_cwd" ]; then
+  fail "active Herdr pane cwd does not exist: $active_cwd"
+fi
+
+session=$(session_name_for_cwd "$active_cwd")
+leaf=$(basename "$active_cwd")
+if [ -z "$leaf" ] || [ "$leaf" = "/" ]; then
+  leaf="cwd"
+fi
+label="tmux sync: $leaf"
+workspace_id=${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}
+
+if [ -n "$workspace_id" ]; then
+  create_output=$("$HERDR_BIN" tab create --workspace "$workspace_id" --cwd "$active_cwd" --label "$label" --focus) || fail "failed to create Herdr tmux sync tab"
+else
+  create_output=$("$HERDR_BIN" tab create --cwd "$active_cwd" --label "$label" --focus) || fail "failed to create Herdr tmux sync tab"
+fi
+
+root_pane_id=$(printf '%s\n' "$create_output" | sed -n 's/.*"root_pane":{[^}]*"pane_id":"\([^"]*\)".*/\1/p')
+tab_id=$(printf '%s\n' "$create_output" | sed -n 's/.*"root_pane":{[^}]*"tab_id":"\([^"]*\)".*/\1/p')
+
+if [ -z "$root_pane_id" ] || [ -z "$tab_id" ]; then
+  printf '%s\n' "$create_output" >&2
+  fail "failed to read created Herdr tab details"
+fi
+
+command="HERDR_BIN_PATH=$(shell_quote "$HERDR_BIN"); HERDR_TMUX_SYNC_CONFIG=$(shell_quote "$CONFIG_PATH"); export HERDR_BIN_PATH HERDR_TMUX_SYNC_CONFIG; exec $(shell_quote "$SCRIPT_PATH") --client $(shell_quote "$tab_id") $(shell_quote "$session") || { status=\$?; \"\$HERDR_BIN_PATH\" tab close $(shell_quote "$tab_id") >/dev/null 2>&1 || true; exit \"\$status\"; }"
+
+if ! "$HERDR_BIN" pane run "$root_pane_id" "$command" >/dev/null; then
+  close_tab "$tab_id"
+  fail "failed to start tmux in Herdr tab"
+fi

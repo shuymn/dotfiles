@@ -78,6 +78,8 @@ swap_pane_down = ""
 swap_pane_up = ""
 previous_workspace = "prefix+shift+k"
 next_workspace = "prefix+shift+j"
+# Free prefix+3/prefix+5 for the tmux sync island relay commands below.
+switch_tab = ""
 
 # Keep prefix+r as reload like the current tmux config; move resize mode aside.
 reload_config = "prefix+r"
@@ -94,8 +96,22 @@ type = "shell"
 command = "herdr workspace create --cwd ~ --focus"
 description = "new workspace from home"
 
+# Native tmux owns transparent synchronized input; Herdr only opens the island
+# and relays the setup bindings into the focused tmux pane.
 [[keys.command]]
-key = "prefix+shift+y"
-type = "pane"
-command = "/bin/zsh"
-description = "temporary shell in focused cwd"
+key = "prefix+y"
+type = "shell"
+command = "$HOME/.config/herdr/scripts/tmux-sync-tab"
+description = "open tmux sync tab"
+
+[[keys.command]]
+key = "prefix+3"
+type = "shell"
+command = "$HOME/.config/herdr/scripts/tmux-relay 3"
+description = "tmux sync: 3 panes"
+
+[[keys.command]]
+key = "prefix+5"
+type = "shell"
+command = "$HOME/.config/herdr/scripts/tmux-relay 5"
+description = "tmux sync: 5 panes"
