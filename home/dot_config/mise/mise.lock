@@ -53,14 +53,11 @@ checksum = "sha256:d8b96221828ad6f97ac7ac0ab7e95872341af763001e8803e8267652c2652
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.185"
+version = "2.1.186"
 backend = "aqua:anthropics/claude-code"
 
-[tools.claude."platforms.linux-x64"]
-url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.185/linux-x64/claude"
-
 [tools.claude."platforms.macos-arm64"]
-url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.185/darwin-arm64/claude"
+url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.186/darwin-arm64/claude"
 
 [[tools.codex]]
 version = "0.141.0"
@@ -237,10 +234,6 @@ url = "https://dl.google.com/go/go1.26.4.linux-amd64.tar.gz"
 [tools.go."platforms.macos-arm64"]
 checksum = "sha256:b62ad2b6d7d2464f12a5bcad7ff47f19d08325773b5efd21610e445a05a9bf53"
 url = "https://dl.google.com/go/go1.26.4.darwin-arm64.tar.gz"
-
-[[tools."http:cursor-agent"]]
-version = "2026.06.04-5fd875e"
-backend = "http:cursor-agent"
 
 [[tools."http:cursor-agent"]]
 version = "2026.06.04-5fd875e"
