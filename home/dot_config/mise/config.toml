@@ -1,5 +1,6 @@
 [settings]
 disable_backends = ["asdf", "vfox"]
+idiomatic_version_file_enable_tools = ["node", "terraform"]
 lockfile = true
 lockfile_platforms = ["macos-arm64", "linux-x64"]
 minimum_release_age = "1d"
