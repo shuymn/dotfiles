@@ -78,6 +78,11 @@ url = "https://github.com/openai/codex/releases/download/rust-v0.141.0/codex-aar
 version = "0.44.0"
 backend = "github:ast-grep/ast-grep"
 
+[tools."github:ast-grep/ast-grep"."platforms.linux-x64"]
+checksum = "sha256:a074982c59a749371d225e6129faf5815f731f460aa080c004af9b7e79c55632"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.44.0/app-x86_64-unknown-linux-gnu.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/454121262"
+
 [tools."github:ast-grep/ast-grep"."platforms.macos-arm64"]
 checksum = "sha256:80ad83ae28c56cbbaa2beaa391f564b073a99c2a0a20d49fd9ddc10aaafd6979"
 url = "https://github.com/ast-grep/ast-grep/releases/download/0.44.0/app-aarch64-apple-darwin.zip"
