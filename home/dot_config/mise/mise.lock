@@ -75,18 +75,13 @@ checksum = "sha256:2ede2523d50fcaf7fe716b19871e1c96c271f7e8051ebc6e51d93c7be02fa
 url = "https://github.com/openai/codex/releases/download/rust-v0.141.0/codex-aarch64-apple-darwin.zst"
 
 [[tools."github:ast-grep/ast-grep"]]
-version = "0.43.0"
+version = "0.44.0"
 backend = "github:ast-grep/ast-grep"
 
-[tools."github:ast-grep/ast-grep"."platforms.linux-x64"]
-checksum = "sha256:a26253a9c821d935f7e383e40f0de7c2ca62a4121de1f73a6d81ec32eae631e0"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.43.0/app-x86_64-unknown-linux-gnu.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/429542387"
-
 [tools."github:ast-grep/ast-grep"."platforms.macos-arm64"]
-checksum = "sha256:8c847d0a29aa4b3101b3361e0b3ee7fb53c7e497adc9ed1afc9615538cd40782"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.43.0/app-aarch64-apple-darwin.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/429542766"
+checksum = "sha256:80ad83ae28c56cbbaa2beaa391f564b073a99c2a0a20d49fd9ddc10aaafd6979"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.44.0/app-aarch64-apple-darwin.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/454121074"
 
 [[tools."github:go-task/task"]]
 version = "3.51.1"
