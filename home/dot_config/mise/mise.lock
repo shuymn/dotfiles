@@ -119,19 +119,13 @@ url_api = "https://api.github.com/repos/k1LoW/git-wt/releases/assets/438021391"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/mo"]]
-version = "v1.6.0"
+version = "1.6.1"
 backend = "github:k1LoW/mo"
 
-[tools."github:k1LoW/mo"."platforms.linux-x64"]
-checksum = "sha256:ac8e86207a6e1fac90bd96e2c3afcf1766b809ee7abdc0b5d5fda0b5e30881f0"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.0/mo_v1.6.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/451297355"
-provenance = "github-attestations"
-
 [tools."github:k1LoW/mo"."platforms.macos-arm64"]
-checksum = "sha256:34c504ea22b26749b1e7320da320b9da58c0bc57ec46ece929c55664a48f7d3d"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.0/mo_v1.6.0_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/451297336"
+checksum = "sha256:83177941725c9044d1415472abbf5d51b57344c0645363c8c6e7ccc3dcec0e71"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.1/mo_v1.6.1_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/454073526"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/octocov"]]
