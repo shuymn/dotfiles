@@ -119,13 +119,13 @@ url_api = "https://api.github.com/repos/k1LoW/git-wt/releases/assets/438021391"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/mo"]]
-version = "1.6.1"
+version = "v1.6.2"
 backend = "github:k1LoW/mo"
 
 [tools."github:k1LoW/mo"."platforms.macos-arm64"]
-checksum = "sha256:83177941725c9044d1415472abbf5d51b57344c0645363c8c6e7ccc3dcec0e71"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.1/mo_v1.6.1_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/454073526"
+checksum = "sha256:bfdbf54af2aafcd79b985abc974fed0545472dbcc07f7aa81d81d0ca9b4ea148"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.2/mo_v1.6.2_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/456068442"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/octocov"]]
