@@ -278,16 +278,12 @@ url = "https://github.com/evilmartians/lefthook/releases/download/v2.1.9/lefthoo
 provenance = "github-attestations"
 
 [[tools.node]]
-version = "24.17.0"
+version = "24.18.0"
 backend = "core:node"
 
-[tools.node."platforms.linux-x64"]
-checksum = "sha256:e0472427aa791ad80bdc426ff7cc73cdd28ed0f616d1ff9689a23a7f47f1265f"
-url = "https://nodejs.org/dist/v24.17.0/node-v24.17.0-linux-x64.tar.gz"
-
 [tools.node."platforms.macos-arm64"]
-checksum = "sha256:4fc3266a3702eebc39cc37661cf4eeceeade307e242ab64e4d7ce7949197e11f"
-url = "https://nodejs.org/dist/v24.17.0/node-v24.17.0-darwin-arm64.tar.gz"
+checksum = "sha256:e1a97e14c99c803e96c7339403282ea05a499c32f8d83defe9ef5ec66f979ed1"
+url = "https://nodejs.org/dist/v24.18.0/node-v24.18.0-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
 version = "0.79.10"
@@ -315,8 +311,8 @@ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20
 provenance = "github-attestations"
 
 [tools.python."platforms.macos-arm64"]
-checksum = "sha256:875516e13be36296f8f7dd0972b22ba3bed069ed08d27d5f0069caf227522921"
-url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260610/cpython-3.14.6+20260610-aarch64-apple-darwin-install_only_stripped.tar.gz"
+checksum = "sha256:35d774f61d63c1fd4f1bc9495a7ada92e500dc4382a0df8a9910eb87ea48e8cf"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260623/cpython-3.14.6+20260623-aarch64-apple-darwin-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
 [[tools.terraform]]
