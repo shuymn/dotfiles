@@ -55,7 +55,7 @@ manage_ssh_config = true
 
 [experimental]
 pane_history = false
-kitty_graphics = false
+kitty_graphics = true
 reveal_hidden_cursor_for_cjk_ime = true
 cjk_ime_agents = ["pi", "claude", "codex", "cursor", "opencode"]
 cjk_ime_cursor_shape = "steady_block"
