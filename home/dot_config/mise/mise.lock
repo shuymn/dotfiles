@@ -298,7 +298,7 @@ version = "1.5.13"
 backend = "npm:skills"
 
 [[tools."pipx:microsandbox"]]
-version = "0.5.8"
+version = "0.5.10"
 backend = "pipx:microsandbox"
 
 [[tools."pipx:tavily-cli"]]
