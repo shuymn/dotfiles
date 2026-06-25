@@ -38,4 +38,4 @@ codex = "0.142.0"
 "pipx:microsandbox" = "0.5.8"
 "pipx:tavily-cli" = "0.1.4"
 
-"http:cursor-agent" = { version = "2026.06.04-5fd875e", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent", strip_components = 1 }
+"http:cursor-agent" = { version = "2026.06.24-00-45-58-9f61de7", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent", strip_components = 1 }
