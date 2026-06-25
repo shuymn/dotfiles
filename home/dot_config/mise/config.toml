@@ -27,7 +27,7 @@ lefthook = "2.1.9"
 "github:k1LoW/octocov" = "0.75.8"
 "github:k1LoW/roots" = "0.4.1"
 "github:modem-dev/hunk" = "v0.16.0"
-"github:ogulcancelik/herdr" = "v0.7.0"
+"github:ogulcancelik/herdr" = "v0.7.1"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
