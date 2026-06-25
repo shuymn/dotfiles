@@ -122,6 +122,12 @@ provenance = "github-attestations"
 version = "v1.6.2"
 backend = "github:k1LoW/mo"
 
+[tools."github:k1LoW/mo"."platforms.linux-x64"]
+checksum = "sha256:7e576572073885d28b8c45d801bfe1c283ee2424dc1cd55df4460fe7146a6b66"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.2/mo_v1.6.2_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/456068450"
+provenance = "github-attestations"
+
 [tools."github:k1LoW/mo"."platforms.macos-arm64"]
 checksum = "sha256:bfdbf54af2aafcd79b985abc974fed0545472dbcc07f7aa81d81d0ca9b4ea148"
 url = "https://github.com/k1LoW/mo/releases/download/v1.6.2/mo_v1.6.2_darwin_arm64.zip"
@@ -239,6 +245,9 @@ backend = "http:cursor-agent"
 [tools."http:cursor-agent".options]
 strip_components = "1"
 
+[tools."http:cursor-agent"."platforms.linux-x64"]
+url = "https://downloads.cursor.com/lab/2026.06.24-00-45-58-9f61de7/linux/x64/agent-cli-package.tar.gz"
+
 [tools."http:cursor-agent"."platforms.macos-arm64"]
 url = "https://downloads.cursor.com/lab/2026.06.24-00-45-58-9f61de7/darwin/arm64/agent-cli-package.tar.gz"
 
@@ -325,6 +334,11 @@ url = "https://releases.hashicorp.com/terraform/1.15.6/terraform_1.15.6_darwin_a
 [[tools.uv]]
 version = "0.11.24"
 backend = "aqua:astral-sh/uv"
+
+[tools.uv."platforms.linux-x64"]
+checksum = "sha256:2f9eaa976cf8ad8574623dde6916fb87ec047524fe65b99dc11e44e33eae4bfb"
+url = "https://github.com/astral-sh/uv/releases/download/0.11.24/uv-x86_64-unknown-linux-musl.tar.gz"
+provenance = "github-attestations"
 
 [tools.uv."platforms.macos-arm64"]
 checksum = "sha256:7578c6087c5cd76981732b1f5d126248101faebdf81016ba780a65ce03653cdf"
