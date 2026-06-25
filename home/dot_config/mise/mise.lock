@@ -56,6 +56,9 @@ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-darwin-a
 version = "2.1.190"
 backend = "aqua:anthropics/claude-code"
 
+[tools.claude."platforms.linux-x64"]
+url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.190/linux-x64/claude"
+
 [tools.claude."platforms.macos-arm64"]
 url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.190/darwin-arm64/claude"
 
@@ -180,6 +183,11 @@ provenance = "github-attestations"
 [[tools."github:ogulcancelik/herdr"]]
 version = "v0.7.1"
 backend = "github:ogulcancelik/herdr"
+
+[tools."github:ogulcancelik/herdr"."platforms.linux-x64"]
+checksum = "sha256:b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654"
+url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.1/herdr-linux-x86_64"
+url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/456674304"
 
 [tools."github:ogulcancelik/herdr"."platforms.macos-arm64"]
 checksum = "sha256:16f4653f0491ea1e7d2b46b5b02542f18e1b82e88daaf9e2900572e5bb634df8"
@@ -314,6 +322,10 @@ provenance = "github-attestations"
 [[tools.terraform]]
 version = "1.15.7"
 backend = "aqua:hashicorp/terraform"
+
+[tools.terraform."platforms.linux-x64"]
+checksum = "sha256:73bbb8f5188ad75d4fb853fd100ae4d7e146ef7af7db18776109642fdb7759d2"
+url = "https://releases.hashicorp.com/terraform/1.15.7/terraform_1.15.7_linux_amd64.zip"
 
 [tools.terraform."platforms.macos-arm64"]
 checksum = "sha256:711791bf41365137a9a4adbf3e4c4a18dd7389d45c6a3039e3c6946bc750080e"
