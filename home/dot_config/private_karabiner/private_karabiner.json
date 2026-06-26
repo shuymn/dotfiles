@@ -50,6 +50,7 @@
                         "product_id": 666,
                         "vendor_id": 1452
                     },
+                    "ignore": true,
                     "simple_modifications": [
                         {
                             "from": { "key_code": "caps_lock" },
@@ -104,6 +105,24 @@
                         "vendor_id": 2131
                     },
                     "ignore_vendor_events": true
+                },
+                {
+                    "disable_built_in_keyboard_if_exists": true,
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "is_pointing_device": true,
+                        "product_id": 4,
+                        "vendor_id": 18003
+                    }
+                },
+                {
+                    "disable_built_in_keyboard_if_exists": true,
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "product_id": 4,
+                        "vendor_id": 18003
+                    },
+                    "ignore": true
                 }
             ],
             "fn_function_keys": [
