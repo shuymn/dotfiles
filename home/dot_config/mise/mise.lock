@@ -242,9 +242,6 @@ url = "https://dl.google.com/go/go1.26.4.darwin-arm64.tar.gz"
 version = "2026.06.24-00-45-58-9f61de7"
 backend = "http:cursor-agent"
 
-[tools."http:cursor-agent".options]
-strip_components = "1"
-
 [tools."http:cursor-agent"."platforms.linux-x64"]
 url = "https://downloads.cursor.com/lab/2026.06.24-00-45-58-9f61de7/linux/x64/agent-cli-package.tar.gz"
 

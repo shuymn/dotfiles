@@ -47,7 +47,7 @@ mise manager 側の lookup も disable 済みの tool は `OK` になる。
 このリポジトリでは Renovate の mise native artifact update を
 `skipArtifactsUpdate: true` で無効化し、`home/dot_config/mise/config.toml` を
 更新する branch の最終状態に対して `postUpgradeTasks` で
-`mise trust config.toml` → `mise lock` を一度だけ実行して
+`mise trust config.toml` → `mise lock --platform macos-arm64,linux-x64` を一度だけ実行して
 `home/dot_config/mise/mise.lock` を同期する。regex custom manager だけで version を
 更新したケースや、一部 backend で native artifact update が取りこぼすケースでも
 lockfile が stale のまま残らないようにするため。
@@ -55,11 +55,20 @@ lockfile が stale のまま残らないようにするため。
 `mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
 config version と lockfile version が一致していることも確認する。mise.lock では
 一部の `github:` tool の先頭 `v` が正規化で落ちるため、この検証では先頭 `v` の有無だけは
-同一バージョンとして扱う。
+同一バージョンとして扱う。`http:` かつ config に `url` を持つ tool については、
+configured `lockfile_platforms` の platform URL が lockfile に残っていることと、
+lockfile に保存された options が config の options と一致することも検証する。
 
 これには self-hosted Renovate の `allowedCommands` と `allowedUnsafeExecutions` に加えて、
 GitHub Action 上の Renovate コンテナで `mise` が見つかるよう
 `postUpgradeTasks.installTools.mise` も必要。
+
+`http:cursor-agent` は意図的に `strip_components` を指定しない。Cursor の archive は
+`strip_components` なしでも `cursor-agent` を実行できる一方、Renovate コンテナの
+`mise 2026.6.14` が生成した `strip_components` 付き lock entry は、Nix 側の
+`mise 2026.5.12` では locked install 時に別 entry として扱われて失敗した。config から
+`strip_components` を外し、lockfile に options table を持たせない形なら、両方の mise で
+同じ `http:cursor-agent` lock entry として扱われる。
 
 ## 対処（優先順）
 
