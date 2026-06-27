@@ -239,14 +239,14 @@ checksum = "sha256:b62ad2b6d7d2464f12a5bcad7ff47f19d08325773b5efd21610e445a05a9b
 url = "https://dl.google.com/go/go1.26.4.darwin-arm64.tar.gz"
 
 [[tools."http:cursor-agent"]]
-version = "2026.06.24-00-45-58-9f61de7"
+version = "2026.06.26-7079533"
 backend = "http:cursor-agent"
 
 [tools."http:cursor-agent"."platforms.linux-x64"]
-url = "https://downloads.cursor.com/lab/2026.06.24-00-45-58-9f61de7/linux/x64/agent-cli-package.tar.gz"
+url = "https://downloads.cursor.com/lab/2026.06.26-7079533/linux/x64/agent-cli-package.tar.gz"
 
 [tools."http:cursor-agent"."platforms.macos-arm64"]
-url = "https://downloads.cursor.com/lab/2026.06.24-00-45-58-9f61de7/darwin/arm64/agent-cli-package.tar.gz"
+url = "https://downloads.cursor.com/lab/2026.06.26-7079533/darwin/arm64/agent-cli-package.tar.gz"
 
 [[tools.lazygit]]
 version = "0.62.2"
