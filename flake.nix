@@ -60,6 +60,14 @@
                   {
                     glimpseui = final.callPackage ./nix/packages/glimpseui.nix { };
 
+                    # Backport upstream fix until nixpkgs mise includes it.
+                    # mise 2026.5.12 misclassifies HTTP backend cache symlinks as `mise link`.
+                    mise = _prev.mise.overrideAttrs (oldAttrs: {
+                      patches = (oldAttrs.patches or [ ]) ++ [
+                        ./nix/patches/mise-ignore-managed-symlink-targets.patch
+                      ];
+                    });
+
                     spindle =
                       if spindleSources.hasSources then
                         final.callPackage ./nix/packages/spindle.nix {
