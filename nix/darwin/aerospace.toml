@@ -16,7 +16,6 @@ on-focused-monitor-changed = [
   "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.monitor.changed'",
 ]
 on-focus-changed = [
-  "move-mouse window-lazy-center",
   "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.focus.changed'",
 ]
 on-mode-changed = [
