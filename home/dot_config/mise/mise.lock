@@ -14,6 +14,18 @@ checksum = "sha256:aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e69
 url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_darwin_arm64.tar.gz"
 provenance = "github-attestations"
 
+[[tools."aqua:k1LoW/mo"]]
+version = "v1.6.3"
+backend = "aqua:k1LoW/mo"
+
+[tools."aqua:k1LoW/mo"."platforms.linux-x64"]
+checksum = "sha256:b286ea74149e2c8f73cdb8e38a82bd6223a786962801bde9ab6a7509c25c8df0"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.3/mo_v1.6.3_linux_amd64.tar.gz"
+
+[tools."aqua:k1LoW/mo"."platforms.macos-arm64"]
+checksum = "sha256:8f7faada9898f97264cd4bddb6e2dfcbca41b38c9e4ab73e4fe45a72cd8ab743"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.3/mo_v1.6.3_darwin_arm64.zip"
+
 [[tools.betterleaks]]
 version = "v1.6.0"
 backend = "aqua:betterleaks/betterleaks"
@@ -116,22 +128,6 @@ provenance = "github-attestations"
 checksum = "sha256:4cf0a9bf8d6b63f75788c60b7d90cb2079c86cd41207d34820ab82d67f08ce8c"
 url = "https://github.com/k1LoW/git-wt/releases/download/v0.29.0/git-wt_v0.29.0_darwin_arm64.zip"
 url_api = "https://api.github.com/repos/k1LoW/git-wt/releases/assets/438021391"
-provenance = "github-attestations"
-
-[[tools."github:k1LoW/mo"]]
-version = "v1.6.2"
-backend = "github:k1LoW/mo"
-
-[tools."github:k1LoW/mo"."platforms.linux-x64"]
-checksum = "sha256:7e576572073885d28b8c45d801bfe1c283ee2424dc1cd55df4460fe7146a6b66"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.2/mo_v1.6.2_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/456068450"
-provenance = "github-attestations"
-
-[tools."github:k1LoW/mo"."platforms.macos-arm64"]
-checksum = "sha256:bfdbf54af2aafcd79b985abc974fed0545472dbcc07f7aa81d81d0ca9b4ea148"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.2/mo_v1.6.2_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/456068442"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/octocov"]]
