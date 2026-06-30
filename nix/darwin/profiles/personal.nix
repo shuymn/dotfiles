@@ -162,6 +162,7 @@ in
     casks = [
       "discord"
       "obsidian"
+      "orcaslicer"
       "xdevplatform/tap/xurl"
       "zotero"
     ];
