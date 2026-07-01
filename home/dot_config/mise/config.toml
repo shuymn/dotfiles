@@ -33,7 +33,7 @@ lefthook = "2.1.9"
 
 claude = "2.1.197"
 codex = "0.142.4"
-"npm:@earendil-works/pi-coding-agent" = "0.80.2"
+"npm:@earendil-works/pi-coding-agent" = "0.80.3"
 "npm:skills" = "1.5.14"
 "pipx:microsandbox" = "0.6.1"
 "pipx:tavily-cli" = "0.1.4"
