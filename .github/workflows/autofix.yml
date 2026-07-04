@@ -11,7 +11,7 @@ permissions:
 jobs:
   mise-lock:
     if: github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.head.ref, 'renovate/')
-    runs-on: ubuntu-latest
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -51,20 +51,18 @@ jobs:
           fi
           echo "update=true" >>"$GITHUB_OUTPUT"
 
-      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         if: steps.scope.outputs.update == 'true'
-        with:
-          version: 2026.6.13
-          install: false
-          cache: false
 
+      # Run the same Nix-provided mise as Home Manager uses, instead of pinning a
+      # second mise version in this workflow.
       - name: Update mise.lock for changed tools
         if: steps.scope.outputs.update == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_TOKEN: ${{ github.token }}
           MISE_YES: 1
-        run: python3 scripts/update-mise-lock-for-changed-tools.py --base "$BASE_SHA"
+        run: nix --extra-experimental-features nix-command --extra-experimental-features flakes shell .#mise -c python3 scripts/update-mise-lock-for-changed-tools.py --base "$BASE_SHA"
 
       - name: Validate generated diff
         if: steps.scope.outputs.update == 'true'
@@ -73,7 +71,6 @@ jobs:
           git reset --mixed
           {
             git diff --name-only
-            git diff --cached --name-only
             git ls-files --others --exclude-standard
           } | sort -u >"$RUNNER_TEMP/dirty-files"
           unexpected=$(grep -Ev '^home/dot_config/mise/mise\.lock$' "$RUNNER_TEMP/dirty-files" || true)

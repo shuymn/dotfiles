@@ -51,7 +51,9 @@ mise manager 側の lookup も disable 済みの tool は `OK` になる。
 `scripts/update-mise-lock-for-changed-tools.py` が変更された既存 tool だけに対して
 `mise trust config.toml` →
 `mise exec node -- env MISE_NPM_PACKAGE_MANAGER=npm mise lock --platform macos-arm64,linux-x64 <tool...>`
-を実行する。regex custom manager だけで version を更新したケースや、一部 backend で
+を実行する。autofix は `nix shell .#mise -c ...` でこの flake が公開する mise を使うため、
+Home Manager が使う Nix 側の mise と CI の lockfile 生成用 mise は同じ `miseFor` 定義に従う。
+regex custom manager だけで version を更新したケースや、一部 backend で
 native artifact update が取りこぼすケースでも lockfile が stale のまま残らないようにしつつ、
 Renovate に任意 command 実行権限を持たせないため。
 

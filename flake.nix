@@ -31,6 +31,8 @@
         "1password-cli"
         "acli"
       ];
+      # Single source for the mise version used by Home Manager and CI lockfile regeneration.
+      miseFor = system: nixpkgs-unstable.legacyPackages.${system}.mise;
       spindleSourcesFor =
         localConfig:
         let
@@ -44,9 +46,6 @@
       defaultSpindleSources = spindleSourcesFor defaultConfig;
       mkDarwinConfiguration =
         localConfig:
-        let
-          unstablePkgs = nixpkgs-unstable.legacyPackages.${localConfig.system};
-        in
         nix-darwin.lib.darwinSystem {
           system = localConfig.system;
           specialArgs = {
@@ -66,7 +65,7 @@
                     glimpseui = final.callPackage ./nix/packages/glimpseui.nix { };
 
                     # Use unstable mise until the 26.05 darwin pin includes the HTTP backend symlink fix.
-                    mise = unstablePkgs.mise;
+                    mise = miseFor localConfig.system;
 
                     spindle =
                       if spindleSources.hasSources then
@@ -101,6 +100,7 @@
       darwinConfigurations.default = defaultDarwinConfiguration;
 
       packages.${defaultConfig.system} = {
+        mise = miseFor defaultConfig.system;
         darwin-rebuild = nix-darwin.packages.${defaultConfig.system}.darwin-rebuild;
       }
       // (
