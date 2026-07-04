@@ -8,6 +8,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo=$(CDPATH='' cd -- "$script_dir/.." && pwd)
+checker="$script_dir/check-mise-renovate-age.py"
 
 config=${1:-"$repo/home/dot_config/mise/config.toml"}
 renovate_config=${RENOVATE_CONFIG:-"$repo/.github/renovate-self-hosted.json"}
@@ -42,39 +43,7 @@ if [ -z "$python_bin" ]; then
 fi
 
 if [ -f "$renovate_config" ]; then
-  "$python_bin" - "$renovate_config" <<'PY'
-import json
-import sys
-
-path = sys.argv[1]
-with open(path, encoding="utf-8") as fh:
-    config = json.load(fh)
-
-failures = []
-if "mise" in (config.get("allowedUnsafeExecutions") or []):
-    failures.append("allowedUnsafeExecutions must not include mise; mise.lock is updated by autofix.ci")
-
-skip_artifacts_update = False
-for rule in config.get("packageRules", []) or []:
-    managers = rule.get("matchManagers") or []
-    commands = "\n".join((rule.get("postUpgradeTasks") or {}).get("commands") or [])
-    file_names = rule.get("matchFileNames") or []
-    if "mise" in managers and rule.get("skipArtifactsUpdate") is True:
-        skip_artifacts_update = True
-    if rule.get("postUpgradeTasks") and (
-        "mise lock" in commands or "home/dot_config/mise/config.toml" in file_names
-    ):
-        failures.append("mise lock postUpgradeTasks must stay out of Renovate config")
-
-if not skip_artifacts_update:
-    failures.append("Renovate mise manager must keep skipArtifactsUpdate=true")
-
-if failures:
-    sys.stderr.write("Renovate/mise lock ownership check failed:\n")
-    for failure in failures:
-        sys.stderr.write(f"- {failure}\n")
-    sys.exit(1)
-PY
+  "$python_bin" "$checker" check-renovate-config "$renovate_config"
 fi
 
 tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-mise-renovate.XXXXXX")
@@ -97,47 +66,7 @@ tab=$(printf '\t')
 # tasks.*.tools. Values are reduced like Renovate's parseVersion(): string,
 # first string from an array, or a table's version string.
 tools_file=$tmpdir/tools.tsv
-"$python_bin" - "$config" >"$tools_file" <<'PY'
-import sys
-
-try:
-    import tomllib
-except ModuleNotFoundError:
-    sys.stderr.write("Python 3.11+ with tomllib is required to parse mise TOML\n")
-    sys.exit(2)
-
-path = sys.argv[1]
-try:
-    with open(path, "rb") as fh:
-        data = tomllib.load(fh)
-except Exception as exc:
-    sys.stderr.write(f"failed to parse {path}: {exc}\n")
-    sys.exit(2)
-
-
-def parse_version(value):
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list) and value and isinstance(value[0], str):
-        return value[0]
-    if isinstance(value, dict) and isinstance(value.get("version"), str):
-        return value["version"]
-    return ""
-
-
-def emit_tools(tools):
-    if not isinstance(tools, dict):
-        return
-    for name, value in tools.items():
-        version = parse_version(value)
-        if version:
-            print(f"{name}\t{version}")
-
-emit_tools(data.get("tools", {}))
-for task in (data.get("tasks", {}) or {}).values():
-    if isinstance(task, dict):
-        emit_tools(task.get("tools", {}))
-PY
+"$python_bin" "$checker" emit-mise-tools "$config" >"$tools_file"
 
 if [ ! -s "$tools_file" ]; then
   echo "no Renovate-managed mise tools found in $config" >&2
@@ -145,68 +74,18 @@ if [ ! -s "$tools_file" ]; then
 fi
 
 registry_tools=$tmpdir/registry-tools.tsv
-"$python_bin" - "$tmpdir/mise-registry.json" >"$registry_tools" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], encoding="utf-8") as fh:
-    registry = json.load(fh)
-
-for tool, backends in (registry.get("tools", {}) or {}).items():
-    if not isinstance(backends, dict):
-        continue
-    if "github" in backends:
-        backend = "github"
-    else:
-        backend = next(iter(backends), "")
-    if not backend:
-        continue
-    name = backends.get(backend) or tool
-    print(f"{tool}\t{backend}\t{name}")
-PY
+"$python_bin" "$checker" emit-registry-tools "$tmpdir/mise-registry.json" >"$registry_tools"
 
 regex_tracked=$tmpdir/regex-tracked.txt
 disabled_mise=$tmpdir/disabled-mise.txt
 : >"$regex_tracked"
 : >"$disabled_mise"
 if [ -f "$renovate_config" ]; then
-  "$python_bin" - "$renovate_config" "$regex_tracked" "$disabled_mise" <<'PY'
-import json
-import re
-import sys
-
-config_path, regex_tracked_path, disabled_mise_path = sys.argv[1:4]
-with open(config_path, encoding="utf-8") as fh:
-    config = json.load(fh)
-
-with open(regex_tracked_path, "w", encoding="utf-8") as regex_tracked:
-    for manager in config.get("customManagers", []):
-        if manager.get("customType") != "regex":
-            continue
-        for pattern in manager.get("matchStrings", []) or []:
-            pattern = re.sub(r"^\(\?m\)", "", pattern)
-            pattern = re.sub(r"^\\n", "", pattern)
-            pattern = re.sub(r"^\^", "", pattern)
-            match = re.match(
-                r"(?:\\?[\"'])?([A-Za-z0-9@/:_.-]+)(?:\\?[\"'])?(?:\s|\\s[+*?]?)*=",
-                pattern,
-            )
-            if match:
-                regex_tracked.write(f"{match.group(1)}\n")
-
-with open(disabled_mise_path, "w", encoding="utf-8") as disabled_mise:
-    for rule in config.get("packageRules", []) or []:
-        if rule.get("enabled") is not False:
-            continue
-        if "mise" not in (rule.get("matchManagers") or []):
-            continue
-        for dep_name in rule.get("matchDepNames", []) or []:
-            disabled_mise.write(f"{dep_name}\n")
-PY
+  "$python_bin" "$checker" emit-renovate-overrides "$renovate_config" "$regex_tracked" "$disabled_mise"
 fi
 
 is_listed() {
-  [ -f "$1" ] && grep -qxF "$2" "$1"
+  grep -qxF "$2" "$1"
 }
 
 registry_lookup() {
