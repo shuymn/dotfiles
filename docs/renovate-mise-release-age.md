@@ -45,12 +45,15 @@ make check-mise-renovate
 mise manager 側の lookup も disable 済みの tool は `OK` になる。
 
 このリポジトリでは Renovate の mise native artifact update を
-`skipArtifactsUpdate: true` で無効化し、`home/dot_config/mise/config.toml` を
-更新する branch の最終状態に対して `postUpgradeTasks` で
-`mise trust config.toml` → `mise lock --platform macos-arm64,linux-x64` を一度だけ実行して
-`home/dot_config/mise/mise.lock` を同期する。regex custom manager だけで version を
-更新したケースや、一部 backend で native artifact update が取りこぼすケースでも
-lockfile が stale のまま残らないようにするため。
+`skipArtifactsUpdate: true` で無効化し、Renovate は
+`home/dot_config/mise/config.toml` の version bump だけを担当する。lockfile 更新は
+`.github/workflows/autofix.yml` の `autofix.ci` workflow に外部化し、Renovate PR 上で
+`scripts/update-mise-lock-for-changed-tools.py` が変更された既存 tool だけに対して
+`mise trust config.toml` →
+`mise exec node -- env MISE_NPM_PACKAGE_MANAGER=npm mise lock --platform macos-arm64,linux-x64 <tool...>`
+を実行する。regex custom manager だけで version を更新したケースや、一部 backend で
+native artifact update が取りこぼすケースでも lockfile が stale のまま残らないようにしつつ、
+Renovate に任意 command 実行権限を持たせないため。
 
 `mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
 config version と lockfile version が一致していることも確認する。mise.lock では
@@ -59,9 +62,10 @@ config version と lockfile version が一致していることも確認する�
 configured `lockfile_platforms` の platform URL が lockfile に残っていることと、
 lockfile に保存された options が config の options と一致することも検証する。
 
-これには self-hosted Renovate の `allowedCommands` と `allowedUnsafeExecutions` に加えて、
-GitHub Action 上の Renovate コンテナで `mise` が見つかるよう
-`postUpgradeTasks.installTools.mise` も必要。
+さらに `scripts/update-mise-lock-for-changed-tools.py` が base の `mise.lock` と比較し、
+変更対象 tool 以外の lock section、preamble、生成ファイルが変わった場合は失敗する。
+既存 tool の version-only change だけを自動 lock 更新の対象にし、tool 追加・削除や
+`url` / `bin` / settings 変更は手動で lockfile を更新して確認する。
 
 `http:cursor-agent` は意図的に `strip_components` を指定しない。Cursor の archive は
 `strip_components` なしでも `cursor-agent` を実行できる一方、Renovate コンテナの

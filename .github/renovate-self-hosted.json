@@ -139,19 +139,6 @@
       "automerge": true
     },
     {
-      "description": "Refresh mise.lock after updates to the tracked mise config",
-      "matchFileNames": ["home/dot_config/mise/config.toml"],
-      "postUpgradeTasks": {
-        "commands": ["mise trust config.toml", "mise exec node -- env MISE_NPM_PACKAGE_MANAGER=npm mise lock --platform macos-arm64,linux-x64", "sh ../../../scripts/check-mise-lock-consistency.sh"],
-        "fileFilters": ["home/dot_config/mise/mise.lock"],
-        "executionMode": "branch",
-        "installTools": {
-          "mise": {}
-        },
-        "workingDirTemplate": "{{{packageFileDir}}}"
-      }
-    },
-    {
       "description": "Use the repository-wide one-day stability period for npm updates",
       "matchDatasources": ["npm"],
       "minimumReleaseAge": "1 days"
@@ -159,7 +146,5 @@
   ],
   "nix": {
     "enabled": true
-  },
-  "allowedCommands": ["^mise trust config\\.toml$", "^mise exec node -- env MISE_NPM_PACKAGE_MANAGER=npm mise lock --platform macos-arm64,linux-x64$", "^sh \\.\\./\\.\\./\\.\\./scripts/check-mise-lock-consistency\\.sh$"],
-  "allowedUnsafeExecutions": ["mise"]
+  }
 }

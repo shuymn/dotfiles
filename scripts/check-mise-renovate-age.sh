@@ -41,6 +41,42 @@ if [ -z "$python_bin" ]; then
   exit 2
 fi
 
+if [ -f "$renovate_config" ]; then
+  "$python_bin" - "$renovate_config" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    config = json.load(fh)
+
+failures = []
+if "mise" in (config.get("allowedUnsafeExecutions") or []):
+    failures.append("allowedUnsafeExecutions must not include mise; mise.lock is updated by autofix.ci")
+
+skip_artifacts_update = False
+for rule in config.get("packageRules", []) or []:
+    managers = rule.get("matchManagers") or []
+    commands = "\n".join((rule.get("postUpgradeTasks") or {}).get("commands") or [])
+    file_names = rule.get("matchFileNames") or []
+    if "mise" in managers and rule.get("skipArtifactsUpdate") is True:
+        skip_artifacts_update = True
+    if rule.get("postUpgradeTasks") and (
+        "mise lock" in commands or "home/dot_config/mise/config.toml" in file_names
+    ):
+        failures.append("mise lock postUpgradeTasks must stay out of Renovate config")
+
+if not skip_artifacts_update:
+    failures.append("Renovate mise manager must keep skipArtifactsUpdate=true")
+
+if failures:
+    sys.stderr.write("Renovate/mise lock ownership check failed:\n")
+    for failure in failures:
+        sys.stderr.write(f"- {failure}\n")
+    sys.exit(1)
+PY
+fi
+
 tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-mise-renovate.XXXXXX")
 trap 'rm -rf "$tmpdir"' EXIT INT TERM
 
@@ -366,14 +402,10 @@ while IFS="$tab" read -r tool version; do
   case $result in
   OK*) ;;
   NG* | WARN*)
-    if is_listed "$regex_tracked" "$tool" && is_listed "$disabled_mise" "$tool"; then
-      result="OK regex custom manager and disabled mise lookup in $renovate_config"
-    else
-      if is_listed "$regex_tracked" "$tool"; then
-        result="NG regex custom manager exists but mise lookup is not disabled in $renovate_config"
-      fi
-      fail=1
+    if is_listed "$regex_tracked" "$tool"; then
+      result="NG regex custom manager exists but mise lookup is not disabled in $renovate_config"
     fi
+    fail=1
     ;;
   esac
   printf '%-45s %s\n' "$tool" "$result"
