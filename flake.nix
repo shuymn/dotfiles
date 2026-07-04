@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -19,6 +20,7 @@
     {
       home-manager,
       nix-darwin,
+      nixpkgs-unstable,
       ...
     }:
     let
@@ -42,6 +44,9 @@
       defaultSpindleSources = spindleSourcesFor defaultConfig;
       mkDarwinConfiguration =
         localConfig:
+        let
+          unstablePkgs = nixpkgs-unstable.legacyPackages.${localConfig.system};
+        in
         nix-darwin.lib.darwinSystem {
           system = localConfig.system;
           specialArgs = {
@@ -60,13 +65,8 @@
                   {
                     glimpseui = final.callPackage ./nix/packages/glimpseui.nix { };
 
-                    # Backport upstream fix until nixpkgs mise includes it.
-                    # mise 2026.5.12 misclassifies HTTP backend cache symlinks as `mise link`.
-                    mise = _prev.mise.overrideAttrs (oldAttrs: {
-                      patches = (oldAttrs.patches or [ ]) ++ [
-                        ./nix/patches/mise-ignore-managed-symlink-targets.patch
-                      ];
-                    });
+                    # Use unstable mise until the 26.05 darwin pin includes the HTTP backend symlink fix.
+                    mise = unstablePkgs.mise;
 
                     spindle =
                       if spindleSources.hasSources then
