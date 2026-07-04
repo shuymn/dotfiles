@@ -1,14 +1,5 @@
 {
   homebrew = {
-    taps = [
-      "shuymn/tap"
-    ];
-
-    brews = [
-      "shuymn/tap/kastty"
-      "shuymn/tap/pommitlint"
-    ];
-
     casks = [
       "1password"
       "appcleaner"

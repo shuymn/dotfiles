@@ -94,6 +94,20 @@ checksum = "sha256:f1c5a525498a5292e6547910542630ba0516dc411e8f93b7bebb14b232d40
 url = "https://github.com/openai/codex/releases/download/rust-v0.142.5/codex-aarch64-apple-darwin.zst"
 url_api = "https://api.github.com/repos/openai/codex/releases/assets/462701101"
 
+[[tools."github:Songmu/maltmill"]]
+version = "1.5.0"
+backend = "github:Songmu/maltmill"
+
+[tools."github:Songmu/maltmill"."platforms.linux-x64"]
+checksum = "sha256:30baaa14ffbf57cee77030cdc639ad561bac7ce2f40bb8e65333ba80e4032247"
+url = "https://github.com/Songmu/maltmill/releases/download/v1.5.0/maltmill_v1.5.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/Songmu/maltmill/releases/assets/367631483"
+
+[tools."github:Songmu/maltmill"."platforms.macos-arm64"]
+checksum = "sha256:d1adee9f73487db8b27f33dc3c3ac3e7833d1f377def549a77ff46ef36447cfc"
+url = "https://github.com/Songmu/maltmill/releases/download/v1.5.0/maltmill_v1.5.0_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/Songmu/maltmill/releases/assets/367631473"
+
 [[tools."github:ast-grep/ast-grep"]]
 version = "0.44.0"
 backend = "github:ast-grep/ast-grep"
@@ -198,6 +212,38 @@ checksum = "sha256:16f4653f0491ea1e7d2b46b5b02542f18e1b82e88daaf9e2900572e5bb634
 url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.1/herdr-macos-aarch64"
 url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/456674306"
 
+[[tools."github:shuymn/kastty"]]
+version = "0.2.1"
+backend = "github:shuymn/kastty"
+
+[tools."github:shuymn/kastty"."platforms.linux-x64"]
+checksum = "sha256:92766525de446b215ef904011e4482cc70a2529391b49e8542b024251f704cf1"
+url = "https://github.com/shuymn/kastty/releases/download/v0.2.1/kastty_v0.2.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/425419461"
+provenance = "github-attestations"
+
+[tools."github:shuymn/kastty"."platforms.macos-arm64"]
+checksum = "sha256:8a5b671da4d19d640763654e3fee1c8880a9776a7e8ba2e42d8dacc8d803c34f"
+url = "https://github.com/shuymn/kastty/releases/download/v0.2.1/kastty_v0.2.1_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/425419465"
+provenance = "github-attestations"
+
+[[tools."github:shuymn/pommitlint"]]
+version = "2.0.1"
+backend = "github:shuymn/pommitlint"
+
+[tools."github:shuymn/pommitlint"."platforms.linux-x64"]
+checksum = "sha256:ead07393cee3bbee597e620c5bb5bdeb2965126b0180c9b3bbd982559fa5b391"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.1/pommitlint_v2.0.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/425218167"
+provenance = "github-attestations"
+
+[tools."github:shuymn/pommitlint"."platforms.macos-arm64"]
+checksum = "sha256:37978880a7e0786646435df6885f999b4ee972531bba25eead80b3803b7ff54e"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.1/pommitlint_v2.0.1_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/425218166"
+provenance = "github-attestations"
+
 [[tools."github:suzuki-shunsuke/ghalint"]]
 version = "1.5.6"
 backend = "github:suzuki-shunsuke/ghalint"
@@ -229,6 +275,20 @@ checksum = "sha256:b670063ccfa178cdb5c7107d14e3de896f10b93edcc7dbe38b840cb99f253
 url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249963"
 provenance = "github-attestations"
+
+[[tools."github:xdevplatform/xurl"]]
+version = "1.2.2"
+backend = "github:xdevplatform/xurl"
+
+[tools."github:xdevplatform/xurl"."platforms.linux-x64"]
+checksum = "sha256:0000e0ac9d4625bfcdf1441e8bf1179d5f881bd95b32acf6c348acf70407aa91"
+url = "https://github.com/xdevplatform/xurl/releases/download/v1.2.2/xurl_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/xdevplatform/xurl/releases/assets/461562912"
+
+[tools."github:xdevplatform/xurl"."platforms.macos-arm64"]
+checksum = "sha256:d1a87043fb42326da708ebb12f867d87da4a143df179b4975d6ed89ccf70bd2b"
+url = "https://github.com/xdevplatform/xurl/releases/download/v1.2.2/xurl_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/xdevplatform/xurl/releases/assets/461562909"
 
 [[tools.go]]
 version = "1.26.4"

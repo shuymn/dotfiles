@@ -150,20 +150,10 @@ let
 in
 {
   homebrew = {
-    taps = [
-      "songmu/tap"
-      "xdevplatform/tap"
-    ];
-
-    brews = [
-      "songmu/tap/maltmill"
-    ];
-
     casks = [
       "discord"
       "obsidian"
       "orcaslicer"
-      "xdevplatform/tap/xurl"
       "zotero"
     ];
   };
