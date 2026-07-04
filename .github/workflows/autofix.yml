@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
@@ -51,7 +51,7 @@ jobs:
           fi
           echo "update=true" >>"$GITHUB_OUTPUT"
 
-      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         if: steps.scope.outputs.update == 'true'
         with:
           version: 2026.6.13
@@ -96,7 +96,7 @@ jobs:
       - name: Commit mise.lock update
         id: autofix
         if: steps.scope.outputs.update == 'true' && steps.lock_diff.outputs.changed == 'true'
-        uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
+        uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
         with:
           commit-message: Update mise.lock
 
