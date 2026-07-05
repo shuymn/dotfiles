@@ -1,10 +1,10 @@
-# Ghostty + Herdr
-# Keep Ghostty as a thin terminal emulator. Herdr owns sessions, workspaces,
-# tabs, panes, copy-mode, and clipboard behavior.
+# Ghostty + Zellij
+# Keep Ghostty as a thin terminal emulator. Zellij owns sessions, tabs, panes,
+# floating popups, copy-mode, and clipboard behavior.
 
-# Start or attach the default Herdr session for every Ghostty window.
+# Start or attach the default Zellij session for every Ghostty window.
 # Run zsh so ~/.zshenv can add Nix/Homebrew/mise tools to PATH first.
-command = /bin/zsh -lc "exec herdr"
+command = /bin/zsh -lc "exec \"$HOME/.config/zellij/scripts/start\""
 
 # Appearance
 font-family = UDEV Gothic NF
@@ -24,7 +24,7 @@ quit-after-last-window-closed = true
 confirm-close-surface = true
 shell-integration = none
 shell-integration-features = ssh-terminfo,ssh-env
-# Let Herdr's terminal-delivered notifications and agent OSC notifications become
+# Let terminal-delivered notifications and agent OSC notifications become
 # macOS notifications from Ghostty.
 desktop-notifications = true
 scrollback-limit = 10000
@@ -32,7 +32,7 @@ window-save-state = never
 bell-features = title,border,attention,system,no-audio
 
 # Keybindings
-# Disable Ghostty's tab/split/window-management shortcuts. Herdr owns muxing.
+# Disable Ghostty's tab/split/window-management shortcuts. Zellij owns muxing.
 keybind = clear
 keybind = cmd+n=unbind
 keybind = cmd+t=unbind

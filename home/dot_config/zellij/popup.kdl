@@ -1,0 +1,45 @@
+// Inner Zellij config used only inside the outer floating popup.
+// The outer session is locked while this runs, so Ctrl-b reaches this nested
+// session directly. Keep only the popup bindings.
+
+default_mode "locked"
+default_layout "popup-empty"
+
+pane_frames true
+session_serialization false
+scroll_buffer_size 100000
+
+keybinds clear-defaults=true {
+    locked {
+        bind "Ctrl b" { SwitchToMode "Tmux"; }
+    }
+
+    tmux {
+        bind "Esc" "Ctrl c" { SwitchToMode "Locked"; }
+        bind "Ctrl b" { Write 2; SwitchToMode "Locked"; }
+
+        // Build a synchronized 3/5-pane popup. These are intended to be pressed
+        // once after opening the floating pane.
+        bind "3" {
+            NewPane "Down";
+            NewPane "Down";
+            ToggleActiveSyncTab;
+            SwitchToMode "Locked";
+        }
+        bind "5" {
+            NewPane "Down";
+            NewPane "Down";
+            NewPane "Down";
+            NewPane "Down";
+            ToggleActiveSyncTab;
+            SwitchToMode "Locked";
+        }
+
+        // Detach the nested popup. The outer floating pane has close_on_exit=true,
+        // so this closes the popup like tmux prefix+d.
+        bind "d" { Detach; }
+
+        // Optional manual sync toggle for recovery if 3/5 is pressed twice.
+        bind "b" { ToggleActiveSyncTab; SwitchToMode "Locked"; }
+    }
+}

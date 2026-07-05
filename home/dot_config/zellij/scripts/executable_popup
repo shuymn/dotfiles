@@ -1,0 +1,66 @@
+#!/bin/sh
+set -eu
+
+fail() {
+  printf '%s\n' "popup: $*" >&2
+  exit 1
+}
+
+[ -n "${HOME:-}" ] || fail "HOME is required"
+
+ZELLIJ_BIN=${ZELLIJ_BIN:-zellij}
+CONFIG_DIR=${ZELLIJ_POPUP_CONFIG_DIR:-$HOME/.config/zellij}
+CONFIG_FILE=${ZELLIJ_POPUP_CONFIG:-$CONFIG_DIR/popup.kdl}
+LAYOUT_DIR=$CONFIG_DIR/layouts
+
+command -v "$ZELLIJ_BIN" >/dev/null 2>&1 || fail "zellij is not available on PATH"
+[ -r "$CONFIG_FILE" ] || fail "config not found: $CONFIG_FILE"
+[ -d "$LAYOUT_DIR" ] || fail "layout dir not found: $LAYOUT_DIR"
+
+OUTER_ZELLIJ=${ZELLIJ:-}
+OUTER_ZELLIJ_SESSION_NAME=${ZELLIJ_SESSION_NAME:-}
+OUTER_ZELLIJ_PANE_ID=${ZELLIJ_PANE_ID:-}
+
+unlock_outer() {
+  [ -n "$OUTER_ZELLIJ" ] || return 0
+
+  ZELLIJ=$OUTER_ZELLIJ
+  export ZELLIJ
+
+  if [ -n "$OUTER_ZELLIJ_SESSION_NAME" ]; then
+    ZELLIJ_SESSION_NAME=$OUTER_ZELLIJ_SESSION_NAME
+    export ZELLIJ_SESSION_NAME
+  else
+    unset ZELLIJ_SESSION_NAME
+  fi
+
+  if [ -n "$OUTER_ZELLIJ_PANE_ID" ]; then
+    ZELLIJ_PANE_ID=$OUTER_ZELLIJ_PANE_ID
+    export ZELLIJ_PANE_ID
+  else
+    unset ZELLIJ_PANE_ID
+  fi
+
+  "$ZELLIJ_BIN" action switch-mode normal >/dev/null 2>&1 || true
+}
+
+cleanup() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  unlock_outer
+  exit "$status"
+}
+trap cleanup EXIT HUP INT TERM
+
+cwd=$(pwd -P 2>/dev/null || pwd)
+leaf=${cwd##*/}
+[ -n "$leaf" ] || leaf=root
+safe_leaf=$(printf '%s' "$leaf" | LC_ALL=C tr -c 'A-Za-z0-9._-' '-' | cut -c 1-24)
+[ -n "$safe_leaf" ] || safe_leaf=cwd
+checksum=$(printf '%s' "$cwd" | cksum | awk '{print $1}')
+session=popup-$safe_leaf-$checksum
+
+# Start a genuinely nested Zellij instead of sending actions to the outer one.
+unset ZELLIJ ZELLIJ_SESSION_NAME ZELLIJ_PANE_ID ZELLIJ_CONFIG_FILE ZELLIJ_CONFIG_DIR
+
+"$ZELLIJ_BIN" --config "$CONFIG_FILE" --config-dir "$CONFIG_DIR" attach --create "$session"

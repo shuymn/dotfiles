@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+ZELLIJ_BIN=${ZELLIJ_BIN:-zellij}
+ZELLIJ_SESSION=${ZELLIJ_SESSION:-main}
+
+if ! command -v "$ZELLIJ_BIN" >/dev/null 2>&1; then
+  printf '%s\n' "zellij is not available on PATH" >&2
+  exit 127
+fi
+
+exec "$ZELLIJ_BIN" attach --create "$ZELLIJ_SESSION"
