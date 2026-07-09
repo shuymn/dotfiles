@@ -8,6 +8,7 @@ default_layout "popup-empty"
 pane_frames true
 session_serialization false
 scroll_buffer_size 100000
+mouse_hover_effects false
 
 keybinds clear-defaults=true {
     locked {
