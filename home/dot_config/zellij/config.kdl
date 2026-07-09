@@ -42,7 +42,7 @@ keybinds clear-defaults=true {
         bind "b" { ToggleActiveSyncTab; SwitchToMode "Normal"; }
 
         // Tabs/sessions.
-        bind "c" { NewTab; SwitchToMode "Normal"; }
+        bind "c" { NewTab { layout "compact-home"; }; SwitchToMode "Normal"; }
         bind "n" { GoToNextTab; SwitchToMode "Normal"; }
         bind "p" { GoToPreviousTab; SwitchToMode "Normal"; }
         bind "1" { GoToTab 1; SwitchToMode "Normal"; }
