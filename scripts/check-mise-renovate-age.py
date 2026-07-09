@@ -22,6 +22,11 @@ def check_renovate_config(config_path: Path) -> int:
     config = load_json(config_path)
 
     failures = []
+    if config.get("platformAutomerge") is not True:
+        failures.append(
+            "platformAutomerge must stay explicitly enabled; automerge-gate/all-passed is the GitHub automerge gate"
+        )
+
     if "mise" in (config.get("allowedUnsafeExecutions") or []):
         failures.append(
             "allowedUnsafeExecutions must not include mise; mise.lock is updated by autofix.ci"

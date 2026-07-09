@@ -57,6 +57,23 @@ regex custom manager だけで version を更新したケースや、一部 back
 native artifact update が取りこぼすケースでも lockfile が stale のまま残らないようにしつつ、
 Renovate に任意 command 実行権限を持たせないため。
 
+GitHub Ruleset の required status check は `automerge-gate/all-passed` だけにする。
+`.github/workflows/automerge-gate.yml` は `pkgdeps/automerge-gate` の private mode で
+PR 上の GitHub Actions check runs を集約し、Renovate が platform-native auto-merge を
+有効化したタイミングで全チェックの完了を待って commit status を成功/失敗にする。
+Ruleset に workflow/path-filtered job を個別列挙しないため、対象外 PR を
+"Waiting for status to be reported" で止めず、新しい CI job を追加しても Ruleset 更新漏れで
+automerge gate から外れにくい。この dotfiles repo では外部 fork PR を自動 merge 対象にしないため
+private mode を使う。fork PR を受け付けて同じ gate に載せる運用へ変える場合は public mode へ
+切り替える。
+
+`autofix.ci` は Renovate PR 上で必要なときだけ macOS lock 更新を走らせる。対象外 PR では
+`mise-lock` job が skip されるが、skip は automerge-gate では成功扱いになる。mise config を
+更新する Renovate PR で lockfile 更新が必要な場合は、`autofix-ci/action` が commit を作り、
+その run をいったん失敗させることで、次の PR head が改めて全チェックを通るまで
+`automerge-gate/all-passed` を成功させない。Renovate は `platformAutomerge: true` を維持し、
+GitHub 側の `automerge-gate/all-passed` を platform-native automerge の単一ゲートにする。
+
 `mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
 config version と lockfile version が一致していることも確認する。mise.lock では
 一部の `github:` tool の先頭 `v` が正規化で落ちるため、この検証では先頭 `v` の有無だけは

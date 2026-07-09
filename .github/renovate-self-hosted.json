@@ -4,6 +4,7 @@
   "repositories": ["shuymn/dotfiles"],
   "requireConfig": "ignored",
   "globalExtends": ["github>shuymn/github-actions#main"],
+  "platformAutomerge": true,
   "minimumReleaseAge": "1 days",
   "lockFileMaintenance": {
     "schedule": ["at any time"],
