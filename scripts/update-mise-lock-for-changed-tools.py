@@ -9,6 +9,7 @@ reconciler to commit back to the PR.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -27,18 +28,25 @@ def eprint(message: str) -> None:
     print(message, file=sys.stderr)
 
 
-def run(args: list[str], *, cwd: Path, capture: bool = False) -> str:
+def run(
+    args: list[str],
+    *,
+    cwd: Path,
+    capture: bool = False,
+    env: dict[str, str] | None = None,
+) -> str:
     if capture:
         completed = subprocess.run(
             args,
             cwd=cwd,
             check=True,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
         )
         return completed.stdout
-    subprocess.run(args, cwd=cwd, check=True)
+    subprocess.run(args, cwd=cwd, check=True, env=env)
     return ""
 
 
@@ -56,14 +64,15 @@ def read_text(path: Path) -> str:
 def update_lock(repo: Path, tools: list[str], platforms: list[str]) -> None:
     mise_dir = repo / "home/dot_config/mise"
     run(["mise", "trust", "config.toml"], cwd=mise_dir)
+    install_env = os.environ.copy()
+    install_env["MISE_LOCKFILE"] = "0"
+    run(["mise", "install", "node"], cwd=mise_dir, env=install_env)
+    node_paths = run(["mise", "bin-paths", "node"], cwd=mise_dir, capture=True).splitlines()
+    env = os.environ.copy()
+    env["MISE_NPM_PACKAGE_MANAGER"] = "npm"
+    env["PATH"] = os.pathsep.join([*node_paths, env["PATH"]])
     run(
         [
-            "mise",
-            "exec",
-            "node",
-            "--",
-            "env",
-            "MISE_NPM_PACKAGE_MANAGER=npm",
             "mise",
             "lock",
             "--platform",
@@ -71,6 +80,7 @@ def update_lock(repo: Path, tools: list[str], platforms: list[str]) -> None:
             *tools,
         ],
         cwd=mise_dir,
+        env=env,
     )
 
 
