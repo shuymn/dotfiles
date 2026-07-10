@@ -41,7 +41,7 @@ hunk = "v0.17.0"
 
 claude = "2.1.206"
 codex = "0.143.0"
-"npm:@earendil-works/pi-coding-agent" = "0.80.3"
+"npm:@earendil-works/pi-coding-agent" = "0.80.5"
 "npm:skills" = "1.5.15"
 "pipx:microsandbox" = "0.6.6"
 "pipx:tavily-cli" = "0.1.4"
