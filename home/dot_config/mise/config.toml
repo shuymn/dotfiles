@@ -39,7 +39,7 @@ hunk = "v0.17.0"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
-claude = "2.1.205"
+claude = "2.1.206"
 codex = "0.143.0"
 "npm:@earendil-works/pi-coding-agent" = "0.80.3"
 "npm:skills" = "1.5.15"
