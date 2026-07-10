@@ -11,15 +11,12 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
-from typing import Any
 
-from mise_lock_candidate import CandidateError, changed_tools, verify_candidate
+from mise_lock_policy import LockPolicyError, plan_update, verify_candidate
 
 CONFIG_PATH = "home/dot_config/mise/config.toml"
 LOCK_PATH = "home/dot_config/mise/mise.lock"
-DEFAULT_PLATFORMS = ["macos-arm64", "linux-x64"]
 
 
 class Abort(RuntimeError):
@@ -49,37 +46,11 @@ def git_show(repo: Path, ref: str, path: str) -> str:
     return run(["git", "show", f"{ref}:{path}"], cwd=repo, capture=True)
 
 
-def load_toml_text(text: str, source: str) -> dict[str, Any]:
-    try:
-        parsed = tomllib.loads(text)
-    except tomllib.TOMLDecodeError as exc:
-        raise Abort(f"failed to parse {source}: {exc}") from exc
-    if not isinstance(parsed, dict):
-        raise Abort(f"{source}: expected a TOML table")
-    return parsed
-
-
-def lockfile_platforms(config: dict[str, Any]) -> list[str]:
-    settings = config.get("settings", {})
-    if not isinstance(settings, dict):
-        return DEFAULT_PLATFORMS
-    platforms = settings.get("lockfile_platforms", DEFAULT_PLATFORMS)
-    if not isinstance(platforms, list) or not all(isinstance(item, str) for item in platforms):
-        raise Abort("[settings].lockfile_platforms must be a list of strings")
-    if not platforms:
-        raise Abort("[settings].lockfile_platforms must not be empty")
-    return platforms
-
-
 def read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
     except OSError as exc:
         raise Abort(f"failed to read {path}: {exc}") from exc
-
-
-def run_consistency_check(repo: Path) -> None:
-    run(["sh", str(repo / "scripts/check-mise-lock-consistency.sh")], cwd=repo)
 
 
 def update_lock(repo: Path, tools: list[str], platforms: list[str]) -> None:
@@ -116,25 +87,20 @@ def main(argv: list[str]) -> int:
     try:
         base_config_text = git_show(repo, args.base, CONFIG_PATH)
         head_config_text = read_text(repo / CONFIG_PATH)
-        head_config = load_toml_text(head_config_text, CONFIG_PATH)
-        tools = list(changed_tools(base_config_text, head_config_text))
-        platforms = lockfile_platforms(head_config)
+        plan = plan_update(base_config_text, head_config_text)
+        tools = list(plan.changed_tools)
+        platforms = list(plan.platforms)
 
-        if tools:
-            print("mise tools changed: " + ", ".join(tools))
-        else:
-            print("no mise tool version changes detected")
+        print("mise tools changed: " + ", ".join(tools))
 
         base_lock = git_show(repo, args.base, LOCK_PATH)
-        if tools:
-            update_lock(repo, tools, platforms)
-        run_consistency_check(repo)
+        update_lock(repo, tools, platforms)
 
         final_lock_path = repo / LOCK_PATH
         final_lock = read_text(final_lock_path)
         verify_candidate(base_config_text, head_config_text, base_lock, final_lock)
         return 0
-    except (Abort, CandidateError) as exc:
+    except (Abort, LockPolicyError) as exc:
         eprint(str(exc))
         return 1
     except subprocess.CalledProcessError as exc:

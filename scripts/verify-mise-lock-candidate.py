@@ -10,13 +10,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-from mise_lock_candidate import CandidateError, verify_candidate
+from mise_lock_policy import LockPolicyError, verify_candidate
 
 
 CONFIG_PATH = "home/dot_config/mise/config.toml"
 LOCK_PATH = "home/dot_config/mise/mise.lock"
 MAX_CANDIDATE_BYTES = 1024 * 1024
 SHA_PATTERN = re.compile(r"[0-9a-f]{40}")
+
+
+class Abort(ValueError):
+    pass
 
 
 def git_show(repo: Path, sha: str, path: str) -> str:
@@ -46,15 +50,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     if not SHA_PATTERN.fullmatch(args.base) or not SHA_PATTERN.fullmatch(args.head):
-        raise CandidateError("base and head must be full commit SHAs")
+        raise Abort("base and head must be full commit SHAs")
     if args.repository_id <= 0 or args.pull_request <= 0:
-        raise CandidateError("repository and pull request IDs must be positive")
+        raise Abort("repository and pull request IDs must be positive")
     if not args.head_ref or len(args.head_ref) > 255:
-        raise CandidateError("invalid head ref")
+        raise Abort("invalid head ref")
     if not args.candidate.is_file():
-        raise CandidateError("candidate must be a regular file")
+        raise Abort("candidate must be a regular file")
     if args.candidate.stat().st_size > MAX_CANDIDATE_BYTES:
-        raise CandidateError("candidate exceeds size limit")
+        raise Abort("candidate exceeds size limit")
 
     candidate_text = args.candidate.read_text(encoding="utf-8")
     validation = verify_candidate(
@@ -81,6 +85,6 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
-    except (CandidateError, OSError, subprocess.CalledProcessError) as exc:
+    except (Abort, LockPolicyError, OSError, subprocess.CalledProcessError) as exc:
         sys.stderr.write(f"mise lock candidate rejected: {exc}\n")
         sys.exit(1)

@@ -7,7 +7,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from scripts.mise_lock_candidate import CandidateError, verify_candidate
+from scripts.mise_lock_policy import LockPolicyError, plan_update, verify_candidate, verify_lock
 
 
 BASE_CONFIG = """\
@@ -54,6 +54,21 @@ CANDIDATE_LOCK_WITH_PLATFORMS = BASE_LOCK_WITH_PLATFORMS.replace(
 )
 
 
+class VerifyLockTests(unittest.TestCase):
+    def test_accepts_lock_matching_configured_tool_versions(self) -> None:
+        result = verify_lock(HEAD_CONFIG, CANDIDATE_LOCK)
+
+        self.assertEqual(result.checked_tools, 2)
+
+
+class PlanUpdateTests(unittest.TestCase):
+    def test_returns_changed_tools_and_configured_platforms(self) -> None:
+        plan = plan_update(BASE_CONFIG, HEAD_CONFIG)
+
+        self.assertEqual(plan.changed_tools, ("claude",))
+        self.assertEqual(plan.platforms, ("macos-arm64", "linux-x64"))
+
+
 class VerifyCandidateTests(unittest.TestCase):
     def test_accepts_version_only_config_and_matching_lock_update(self) -> None:
         result = verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, CANDIDATE_LOCK)
@@ -66,13 +81,13 @@ class VerifyCandidateTests(unittest.TestCase):
             'claude = { version = "2.1.205", postinstall = "unsafe" }',
         )
 
-        with self.assertRaisesRegex(CandidateError, "option change"):
+        with self.assertRaisesRegex(LockPolicyError, "option change"):
             verify_candidate(BASE_CONFIG, head_config, BASE_LOCK, CANDIDATE_LOCK)
 
     def test_rejects_lock_changes_outside_tool_sections(self) -> None:
         candidate = 'metadata = "tampered"\n' + CANDIDATE_LOCK
 
-        with self.assertRaisesRegex(CandidateError, "outside tool sections"):
+        with self.assertRaisesRegex(LockPolicyError, "outside tool sections"):
             verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, candidate)
 
     def test_rejects_extra_versions_in_changed_lock_section(self) -> None:
@@ -81,7 +96,7 @@ class VerifyCandidateTests(unittest.TestCase):
             '[[tools.claude]]\nversion = "9.9.9"\nbackend = "aqua:anthropics/claude-code"\n\n[[tools.node]]',
         )
 
-        with self.assertRaisesRegex(CandidateError, "section order|version mismatch"):
+        with self.assertRaisesRegex(LockPolicyError, "section order|version mismatch"):
             verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, candidate)
 
     def test_rejects_backend_change_in_changed_lock_section(self) -> None:
@@ -89,7 +104,7 @@ class VerifyCandidateTests(unittest.TestCase):
             "aqua:anthropics/claude-code", "http:attacker-controlled"
         )
 
-        with self.assertRaisesRegex(CandidateError, "backend"):
+        with self.assertRaisesRegex(LockPolicyError, "backend"):
             verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, candidate)
 
     def test_rejects_missing_configured_platform(self) -> None:
@@ -99,7 +114,7 @@ class VerifyCandidateTests(unittest.TestCase):
             "",
         )
 
-        with self.assertRaisesRegex(CandidateError, "platform"):
+        with self.assertRaisesRegex(LockPolicyError, "platform"):
             verify_candidate(
                 BASE_CONFIG,
                 HEAD_CONFIG,
@@ -110,8 +125,15 @@ class VerifyCandidateTests(unittest.TestCase):
     def test_rejects_textual_changes_outside_changed_sections(self) -> None:
         candidate = "# untrusted preamble change\n" + CANDIDATE_LOCK
 
-        with self.assertRaisesRegex(CandidateError, "preamble"):
+        with self.assertRaisesRegex(LockPolicyError, "preamble"):
             verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, candidate)
+
+    def test_rejects_candidate_when_unchanged_lock_entry_is_stale(self) -> None:
+        stale_base_lock = BASE_LOCK.replace('version = "24.18.0"', 'version = "24.17.0"')
+        candidate = stale_base_lock.replace('version = "2.1.201"', 'version = "2.1.205"')
+
+        with self.assertRaisesRegex(LockPolicyError, "version mismatch: node"):
+            verify_candidate(BASE_CONFIG, HEAD_CONFIG, stale_base_lock, candidate)
 
 
 class VerifyCandidateCliTests(unittest.TestCase):
