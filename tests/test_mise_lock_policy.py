@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-import json
 import subprocess
 import sys
 import tempfile
@@ -81,9 +80,7 @@ class PlanUpdateTests(unittest.TestCase):
 
 class VerifyCandidateTests(unittest.TestCase):
     def test_accepts_version_only_config_and_matching_lock_update(self) -> None:
-        result = verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, CANDIDATE_LOCK)
-
-        self.assertEqual(result.changed_tools, ("claude",))
+        verify_candidate(BASE_CONFIG, HEAD_CONFIG, BASE_LOCK, CANDIDATE_LOCK)
 
     def test_rejects_non_version_config_changes(self) -> None:
         head_config = HEAD_CONFIG.replace(
@@ -147,7 +144,7 @@ class VerifyCandidateTests(unittest.TestCase):
 
 
 class VerifyCandidateCliTests(unittest.TestCase):
-    def test_writes_attestation_for_exact_git_revisions(self) -> None:
+    def test_accepts_candidate_for_exact_git_revisions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo = Path(temp_dir) / "repo"
             repo.mkdir()
@@ -166,7 +163,6 @@ class VerifyCandidateCliTests(unittest.TestCase):
             subprocess.run(["git", "commit", "-qam", "head"], cwd=repo, check=True)
             head_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
             candidate = Path(temp_dir) / "candidate.lock"
-            attestation = Path(temp_dir) / "attestation.json"
             candidate.write_text(CANDIDATE_LOCK)
 
             subprocess.run(
@@ -181,22 +177,10 @@ class VerifyCandidateCliTests(unittest.TestCase):
                     head_sha,
                     "--candidate",
                     str(candidate),
-                    "--repository-id",
-                    "31846381",
-                    "--pull-request",
-                    "42",
-                    "--head-ref",
-                    "renovate/claude",
-                    "--output",
-                    str(attestation),
                 ],
                 cwd=Path(__file__).parents[1],
                 check=True,
             )
-
-            data = json.loads(attestation.read_text())
-            self.assertEqual(data["head_sha"], head_sha)
-            self.assertEqual(data["changed_tools"], ["claude"])
 
 
 if __name__ == "__main__":

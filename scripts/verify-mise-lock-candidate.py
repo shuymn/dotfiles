@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Verify an untrusted mise.lock candidate and emit a bound attestation."""
+"""Verify an untrusted mise.lock candidate against exact git revisions."""
 
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
@@ -40,10 +39,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--base", required=True)
     parser.add_argument("--head", required=True)
     parser.add_argument("--candidate", type=Path, required=True)
-    parser.add_argument("--repository-id", type=int, required=True)
-    parser.add_argument("--pull-request", type=int, required=True)
-    parser.add_argument("--head-ref", required=True)
-    parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args(argv)
 
 
@@ -51,34 +46,18 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     if not SHA_PATTERN.fullmatch(args.base) or not SHA_PATTERN.fullmatch(args.head):
         raise Abort("base and head must be full commit SHAs")
-    if args.repository_id <= 0 or args.pull_request <= 0:
-        raise Abort("repository and pull request IDs must be positive")
-    if not args.head_ref or len(args.head_ref) > 255:
-        raise Abort("invalid head ref")
     if not args.candidate.is_file():
         raise Abort("candidate must be a regular file")
     if args.candidate.stat().st_size > MAX_CANDIDATE_BYTES:
         raise Abort("candidate exceeds size limit")
 
     candidate_text = args.candidate.read_text(encoding="utf-8")
-    validation = verify_candidate(
+    verify_candidate(
         git_show(args.repo, args.base, CONFIG_PATH),
         git_show(args.repo, args.head, CONFIG_PATH),
         git_show(args.repo, args.base, LOCK_PATH),
         candidate_text,
     )
-    attestation = {
-        "schema": 1,
-        "repository_id": args.repository_id,
-        "pull_request": args.pull_request,
-        "base_sha": args.base,
-        "head_sha": args.head,
-        "head_ref": args.head_ref,
-        "lock_path": LOCK_PATH,
-        "lock_sha256": validation.sha256,
-        "changed_tools": list(validation.changed_tools),
-    }
-    args.output.write_text(json.dumps(attestation, sort_keys=True) + "\n", encoding="utf-8")
     return 0
 
 

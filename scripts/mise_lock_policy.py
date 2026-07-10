@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import tomllib
 from dataclasses import dataclass
 from typing import Any
@@ -12,12 +11,6 @@ DEFAULT_PLATFORMS = ("macos-arm64", "linux-x64")
 
 class LockPolicyError(ValueError):
     """Raised when a config or lock violates repository policy."""
-
-
-@dataclass(frozen=True)
-class CandidateValidation:
-    changed_tools: tuple[str, ...]
-    sha256: str
 
 
 @dataclass(frozen=True)
@@ -334,7 +327,7 @@ def verify_candidate(
     head_config_text: str,
     base_lock_text: str,
     candidate_lock_text: str,
-) -> CandidateValidation:
+) -> None:
     """Verify that candidate_lock is the exact lock projection of a version-only update."""
     base_config = _parse_toml(base_config_text, "base config")
     head_config = _parse_toml(head_config_text, "head config")
@@ -402,7 +395,3 @@ def verify_candidate(
             raise LockPolicyError(f"candidate lock version mismatch: {name}")
 
     _verify_lock(head_config, candidate_lock)
-    return CandidateValidation(
-        changed_tools=changed_tool_names,
-        sha256=hashlib.sha256(candidate_lock_text.encode()).hexdigest(),
-    )
