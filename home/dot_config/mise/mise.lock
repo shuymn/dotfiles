@@ -81,18 +81,18 @@ url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d
 url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.206/darwin-arm64/claude"
 
 [[tools.codex]]
-version = "0.143.0"
+version = "0.144.0"
 backend = "aqua:openai/codex"
 
 [tools.codex."platforms.linux-x64"]
-checksum = "sha256:883e417ca716bf8514f0751917d33b8682a7a423fc08c1e76e90ba71fe8d4f6b"
-url = "https://github.com/openai/codex/releases/download/rust-v0.143.0/codex-x86_64-unknown-linux-musl.zst"
-url_api = "https://api.github.com/repos/openai/codex/releases/assets/469758860"
+checksum = "sha256:6b03d2d89910874fa5be27b617621d7638f906e891fd8cb40af3d2876a8a36fd"
+url = "https://github.com/openai/codex/releases/download/rust-v0.144.0/codex-package-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/openai/codex/releases/assets/471534009"
 
 [tools.codex."platforms.macos-arm64"]
-checksum = "sha256:7a1516c96538cba9138a21ae6f2529e99e990a88d91673cfd6209d83a95cb3a0"
-url = "https://github.com/openai/codex/releases/download/rust-v0.143.0/codex-aarch64-apple-darwin.zst"
-url_api = "https://api.github.com/repos/openai/codex/releases/assets/469758998"
+checksum = "sha256:4584a243ff8a671250bc716f89c5a50ed59917a98390acfdffa3ecb6cfe5bb34"
+url = "https://github.com/openai/codex/releases/download/rust-v0.144.0/codex-package-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/openai/codex/releases/assets/471534129"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
