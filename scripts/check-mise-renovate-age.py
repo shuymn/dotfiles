@@ -29,7 +29,7 @@ def check_renovate_config(config_path: Path) -> int:
 
     if "mise" in (config.get("allowedUnsafeExecutions") or []):
         failures.append(
-            "allowedUnsafeExecutions must not include mise; mise.lock is updated by autofix.ci"
+            "allowedUnsafeExecutions must not include mise; mise.lock is owned by the GitHub reconciler"
         )
 
     skip_artifacts_update = False

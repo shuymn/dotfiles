@@ -47,15 +47,19 @@ mise manager 側の lookup も disable 済みの tool は `OK` になる。
 このリポジトリでは Renovate の mise native artifact update を
 `skipArtifactsUpdate: true` で無効化し、Renovate は
 `home/dot_config/mise/config.toml` の version bump だけを担当する。lockfile 更新は
-`.github/workflows/autofix.yml` の `autofix.ci` workflow に外部化し、Renovate PR 上で
+Renovate の実行場所から分離した GitHub-native reconciler が所有する。
+`.github/workflows/mise-lock-candidate.yml` は PR 上で read-only に動き、
 `scripts/update-mise-lock-for-changed-tools.py` が変更された既存 tool だけに対して
 `mise trust config.toml` →
 `mise exec node -- env MISE_NPM_PACKAGE_MANAGER=npm mise lock --platform macos-arm64,linux-x64 <tool...>`
-を実行する。autofix は `nix shell .#mise -c ...` でこの flake が公開する mise を使うため、
+を実行して candidate artifact を作る。実行コードとNix定義は PR HEAD ではなく base SHA の分離
+worktreeから読み、PR側からはversion-onlyと確認する `config.toml` だけをデータとして移す。
+生成は `nix shell .#mise -c ...` でこの flake が公開する mise を使うため、
 Home Manager が使う Nix 側の mise と CI の lockfile 生成用 mise は同じ `miseFor` 定義に従う。
 regex custom manager だけで version を更新したケースや、一部 backend で
 native artifact update が取りこぼすケースでも lockfile が stale のまま残らないようにしつつ、
-Renovate に任意 command 実行権限を持たせないため。
+Renovate に任意 command 実行権限を持たせない。この境界は self-hosted Renovate 固有ではないため、
+Mend-hosted Renovate へ移行しても維持できる。
 
 GitHub Ruleset の required status check は `automerge-gate/all-passed` だけにする。
 `.github/workflows/automerge-gate.yml` は `pkgdeps/automerge-gate` の private mode で
@@ -67,12 +71,26 @@ automerge gate から外れにくい。この dotfiles repo では外部 fork PR
 private mode を使う。fork PR を受け付けて同じ gate に載せる運用へ変える場合は public mode へ
 切り替える。
 
-`autofix.ci` は Renovate PR 上で必要なときだけ macOS lock 更新を走らせる。対象外 PR では
-`mise-lock` job が skip されるが、skip は automerge-gate では成功扱いになる。mise config を
-更新する Renovate PR で lockfile 更新が必要な場合は、`autofix-ci/action` が commit を作り、
-その run をいったん失敗させることで、次の PR head が改めて全チェックを通るまで
-`automerge-gate/all-passed` を成功させない。Renovate は `platformAutomerge: true` を維持し、
-GitHub 側の `automerge-gate/all-passed` を platform-native automerge の単一ゲートにする。
+candidate workflow は mise config を更新する同一 repository の PR だけで macOS lock 更新を走らせる。
+更新が必要なら artifact を保存していったん失敗し、次の PR head が改めて全チェックを通るまで
+`automerge-gate/all-passed` を成功させない。`.github/workflows/mise-lock-reconcile.yml` は
+`workflow_run` で default branch の信頼済みコードとして起動し、PR metadata、base/head SHA、
+version-only config diff、candidate の対象 lock section、TOML、platform、SHA-256 を再検証する。
+検証後にだけ `MISE_LOCK_APP_CLIENT_ID` と `MISE_LOCK_APP_PRIVATE_KEY` から repository-scoped の
+短命 GitHub App token を作り、Git Data API で `home/dot_config/mise/mise.lock` だけを commit する。
+ref 更新は non-force なので、検証後に Renovate が branch を更新した場合は失敗して次の run に任せる。
+privileged job は PR の checkout、Nix、mise、PR 内 script を実行しない。
+
+lock maintainer App はこの repository の Contents read/write だけを持たせ、Renovate App と共有しない。
+App token の push は新しい `pull_request.synchronize` を発火し、candidate workflow、通常 CI、
+automerge gate が新しい HEAD を検証する。reconciler は PR ごとの autofix 回数を記録せず HEAD 単位で
+冪等に動くため、Renovate が branch を force-update して過去の lock commit を除いても再収束する。
+
+初期設定では webhook を無効にした専用 GitHub App を作り、Repository permissions は
+`Contents: Read and write` だけにして `shuymn/dotfiles` のみに install する。App の Client ID を
+repository variable `MISE_LOCK_APP_CLIENT_ID`、生成した private key 全文を repository secret
+`MISE_LOCK_APP_PRIVATE_KEY` に保存する。workflow は token 発行時にも `permission-contents: write` を
+明示し、現在の repository だけへ scope を狭める。
 
 `mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
 config version と lockfile version が一致していることも確認する。mise.lock では

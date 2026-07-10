@@ -1,0 +1,121 @@
+name: Generate mise.lock candidate
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/')
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Validate PR scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          git diff --name-only "$BASE_SHA"...HEAD >"$RUNNER_TEMP/changed-files"
+          has_config=false
+          has_lock=false
+          if grep -qx 'home/dot_config/mise/config.toml' "$RUNNER_TEMP/changed-files"; then
+            has_config=true
+          fi
+          if grep -qx 'home/dot_config/mise/mise.lock' "$RUNNER_TEMP/changed-files"; then
+            has_lock=true
+          fi
+          if [ "$has_config" = false ]; then
+            if [ "$has_lock" = true ]; then
+              echo "mise.lock changed without mise config; refusing lock-only PR" >&2
+              exit 1
+            fi
+            echo "update=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          unexpected=$(grep -Ev '^(home/dot_config/mise/config\.toml|home/dot_config/mise/mise\.lock)$' "$RUNNER_TEMP/changed-files" || true)
+          if [ -n "$unexpected" ]; then
+            echo "mise lock generation only accepts PRs that change mise config/lock files:" >&2
+            printf '%s\n' "$unexpected" >&2
+            exit 1
+          fi
+          for path in home/dot_config/mise/config.toml home/dot_config/mise/mise.lock; do
+            if [ "$(git ls-tree "$BASE_SHA" -- "$path" | awk '{ print $1 " " $2 }')" != "100644 blob" ] ||
+               [ "$(git ls-tree HEAD -- "$path" | awk '{ print $1 " " $2 }')" != "100644 blob" ]; then
+              echo "$path must remain a regular non-executable file" >&2
+              exit 1
+            fi
+          done
+          echo "update=true" >>"$GITHUB_OUTPUT"
+
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        if: steps.scope.outputs.update == 'true'
+
+      - name: Generate candidate
+        id: candidate
+        if: steps.scope.outputs.update == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MISE_YES: 1
+        run: |
+          set -eu
+          generator="$RUNNER_TEMP/mise-lock-generator"
+          git worktree add --detach "$generator" "$BASE_SHA"
+          cp home/dot_config/mise/config.toml "$generator/home/dot_config/mise/config.toml"
+          cd "$generator"
+          nix --extra-experimental-features nix-command --extra-experimental-features flakes shell .#mise -c python3 scripts/update-mise-lock-for-changed-tools.py --base "$BASE_SHA"
+          if cmp -s home/dot_config/mise/mise.lock "$GITHUB_WORKSPACE/home/dot_config/mise/mise.lock"; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/mise-lock-candidate"
+          cp home/dot_config/mise/mise.lock "$RUNNER_TEMP/mise-lock-candidate/mise.lock"
+          echo "changed=true" >>"$GITHUB_OUTPUT"
+
+      - name: Validate generated diff
+        if: steps.candidate.outputs.changed == 'true'
+        run: |
+          set -eu
+          generator="$RUNNER_TEMP/mise-lock-generator"
+          {
+            git -C "$generator" diff --name-only
+            git -C "$generator" ls-files --others --exclude-standard
+          } | sort -u >"$RUNNER_TEMP/dirty-files"
+          unexpected=$(grep -Ev '^(home/dot_config/mise/config\.toml|home/dot_config/mise/mise\.lock)$' "$RUNNER_TEMP/dirty-files" || true)
+          if [ -n "$unexpected" ]; then
+            echo "mise lock generator produced unexpected files:" >&2
+            printf '%s\n' "$unexpected" >&2
+            exit 1
+          fi
+
+      - name: Upload candidate
+        if: steps.candidate.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mise-lock-candidate
+          path: ${{ runner.temp }}/mise-lock-candidate/mise.lock
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Wait for reconciler
+        if: steps.candidate.outputs.changed == 'true'
+        run: |
+          echo "mise.lock requires a reconciler commit; the next PR head must pass." >&2
+          exit 1

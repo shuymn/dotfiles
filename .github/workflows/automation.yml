@@ -1,0 +1,35 @@
+name: Test repository automation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/automation.yml
+      - .github/workflows/mise-lock-candidate.yml
+      - .github/workflows/mise-lock-reconcile.yml
+      - scripts/*.py
+      - tests/*.py
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/automation.yml
+      - .github/workflows/mise-lock-candidate.yml
+      - .github/workflows/mise-lock-reconcile.yml
+      - scripts/*.py
+      - tests/*.py
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Test Python automation
+        run: python3 -m unittest discover -s tests
