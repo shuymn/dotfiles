@@ -1,94 +1,59 @@
-# Global Coding Guidelines
+<!-- Keep this file compact. Add only durable, non-inferable global rules. -->
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+# Global Agent Guidelines
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+These are defaults for coding tasks. More specific user and repository instructions take precedence.
 
-## 1. Think Before Coding
+## 1. Outcome and Evidence
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- Start from the user-visible outcome, important constraints, and a verifiable completion condition.
+- Treat current code, configuration, tests, logs, and live external state as the source of truth. Do not rely on memory or duplicated documentation when the primary source is available.
+- If ambiguity would materially change the result, side effects, scope, or public contract, ask before proceeding. Otherwise state the lowest-risk assumption and continue.
+- If new evidence invalidates the current approach, update the plan before continuing.
 
-Before implementing:
+## 2. Scope and Authority
 
-- State your assumptions explicitly. If requirements are ambiguous, ask before proceeding — never guess.
-- If multiple interpretations exist, present them - don't pick silently. Confirm your interpretation in the current response language.
-- If a simpler or more elegant approach exists, say so. Push back when warranted.
-- For non-trivial changes with material trade-offs, compare up to 2 alternatives and choose the lowest-risk one.
-- If something is unclear, stop. Name what's confusing. Ask.
-- If new findings invalidate the current plan, stop, update the plan, then continue.
+- For requests to answer, explain, review, diagnose, investigate, or plan, inspect the relevant materials and report the result. Do not implement changes unless requested.
+- For requests to change, build, or fix, make the requested in-scope local changes and run relevant non-destructive validation without asking first.
+- Require confirmation before destructive actions, external writes, purchases, or material scope expansion.
+- Do not commit, push, create or update a PR, or mutate git history unless the user explicitly requests it.
+- Preserve existing user changes. Do not discard, overwrite, or re-scope unrelated worktree changes.
 
-## 2. Simplicity First
+## 3. Implementation
 
-**Minimum code that solves the problem. Nothing speculative.**
+- Make the smallest change that fully solves the request. Do not add adjacent features, speculative abstractions, or unrelated cleanup.
+- Match the existing codebase's style and patterns. Inspect adjacent, upstream, or explicitly referenced implementations before inventing a local variant.
+- Preserve existing behavior unless a breaking change is explicitly in scope. Do not add compatibility layers speculatively.
+- Prefer existing configuration and constants for operationally variable values; avoid unexplained environment-specific literals.
+- Remove only imports, variables, functions, and files made obsolete by the current change. Mention pre-existing dead code instead of deleting it.
+- For broad failures, cluster repeated error signatures and identify the shared root cause before making piecemeal fixes.
+- Put statically checkable rules in the project's linter, type system, or tests rather than adding prompt-only conventions.
 
-- Execute only what is explicitly requested - no unrequested features, no "while we're at it" work.
-- Don't expand scope to adjacent features without explicit approval.
-- No abstractions for single-use code. No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- Don't maintain backward compatibility unless explicitly requested. Break things boldly.
-- Never hardcode values. Use configuration, environment variables, or constants.
-- If you write 200 lines and it could be 50, rewrite it.
+## 4. Verification
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+- Define success with observable checks and continue until they pass or a concrete blocker remains.
+- For bug fixes and behavior changes, reproduce the failure or add a focused test when practical, then make it pass.
+- Run the most relevant targeted tests, type checks, lint checks, builds, or smoke tests for the affected scope. Expand validation only when risk or repository policy warrants it.
+- Do not bypass failures by weakening assertions, skipping tests, suppressing errors, or adding temporary workarounds. Fix the root cause.
+- If validation cannot be run, explain why and provide the next best verification step.
+- Update the relevant Design Doc or ADR when the requested implementation changes an approved design decision or public contract.
 
-## 3. Surgical Changes
+## 5. Communication
 
-**Touch only what you must. Clean up only your own mess.**
+- Use the requested output language; otherwise use the current conversation language.
+- Lead with the conclusion. Preserve the evidence, material caveats, verification result, and next action; omit generic preambles, repetition, and routine tool narration.
+- For multi-step work, provide a short plan with a verification point for each step. Update it only when a major phase changes or new evidence changes the approach.
+- Surface material assumptions and trade-offs. When alternatives matter, compare at most two and recommend the lowest-risk option.
 
-When editing existing code:
+## 6. Conventions
 
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+- Use applicable skills when the task matches; do not duplicate their full workflows here.
+- Use `uv run` for Python execution by default, including one-off scripts and tooling.
+- Express acceptance criteria with EARS rather than Given/When/Then unless the project requires another format.
+- For long-running sub-agent work, silence alone is not evidence of a stall. Prefer waiting while activity, file changes, or command output show progress.
 
-When your changes create orphans:
+## Critical Defaults
 
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Develop with TDD (exploration → Red → Green → Refactor). Transform tasks into verifiable goals:
-
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-- Never compromise code quality to bypass errors (relaxing conditions, skipping tests, suppressing errors, temporary fixes). Always fix root causes.
-- When KPI or coverage targets are given, keep iterating until they are met.
-- For non-trivial changes, ask "Would a staff engineer accept this?" and document rationale, impact scope, and verification evidence (tests/logs/repro steps) before marking done.
-- When implementation changes approved scope or design decisions, update the related Design Doc and ADR in the same task.
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-## Code Design
-
-- Maintain separation of concerns. Separate state from logic.
-- Prioritize readability and maintainability.
-- Define the contract layer (APIs/types) strictly, and keep the implementation layer regenerable.
-- Express statically checkable rules in the environment's linter or ast-grep, not in prompts.
-
-## Conventions & Operating Notes
-
-- Use `uv run` for Python execution by default (including one-off scripts and tooling).
-- Use EARS (Easy Approach to Requirements Syntax) instead of BDD Given/When/Then for acceptance criteria - more context-efficient for LLM-driven, single-developer workflows.
-- For long-running sub-agent work, silence alone is not evidence of a stall. Prefer waiting over interrupting; if agent activity, file changes, or command output shows progress, keep waiting unless requirements changed or a real blocker is evident.
-
----
-
-**Critical Recap:** Check applicable skills before responding. (See §1 for ambiguity handling, §2 for scope discipline.)
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+- Stay within the requested work layer and scope.
+- Verify against the current source of truth.
+- Do not commit, push, or perform destructive or external actions without explicit authorization.
