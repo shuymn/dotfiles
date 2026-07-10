@@ -74,6 +74,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           MISE_GITHUB_TOKEN: ${{ github.token }}
           MISE_USE_VERSIONS_HOST: 1
+          MISE_VERBOSE: 1
           MISE_YES: 1
         run: |
           set -eu
