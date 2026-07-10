@@ -311,19 +311,19 @@ url = "https://downloads.cursor.com/lab/2026.07.09-a3815c0/linux/x64/agent-cli-p
 url = "https://downloads.cursor.com/lab/2026.07.09-a3815c0/darwin/arm64/agent-cli-package.tar.gz"
 
 [[tools.hunk]]
-version = "v0.16.0"
+version = "0.17.0"
 backend = "github:modem-dev/hunk"
 
 [tools.hunk."platforms.linux-x64"]
-checksum = "sha256:0dd80c7679265df72617877a02dafefd6ac6a834528e10257567642eb2c05ea6"
-url = "https://github.com/modem-dev/hunk/releases/download/v0.16.0/hunkdiff-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/452418846"
+checksum = "sha256:0c626f7a6687a9826304ea1df696da5d49edf84271eccdf57ffff5834289e0e2"
+url = "https://github.com/modem-dev/hunk/releases/download/v0.17.0/hunkdiff-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/468967650"
 provenance = "github-attestations"
 
 [tools.hunk."platforms.macos-arm64"]
-checksum = "sha256:1143eb8bcbdf64cd1dea9d94cb2ed2757810c384b36477495b7045ef0492be96"
-url = "https://github.com/modem-dev/hunk/releases/download/v0.16.0/hunkdiff-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/452418844"
+checksum = "sha256:700221669a51b78c835985b49ca67e5a4bbaafdb434a6ca03f9d262f7a82693e"
+url = "https://github.com/modem-dev/hunk/releases/download/v0.17.0/hunkdiff-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/468967653"
 provenance = "github-attestations"
 
 [[tools.lazygit]]
