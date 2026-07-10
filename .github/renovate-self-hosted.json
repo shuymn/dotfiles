@@ -116,6 +116,11 @@
   ],
   "packageRules": [
     {
+      "description": "Create mise config PRs before PR-only lock reconciliation",
+      "matchFileNames": ["home/dot_config/mise/config.toml"],
+      "prCreation": "immediate"
+    },
+    {
       "description": "Do not let Renovate update mise.lock natively",
       "matchManagers": ["mise"],
       "skipArtifactsUpdate": true
