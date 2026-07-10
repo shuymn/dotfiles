@@ -76,21 +76,21 @@ candidate workflow は mise config を更新する同一 repository の PR だ�
 `automerge-gate/all-passed` を成功させない。`.github/workflows/mise-lock-reconcile.yml` は
 `workflow_run` で default branch の信頼済みコードとして起動し、PR metadata、base/head SHA、
 version-only config diff、candidate の対象 lock section、TOML、platform、SHA-256 を再検証する。
-検証後にだけ `MISE_LOCK_APP_CLIENT_ID` と `MISE_LOCK_APP_PRIVATE_KEY` から repository-scoped の
+検証後にだけ `RENOVATE_APP_CLIENT_ID` と `RENOVATE_APP_PRIVATE_KEY` から repository-scoped の
 短命 GitHub App token を作り、Git Data API で `home/dot_config/mise/mise.lock` だけを commit する。
 ref 更新は non-force なので、検証後に Renovate が branch を更新した場合は失敗して次の run に任せる。
 privileged job は PR の checkout、Nix、mise、PR 内 script を実行しない。
 
-lock maintainer App はこの repository の Contents read/write だけを持たせ、Renovate App と共有しない。
-App token の push は新しい `pull_request.synchronize` を発火し、candidate workflow、通常 CI、
+reconciler は self-hosted Renovate が使う既存 maintainer App を共有するが、発行する token は現在の
+repository の `Contents: write` だけに縮小する。App token の push は新しい
+`pull_request.synchronize` を発火し、candidate workflow、通常 CI、
 automerge gate が新しい HEAD を検証する。reconciler は PR ごとの autofix 回数を記録せず HEAD 単位で
 冪等に動くため、Renovate が branch を force-update して過去の lock commit を除いても再収束する。
 
-初期設定では webhook を無効にした専用 GitHub App を作り、Repository permissions は
-`Contents: Read and write` だけにして `shuymn/dotfiles` のみに install する。App の Client ID を
-repository variable `MISE_LOCK_APP_CLIENT_ID`、生成した private key 全文を repository secret
-`MISE_LOCK_APP_PRIVATE_KEY` に保存する。workflow は token 発行時にも `permission-contents: write` を
-明示し、現在の repository だけへ scope を狭める。
+maintainer App の Client ID は repository variable `RENOVATE_APP_CLIENT_ID`、private key は
+repository secret `RENOVATE_APP_PRIVATE_KEY` で共有する。Mend-hosted Renovate へ移行するときも、
+hosted App のtokenへ依存せず、このcustom Appをlock maintainerとして残す。self-hosted Renovate用の
+広い権限は将来不要になった時点でAppから削除できる。
 
 `mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
 config version と lockfile version が一致していることも確認する。mise.lock では
