@@ -52,6 +52,13 @@ local function open_curated_help()
 		{ text = "@ <Space>        Workspace symbols",        action = function() open_picker("workspace_symbols") end },
 		{ text = "h <Space>        Visit history",            action = function() open_picker("visit_paths") end },
 		{ text = ": <Space>        Command history",          action = function() open_picker("command_history") end },
+		{ text = "gd               Go to definition",         action = vim.lsp.buf.definition },
+		{ text = "gr               Go to references",         action = vim.lsp.buf.references },
+		{ text = "gi               Go to implementation",     action = vim.lsp.buf.implementation },
+		{ text = "gt               Go to type definition",    action = vim.lsp.buf.type_definition },
+		{ text = "K                Hover docs",               action = vim.lsp.buf.hover },
+		{ text = "[d / ]d          Previous / next diagnostic", action = feed("]d") },
+		{ text = "<leader>ld       Line diagnostic",          action = vim.diagnostic.open_float },
 		{ text = "<leader>la       LSP code action",          action = vim.lsp.buf.code_action },
 		{ text = "<leader>lf       LSP format",               action = function() vim.lsp.buf.format({ async = true }) end },
 		{ text = "<leader>lr       LSP rename",               action = vim.lsp.buf.rename },
@@ -163,6 +170,15 @@ vim.keymap.set("n", "<leader><space>", open_picker, { desc = "Picker" })
 vim.keymap.set("n", "<leader><leader>", open_picker, { desc = "Picker" })
 vim.keymap.set("n", "<leader>e", open_file_explorer, { desc = "File explorer" })
 vim.keymap.set("n", "<leader>?", open_curated_help, { desc = "Keymap help" })
+
+vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+vim.keymap.set("n", "gr", vim.lsp.buf.references, { desc = "Go to references" })
+vim.keymap.set("n", "gi", vim.lsp.buf.implementation, { desc = "Go to implementation" })
+vim.keymap.set("n", "gt", vim.lsp.buf.type_definition, { desc = "Go to type definition" })
+vim.keymap.set("n", "K", vim.lsp.buf.hover, { desc = "Hover docs" })
+vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+vim.keymap.set("n", "<leader>ld", vim.diagnostic.open_float, { desc = "Line diagnostic" })
 
 vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, { desc = "LSP code action" })
 vim.keymap.set("n", "<leader>lf", function() vim.lsp.buf.format({ async = true }) end, { desc = "LSP format" })
