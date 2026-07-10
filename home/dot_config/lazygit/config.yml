@@ -1,7 +1,5 @@
----
 # Lazygit configuration managed by chezmoi.
 # Bias: keep Lazygit as a high-signal review surface for human/agent changes.
-
 gui:
   mouseEvents: false
   showCommandLog: true
@@ -12,7 +10,6 @@ gui:
   scrollOffMargin: 1
   expandFocusedSidePanel: true
   expandedSidePanelWeight: 2
-
 git:
   # Use Hunk as the primary diff pager because it is optimized for reviewing
   # agent-authored changesets. Keep Lazygit's built-in pager one keystroke away
@@ -28,18 +25,12 @@ git:
     showGraph: always
     showWholeGraph: false
   branchLogCmd: >-
-    git log --graph --color=always --abbrev-commit --decorate --date=relative
-    --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset %C(dim)%cr%Creset
-    %C(auto)%d%Creset' {{branchName}} --
+    git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset %C(dim)%cr%Creset %C(auto)%d%Creset' {{branchName}} --
   allBranchesLogCmds:
     - >-
-      git log --graph --all --color=always --abbrev-commit --decorate
-      --date=relative --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset
-      %C(dim)%cr%Creset %C(auto)%d%Creset'
-
+      git log --graph --all --color=always --abbrev-commit --decorate --date=relative --pretty=format:'%C(auto)%h%Creset %C(bold)%s%Creset %C(dim)%cr%Creset %C(auto)%d%Creset'
 confirmOnQuit: false
 promptToReturnFromSubprocess: false
-
 # Read/review-first keymap: Lazygit should not mutate repositories except when
 # explicitly editing a file/hunk in $EDITOR. Disable common write paths so the
 # TUI can be used safely as an inspector during agent workflows.
@@ -56,6 +47,7 @@ keybinding:
     undo: <disabled>
     redo: <disabled>
     openDiffTool: <disabled>
+    newWorktree: <disabled>
   files:
     commitChanges: <disabled>
     commitChangesWithoutHook: <disabled>
@@ -87,8 +79,6 @@ keybinding:
     setUpstream: <disabled>
     fetchRemote: <disabled>
     addForkRemote: <disabled>
-  worktrees:
-    viewWorktreeOptions: <disabled>
   commits:
     squashDown: <disabled>
     renameCommit: <disabled>
@@ -129,7 +119,6 @@ keybinding:
     bulkMenu: <disabled>
   commitMessage:
     commitMenu: <disabled>
-
 customCommands:
   - key: C
     context: global
@@ -140,11 +129,8 @@ customCommands:
         key: CommitArgs
         initialValue: "--english"
     command: >-
-      zsh -ic 'source ~/.config/zsh/config/99_local.zsh;
-      if [ -n "$1" ]; then commit "$1"; else commit; fi' --
-      {{.Form.CommitArgs | quote}}
+      zsh -ic 'source ~/.config/zsh/config/99_local.zsh; if [ -n "$1" ]; then commit "$1"; else commit; fi' -- {{.Form.CommitArgs | quote}}
     output: terminal
-
   - key: P
     context: global
     description: Push current branch
@@ -155,7 +141,6 @@ customCommands:
         key: ConfirmPush
     command: git push
     output: terminal
-
   - key: p
     context: global
     description: Pull current branch
@@ -166,19 +151,16 @@ customCommands:
         key: ConfirmPull
     command: git pull
     output: terminal
-
   - key: W
     context: global
     description: Review working tree with Hunk
     command: hunk diff --watch
     output: terminal
-
   - key: S
     context: global
     description: Review staged changes with Hunk
     command: hunk diff --staged --watch
     output: terminal
-
   - key: H
     context: commits, subCommits
     description: Review selected commit with Hunk
