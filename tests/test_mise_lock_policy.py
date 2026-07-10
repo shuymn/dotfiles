@@ -60,6 +60,10 @@ class VerifyLockTests(unittest.TestCase):
 
         self.assertEqual(result.checked_tools, 2)
 
+    def test_rejects_malformed_lock(self) -> None:
+        with self.assertRaises(LockPolicyError):
+            verify_lock(HEAD_CONFIG, "[[tools.claude")
+
 
 class PlanUpdateTests(unittest.TestCase):
     def test_returns_changed_tools_and_configured_platforms(self) -> None:
@@ -67,6 +71,12 @@ class PlanUpdateTests(unittest.TestCase):
 
         self.assertEqual(plan.changed_tools, ("claude",))
         self.assertEqual(plan.platforms, ("macos-arm64", "linux-x64"))
+
+    def test_rejects_tool_addition(self) -> None:
+        head_config = HEAD_CONFIG + '\n"--help" = "9.9.9"\n'
+
+        with self.assertRaisesRegex(LockPolicyError, "added or removed"):
+            plan_update(BASE_CONFIG, head_config)
 
 
 class VerifyCandidateTests(unittest.TestCase):
