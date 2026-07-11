@@ -40,7 +40,7 @@ hunk = "v0.17.0"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
 claude = "2.1.206"
-codex = "0.144.0"
+codex = "0.144.1"
 "npm:@earendil-works/pi-coding-agent" = "0.80.6"
 "npm:skills" = "1.5.15"
 "pipx:microsandbox" = "0.6.6"
