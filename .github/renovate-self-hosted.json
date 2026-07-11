@@ -72,9 +72,9 @@
     },
     {
       "customType": "regex",
-      "description": "Track mise codex version via npm (aqua/github-tags lacks releaseTimestamp)",
+      "description": "Track mise codex npm backend (native npm lookup lacks releaseTimestamp)",
       "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
-      "matchStrings": ["codex = \"(?<currentValue>[^\"]+)\""],
+      "matchStrings": ["\"npm:@openai/codex\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
       "datasourceTemplate": "npm",
       "depNameTemplate": "@openai/codex"
     },
@@ -134,7 +134,7 @@
     {
       "description": "Disable mise lookups tracked via regex managers",
       "matchManagers": ["mise"],
-      "matchDepNames": ["claude", "codex", "go", "python", "http:cursor-agent", "npm:@earendil-works/pi-coding-agent", "pipx:tavily-cli", "pipx:microsandbox"],
+      "matchDepNames": ["claude", "npm:@openai/codex", "go", "python", "http:cursor-agent", "npm:@earendil-works/pi-coding-agent", "pipx:tavily-cli", "pipx:microsandbox"],
       "enabled": false
     },
     {

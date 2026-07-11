@@ -125,7 +125,7 @@ lockfile に保存された options が config の options と一致すること
    （mise manager の `packageName` はリポジトリ名になることがあるため
    `matchPackageNames` ではマッチしない）。
    既存例: `go`（golang-version）、`python`（python-version）、
-   `claude`（npm: @anthropic-ai/claude-code）、`codex`（npm: @openai/codex）、
+   `claude`（npm: @anthropic-ai/claude-code）、`npm:@openai/codex`、
    `tavily-cli` / `microsandbox`（custom.pypi-json; native pipx/pypi lookup workaround）。
    automerge は datasource/manager 単位のルールに依存するため、必要なら
    "Automerge minor/patch for regex-managed mise tools" ルールにも追加する。
