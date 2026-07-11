@@ -14,7 +14,7 @@ NIX_ROLE ?=
 NIX_LOCAL_ENV := DOTFILES_NIX_LOCAL=$(NIX_LOCAL_CONFIG)
 CHEZMOI_TEMPLATE_ENV := $(if $(NIX_ROLE),DOTFILES_NIX_ROLE=$(NIX_ROLE),)
 NIX ?= nix
-MISE ?= mise
+MISE ?= $(NIX_CMD) run "$(NIX_LOCAL_FLAKE)\#mise" --
 NIX_FLAGS ?= --extra-experimental-features nix-command --extra-experimental-features flakes
 NIX_CMD := $(NIX) $(NIX_FLAGS)
 CHEZMOI_BOOTSTRAP ?= $(NIX_CMD) shell nixpkgs\#chezmoi -c chezmoi
