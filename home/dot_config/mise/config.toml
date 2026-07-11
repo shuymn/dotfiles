@@ -39,7 +39,7 @@ hunk = "v0.17.0"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
-claude = "2.1.206"
+claude = "2.1.207"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
 "npm:@openai/codex" = "0.144.1"
 "npm:@earendil-works/pi-coding-agent" = "0.80.6"
