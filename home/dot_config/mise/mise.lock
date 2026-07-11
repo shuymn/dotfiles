@@ -363,7 +363,7 @@ version = "0.144.1"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
-version = "1.5.15"
+version = "1.5.16"
 backend = "npm:skills"
 
 [[tools."pipx:microsandbox"]]
