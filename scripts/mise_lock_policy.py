@@ -236,6 +236,9 @@ def _verify_lock(config: dict[str, Any], lock: dict[str, Any]) -> LockValidation
     failures: list[str] = []
     checked = 0
 
+    for name in sorted(lock_tools.keys() - config_tools.keys()):
+        failures.append(f"unexpected lock entry: {name}")
+
     for name, config_value in config_tools.items():
         expected_versions = _versions(config_value)
         if not expected_versions:
@@ -254,6 +257,17 @@ def _verify_lock(config: dict[str, Any], lock: dict[str, Any]) -> LockValidation
         if not actual_versions:
             failures.append(f"invalid lock entry: {name} (expected {', '.join(expected_versions)})")
             continue
+
+        if ":" in name:
+            actual_backends = {
+                entry.get("backend")
+                for entry in entries
+                if isinstance(entry.get("backend"), str)
+            }
+            if actual_backends != {name}:
+                failures.append(
+                    f"backend mismatch: {name} lock={', '.join(sorted(actual_backends)) or 'missing'}"
+                )
 
         normalized_actual = {_normalize_version(version) for version in actual_versions}
         for expected in expected_versions:

@@ -63,6 +63,29 @@ class VerifyLockTests(unittest.TestCase):
         with self.assertRaises(LockPolicyError):
             verify_lock(HEAD_CONFIG, "[[tools.claude")
 
+    def test_rejects_unconfigured_lock_entry(self) -> None:
+        stale_lock = CANDIDATE_LOCK + """\
+
+[[tools.codex]]
+version = "0.144.1"
+backend = "aqua:openai/codex"
+"""
+
+        with self.assertRaisesRegex(LockPolicyError, "unexpected lock entry: codex"):
+            verify_lock(HEAD_CONFIG, stale_lock)
+
+    def test_rejects_backend_mismatch_for_explicit_backend(self) -> None:
+        config = HEAD_CONFIG + '\n"npm:@openai/codex" = "0.144.1"\n'
+        lock = CANDIDATE_LOCK + """\
+
+[[tools."npm:@openai/codex"]]
+version = "0.144.1"
+backend = "aqua:openai/codex"
+"""
+
+        with self.assertRaisesRegex(LockPolicyError, "backend mismatch"):
+            verify_lock(config, lock)
+
 
 class PlanUpdateTests(unittest.TestCase):
     def test_returns_changed_tools_and_configured_platforms(self) -> None:
