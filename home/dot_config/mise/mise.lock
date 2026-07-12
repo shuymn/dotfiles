@@ -108,6 +108,20 @@ checksum = "sha256:0a2fef273b0ff1238b8307add911714f92021d25b919fa3ec9b6b2e046bb2
 url = "https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-aarch64-apple-darwin.zip"
 url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/466368358"
 
+[[tools."github:babarot/gh-infra"]]
+version = "0.13.0"
+backend = "github:babarot/gh-infra"
+
+[tools."github:babarot/gh-infra"."platforms.linux-x64"]
+checksum = "sha256:46d236f9bc4352654b32213c1638a4451a343e9c37358428083d268f44593c27"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.13.0/gh-infra_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/400858037"
+
+[tools."github:babarot/gh-infra"."platforms.macos-arm64"]
+checksum = "sha256:bd40cc3ab679d95e1c23dc68f5e15214b873066e21500e63cf4c32d10c401460"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.13.0/gh-infra_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/400858046"
+
 [[tools."github:go-task/task"]]
 version = "v3.52.0"
 backend = "github:go-task/task"

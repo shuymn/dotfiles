@@ -66,6 +66,7 @@ in
     gitCredentialHelper.enable = false;
 
     settings = {
+      aliases.infra = ''!gh-infra "$@"'';
       git_protocol = "ssh";
       prompt = "enabled";
       pager = "hunk pager";
