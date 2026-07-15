@@ -260,6 +260,20 @@ url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact
 url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249963"
 provenance = "github-attestations"
 
+[[tools."github:tomasz-tomczyk/crit"]]
+version = "0.18.0"
+backend = "github:tomasz-tomczyk/crit"
+
+[tools."github:tomasz-tomczyk/crit"."platforms.linux-x64"]
+checksum = "sha256:f709483e1973d3f98b3839604f271e74eb118742082ba2132189930a7fae05e4"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.18.0/crit-linux-amd64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/472507598"
+
+[tools."github:tomasz-tomczyk/crit"."platforms.macos-arm64"]
+checksum = "sha256:b21bfb5a4ea840d2119bd1e2ccf32d83839816df164ee215cfeebf9557db7814"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.18.0/crit-darwin-arm64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/472507595"
+
 [[tools."github:xdevplatform/xurl"]]
 version = "1.2.2"
 backend = "github:xdevplatform/xurl"
