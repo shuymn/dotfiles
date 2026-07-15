@@ -310,22 +310,6 @@ url = "https://downloads.cursor.com/lab/2026.07.09-a3815c0/linux/x64/agent-cli-p
 [tools."http:cursor-agent"."platforms.macos-arm64"]
 url = "https://downloads.cursor.com/lab/2026.07.09-a3815c0/darwin/arm64/agent-cli-package.tar.gz"
 
-[[tools.hunk]]
-version = "0.17.0"
-backend = "github:modem-dev/hunk"
-
-[tools.hunk."platforms.linux-x64"]
-checksum = "sha256:0c626f7a6687a9826304ea1df696da5d49edf84271eccdf57ffff5834289e0e2"
-url = "https://github.com/modem-dev/hunk/releases/download/v0.17.0/hunkdiff-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/468967650"
-provenance = "github-attestations"
-
-[tools.hunk."platforms.macos-arm64"]
-checksum = "sha256:700221669a51b78c835985b49ca67e5a4bbaafdb434a6ca03f9d262f7a82693e"
-url = "https://github.com/modem-dev/hunk/releases/download/v0.17.0/hunkdiff-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/468967653"
-provenance = "github-attestations"
-
 [[tools.lazygit]]
 version = "0.63.0"
 backend = "aqua:jesseduffield/lazygit"

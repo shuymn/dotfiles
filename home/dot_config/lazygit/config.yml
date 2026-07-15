@@ -11,11 +11,12 @@ gui:
   expandFocusedSidePanel: true
   expandedSidePanelWeight: 2
 git:
-  # Use Hunk as the primary diff pager because it is optimized for reviewing
-  # agent-authored changesets. Keep Lazygit's built-in pager one keystroke away
-  # with `|` for cases where the plain view is faster.
+  # Keep routine diff navigation fast with Delta. Cycle to Lazygit's built-in
+  # view with `|` when plain output is preferable.
   pagers:
-    - pager: hunk pager --transparent-bg
+    - pager: >-
+        delta --dark --paging=never --line-numbers --hyperlinks
+        --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
     - {}
   # Agent workflows often rewrite local history during cleanup. Require force
   # pushes to happen explicitly outside the TUI via a reviewed command/alias.
@@ -150,19 +151,4 @@ customCommands:
         body: Run git pull for the current branch?
         key: ConfirmPull
     command: git pull
-    output: terminal
-  - key: W
-    context: global
-    description: Review working tree with Hunk
-    command: hunk diff --watch
-    output: terminal
-  - key: S
-    context: global
-    description: Review staged changes with Hunk
-    command: hunk diff --staged --watch
-    output: terminal
-  - key: H
-    context: commits, subCommits
-    description: Review selected commit with Hunk
-    command: hunk show {{.SelectedCommit.Hash}}
     output: terminal

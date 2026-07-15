@@ -22,6 +22,8 @@ in
       agent-browser
       bat
       biome
+      delta
+      difftastic
       eza
       fd
       fzf
@@ -69,7 +71,7 @@ in
       aliases.infra = ''!gh-infra "$@"'';
       git_protocol = "ssh";
       prompt = "enabled";
-      pager = "hunk pager";
+      pager = "delta";
     };
   };
 
@@ -125,7 +127,7 @@ in
       };
 
       pager = {
-        diff = "hunk pager";
+        diff = "delta --paging=never";
       };
 
       smartFilteringAtLaunch = true;
