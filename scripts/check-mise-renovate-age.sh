@@ -11,13 +11,20 @@ repo=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 checker="$script_dir/check-mise-renovate-age.py"
 
 config=${1:-"$repo/home/dot_config/mise/config.toml"}
-renovate_config=${RENOVATE_CONFIG:-"$repo/.github/renovate-self-hosted.json"}
-renovate_workflow=${RENOVATE_WORKFLOW:-"$repo/.github/workflows/renovate.yml"}
+renovate_config=${RENOVATE_CONFIG:-"$repo/.github/renovate.json"}
+renovate_version_file=${RENOVATE_VERSION_FILE:-"$repo/.github/renovate-version"}
 renovate_ref=${RENOVATE_REF:-}
 
 if [ -z "$renovate_ref" ]; then
-  renovate_ref=$(awk -F: '/renovate-version:/ { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit }' "$renovate_workflow" 2>/dev/null || true)
-  renovate_ref=${renovate_ref:-main}
+  if [ ! -f "$renovate_version_file" ]; then
+    echo "Renovate version file not found: $renovate_version_file" >&2
+    exit 2
+  fi
+  renovate_ref=$(sed -n '1p' "$renovate_version_file")
+  if ! printf '%s\n' "$renovate_ref" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo "invalid Renovate version in $renovate_version_file: $renovate_ref" >&2
+    exit 2
+  fi
 fi
 base="https://raw.githubusercontent.com/renovatebot/renovate/$renovate_ref"
 

@@ -1,4 +1,151 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabled": false
+  "extends": ["github>shuymn/github-actions#main"],
+  "platformAutomerge": true,
+  "minimumReleaseAge": "1 days",
+  "lockFileMaintenance": {
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null,
+    "prCreation": "immediate"
+  },
+  "customDatasources": {
+    "cursor-agent": {
+      "defaultRegistryUrlTemplate": "https://formulae.brew.sh/api/cask/cursor-cli.json",
+      "format": "json",
+      "transformTemplates": [
+        "{ \"releases\": [{ \"version\": version, \"releaseTimestamp\": $substring(version, 0, 4) & '-' & $substring(version, 5, 2) & '-' & $substring(version, 8, 2) & 'T00:00:00Z' }] }"
+      ]
+    },
+    "pypi-json": {
+      "defaultRegistryUrlTemplate": "https://pypi.org/pypi/{{packageName}}/json",
+      "format": "json",
+      "transformTemplates": [
+        "{ \"releases\": $append([], $map($filter($keys(releases), function($v) { $exists($lookup(releases, $v)[0].upload_time) }), function($v) { { \"version\": $v, \"releaseTimestamp\": $lookup(releases, $v)[0].upload_time } })), \"homepage\": info.project_urls.Homepage, \"sourceUrl\": info.project_urls.Repository }"
+      ]
+    }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the Renovate compatibility version",
+      "managerFilePatterns": ["/^\\.github\\/renovate-version$/"],
+      "matchStrings": ["(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "renovate"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Nix packages annotated with renovate comments",
+      "managerFilePatterns": ["/^nix\\/packages\\/.*\\.nix$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\";"
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise go version via golang-version (github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\\ngo = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "golang-version",
+      "depNameTemplate": "go"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise python version via python-version (github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\\npython = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "python-version",
+      "depNameTemplate": "python"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise claude version via npm (aqua/github-tags lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["claude = \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@anthropic-ai/claude-code"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise codex npm backend (native npm lookup lacks releaseTimestamp)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"npm:@openai/codex\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@openai/codex"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise pi coding agent version via npm (native mise artifact update drops scoped npm lock entry)",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"npm:@earendil-works/pi-coding-agent\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@earendil-works/pi-coding-agent"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise tavily-cli version via PyPI JSON API",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"pipx:tavily-cli\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "custom.pypi-json",
+      "depNameTemplate": "tavily-cli",
+      "versioningTemplate": "pep440"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise microsandbox version via PyPI JSON API",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"pipx:microsandbox\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "custom.pypi-json",
+      "depNameTemplate": "microsandbox",
+      "versioningTemplate": "pep440"
+    },
+    {
+      "customType": "regex",
+      "description": "Track mise cursor-agent version via Homebrew cask API",
+      "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
+      "matchStrings": ["\"http:cursor-agent\"\\s*=\\s*\\{[^}]*version\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "custom.cursor-agent",
+      "depNameTemplate": "cursor-agent",
+      "versioningTemplate": "loose"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Create mise config PRs before PR-only lock reconciliation",
+      "matchFileNames": ["home/dot_config/mise/config.toml"],
+      "prCreation": "immediate"
+    },
+    {
+      "description": "Do not let Renovate update mise.lock natively",
+      "matchManagers": ["mise"],
+      "skipArtifactsUpdate": true
+    },
+    {
+      "description": "Automerge mise minor/patch updates",
+      "matchManagers": ["mise"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Disable mise lookups tracked via regex managers",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["claude", "npm:@openai/codex", "go", "python", "http:cursor-agent", "npm:@earendil-works/pi-coding-agent", "pipx:tavily-cli", "pipx:microsandbox"],
+      "enabled": false
+    },
+    {
+      "description": "Automerge minor/patch for regex-managed mise tools",
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["@anthropic-ai/claude-code", "@openai/codex", "@earendil-works/pi-coding-agent", "cursor-agent", "tavily-cli", "microsandbox"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Use the repository-wide one-day stability period for npm updates",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "1 days"
+    }
+  ],
+  "nix": {
+    "enabled": true
+  }
 }

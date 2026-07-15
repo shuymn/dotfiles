@@ -9,7 +9,8 @@
 （[Renovate 42 リリースノート](https://github.com/renovatebot/renovate/releases/tag/42.0.0)）。
 
 mise manager では backend や tool の形によって datasource が変わる。
-Renovate 43.212.4 では `github-tags` は timestamp を返すため安全だが、
+このリポジトリが `.github/renovate-version` で互換性検証する Renovate では
+`github-tags` は timestamp を返すため安全だが、
 `java-version` / `git-tags` / `git-refs` など timestamp のない datasource や、
 Renovate が unsupported と判断する URL 形式に落ちる tool は Dependency Dashboard の
 "Pending Status Checks" に最新バージョンが載ったまま **永久に PR が作られない**。
@@ -24,11 +25,11 @@ Renovate の解決の要点（`lib/modules/manager/mise/`）:
    `cargo:https://...` は `tag:` なら `git-tags`、`branch:` / `rev:` なら `git-refs`。
    `pipx:git+...` の非 GitHub URL は `git-refs`。
    `spm:` の非 GitHub URL は Renovate では unsupported。
-4. plain `pipx:` の PyPI package は通常 `pypi` datasource になるが、Renovate 43.212.4
-   では `info.home_page = null` を返す package で JSON API parse → simple fallback が壊れ、
-   `pipx:tavily-cli` と `pipx:microsandbox` は `no-result` になることがある。
-   このリポジトリでは `custom.pypi-json` + regex custom manager に逃がし、mise manager
-   側の lookup を disable して回避している。
+4. plain `pipx:` の PyPI package は通常 `pypi` datasource になる。過去に
+   `info.home_page = null` を返す package で JSON API parse → simple fallback が壊れ、
+   `pipx:tavily-cli` と `pipx:microsandbox` が `no-result` になったため、このリポジトリでは
+   `custom.pypi-json` + regex custom manager を維持し、mise manager 側の lookup を disable
+   している。
 
 ## 検知
 
@@ -38,11 +39,17 @@ Renovate の解決の要点（`lib/modules/manager/mise/`）:
 make check-mise-renovate
 ```
 
-`scripts/check-mise-renovate-age.sh` は `.github/workflows/renovate.yml` の
-`renovate-version` と同じ Renovate ref を使い、top-level `[tools]` と
+`scripts/check-mise-renovate-age.sh` は `.github/renovate-version` で pin した
+Renovate ref を使い、top-level `[tools]` と
 `tasks.*.tools` の解決経路を分類する。timestamp のない datasource、unsupported path、
 または未分類の `WARN` があると非ゼロ終了する。regex custom manager で追跡し、
 mise manager 側の lookup も disable 済みの tool は `OK` になる。
+
+Hosted Renovate の実行バージョン自体は repository から固定できず、App 側の更新時期によって
+OSS 最新版から遅れることがある。`.github/renovate-version` は repo config と resolver の
+再現可能な互換性検証用 pin であり、実際の Hosted job のバージョンは Mend Developer Portal の
+job log で確認する。`.github/workflows/renovate-validate.yml` は同じ pin で repository config を
+`--no-global` 検証し、続けて `make check-mise-renovate` を実行する。
 
 このリポジトリでは Renovate の mise native artifact update を
 `skipArtifactsUpdate: true` で無効化し、Renovate は
@@ -58,8 +65,8 @@ worktreeから読み、PR側からはversion-onlyと確認する `config.toml` �
 Home Manager が使う Nix 側の mise と CI の lockfile 生成用 mise は同じ `miseFor` 定義に従う。
 regex custom manager だけで version を更新したケースや、一部 backend で
 native artifact update が取りこぼすケースでも lockfile が stale のまま残らないようにしつつ、
-Renovate に任意 command 実行権限を持たせない。この境界は self-hosted Renovate 固有ではないため、
-Mend-hosted Renovate へ移行しても維持できる。
+Renovate に任意 command 実行権限を持たせない。この境界により Hosted Renovate でも
+同じ lockfile 更新契約を維持する。
 
 GitHub Ruleset の required status check は `automerge-gate/all-passed` だけにする。
 `.github/workflows/automerge-gate.yml` は `pkgdeps/automerge-gate` の private mode で
@@ -81,16 +88,16 @@ version-only config diff、candidate の対象 lock section、TOML、platform、
 ref 更新は non-force なので、検証後に Renovate が branch を更新した場合は失敗して次の run に任せる。
 privileged job は PR の checkout、Nix、mise、PR 内 script を実行しない。
 
-reconciler は self-hosted Renovate が使う既存 maintainer App を共有するが、発行する token は現在の
+reconciler は Hosted Renovate App とは別の既存 maintainer App を使い、発行する token は現在の
 repository の `Contents: write` だけに縮小する。App token の push は新しい
 `pull_request.synchronize` を発火し、candidate workflow、通常 CI、
 automerge gate が新しい HEAD を検証する。reconciler は PR ごとの autofix 回数を記録せず HEAD 単位で
 冪等に動くため、Renovate が branch を force-update して過去の lock commit を除いても再収束する。
 
 maintainer App の Client ID は repository variable `RENOVATE_APP_CLIENT_ID`、private key は
-repository secret `RENOVATE_APP_PRIVATE_KEY` で共有する。Mend-hosted Renovate へ移行するときも、
-hosted App のtokenへ依存せず、このcustom Appをlock maintainerとして残す。self-hosted Renovate用の
-広い権限は将来不要になった時点でAppから削除できる。
+repository secret `RENOVATE_APP_PRIVATE_KEY` で共有する。Hosted App の token へ依存せず、
+この custom App を lock maintainer として残す。self-hosted Renovate で必要だった広い権限は
+App 設定から削除でき、lock maintainer としては `Contents: Read and write` だけでよい。
 
 `mise lock` 後は `scripts/check-mise-lock-consistency.sh` で top-level `[tools]` の
 config version と lockfile version が一致していることも確認する。mise.lock では
@@ -119,7 +126,7 @@ lockfile に保存された options が config の options と一致すること
    `github:` backend を使う。インストール元も変わるため `mise install` で動作確認する。
 2. **regex custom manager で別 datasource を参照**（インストール方法を変えずに、
    mise manager より適した datasource を使う場合や timestamp のない経路を回避する場合）:
-   `.github/renovate-self-hosted.json` に regex custom manager を追加し、
+   `.github/renovate.json` に regex custom manager を追加し、
    `packageRules` の "Disable mise lookups tracked via regex managers" ルールの
    `matchDepNames` に tool 名を追加して mise manager 側の検出を止める
    （mise manager の `packageName` はリポジトリ名になることがあるため
