@@ -19,7 +19,6 @@ in
     with pkgs;
     [
       _1password-cli
-      agent-browser
       bat
       biome
       delta
