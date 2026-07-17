@@ -13,18 +13,6 @@ default-root-container-orientation = "auto"
 automatically-unhide-macos-hidden-apps = false
 on-focused-monitor-changed = [
   "move-mouse monitor-lazy-center",
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.monitor.changed'",
-]
-on-focus-changed = [
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.focus.changed'",
-]
-on-mode-changed = [
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.mode.changed'"
-]
-exec-on-workspace-change = [
-  "/bin/sh",
-  "-c",
-  "SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.workspace.changed",
 ]
 
 [exec]
@@ -36,7 +24,7 @@ PATH = "/run/current-system/sw/bin:/opt/homebrew/bin:/opt/homebrew/sbin:${PATH}"
 [gaps]
 inner.horizontal = 10
 inner.vertical = 10
-outer.top = 42
+outer.top = 10
 outer.right = 10
 outer.bottom = 10
 outer.left = 10
@@ -104,22 +92,10 @@ alt-s = 'exec-and-forget aerospace workspace "$(aerospace list-workspaces --moni
 alt-tab = "workspace-back-and-forth"
 
 # Layouts
-alt-slash = [
-  "layout tiles horizontal vertical",
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
-]
-alt-comma = [
-  "layout accordion horizontal vertical",
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
-]
-alt-shift-space = [
-  "layout floating tiling",
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
-]
-alt-f = [
-  "fullscreen",
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'"
-]
+alt-slash = "layout tiles horizontal vertical"
+alt-comma = "layout accordion horizontal vertical"
+alt-shift-space = "layout floating tiling"
+alt-f = "fullscreen"
 
 # Modes
 alt-shift-semicolon = "mode service"
@@ -130,7 +106,6 @@ esc = "mode main"
 r = ["flatten-workspace-tree", "mode main"]
 f = [
   "layout floating tiling",
-  "exec-and-forget /bin/sh -c 'SPINDLE_SOURCE=aerospace \"$SPINDLE_EMIT\" aerospace.layout.changed'",
   "mode main"
 ]
 
