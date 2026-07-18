@@ -33,7 +33,7 @@ lefthook = "2.1.10"
 "github:shuymn/kastty" = "0.2.1"
 "github:zellij-org/zellij" = "0.44.3"
 "github:shuymn/pommitlint" = "2.0.1"
-"github:xdevplatform/xurl" = "1.2.2"
+"github:xdevplatform/xurl" = "v1.2.3"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
 "github:suzuki-shunsuke/pinact" = "v4.1.0"
 
