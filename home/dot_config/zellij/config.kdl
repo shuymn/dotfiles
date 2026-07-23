@@ -48,7 +48,7 @@ keybinds clear-defaults=true {
         bind "Ctrl b" { Write 2; SwitchToMode "normal"; }
         bind "c" {
             NewTab {
-                layout "zj-herd"
+                layout "compact-home"
             }
             SwitchToMode "normal"
         }
@@ -156,7 +156,7 @@ default_mode "normal"
 // Default: "default"
 //
 // default_layout "compact"
-default_layout "zj-herd"
+default_layout "compact-home"
 
 // The folder in which Zellij will look for layouts
 // (Requires restart)
