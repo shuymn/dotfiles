@@ -8,6 +8,7 @@
       "google-chrome"
       "karabiner-elements"
       "linearmouse"
+      "paseo"
       "raycast"
       "slack"
       "spotify"
