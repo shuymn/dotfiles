@@ -9,6 +9,10 @@ if has "lazygit"; then
   alias lg="lazygit"
 fi
 
+if has "zellij"; then
+  alias z="zellij"
+fi
+
 if has "eza"; then
   alias ls='eza --classify --group-directories-first --icons'
   alias ll='eza --classify --group-directories-first --icons --long --header --git'
