@@ -261,18 +261,18 @@ url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/4
 provenance = "github-attestations"
 
 [[tools."github:tomasz-tomczyk/crit"]]
-version = "0.18.0"
+version = "0.18.1"
 backend = "github:tomasz-tomczyk/crit"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.linux-x64"]
-checksum = "sha256:f709483e1973d3f98b3839604f271e74eb118742082ba2132189930a7fae05e4"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.18.0/crit-linux-amd64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/472507598"
+checksum = "sha256:f977bdc16527bd8619e6f7d18b72cd9865513581eb005d5ace9f287156efc225"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.18.1/crit-linux-amd64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/480435206"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.macos-arm64"]
-checksum = "sha256:b21bfb5a4ea840d2119bd1e2ccf32d83839816df164ee215cfeebf9557db7814"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.18.0/crit-darwin-arm64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/472507595"
+checksum = "sha256:9fe1e341108a50e7f8210f833565468b2c733477a4e3e302a91bc5803a51bbda"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.18.1/crit-darwin-arm64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/480435210"
 
 [[tools."github:xdevplatform/xurl"]]
 version = "1.2.2"
