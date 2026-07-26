@@ -210,10 +210,11 @@ jobs:
             --arg repository "$GITHUB_REPOSITORY" \
             --arg branch "$EXPECTED_HEAD_REF" \
             --arg head "$EXPECTED_HEAD_SHA" \
-            --arg body "Source-PR: #$PR_NUMBER\nSource-Head: $EXPECTED_HEAD_SHA" \
+            --arg pr_number "$PR_NUMBER" \
             --rawfile candidate "$candidate" \
-            '{query: $query, variables: {input: {branch: {repositoryNameWithOwner: $repository, branchName: $branch}, expectedHeadOid: $head, message: {headline: "Update mise.lock", body: $body}, fileChanges: {additions: [{path: "home/dot_config/mise/mise.lock", contents: ($candidate | @base64)}]}}}}' \
+            '{query: $query, variables: {input: {branch: {repositoryNameWithOwner: $repository, branchName: $branch}, expectedHeadOid: $head, message: {headline: "Update mise.lock", body: ("Source-PR: #" + $pr_number + "\nSource-Head: " + $head)}, fileChanges: {additions: [{path: "home/dot_config/mise/mise.lock", contents: ($candidate | @base64)}]}}}}' \
             >"$RUNNER_TEMP/create-mise-lock-commit.json"
+          test "$(jq -r '.variables.input.message.body | split("\n") | length' "$RUNNER_TEMP/create-mise-lock-commit.json")" = 2
           result=$(gh api graphql --input "$RUNNER_TEMP/create-mise-lock-commit.json")
           commit=$(printf '%s' "$result" | jq -r '.data.createCommitOnBranch.commit.oid')
           ref_target=$(printf '%s' "$result" | jq -r '.data.createCommitOnBranch.ref.target.oid')
