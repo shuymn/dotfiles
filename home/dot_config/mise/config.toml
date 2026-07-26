@@ -18,7 +18,7 @@ uv = "0.11.28"
 
 actionlint = "1.7.12"
 betterleaks = "v1.6.1"
-lazygit = "0.63.0"
+lazygit = "0.63.1"
 lefthook = "2.1.10"
 "github:ast-grep/ast-grep" = "0.44.1"
 "github:babarot/gh-infra" = "v0.13.0"
