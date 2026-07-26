@@ -325,18 +325,18 @@ url = "https://downloads.cursor.com/lab/2026.07.09-a3815c0/linux/x64/agent-cli-p
 url = "https://downloads.cursor.com/lab/2026.07.09-a3815c0/darwin/arm64/agent-cli-package.tar.gz"
 
 [[tools.lazygit]]
-version = "0.63.0"
+version = "0.63.1"
 backend = "aqua:jesseduffield/lazygit"
 
 [tools.lazygit."platforms.linux-x64"]
-checksum = "sha256:cf5cfa3e116d7775f3600a51ec1d9ce7ba554a08b9566c7c2da83cb0023efabf"
-url = "https://github.com/jesseduffield/lazygit/releases/download/v0.63.0/lazygit_0.63.0_linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/466324406"
+checksum = "sha256:8e033bc78c8e192dee9510e951f6c9e154289b7198d22c924ed1d0a951b0dac1"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.63.1/lazygit_0.63.1_linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/477867706"
 
 [tools.lazygit."platforms.macos-arm64"]
-checksum = "sha256:60e6bf29a1501a57a9d078538aa576a1b4db45779db2e3dd6931a7207f560a9c"
-url = "https://github.com/jesseduffield/lazygit/releases/download/v0.63.0/lazygit_0.63.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/466324396"
+checksum = "sha256:b963e9d0a1f4649708c594ac6c999cdcd435f8e679e220e78e87c4642badedd6"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.63.1/lazygit_0.63.1_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/477867701"
 
 [[tools.lefthook]]
 version = "2.1.10"
