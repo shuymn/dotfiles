@@ -2,6 +2,9 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>shuymn/github-actions#main"],
   "platformAutomerge": true,
+  "gitIgnoredAuthors": [
+    "290862721+dotfiles-maintainer[bot]@users.noreply.github.com"
+  ],
   "minimumReleaseAge": "1 days",
   "lockFileMaintenance": {
     "schedule": ["at any time"],
