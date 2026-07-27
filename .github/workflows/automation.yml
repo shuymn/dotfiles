@@ -9,6 +9,7 @@ on:
       - .github/workflows/mise-lock-candidate.yml
       - .github/workflows/mise-lock-reconcile.yml
       - scripts/*.py
+      - scripts/gh-api-retry.sh
       - tests/*.py
   pull_request:
     branches:
@@ -18,6 +19,7 @@ on:
       - .github/workflows/mise-lock-candidate.yml
       - .github/workflows/mise-lock-reconcile.yml
       - scripts/*.py
+      - scripts/gh-api-retry.sh
       - tests/*.py
 
 jobs:
