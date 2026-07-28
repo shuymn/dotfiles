@@ -17,7 +17,7 @@ terraform = "1.15.8"
 uv = "0.11.32"
 
 actionlint = "1.7.12"
-betterleaks = "v1.7.0"
+betterleaks = "v1.7.1"
 lazygit = "0.63.1"
 lefthook = "2.1.10"
 "github:ast-grep/ast-grep" = "0.45.0"
