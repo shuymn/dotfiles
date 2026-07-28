@@ -33,12 +33,16 @@ def check_renovate_config(config_path: Path) -> int:
         )
 
     skip_artifacts_update = False
+    lock_file_maintenance_disabled = False
     for rule in config.get("packageRules", []) or []:
         managers = rule.get("matchManagers") or []
         commands = "\n".join((rule.get("postUpgradeTasks") or {}).get("commands") or [])
         file_names = rule.get("matchFileNames") or []
-        if "mise" in managers and rule.get("skipArtifactsUpdate") is True:
-            skip_artifacts_update = True
+        if "mise" in managers:
+            if rule.get("skipArtifactsUpdate") is True:
+                skip_artifacts_update = True
+            if (rule.get("lockFileMaintenance") or {}).get("enabled") is False:
+                lock_file_maintenance_disabled = True
         if rule.get("postUpgradeTasks") and (
             "mise lock" in commands or "home/dot_config/mise/config.toml" in file_names
         ):
@@ -46,6 +50,10 @@ def check_renovate_config(config_path: Path) -> int:
 
     if not skip_artifacts_update:
         failures.append("Renovate mise manager must keep skipArtifactsUpdate=true")
+    if not lock_file_maintenance_disabled:
+        failures.append(
+            "Renovate mise manager must keep lockFileMaintenance.enabled=false"
+        )
 
     if failures:
         sys.stderr.write("Renovate/mise lock ownership check failed:\n")

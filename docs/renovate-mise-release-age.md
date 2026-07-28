@@ -52,8 +52,11 @@ job log で確認する。`.github/workflows/renovate-validate.yml` は同じ pi
 `--no-global` 検証し、続けて `make check-mise-renovate` を実行する。
 
 このリポジトリでは Renovate の mise native artifact update を
-`skipArtifactsUpdate: true` で無効化し、Renovate は
-`home/dot_config/mise/config.toml` の version bump だけを担当する。lockfile 更新は
+`skipArtifactsUpdate: true` で無効化し、mise manager の定期 lock maintenance も
+`lockFileMaintenance.enabled: false` で対象外にする。複数 manager をまとめた
+maintenance branch では、一部 manager の `skipArtifactsUpdate` だけでは artifact 更新を
+抑止できないためである。Renovate は
+`home/dot_config/mise/config.toml` の version bump だけを担当し、lockfile 更新は
 Renovate の実行場所から分離した GitHub-native reconciler が所有する。
 `.github/workflows/mise-lock-candidate.yml` は PR 上で read-only に動き、
 `scripts/update-mise-lock-for-changed-tools.py` が変更された既存 tool だけに対して
