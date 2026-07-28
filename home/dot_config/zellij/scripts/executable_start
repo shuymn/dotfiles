@@ -9,4 +9,9 @@ if ! command -v "$ZELLIJ_BIN" >/dev/null 2>&1; then
   exit 127
 fi
 
+# session_serialization=false prevents new snapshots but does not remove stale
+# resurrectable sessions. Delete only an inactive snapshot before attaching;
+# delete-session refuses to touch an active session without --force.
+"$ZELLIJ_BIN" delete-session "$ZELLIJ_SESSION" >/dev/null 2>&1 || true
+
 exec "$ZELLIJ_BIN" attach --create "$ZELLIJ_SESSION"
