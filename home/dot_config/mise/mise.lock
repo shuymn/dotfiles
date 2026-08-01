@@ -383,7 +383,7 @@ version = "0.6.7"
 backend = "pipx:microsandbox"
 
 [[tools."pipx:tavily-cli"]]
-version = "0.1.5"
+version = "0.1.6"
 backend = "pipx:tavily-cli"
 
 [[tools.python]]
