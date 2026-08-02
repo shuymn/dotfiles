@@ -368,7 +368,7 @@ checksum = "sha256:eb02f7fab96d3d67de40c5ec8566096fcb4c2026728787683ae5a97eb612b
 url = "https://nodejs.org/dist/v24.18.1/node-v24.18.1-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "0.82.1"
+version = "0.83.0"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
