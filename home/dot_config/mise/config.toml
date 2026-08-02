@@ -41,7 +41,7 @@ claude = "2.1.220"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
 "npm:@openai/codex" = "0.146.0"
 "npm:@earendil-works/pi-coding-agent" = "0.83.0"
-"npm:skills" = "1.5.20"
+"npm:skills" = "1.5.21"
 "pipx:microsandbox" = "0.6.8"
 "pipx:tavily-cli" = "0.1.6"
 
