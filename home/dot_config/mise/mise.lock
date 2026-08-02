@@ -31,19 +31,19 @@ url = "https://github.com/k1LoW/mo/releases/download/v1.6.6/mo_v1.6.6_darwin_arm
 url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/486016312"
 
 [[tools.betterleaks]]
-version = "v1.7.1"
+version = "v1.7.3"
 backend = "aqua:betterleaks/betterleaks"
 
 [tools.betterleaks."platforms.linux-x64"]
-checksum = "sha256:48d9ae267b46677c9943cf9291bed682ed7b37b5b2c6ffbdea47a155495e5dcc"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.7.1/betterleaks_1.7.1_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/491711509"
+checksum = "sha256:9d2ed6fc387bc1c3f95557d5539077b1ce422f0db5ec38db5f14a141ad2947bf"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.7.3/betterleaks_1.7.3_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/496917600"
 provenance = "cosign"
 
 [tools.betterleaks."platforms.macos-arm64"]
-checksum = "sha256:2c75082322bacc78763a725326b1bf7f013a2e46ac5696786b2c0bf49e545a34"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.7.1/betterleaks_1.7.1_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/491711494"
+checksum = "sha256:068449bf665a07d17389a38ddee749be7d5484254e9262018e138e94b43f10c0"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.7.3/betterleaks_1.7.3_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/496917587"
 provenance = "cosign"
 
 [[tools.bun]]
