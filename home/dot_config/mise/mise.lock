@@ -414,17 +414,17 @@ checksum = "sha256:f210110c5698b94d803a7a63cdb0251b5455c150841478808e2bbb343f95e
 url = "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_darwin_arm64.zip"
 
 [[tools.uv]]
-version = "0.12.1"
+version = "0.12.2"
 backend = "aqua:astral-sh/uv"
 
 [tools.uv."platforms.linux-x64"]
-checksum = "sha256:47823f814693bab8623308341369190de30b5c621eec5b1ee20352eae8c7982c"
-url = "https://github.com/astral-sh/uv/releases/download/0.12.1/uv-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/497097157"
+checksum = "sha256:2dbe8209c9592f6d1009b8565f4bf29813427907bee2236023c013101ede343f"
+url = "https://github.com/astral-sh/uv/releases/download/0.12.2/uv-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/502996593"
 provenance = "github-attestations"
 
 [tools.uv."platforms.macos-arm64"]
-checksum = "sha256:77d2906988e8074fd43f2f329ec452ebbf9b0c257ba1c66451c71de70a6baf42"
-url = "https://github.com/astral-sh/uv/releases/download/0.12.1/uv-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/497097062"
+checksum = "sha256:fa909fea3bc06f460db79017030a221fdbc43ec4478f089cb554d8335c090817"
+url = "https://github.com/astral-sh/uv/releases/download/0.12.2/uv-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/502996487"
 provenance = "github-attestations"
