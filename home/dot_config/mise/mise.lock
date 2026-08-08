@@ -95,18 +95,18 @@ url = "https://github.com/Songmu/maltmill/releases/download/v1.5.0/maltmill_v1.5
 url_api = "https://api.github.com/repos/Songmu/maltmill/releases/assets/367631473"
 
 [[tools."github:ast-grep/ast-grep"]]
-version = "0.45.0"
+version = "0.45.1"
 backend = "github:ast-grep/ast-grep"
 
 [tools."github:ast-grep/ast-grep"."platforms.linux-x64"]
-checksum = "sha256:78931ae35ebac33d9a72b3aecea3e3d62d6e5b0b718ac8bbedfbe69d68421e41"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.45.0/app-x86_64-unknown-linux-gnu.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/487374029"
+checksum = "sha256:76fb6555be6734fb5057dba8d2fb756430f374bb9e1af694cf1ce00e13238d63"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.45.1/app-x86_64-unknown-linux-gnu.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/505305291"
 
 [tools."github:ast-grep/ast-grep"."platforms.macos-arm64"]
-checksum = "sha256:ec2e3680f4f84c68b48420bcca01d21389787c7318b52083dde6f46ac12ad946"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.45.0/app-aarch64-apple-darwin.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/487376083"
+checksum = "sha256:6c761afbdc072a7a9006d0dc5c49b3247fef195b8bebe675b4aa385ff872d9c3"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.45.1/app-aarch64-apple-darwin.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/505305714"
 
 [[tools."github:babarot/gh-infra"]]
 version = "0.13.0"
