@@ -71,18 +71,18 @@ checksum = "sha256:d8b96221828ad6f97ac7ac0ab7e95872341af763001e8803e8267652c2652
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.235"
+version = "2.1.236"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:22c0c8a3fe6cc592eb5368b2bd6fea1b66bce0e915b853fa12841907bee348e8"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.235/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/519746739"
+checksum = "sha256:5f8e77dd54b2495744dd27a2abb97ad4832fc183c4c9bd7fd75b0010307c4d35"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.236/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/521213094"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:d1254b3f786b71e619d20dd831e35678ce0b3bbc16ece57db6fa8ccb90c53349"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.235/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/519746675"
+checksum = "sha256:6c0b19923fc44e708aae68aea7bd56a45e2e7b2386e16e7a467c5f9d100b3f84"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.236/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/521213028"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
