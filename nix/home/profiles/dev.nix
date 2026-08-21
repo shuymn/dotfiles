@@ -27,6 +27,7 @@ in
       fd
       fzf
       ghq
+      gh-stack
       glimpseui
       gnused
       golangci-lint
@@ -68,6 +69,7 @@ in
 
     settings = {
       aliases.infra = ''!gh-infra "$@"'';
+      aliases.stack = ''!gh-stack "$@"'';
       git_protocol = "ssh";
       prompt = "enabled";
       pager = "delta";
