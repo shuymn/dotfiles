@@ -13,11 +13,10 @@ gui:
 git:
   # Keep routine diff navigation fast with Delta. Cycle to Lazygit's built-in
   # view with `|` when plain output is preferable.
-  pagers:
-    - pager: >-
-        delta --dark --paging=never --line-numbers --hyperlinks
-        --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
-    - {}
+  diffRenderers:
+    - command: >-
+        delta --dark --paging=never --line-numbers --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+    - type: rawGit
   # Agent workflows often rewrite local history during cleanup. Require force
   # pushes to happen explicitly outside the TUI via a reviewed command/alias.
   disableForcePushing: true
