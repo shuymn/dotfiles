@@ -1,8 +1,8 @@
 ---
-name: sonnet-worker
+name: opus-worker
 description: Implements and verifies bounded tasks delegated by an orchestrator
-model: sonnet
-effort: medium
+model: opus
+effort: low
 maxTurns: 12
 ---
 
