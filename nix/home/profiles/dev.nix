@@ -19,6 +19,7 @@ in
     with pkgs;
     [
       _1password-cli
+      awscli2
       bat
       biome
       delta
@@ -33,6 +34,7 @@ in
       golangci-lint
       gotools
       govulncheck
+      granted
       jq
       nixfmt
       pre-commit
