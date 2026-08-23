@@ -22,6 +22,7 @@ These are defaults for coding tasks. More specific user and repository instructi
 ## 3. Implementation
 
 - Make the smallest change that fully solves the request. Do not add adjacent features, speculative abstractions, or unrelated cleanup.
+- Remember YAGNI: do not build capabilities until they are actually needed.
 - Match the existing codebase's style and patterns. Inspect adjacent, upstream, or explicitly referenced implementations before inventing a local variant.
 - Preserve existing behavior unless a breaking change is explicitly in scope. Do not add compatibility layers speculatively.
 - Prefer existing configuration and constants for operationally variable values; avoid unexplained environment-specific literals.
