@@ -42,7 +42,7 @@ claude = "2.1.239"
 "npm:@openai/codex" = "0.149.0"
 "npm:@earendil-works/pi-coding-agent" = "0.84.2"
 "npm:skills" = "1.5.23"
-"pipx:microsandbox" = "0.6.13"
+"pipx:microsandbox" = "0.6.15"
 "pipx:tavily-cli" = "0.1.6"
 
 "http:cursor-agent" = { version = "2026.08.11-e8db854", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent" }
