@@ -45,4 +45,4 @@ claude = "2.1.251"
 "pipx:microsandbox" = "0.6.16"
 "pipx:tavily-cli" = "0.1.6"
 
-"http:cursor-agent" = { version = "2026.08.25-3e8eec8", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent" }
+"http:cursor-agent" = { version = "2026.08.31-4057e58", url = "https://downloads.cursor.com/lab/{{ version }}/{{ os(macos='darwin') }}/{{ arch() }}/agent-cli-package.tar.gz", bin = "cursor-agent" }
