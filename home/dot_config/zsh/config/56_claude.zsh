@@ -13,7 +13,7 @@ claude-fable() {
 
   command claude \
     --model fable \
-    --effort high \
+    --effort medium \
     --append-system-prompt-file "${prompt_file}" \
     "$@"
 }
