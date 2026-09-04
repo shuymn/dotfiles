@@ -18,6 +18,26 @@ claude-fable() {
     "$@"
 }
 
+claude-opus() {
+  local prompt_file="${HOME}/.claude/prompts/fable-orchestrator.md"
+
+  if ! has claude; then
+    print -u2 "claude-opus: claude is not available"
+    return 127
+  fi
+
+  if [[ ! -r "${prompt_file}" ]]; then
+    print -u2 "claude-opus: prompt not found: ${prompt_file}"
+    return 1
+  fi
+
+  command claude \
+    --model claude-opus-5 \
+    --effort max \
+    --append-system-prompt-file "${prompt_file}" \
+    "$@"
+}
+
 claude-sonnet-advisor() {
   local prompt_file="${HOME}/.claude/prompts/sonnet-executor-with-fable-advisor.md"
 
