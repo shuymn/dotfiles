@@ -57,12 +57,26 @@
             {
               nixpkgs.overlays = [
                 (
-                  final: _prev:
+                  final: prev:
                   let
                     spindleSources = spindleSourcesFor localConfig;
                   in
                   {
                     glimpseui = final.callPackage ./nix/packages/glimpseui.nix { };
+
+                    # nixpkgs の granted はソースビルドのため ad-hoc 署名のみで
+                    # TeamIdentifier を持たず、macOS キーチェーンの ACL を安定して
+                    # 紐付けられない。結果として credential_process 経由で
+                    # `aws --profile <name> ...` を実行するたびに、ログイン
+                    # キーチェーンのパスワード入力を求められる。安定した
+                    # identifier を付けて再署名し、「常に許可」を効かせる。
+                    # https://github.com/fwdcloudsec/granted/issues/936
+                    granted = prev.granted.overrideAttrs (oldAttrs: {
+                      nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ final.darwin.sigtool ];
+                      postFixup = (oldAttrs.postFixup or "") + ''
+                        codesign --force --sign - --identifier dev.granted.cli $out/bin/granted
+                      '';
+                    });
 
                     # Use unstable mise until the 26.05 darwin pin includes the HTTP backend symlink fix.
                     mise = miseFor localConfig.system;
