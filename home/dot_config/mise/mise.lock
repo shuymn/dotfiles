@@ -381,7 +381,7 @@ version = "0.85.0"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
-version = "0.153.2"
+version = "0.153.3"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
