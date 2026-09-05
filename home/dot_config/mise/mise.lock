@@ -271,18 +271,18 @@ provenance = "github-attestations"
 provenance_verified = true
 
 [[tools."github:tomasz-tomczyk/crit"]]
-version = "0.19.1"
+version = "0.20.0"
 backend = "github:tomasz-tomczyk/crit"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.linux-x64"]
-checksum = "sha256:cdc0769ac41c12fc210e70f43eb33b2d75cba7f6052b47d01f1349215ce1f7ad"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.19.1/crit-linux-amd64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/533670974"
+checksum = "sha256:28cbb0f6855fea49077d3adc2fe6392a70058e417ee435cfe27e5792bd78596d"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.20.0/crit-linux-amd64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/544722230"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.macos-arm64"]
-checksum = "sha256:8ec9468b6fc39e0121a887959c0c95e0301aa12af40bfb449e8d194601a6cfbb"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.19.1/crit-darwin-arm64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/533670980"
+checksum = "sha256:de8e6edd1ea146c57ee0fda4f2a609e9e1185474aba7081b0b4a93459d7a2231"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.20.0/crit-darwin-arm64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/544722226"
 
 [[tools."github:xdevplatform/xurl"]]
 version = "1.3.1"
