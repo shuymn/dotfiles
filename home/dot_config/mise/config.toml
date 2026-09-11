@@ -14,7 +14,7 @@ go = "1.27.1"
 node = "24.21.0"
 python = "3.14.7"
 terraform = "1.16.2"
-uv = "0.12.11"
+uv = "0.12.12"
 
 actionlint = "1.7.12"
 betterleaks = "v1.8.1"
