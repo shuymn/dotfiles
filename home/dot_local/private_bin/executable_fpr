@@ -109,7 +109,9 @@ validate_loopback_url() {
 
 require_private_mode() {
   private_path=$1
-  private_mode=$(stat -f '%Lp' "$private_path" 2> /dev/null || stat -c '%a' "$private_path" 2> /dev/null) ||
+  # GNU stat first: on coreutils, `stat -f` means "file system status" and exits 0,
+  # so the BSD form must be the fallback rather than the first attempt.
+  private_mode=$(stat -c '%a' "$private_path" 2> /dev/null || stat -f '%Lp' "$private_path" 2> /dev/null) ||
     die "cannot inspect permissions for $private_path"
   case $private_mode in
     400 | 600) ;;
