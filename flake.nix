@@ -62,6 +62,21 @@
                     spindleSources = spindleSourcesFor localConfig;
                   in
                   {
+                    # nixpkgs の pre-commit は nativeCheckInputs/preCheck で dotnet-sdk を要求する。
+                    # aarch64-darwin では dotnet-vmr(.NET のソースビルド)が Hydra で失敗/中断
+                    # することがあり、キャッシュ未提供の revision に lock が進むと switch 時に
+                    # 1〜2 時間のローカルビルドが走る。テスト専用依存なので実行時の動作は
+                    # 変わらない。doCheck = false だけでは preCheck の参照が残るため、
+                    # チェック入力そのものを空にする。pytestCheckHook は依存の cfgv 経由で
+                    # 環境に入り doCheck を見ずに pytestCheckPhase を登録するため、
+                    # dontUsePytestCheck で明示的に無効化する。
+                    pre-commit = prev.pre-commit.overridePythonAttrs (_: {
+                      doCheck = false;
+                      dontUsePytestCheck = true;
+                      nativeCheckInputs = [ ];
+                      checkInputs = [ ];
+                      preCheck = "";
+                    });
 
                     # nixpkgs の granted はソースビルドのため ad-hoc 署名のみで
                     # TeamIdentifier を持たず、macOS キーチェーンの ACL を安定して
