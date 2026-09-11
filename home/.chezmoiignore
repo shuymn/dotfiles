@@ -10,6 +10,11 @@
 .local/state/chezmoi/**
 .cache/chezmoi/**
 
+# Local Forgejo review credentials. Runtime state lives in a Docker volume.
+.config/fpr/**
+.ssh/id_ed25519_fpr_agent
+.ssh/id_ed25519_fpr_agent.pub
+
 {{- if ne .nixRole "personal" }}
 .config/sketchybar/**
 {{- end }}

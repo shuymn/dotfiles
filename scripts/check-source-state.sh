@@ -22,7 +22,13 @@ for path in \
   "home/dot_config/git/allowed_signers" \
   "home/private_dot_config/git/allowed_signers" \
   "home/dot_config/nix/nix.conf" \
-  "home/private_dot_config/nix/nix.conf"
+  "home/private_dot_config/nix/nix.conf" \
+  "home/dot_config/fpr" \
+  "home/private_dot_config/fpr" \
+  "home/dot_ssh/id_ed25519_fpr_agent" \
+  "home/private_dot_ssh/id_ed25519_fpr_agent" \
+  "home/dot_ssh/id_ed25519_fpr_agent.pub" \
+  "home/private_dot_ssh/id_ed25519_fpr_agent.pub"
 do
   if [ -e "$repo/$path" ]; then
     report "$path must stay local-only and outside chezmoi source state."

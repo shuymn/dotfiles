@@ -1,0 +1,777 @@
+#!/bin/sh
+set -eu
+
+PROGRAM=${0##*/}
+VERSION=0.1.0
+CONFIG_FILE=${FPR_CONFIG_FILE:-"${XDG_CONFIG_HOME:-$HOME/.config}/fpr/config"}
+BASE_OVERRIDE=
+NO_BROWSER=false
+TMP_ROOT=
+LOCK_DIR=
+LOCK_OWNED=false
+API_STATUS=
+API_BODY=
+API_SEQUENCE=0
+
+usage() {
+  cat << 'EOF'
+Usage:
+  fpr open [--base BRANCH] [--no-browser]
+  fpr status [--base BRANCH]
+  fpr ship [--base BRANCH] [--no-browser]
+  fpr doctor
+  fpr help
+
+Create a private Forgejo pull request for the current committed SHA, require a
+human approval of that exact SHA, then publish it to the canonical GitHub repo.
+EOF
+}
+
+die() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 2
+}
+
+require_command() {
+  command -v "$1" > /dev/null 2>&1 || die "required command not found: $1"
+}
+
+require_commands() {
+  for required in curl gh git jq ssh ssh-keygen ssh-keyscan; do require_command "$required"; done
+}
+
+lowercase() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+count_lines() {
+  awk 'NF { count += 1 } END { print count + 0 }' "$1"
+}
+
+cleanup() {
+  [ "$LOCK_OWNED" = false ] || rmdir "$LOCK_DIR" 2> /dev/null || true
+  [ -z "$TMP_ROOT" ] || rm -rf "$TMP_ROOT"
+}
+trap cleanup EXIT HUP INT TERM
+
+make_temp_root() {
+  [ -z "$TMP_ROOT" ] || return 0
+  old_umask=$(umask)
+  umask 077
+  TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fpr.XXXXXX")
+  umask "$old_umask"
+}
+
+parse_options() {
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --base)
+        [ "$#" -ge 2 ] || die "--base requires a branch"
+        BASE_OVERRIDE=$2
+        shift 2
+        ;;
+      --no-browser)
+        NO_BROWSER=true
+        shift
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *) die "unknown option: $1" ;;
+    esac
+  done
+}
+
+validate_branch() {
+  git check-ref-format --branch "$1" > /dev/null 2>&1 || die "invalid branch name: $1"
+}
+
+validate_loopback_url() {
+  loopback_value=$1
+  loopback_prefix=$2
+  loopback_label=$3
+  loopback_scheme=$4
+  loopback_parts=$5
+  loopback_authority=${loopback_value#"$loopback_prefix"}
+  [ "$loopback_authority" != "$loopback_value" ] || die "$loopback_label must use $loopback_scheme"
+  case $loopback_authority in
+    */* | *\?* | *\#* | *@*) die "$loopback_label must contain only $loopback_parts" ;;
+  esac
+  case $loopback_authority in
+    127.0.0.1:* | localhost:*) loopback_port=${loopback_authority#*:} ;;
+    *) die "$loopback_label must use 127.0.0.1 or localhost" ;;
+  esac
+  case $loopback_port in
+    '' | *[!0-9]*) die "$loopback_label must contain a numeric port" ;;
+  esac
+}
+
+require_private_mode() {
+  private_path=$1
+  private_mode=$(stat -f '%Lp' "$private_path" 2> /dev/null || stat -c '%a' "$private_path" 2> /dev/null) ||
+    die "cannot inspect permissions for $private_path"
+  case $private_mode in
+    400 | 600) ;;
+    *) die "$private_path must have mode 0400 or 0600 (found $private_mode)" ;;
+  esac
+}
+
+load_config() {
+  [ -f "$CONFIG_FILE" ] || die "configuration not found: $CONFIG_FILE (run Forgejo review bootstrap)"
+  [ ! -L "$CONFIG_FILE" ] || die "configuration must not be a symbolic link: $CONFIG_FILE"
+
+  FORGEJO_URL=
+  FORGEJO_OWNER=
+  FORGEJO_REVIEWER=
+  FORGEJO_SSH_URL=
+  FORGEJO_SSH_KEY=
+  FORGEJO_KNOWN_HOSTS_FILE=
+  TOKEN_FILE=
+  GITHUB_REMOTE=origin
+
+  while IFS= read -r config_line || [ -n "$config_line" ]; do
+    case $config_line in
+      '' | \#*) continue ;;
+      *=*) ;;
+      *) die "invalid configuration line in $CONFIG_FILE" ;;
+    esac
+    config_key=${config_line%%=*}
+    config_value=${config_line#*=}
+    case $config_key in
+      forgejo_url) FORGEJO_URL=$config_value ;;
+      forgejo_owner) FORGEJO_OWNER=$config_value ;;
+      forgejo_reviewer) FORGEJO_REVIEWER=$config_value ;;
+      forgejo_ssh_url) FORGEJO_SSH_URL=$config_value ;;
+      forgejo_ssh_key) FORGEJO_SSH_KEY=$config_value ;;
+      forgejo_known_hosts_file) FORGEJO_KNOWN_HOSTS_FILE=$config_value ;;
+      token_file) TOKEN_FILE=$config_value ;;
+      github_remote) GITHUB_REMOTE=$config_value ;;
+      *) die "unknown configuration key: $config_key" ;;
+    esac
+  done < "$CONFIG_FILE"
+
+  validate_loopback_url "$FORGEJO_URL" 'http://' forgejo_url 'loopback HTTP' 'a loopback host and port'
+  validate_loopback_url "$FORGEJO_SSH_URL" 'ssh://git@' forgejo_ssh_url 'loopback SSH as git' \
+    'the git user, loopback host, and port'
+  case $FORGEJO_OWNER in
+    '' | *[!A-Za-z0-9_.-]*) die "invalid forgejo_owner" ;;
+  esac
+  case $FORGEJO_REVIEWER in
+    '' | *[!A-Za-z0-9_.-]*) die "invalid forgejo_reviewer" ;;
+  esac
+  normalized_owner=$(lowercase "$FORGEJO_OWNER")
+  normalized_reviewer=$(lowercase "$FORGEJO_REVIEWER")
+  [ "$normalized_owner" != "$normalized_reviewer" ] ||
+    die "Forgejo author and reviewer must be different accounts"
+  case $GITHUB_REMOTE in
+    '' | -* | *[!A-Za-z0-9_.-]*) die "invalid github_remote" ;;
+  esac
+  case $FORGEJO_SSH_KEY in
+    /*) ;;
+    *) die "forgejo_ssh_key must be an absolute path" ;;
+  esac
+  [ -f "$FORGEJO_SSH_KEY" ] || die "Forgejo SSH key not found: $FORGEJO_SSH_KEY"
+  [ ! -L "$FORGEJO_SSH_KEY" ] || die "Forgejo SSH key must not be a symbolic link"
+  case $FORGEJO_KNOWN_HOSTS_FILE in
+    /*) ;;
+    *) die "forgejo_known_hosts_file must be an absolute path" ;;
+  esac
+  [ -f "$FORGEJO_KNOWN_HOSTS_FILE" ] ||
+    die "Forgejo known_hosts file not found: $FORGEJO_KNOWN_HOSTS_FILE"
+  [ ! -L "$FORGEJO_KNOWN_HOSTS_FILE" ] ||
+    die "Forgejo known_hosts file must not be a symbolic link"
+  require_private_mode "$CONFIG_FILE"
+  require_private_mode "$FORGEJO_SSH_KEY"
+  require_private_mode "$FORGEJO_KNOWN_HOSTS_FILE"
+
+  make_temp_root
+  ssh_authority=${FORGEJO_SSH_URL#ssh://git@}
+  FORGEJO_SSH_HOST=${ssh_authority%%:*}
+  FORGEJO_SSH_PORT=${ssh_authority#*:}
+  ssh-keyscan -T 5 -p "$FORGEJO_SSH_PORT" "$FORGEJO_SSH_HOST" > "$TMP_ROOT/scanned-host-keys" 2> /dev/null ||
+    die "cannot read the Forgejo SSH host key"
+  ssh-keygen -F "[$FORGEJO_SSH_HOST]:$FORGEJO_SSH_PORT" \
+    -f "$FORGEJO_KNOWN_HOSTS_FILE" > "$TMP_ROOT/trusted-host-keys" 2> /dev/null ||
+    die "Forgejo SSH host key is not trusted; rerun bootstrap after verifying the local instance"
+  awk 'NR == FNR && $1 !~ /^#/ { trusted[$2 " " $3] = 1; next }
+       $1 !~ /^#/ && trusted[$2 " " $3] { matched = 1 }
+       END { exit !matched }' \
+    "$TMP_ROOT/trusted-host-keys" "$TMP_ROOT/scanned-host-keys" ||
+    die "Forgejo SSH host key changed; verify the local instance before updating known_hosts"
+
+  if [ -n "${FPR_FORGEJO_TOKEN:-}" ]; then
+    forgejo_token=$FPR_FORGEJO_TOKEN
+    unset FPR_FORGEJO_TOKEN
+  else
+    case $TOKEN_FILE in
+      /*) ;;
+      *) die "token_file must be an absolute path" ;;
+    esac
+    [ -f "$TOKEN_FILE" ] || die "Forgejo token not found: $TOKEN_FILE"
+    [ ! -L "$TOKEN_FILE" ] || die "Forgejo token must not be a symbolic link"
+    require_private_mode "$TOKEN_FILE"
+    forgejo_token=$(tr -d '\r\n' < "$TOKEN_FILE")
+  fi
+  [ -n "$forgejo_token" ] || die "Forgejo token is empty"
+  case $forgejo_token in
+    *[!A-Za-z0-9._~-]*) die "Forgejo token contains unsupported characters" ;;
+  esac
+  printf 'header = "Authorization: token %s"\n' "$forgejo_token" > "$TMP_ROOT/curl.conf"
+  unset forgejo_token
+
+  cat > "$TMP_ROOT/ssh" << 'EOF'
+#!/bin/sh
+exec ssh -F /dev/null -i "$FPR_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
+  -o "UserKnownHostsFile=$FPR_KNOWN_HOSTS_FILE" "$@"
+EOF
+  chmod 700 "$TMP_ROOT/ssh"
+}
+
+api_call() {
+  api_method=$1
+  api_path=$2
+  api_data=${3:-}
+  API_SEQUENCE=$((API_SEQUENCE + 1))
+  API_BODY=$TMP_ROOT/api-$API_SEQUENCE.json
+  api_status_file=$TMP_ROOT/api-$API_SEQUENCE.status
+  if [ -n "$api_data" ]; then
+    set -- --header 'Content-Type: application/json' --data-binary "@$api_data"
+  else
+    set --
+  fi
+  if ! curl --disable --noproxy '*' --silent --show-error --config "$TMP_ROOT/curl.conf" \
+    --output "$API_BODY" --write-out '%{http_code}' \
+    --request "$api_method" "$@" \
+    "$FORGEJO_URL/api/v1$api_path" > "$api_status_file"; then
+    die "Forgejo API request failed: $api_method $api_path"
+  fi
+  API_STATUS=$(cat "$api_status_file")
+}
+
+api_expect_success() {
+  api_call "$@"
+  case $API_STATUS in
+    2??) ;;
+    *)
+      printf '%s: Forgejo API returned HTTP %s for %s %s\n' "$PROGRAM" "$API_STATUS" "$1" "$2" >&2
+      jq -r '.message // empty' "$API_BODY" 2> /dev/null >&2 || true
+      exit 2
+      ;;
+  esac
+}
+
+hash_text() {
+  printf '%s' "$1" | git hash-object --stdin | cut -c1-10
+}
+
+parse_github_url() {
+  github_url=$1
+  case $github_url in
+    git@github.com:*) github_path=${github_url#git@github.com:} ;;
+    ssh://git@github.com/*) github_path=${github_url#ssh://git@github.com/} ;;
+    https://github.com/*) github_path=${github_url#https://github.com/} ;;
+    *) die "remote '$GITHUB_REMOTE' is not a github.com repository: $github_url" ;;
+  esac
+  github_path=${github_path%.git}
+  case $github_path in
+    */*) ;;
+    *) die "cannot parse GitHub owner/repository from $github_url" ;;
+  esac
+  GITHUB_OWNER=${github_path%%/*}
+  GITHUB_REPO=${github_path#*/}
+  case $GITHUB_OWNER in
+    '' | *[!A-Za-z0-9_.-]*) die "unsupported GitHub owner: $GITHUB_OWNER" ;;
+  esac
+  case $GITHUB_REPO in
+    '' | */* | *[!A-Za-z0-9_.-]*) die "unsupported GitHub repository: $GITHUB_REPO" ;;
+  esac
+}
+
+load_repo_context() {
+  context_clean=$1
+  git rev-parse --is-inside-work-tree > /dev/null 2>&1 || die "not inside a Git worktree"
+  REPO_ROOT=$(git rev-parse --show-toplevel)
+  lock_hash=$(hash_text "$REPO_ROOT")
+  LOCK_DIR="${TMPDIR:-/tmp}/fpr-$lock_hash.lock"
+  if mkdir "$LOCK_DIR" 2> /dev/null; then
+    LOCK_OWNED=true
+  else
+    die "another fpr command is already running for this repository"
+  fi
+  if [ "$context_clean" = true ] && [ -n "$(git status --porcelain=v1 --untracked-files=normal)" ]; then
+    die "worktree must be clean; commit or stash all changes first"
+  fi
+  CURRENT_BRANCH=$(git symbolic-ref --quiet --short HEAD 2> /dev/null) || die "detached HEAD is not supported"
+  validate_branch "$CURRENT_BRANCH"
+  HEAD_OID=$(git rev-parse --verify 'HEAD^{commit}')
+
+  git config --get-all "remote.$GITHUB_REMOTE.url" > "$TMP_ROOT/github-fetch-urls" 2> /dev/null ||
+    die "Git remote not found: $GITHUB_REMOTE"
+  fetch_url_count=$(count_lines "$TMP_ROOT/github-fetch-urls")
+  [ "$fetch_url_count" -eq 1 ] || die "GitHub remote must have exactly one fetch URL"
+  if ! git config --get-all "remote.$GITHUB_REMOTE.pushurl" > "$TMP_ROOT/github-push-urls" 2> /dev/null; then
+    cp "$TMP_ROOT/github-fetch-urls" "$TMP_ROOT/github-push-urls"
+  fi
+  push_url_count=$(count_lines "$TMP_ROOT/github-push-urls")
+  [ "$push_url_count" -eq 1 ] || die "GitHub remote must have exactly one push URL"
+
+  parse_github_url "$(cat "$TMP_ROOT/github-fetch-urls")"
+  canonical_owner=$GITHUB_OWNER
+  canonical_repo=$GITHUB_REPO
+  parse_github_url "$(cat "$TMP_ROOT/github-push-urls")"
+  [ "$GITHUB_OWNER/$GITHUB_REPO" = "$canonical_owner/$canonical_repo" ] ||
+    die "GitHub fetch and push URLs refer to different repositories"
+
+  git remote get-url --all "$GITHUB_REMOTE" > "$TMP_ROOT/github-resolved-fetch-urls" 2> /dev/null ||
+    die "cannot resolve GitHub fetch URL"
+  git remote get-url --push --all "$GITHUB_REMOTE" > "$TMP_ROOT/github-resolved-push-urls" 2> /dev/null ||
+    die "cannot resolve GitHub push URL"
+  resolved_fetch_count=$(count_lines "$TMP_ROOT/github-resolved-fetch-urls")
+  resolved_push_count=$(count_lines "$TMP_ROOT/github-resolved-push-urls")
+  [ "$resolved_fetch_count" -eq 1 ] && [ "$resolved_push_count" -eq 1 ] ||
+    die "GitHub URL rewriting must not create multiple transport destinations"
+  parse_github_url "$(cat "$TMP_ROOT/github-resolved-fetch-urls")"
+  [ "$GITHUB_OWNER/$GITHUB_REPO" = "$canonical_owner/$canonical_repo" ] ||
+    die "Git URL rewriting changed the GitHub fetch destination"
+  parse_github_url "$(cat "$TMP_ROOT/github-resolved-push-urls")"
+  [ "$GITHUB_OWNER/$GITHUB_REPO" = "$canonical_owner/$canonical_repo" ] ||
+    die "Git URL rewriting changed the GitHub push destination"
+
+  GITHUB_SELECTOR="github.com/$GITHUB_OWNER/$GITHUB_REPO"
+  if ! gh repo view "$GITHUB_SELECTOR" \
+    --json nameWithOwner,defaultBranchRef > "$TMP_ROOT/github-repo.json"; then
+    die "cannot read canonical GitHub repository with gh"
+  fi
+  canonical_name=$(jq -r '.nameWithOwner // empty' "$TMP_ROOT/github-repo.json")
+  [ "$(lowercase "$canonical_name")" = \
+    "$(lowercase "$GITHUB_OWNER/$GITHUB_REPO")" ] ||
+    die "GitHub remote identity does not match gh response"
+  GITHUB_DEFAULT_BRANCH=$(jq -r '.defaultBranchRef.name // empty' "$TMP_ROOT/github-repo.json")
+  [ -n "$GITHUB_DEFAULT_BRANCH" ] || die "GitHub repository has no default branch"
+
+  EXISTING_GITHUB_PR=false
+  if gh pr view "$CURRENT_BRANCH" --repo "$GITHUB_SELECTOR" \
+    --json number,url,title,baseRefName,baseRefOid,headRefName,headRefOid,state \
+    > "$TMP_ROOT/github-pr.json" 2> /dev/null; then
+    if [ "$(jq -r '.state' "$TMP_ROOT/github-pr.json")" = OPEN ]; then
+      EXISTING_GITHUB_PR=true
+    fi
+  fi
+
+  if [ -n "$BASE_OVERRIDE" ]; then
+    BASE_BRANCH=$BASE_OVERRIDE
+  elif [ "$EXISTING_GITHUB_PR" = true ]; then
+    BASE_BRANCH=$(jq -r '.baseRefName' "$TMP_ROOT/github-pr.json")
+  else
+    BASE_BRANCH=$GITHUB_DEFAULT_BRANCH
+  fi
+  validate_branch "$BASE_BRANCH"
+  [ "$CURRENT_BRANCH" != "$GITHUB_DEFAULT_BRANCH" ] ||
+    die "refusing to operate from the GitHub default branch: $GITHUB_DEFAULT_BRANCH"
+  [ "$CURRENT_BRANCH" != "$BASE_BRANCH" ] || die "current branch is the selected base branch: $BASE_BRANCH"
+  if [ "$EXISTING_GITHUB_PR" = true ]; then
+    github_pr_base=$(jq -r '.baseRefName' "$TMP_ROOT/github-pr.json")
+    [ "$github_pr_base" = "$BASE_BRANCH" ] ||
+      die "existing GitHub PR targets '$github_pr_base', not '$BASE_BRANCH'"
+  fi
+
+  printf 'Fetching GitHub base %s/%s:%s ...\n' "$GITHUB_OWNER" "$GITHUB_REPO" "$BASE_BRANCH" >&2
+  git fetch --quiet --no-tags "$GITHUB_REMOTE" "refs/heads/$BASE_BRANCH" ||
+    die "cannot fetch GitHub base branch: $BASE_BRANCH"
+  BASE_OID=$(git rev-parse --verify 'FETCH_HEAD^{commit}')
+  git merge-base "$BASE_OID" "$HEAD_OID" > /dev/null 2>&1 ||
+    die "feature and base branches have no common ancestor"
+  if git diff --quiet "$BASE_OID...$HEAD_OID"; then
+    die "there are no changes to review against $BASE_BRANCH"
+  fi
+
+  repo_hash=$(hash_text "$GITHUB_OWNER/$GITHUB_REPO")
+  repo_slug=$(printf '%s-%s' "$GITHUB_OWNER" "$GITHUB_REPO" |
+    tr '[:upper:]' '[:lower:]' |
+    tr -cs 'a-z0-9._-' '-' |
+    cut -c1-64)
+  LOCAL_REPO="gh-$repo_slug-$repo_hash"
+  topic_hash=$(hash_text "$CURRENT_BRANCH")
+  base_name_hash=$(hash_text "$BASE_BRANCH")
+  base_short=$(printf '%s' "$BASE_OID" | cut -c1-12)
+  LOCAL_BASE_BRANCH="fpr/base/$topic_hash-$base_name_hash-$base_short"
+  LOCAL_HEAD_BRANCH="fpr/head/$topic_hash-$base_name_hash-$base_short"
+  LOCAL_BASE_REF="refs/heads/$LOCAL_BASE_BRANCH"
+  LOCAL_HEAD_REF="refs/heads/$LOCAL_HEAD_BRANCH"
+  LOCAL_GIT_URL="$FORGEJO_SSH_URL/$FORGEJO_OWNER/$LOCAL_REPO.git"
+  FIRST_SUBJECT=$(git log --reverse --format=%s "$BASE_OID..$HEAD_OID" | awk 'NR == 1 { print; exit }')
+  [ -n "$FIRST_SUBJECT" ] || FIRST_SUBJECT=$CURRENT_BRANCH
+  PR_TITLE="[$CURRENT_BRANCH] $FIRST_SUBJECT"
+  cat > "$TMP_ROOT/pr-body.md" << EOF
+Local review for \`$GITHUB_OWNER/$GITHUB_REPO\`.
+
+- GitHub base: \`$BASE_BRANCH\` at \`$BASE_OID\`
+- Local branch: \`$CURRENT_BRANCH\`
+- Reviewed head: \`$HEAD_OID\`
+
+Approve this pull request only after reviewing the exact head SHA above. Do not merge this Forgejo pull request; use \`fpr ship\` to publish the approved SHA to GitHub.
+EOF
+
+}
+
+ensure_actor() {
+  api_expect_success GET /user
+  actor=$(jq -r '.login // empty' "$API_BODY")
+  [ "$actor" = "$FORGEJO_OWNER" ] ||
+    die "Forgejo token belongs to '$actor', expected '$FORGEJO_OWNER'"
+}
+
+ensure_local_repo() {
+  api_call GET "/repos/$FORGEJO_OWNER/$LOCAL_REPO"
+  case $API_STATUS in
+    200)
+      jq -e --arg owner "$FORGEJO_OWNER" --arg repo "$LOCAL_REPO" \
+        '.owner.login == $owner and .name == $repo and .private == true and ((.mirror // false) == false)' \
+        "$API_BODY" > /dev/null || die "existing Forgejo repository has unsafe or unexpected settings"
+      ;;
+    404)
+      jq -n --arg name "$LOCAL_REPO" --arg default_branch "$LOCAL_BASE_BRANCH" \
+        '{name: $name, default_branch: $default_branch, private: true, auto_init: true}' \
+        > "$TMP_ROOT/create-repo.json"
+      api_expect_success POST /user/repos "$TMP_ROOT/create-repo.json"
+      ;;
+    *)
+      printf '%s: cannot inspect Forgejo repository (HTTP %s)\n' "$PROGRAM" "$API_STATUS" >&2
+      exit 2
+      ;;
+  esac
+
+  jq -n '{permission: "write"}' > "$TMP_ROOT/collaborator.json"
+  api_expect_success PUT "/repos/$FORGEJO_OWNER/$LOCAL_REPO/collaborators/$FORGEJO_REVIEWER" \
+    "$TMP_ROOT/collaborator.json"
+}
+
+push_local_refs() {
+  FPR_SSH_KEY=$FORGEJO_SSH_KEY
+  FPR_KNOWN_HOSTS_FILE=$FORGEJO_KNOWN_HOSTS_FILE
+  export FPR_SSH_KEY FPR_KNOWN_HOSTS_FILE
+  local_refs=$TMP_ROOT/local-refs
+  GIT_SSH_COMMAND=$TMP_ROOT/ssh git ls-remote "$LOCAL_GIT_URL" \
+    "$LOCAL_BASE_REF" "$LOCAL_HEAD_REF" > "$local_refs" ||
+    die "cannot read Forgejo Git refs"
+  old_base=$(awk -v ref="$LOCAL_BASE_REF" '$2 == ref { print $1 }' "$local_refs")
+  old_head=$(awk -v ref="$LOCAL_HEAD_REF" '$2 == ref { print $1 }' "$local_refs")
+  if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+    GIT_SSH_COMMAND=$TMP_ROOT/ssh git push --quiet "$LOCAL_GIT_URL" \
+      "--force-with-lease=$LOCAL_BASE_REF:$old_base" \
+      "$BASE_OID:$LOCAL_BASE_REF" ||
+      die "Forgejo base ref changed concurrently or could not be updated"
+    GIT_SSH_COMMAND=$TMP_ROOT/ssh git push --quiet "$LOCAL_GIT_URL" \
+      "--force-with-lease=$LOCAL_HEAD_REF:$old_head" \
+      "$HEAD_OID:$LOCAL_HEAD_REF" ||
+      die "Forgejo head ref changed concurrently or could not be updated"
+  else
+    GIT_SSH_COMMAND=$TMP_ROOT/ssh git push --quiet --atomic "$LOCAL_GIT_URL" \
+      "--force-with-lease=$LOCAL_BASE_REF:$old_base" \
+      "--force-with-lease=$LOCAL_HEAD_REF:$old_head" \
+      "$BASE_OID:$LOCAL_BASE_REF" "$HEAD_OID:$LOCAL_HEAD_REF" ||
+      die "Forgejo refs changed concurrently or could not be updated"
+  fi
+}
+
+collect_pages() {
+  collect_path=$1
+  collect_out=$2
+  collect_error=$3
+  : > "$collect_out"
+  collect_page=1
+  while [ "$collect_page" -le 100 ]; do
+    api_expect_success GET "$collect_path&page=$collect_page"
+    collect_count=$(jq 'length' "$API_BODY")
+    [ "$collect_count" -gt 0 ] || break
+    jq -c '.[]' "$API_BODY" >> "$collect_out"
+    collect_page=$((collect_page + 1))
+  done
+  [ "$collect_page" -le 100 ] || die "$collect_error"
+}
+
+find_local_pr() {
+  collect_pages "/repos/$FORGEJO_OWNER/$LOCAL_REPO/pulls?state=open&limit=100" \
+    "$TMP_ROOT/open-pulls.ndjson" "too many open Forgejo PRs to evaluate safely"
+  jq -s --arg base "$LOCAL_BASE_BRANCH" --arg head "$LOCAL_HEAD_BRANCH" \
+    '[.[] | select(.base.ref == $base and .head.ref == $head)]' "$TMP_ROOT/open-pulls.ndjson" \
+    > "$TMP_ROOT/matching-prs.json"
+  matching_count=$(jq 'length' "$TMP_ROOT/matching-prs.json")
+  [ "$matching_count" -le 1 ] || die "multiple open Forgejo PRs match the current review generation"
+  if [ "$matching_count" -eq 1 ]; then
+    LOCAL_PR_NUMBER=$(jq -r '.[0].number' "$TMP_ROOT/matching-prs.json")
+    LOCAL_PR_URL=$(jq -r '.[0].html_url' "$TMP_ROOT/matching-prs.json")
+    return 0
+  fi
+  LOCAL_PR_NUMBER=
+  LOCAL_PR_URL=
+  return 1
+}
+
+create_or_update_local_pr() {
+  if find_local_pr; then
+    jq -n --arg title "$PR_TITLE" --rawfile body "$TMP_ROOT/pr-body.md" \
+      '{title: $title, body: $body}' > "$TMP_ROOT/update-pr.json"
+    api_expect_success PATCH "/repos/$FORGEJO_OWNER/$LOCAL_REPO/pulls/$LOCAL_PR_NUMBER" \
+      "$TMP_ROOT/update-pr.json"
+  else
+    jq -n --arg base "$LOCAL_BASE_BRANCH" --arg head "$LOCAL_HEAD_BRANCH" \
+      --arg title "$PR_TITLE" --rawfile body "$TMP_ROOT/pr-body.md" \
+      '{base: $base, head: $head, title: $title, body: $body}' > "$TMP_ROOT/create-pr.json"
+    api_expect_success POST "/repos/$FORGEJO_OWNER/$LOCAL_REPO/pulls" "$TMP_ROOT/create-pr.json"
+    LOCAL_PR_NUMBER=$(jq -r '.number' "$API_BODY")
+  fi
+
+  poll=0
+  while :; do
+    api_expect_success GET "/repos/$FORGEJO_OWNER/$LOCAL_REPO/pulls/$LOCAL_PR_NUMBER"
+    pr_head=$(jq -r '.head.sha // empty' "$API_BODY")
+    pr_base=$(jq -r '.base.sha // empty' "$API_BODY")
+    LOCAL_PR_URL=$(jq -r '.html_url' "$API_BODY")
+    [ "$pr_head" = "$HEAD_OID" ] && [ "$pr_base" = "$BASE_OID" ] && break
+    poll=$((poll + 1))
+    [ "$poll" -lt 20 ] || die "Forgejo PR did not converge to the published base and head SHAs"
+    sleep 1
+  done
+}
+
+load_local_pr() {
+  api_call GET "/repos/$FORGEJO_OWNER/$LOCAL_REPO"
+  if [ "$API_STATUS" = 404 ]; then
+    LOCAL_PR_NUMBER=
+    LOCAL_PR_URL=
+    return 1
+  fi
+  [ "$API_STATUS" = 200 ] || die "cannot inspect Forgejo repository (HTTP $API_STATUS)"
+  find_local_pr
+}
+
+load_approval() {
+  collect_pages "/repos/$FORGEJO_OWNER/$LOCAL_REPO/pulls/$LOCAL_PR_NUMBER/reviews?limit=100" \
+    "$TMP_ROOT/reviews.ndjson" "too many Forgejo reviews to evaluate safely"
+
+  jq -s --arg reviewer "$FORGEJO_REVIEWER" --arg head "$HEAD_OID" '
+    map(select(
+      ((.user.login // "") | ascii_downcase) == ($reviewer | ascii_downcase)
+      and (.commit_id // "") == $head
+      and ((.stale // false) == false)
+      and ((.dismissed // false) == false)
+      and ((.state // "") == "APPROVED" or (.state // "") == "REQUEST_CHANGES")
+    ))
+    | sort_by(.id // 0)
+    | last // null
+  ' "$TMP_ROOT/reviews.ndjson" > "$TMP_ROOT/effective-review.json"
+  APPROVAL_STATE=$(jq -r 'if . == null then "NONE" else .state end' "$TMP_ROOT/effective-review.json")
+  APPROVAL_COMMIT=$(jq -r 'if . == null then "" else (.commit_id // "") end' "$TMP_ROOT/effective-review.json")
+  APPROVAL_USER=$(jq -r 'if . == null then "" else (.user.login // "") end' "$TMP_ROOT/effective-review.json")
+}
+
+inspect_gate() {
+  GATE_READY=false
+  if ! load_local_pr; then
+    GATE_REASON="no Forgejo PR for the current GitHub base generation"
+    return 0
+  fi
+  api_expect_success GET "/repos/$FORGEJO_OWNER/$LOCAL_REPO/pulls/$LOCAL_PR_NUMBER"
+  local_pr_state=$(jq -r '.state // empty' "$API_BODY")
+  local_pr_head=$(jq -r '.head.sha // empty' "$API_BODY")
+  local_pr_base=$(jq -r '.base.sha // empty' "$API_BODY")
+  [ "$local_pr_state" = open ] || {
+    GATE_REASON="Forgejo PR is not open"
+    return 0
+  }
+  [ "$local_pr_head" = "$HEAD_OID" ] || {
+    GATE_REASON="Forgejo PR head does not equal local HEAD"
+    return 0
+  }
+  [ "$local_pr_base" = "$BASE_OID" ] || {
+    GATE_REASON="Forgejo PR base does not equal the fetched GitHub base"
+    return 0
+  }
+  load_approval
+  [ "$APPROVAL_STATE" = APPROVED ] || {
+    GATE_REASON="latest effective review by $FORGEJO_REVIEWER for this SHA is $APPROVAL_STATE"
+    return 0
+  }
+  [ "$APPROVAL_COMMIT" = "$HEAD_OID" ] || {
+    GATE_REASON="approval does not identify local HEAD"
+    return 0
+  }
+  GATE_READY=true
+  GATE_REASON="approved by $APPROVAL_USER for the exact head SHA"
+}
+
+show_github_pr() {
+  if [ "$EXISTING_GITHUB_PR" = true ]; then
+    github_url=$(jq -r '.url' "$TMP_ROOT/github-pr.json")
+    github_state=$(jq -r '.state' "$TMP_ROOT/github-pr.json")
+    printf 'GitHub PR:   %s (%s)\n' "$github_url" "$github_state"
+  else
+    printf 'GitHub PR:   not open\n'
+  fi
+}
+
+open_browser() {
+  browser_url=$1
+  [ "$NO_BROWSER" = false ] || return 0
+  if command -v open > /dev/null 2>&1; then
+    open "$browser_url"
+  elif command -v xdg-open > /dev/null 2>&1; then
+    xdg-open "$browser_url"
+  else
+    printf 'Open in a browser: %s\n' "$browser_url" >&2
+  fi
+}
+
+command_open() {
+  parse_options "$@"
+  require_commands
+  load_config
+  load_repo_context true
+  ensure_actor
+  ensure_local_repo
+  push_local_refs
+  create_or_update_local_pr
+  printf 'Forgejo PR: %s\n' "$LOCAL_PR_URL"
+  printf 'Reviewed SHA: %s\n' "$HEAD_OID"
+  printf 'GitHub base: %s@%s\n' "$BASE_BRANCH" "$BASE_OID"
+  open_browser "$LOCAL_PR_URL"
+}
+
+command_status() {
+  parse_options "$@"
+  [ "$NO_BROWSER" = false ] || die "--no-browser is not valid for status"
+  require_commands
+  load_config
+  load_repo_context false
+  ensure_actor
+  inspect_gate
+  if [ -n "$LOCAL_PR_URL" ]; then
+    printf 'Forgejo PR:  %s\n' "$LOCAL_PR_URL"
+  else
+    printf 'Forgejo PR:  not open for this base generation\n'
+  fi
+  printf 'Local HEAD:  %s\n' "$HEAD_OID"
+  printf 'GitHub base: %s@%s\n' "$BASE_BRANCH" "$BASE_OID"
+  if [ "${APPROVAL_STATE:-NONE}" = NONE ]; then
+    printf 'Review:      NONE\n'
+  else
+    printf 'Review:      %s by %s at %s\n' "$APPROVAL_STATE" "$APPROVAL_USER" "$APPROVAL_COMMIT"
+  fi
+  show_github_pr
+  if [ "$GATE_READY" = true ]; then
+    printf 'Ready:       yes (%s)\n' "$GATE_REASON"
+    return 0
+  fi
+  printf 'Ready:       no (%s)\n' "$GATE_REASON"
+  return 1
+}
+
+verify_github_base() {
+  git ls-remote --exit-code --heads "$GITHUB_REMOTE" "refs/heads/$BASE_BRANCH" \
+    > "$TMP_ROOT/github-base-ref" 2> /dev/null ||
+    die "cannot read GitHub base ref: $BASE_BRANCH"
+  remote_base=$(awk -v ref="refs/heads/$BASE_BRANCH" '$2 == ref { print $1 }' "$TMP_ROOT/github-base-ref")
+  [ "$remote_base" = "$BASE_OID" ] ||
+    die "GitHub base moved from reviewed SHA $BASE_OID to $remote_base; run fpr open again"
+}
+
+push_github_head() {
+  github_head_ref="refs/heads/$CURRENT_BRANCH"
+  git ls-remote --heads "$GITHUB_REMOTE" "$github_head_ref" > "$TMP_ROOT/github-head-ref" ||
+    die "cannot read GitHub feature ref"
+  old_github_head=$(awk -v ref="$github_head_ref" '$2 == ref { print $1 }' "$TMP_ROOT/github-head-ref")
+  if [ "$old_github_head" = "$HEAD_OID" ]; then
+    return 0
+  fi
+  if [ -n "$old_github_head" ]; then
+    git fetch --quiet --no-tags "$GITHUB_REMOTE" "$github_head_ref" ||
+      die "cannot fetch existing GitHub feature ref"
+    fetched_head=$(git rev-parse --verify 'FETCH_HEAD^{commit}')
+    [ "$fetched_head" = "$old_github_head" ] || die "GitHub feature ref changed while checking it"
+    git merge-base --is-ancestor "$old_github_head" "$HEAD_OID" ||
+      die "GitHub feature branch diverged; refusing to force-push"
+  fi
+  git push --quiet "$GITHUB_REMOTE" \
+    "--force-with-lease=$github_head_ref:$old_github_head" \
+    "$HEAD_OID:$github_head_ref" ||
+    die "GitHub feature ref changed concurrently or could not be pushed"
+}
+
+create_or_show_github_pr() {
+  if [ "$EXISTING_GITHUB_PR" = true ]; then
+    github_pr_url=$(jq -r '.url' "$TMP_ROOT/github-pr.json")
+  else
+    if ! gh pr create --repo "$GITHUB_SELECTOR" \
+      --base "$BASE_BRANCH" --head "$CURRENT_BRANCH" \
+      --title "$PR_TITLE" --body-file "$TMP_ROOT/pr-body.md" \
+      > "$TMP_ROOT/created-github-pr"; then
+      die "GitHub branch was pushed, but gh could not create the pull request"
+    fi
+    github_pr_url=$(awk 'NF { value=$0 } END { print value }' "$TMP_ROOT/created-github-pr")
+  fi
+
+  gh pr view "$CURRENT_BRANCH" --repo "$GITHUB_SELECTOR" \
+    --json url,baseRefName,baseRefOid,headRefOid,state > "$TMP_ROOT/verified-github-pr.json" ||
+    die "cannot verify the GitHub pull request after publishing"
+  verified_head=$(jq -r '.headRefOid // empty' "$TMP_ROOT/verified-github-pr.json")
+  verified_base=$(jq -r '.baseRefName // empty' "$TMP_ROOT/verified-github-pr.json")
+  verified_base_oid=$(jq -r '.baseRefOid // empty' "$TMP_ROOT/verified-github-pr.json")
+  verified_state=$(jq -r '.state // empty' "$TMP_ROOT/verified-github-pr.json")
+  [ "$verified_head" = "$HEAD_OID" ] || die "GitHub PR head does not equal the approved SHA"
+  [ "$verified_base" = "$BASE_BRANCH" ] || die "GitHub PR targets an unexpected base branch"
+  [ "$verified_base_oid" = "$BASE_OID" ] || die "GitHub PR base does not equal the reviewed base SHA"
+  [ "$verified_state" = OPEN ] || die "GitHub PR is not open"
+  github_pr_url=$(jq -r '.url' "$TMP_ROOT/verified-github-pr.json")
+}
+
+command_ship() {
+  parse_options "$@"
+  require_commands
+  load_config
+  load_repo_context true
+  ensure_actor
+  inspect_gate
+  [ "$GATE_READY" = true ] || die "not approved for shipping: $GATE_REASON"
+  verify_github_base
+  push_github_head
+  verify_github_base
+  create_or_show_github_pr
+  verify_github_base
+  printf 'GitHub PR: %s\n' "$github_pr_url"
+  printf 'Published approved SHA: %s\n' "$HEAD_OID"
+  open_browser "$github_pr_url"
+}
+
+command_doctor() {
+  [ "$#" -eq 0 ] || die "doctor accepts no options"
+  require_commands
+  load_config
+  ensure_actor
+  api_expect_success GET "/users/$FORGEJO_REVIEWER"
+  returned_reviewer=$(jq -r '.login // empty' "$API_BODY")
+  [ "$(lowercase "$returned_reviewer")" = "$(lowercase "$FORGEJO_REVIEWER")" ] ||
+    die "configured Forgejo reviewer does not exist"
+  printf 'Forgejo:  %s\n' "$FORGEJO_URL"
+  printf 'Author:   %s\n' "$FORGEJO_OWNER"
+  printf 'Reviewer: %s\n' "$FORGEJO_REVIEWER"
+  printf 'SSH key:  %s\n' "$FORGEJO_SSH_KEY"
+  printf 'Status:   ready\n'
+}
+
+command=${1:-help}
+[ "$#" -eq 0 ] || shift
+case $command in
+  open) command_open "$@" ;;
+  status) command_status "$@" ;;
+  ship) command_ship "$@" ;;
+  doctor) command_doctor "$@" ;;
+  help | -h | --help) usage ;;
+  version | --version) printf '%s %s\n' "$PROGRAM" "$VERSION" ;;
+  *)
+    usage >&2
+    die "unknown command: $command"
+    ;;
+esac

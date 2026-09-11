@@ -42,6 +42,10 @@ make switch
 | `chezmoi apply` | dotfile を実際のホームディレクトリに適用する |
 | `mise install` | mise 管理の実行環境と補助ツールをインストールする |
 
+## ローカル Forgejo レビュー
+
+`fpr` は、GitHub を正本のまま保ち、localhost 限定の Forgejo で変更をレビューしてから承認済みの同一 SHA を GitHub PR として公開する。初期設定と運用手順は `~/.local/share/forgejo-review/README.md` を参照する。
+
 ## 所有モデル
 
 1つの対象パスには1つの管理元だけを持たせる。

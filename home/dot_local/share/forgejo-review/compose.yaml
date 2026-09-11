@@ -1,0 +1,37 @@
+name: forgejo-review
+
+services:
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:16@sha256:7c4e1db440be7b2ca685b49d0d7864cdd78e92431f531bf7893659def8200fc5
+    container_name: forgejo-review
+    restart: unless-stopped
+    environment:
+      USER_UID: "${FORGEJO_UID:-1000}"
+      USER_GID: "${FORGEJO_GID:-1000}"
+      FORGEJO__database__DB_TYPE: sqlite3
+      FORGEJO__database__PATH: /data/gitea/forgejo.db
+      FORGEJO__server__DOMAIN: 127.0.0.1
+      FORGEJO__server__ROOT_URL: http://127.0.0.1:3000/
+      FORGEJO__server__HTTP_PORT: "3000"
+      FORGEJO__server__SSH_DOMAIN: 127.0.0.1
+      FORGEJO__server__SSH_PORT: "2222"
+      FORGEJO__server__OFFLINE_MODE: "true"
+      FORGEJO__service__DISABLE_REGISTRATION: "true"
+      FORGEJO__service__REQUIRE_SIGNIN_VIEW: "true"
+      FORGEJO__repository__FORCE_PRIVATE: "true"
+      FORGEJO__repository__DEFAULT_PRIVATE: private
+      FORGEJO__repository__ENABLE_PUSH_CREATE_USER: "true"
+      FORGEJO__repository__DEFAULT_PUSH_CREATE_PRIVATE: "true"
+      FORGEJO__actions__ENABLED: "false"
+      FORGEJO__mirror__ENABLED: "false"
+      FORGEJO__api__MAX_RESPONSE_ITEMS: "100"
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:2222:22"
+    volumes:
+      - forgejo-data:/data
+      - ./gitconfig:/etc/gitconfig:ro
+
+volumes:
+  forgejo-data:
+    name: forgejo-review-data
