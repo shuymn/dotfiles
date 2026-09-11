@@ -29,7 +29,6 @@ in
       fzf
       ghq
       gh-stack
-      glimpseui
       gnused
       golangci-lint
       gotools

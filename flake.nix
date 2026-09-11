@@ -62,7 +62,6 @@
                     spindleSources = spindleSourcesFor localConfig;
                   in
                   {
-                    glimpseui = final.callPackage ./nix/packages/glimpseui.nix { };
 
                     # nixpkgs の granted はソースビルドのため ad-hoc 署名のみで
                     # TeamIdentifier を持たず、macOS キーチェーンの ACL を安定して
