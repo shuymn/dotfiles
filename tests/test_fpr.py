@@ -27,7 +27,7 @@ class FprTests(unittest.TestCase):
         self.curl_log = self.root / "curl.log"
         self.git_env_log = self.root / "git-env.log"
         self.git_args_log = self.root / "git-args.log"
-        self.host_key = "AAAAC3NzaC1lZDI1NTE5AAAAIE5ENGikTM8UWMFm81ZHOaHXTw9CPYu+4CLf1gDHp03X"
+        self.host_key = "AAAAC3NzaC1lZDI1NTE5AAAAIFakeTrustedHostKey00000000000000000000000000"
         self.real_git = shutil.which("git")
         assert self.real_git is not None
         self.bin.mkdir()

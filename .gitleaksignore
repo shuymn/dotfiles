@@ -1,0 +1,3 @@
+# betterleaks/gitleaks fingerprints for historical false positives.
+# tests/test_fpr.py once held a high-entropy mock SSH host public key (not a secret).
+a9450ca12880ccff03bea5bd5a561c3580baa381:tests/test_fpr.py:generic-api-key:30
