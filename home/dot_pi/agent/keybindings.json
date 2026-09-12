@@ -1,6 +1,7 @@
 {
   "app.session.rename": [],
   "app.models.save": [],
+  "app.thinking.save": [],
   "app.session.toggleSort": [],
   "tui.editor.cursorUp": ["up", "ctrl+p", "ctrl+k"],
   "tui.editor.cursorDown": ["down", "ctrl+n", "ctrl+j"],
