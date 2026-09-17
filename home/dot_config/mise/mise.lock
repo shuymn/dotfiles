@@ -411,16 +411,16 @@ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20
 provenance = "github-attestations"
 
 [[tools.terraform]]
-version = "1.16.2"
+version = "1.16.3"
 backend = "aqua:hashicorp/terraform"
 
 [tools.terraform."platforms.linux-x64"]
-checksum = "sha256:0d17011f0c4664539b164b044903d04e296c86c13cb9f28040076c65cfb3985a"
-url = "https://releases.hashicorp.com/terraform/1.16.2/terraform_1.16.2_linux_amd64.zip"
+checksum = "sha256:093b6ae9a2228af5029c41606bc96eb583553528aad1bfe7e0b4d62fc91e25d8"
+url = "https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_linux_amd64.zip"
 
 [tools.terraform."platforms.macos-arm64"]
-checksum = "sha256:7c0a0b31c8aa541351369bcf7b62a7289fbc21de7e577669aeba6d42f4e6cc41"
-url = "https://releases.hashicorp.com/terraform/1.16.2/terraform_1.16.2_darwin_arm64.zip"
+checksum = "sha256:c2c45425ea4568da9803e127e589186cb3798a5944d9aff5a5bc15dd18267560"
+url = "https://releases.hashicorp.com/terraform/1.16.3/terraform_1.16.3_darwin_arm64.zip"
 
 [[tools.uv]]
 version = "0.12.15"
