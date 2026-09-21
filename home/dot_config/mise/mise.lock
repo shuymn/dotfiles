@@ -158,19 +158,19 @@ provenance = "github-attestations"
 provenance_verified = true
 
 [[tools."github:k1LoW/octocov"]]
-version = "0.79.0"
+version = "0.80.0"
 backend = "github:k1LoW/octocov"
 
 [tools."github:k1LoW/octocov"."platforms.linux-x64"]
-checksum = "sha256:e38214079faf1f39d8ba625f4f31b0fb253fffa537d6db21a0e8b64938e3adc5"
-url = "https://github.com/k1LoW/octocov/releases/download/v0.79.0/octocov_v0.79.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/574583820"
+checksum = "sha256:aaa7c95af41a303407ec248a73a6cf9d0c0e8843c14e30f215aac06c7e402b95"
+url = "https://github.com/k1LoW/octocov/releases/download/v0.80.0/octocov_v0.80.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/577077002"
 provenance = "github-attestations"
 
 [tools."github:k1LoW/octocov"."platforms.macos-arm64"]
-checksum = "sha256:c743eeaa2d85dfe8416fd2c8abd6222f9be7255b37ed95701832d0cb160c29d9"
-url = "https://github.com/k1LoW/octocov/releases/download/v0.79.0/octocov_v0.79.0_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/574580462"
+checksum = "sha256:13b2d6f06e828a1c04ae94b64f9bb4ac9a7a33053b672e454b5562ff4729f6e7"
+url = "https://github.com/k1LoW/octocov/releases/download/v0.80.0/octocov_v0.80.0_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/577073687"
 provenance = "github-attestations"
 provenance_verified = true
 
