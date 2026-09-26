@@ -35,7 +35,7 @@ lefthook = "2.1.14"
 "github:shuymn/pommitlint" = "2.0.1"
 "github:xdevplatform/xurl" = "v1.3.2"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
-"github:suzuki-shunsuke/pinact" = "v4.1.1"
+"github:suzuki-shunsuke/pinact" = "v5.0.0"
 
 claude = "2.1.282"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
