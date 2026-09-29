@@ -17,18 +17,18 @@ url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/3849248
 provenance = "github-attestations"
 
 [[tools."aqua:k1LoW/mo"]]
-version = "v1.6.8"
+version = "v1.6.9"
 backend = "aqua:k1LoW/mo"
 
 [tools."aqua:k1LoW/mo"."platforms.linux-x64"]
-checksum = "sha256:33972709836832579fde45adb8512bd15f444dc484ff988c0331579d35f115b8"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.8/mo_v1.6.8_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/548262151"
+checksum = "sha256:d69a7963cc7be94deedabb335ae5a5780c9dc038e7f656b40ace697876ca0961"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.9/mo_v1.6.9_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/595342726"
 
 [tools."aqua:k1LoW/mo"."platforms.macos-arm64"]
-checksum = "sha256:234fc265409944a46b90e63ab48917b472a1390b83864593b587f4cf636a5238"
-url = "https://github.com/k1LoW/mo/releases/download/v1.6.8/mo_v1.6.8_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/548262175"
+checksum = "sha256:94da891b45a3889bf1bbb908e4e12ccafd1f162b760ce7eb9c471e1b453545b5"
+url = "https://github.com/k1LoW/mo/releases/download/v1.6.9/mo_v1.6.9_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/595342779"
 
 [[tools.betterleaks]]
 version = "v1.8.1"
