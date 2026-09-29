@@ -1,0 +1,11 @@
+# Retire only formerly managed files; preserve session data and other configs.
+.config/zellij/config.kdl
+.config/zellij/popup.kdl
+.config/zellij/layouts/compact-home.kdl
+.config/zellij/layouts/popup-empty.kdl
+.config/zellij/scripts/popup
+.config/zellij/scripts/start
+.config/zsh/config/75_zellij.zsh
+.config/herdr/scripts/tmux-relay
+.config/herdr/scripts/tmux-sync-tab
+.config/tmux/herdr-sync.conf

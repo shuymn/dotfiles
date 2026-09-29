@@ -298,20 +298,6 @@ checksum = "sha256:08fa0a17a7357ffaddf55a108d9ab415600c651479a18c49eac54c1136e45
 url = "https://github.com/xdevplatform/xurl/releases/download/v1.3.2/xurl_Darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/xdevplatform/xurl/releases/assets/584796481"
 
-[[tools."github:zellij-org/zellij"]]
-version = "0.45.1"
-backend = "github:zellij-org/zellij"
-
-[tools."github:zellij-org/zellij"."platforms.linux-x64"]
-checksum = "sha256:40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c3718eefc"
-url = "https://github.com/zellij-org/zellij/releases/download/v0.45.1/zellij-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/zellij-org/zellij/releases/assets/533538763"
-
-[tools."github:zellij-org/zellij"."platforms.macos-arm64"]
-checksum = "sha256:c029ba4fe1927b79ad9f0cdd59155c4dff80777863c85857d4d09b88b56f9891"
-url = "https://github.com/zellij-org/zellij/releases/download/v0.45.1/zellij-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/zellij-org/zellij/releases/assets/533540212"
-
 [[tools.go]]
 version = "1.27.1"
 backend = "core:go"
