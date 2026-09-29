@@ -27,7 +27,7 @@ Renovate の解決の要点（`lib/modules/manager/mise/`）:
    `spm:` の非 GitHub URL は Renovate では unsupported。
 4. plain `pipx:` の PyPI package は通常 `pypi` datasource になる。過去に
    `info.home_page = null` を返す package で JSON API parse → simple fallback が壊れ、
-   `pipx:tavily-cli` と `pipx:microsandbox` が `no-result` になったため、このリポジトリでは
+   `pipx:tavily-cli` が `no-result` になったため、このリポジトリでは
    `custom.pypi-json` + regex custom manager を維持し、mise manager 側の lookup を disable
    している。
 
@@ -114,13 +114,6 @@ lockfile に保存された options が config の options と一致すること
 既存 tool の version-only change だけを自動 lock 更新の対象にし、tool 追加・削除や
 `url` / `bin` / settings 変更は手動で lockfile を更新して確認する。
 
-`http:cursor-agent` は意図的に `strip_components` を指定しない。Cursor の archive は
-`strip_components` なしでも `cursor-agent` を実行できる一方、Renovate コンテナの
-`mise 2026.6.14` が生成した `strip_components` 付き lock entry は、Nix 側の
-`mise 2026.5.12` では locked install 時に別 entry として扱われて失敗した。config から
-`strip_components` を外し、lockfile に options table を持たせない形なら、両方の mise で
-同じ `http:cursor-agent` lock entry として扱われる。
-
 ## 対処（優先順）
 
 1. **timestamp のある backend / datasource に変更**:
@@ -136,7 +129,7 @@ lockfile に保存された options が config の options と一致すること
    `matchPackageNames` ではマッチしない）。
    既存例: `go`（golang-version）、`python`（python-version）、
    `claude`（npm: @anthropic-ai/claude-code）、`npm:@openai/codex`、
-   `tavily-cli` / `microsandbox`（custom.pypi-json; native pipx/pypi lookup workaround）。
+   `tavily-cli`（custom.pypi-json; native pipx/pypi lookup workaround）。
    automerge は datasource/manager 単位のルールに依存するため、必要なら
    "Automerge minor/patch for regex-managed mise tools" ルールにも追加する。
 
