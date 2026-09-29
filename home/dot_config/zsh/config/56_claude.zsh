@@ -53,7 +53,7 @@ claude-sonnet-advisor() {
 
   command claude \
     --model sonnet \
-    --effort medium \
+    --effort max \
     --append-system-prompt-file "${prompt_file}" \
     "$@"
 }

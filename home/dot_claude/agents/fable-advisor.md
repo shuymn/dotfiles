@@ -1,8 +1,8 @@
 ---
 name: fable-advisor
 description: Resolves focused, high-impact architecture or debugging uncertainty
-model: fable
-effort: high
+model: claude-fable-5-1
+effort: medium
 maxTurns: 20
 tools: Read, Grep, Glob
 ---
