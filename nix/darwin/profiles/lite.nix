@@ -3,7 +3,6 @@
     casks = [
       "choosy"
       "orbstack"
-      "tailscale-app"
     ];
   };
 }
