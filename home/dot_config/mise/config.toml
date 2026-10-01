@@ -39,6 +39,6 @@ lefthook = "2.1.15"
 claude = "2.1.285"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
 "npm:@openai/codex" = "0.159.2"
-"npm:@earendil-works/pi-coding-agent" = "0.87.1"
+"npm:@earendil-works/pi-coding-agent" = "0.99.1"
 "npm:skills" = "1.7.0"
 "pipx:tavily-cli" = "0.1.8"
