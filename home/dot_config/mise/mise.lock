@@ -175,18 +175,18 @@ provenance = "github-attestations"
 provenance_verified = true
 
 [[tools."github:k1LoW/roots"]]
-version = "0.4.1"
+version = "0.4.2"
 backend = "github:k1LoW/roots"
 
 [tools."github:k1LoW/roots"."platforms.linux-x64"]
-checksum = "sha256:f67112927422b18e72ba5827a5e42e6e4ca771127ef65bf89daa6b03ae23de55"
-url = "https://github.com/k1LoW/roots/releases/download/v0.4.1/roots_v0.4.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/331596651"
+checksum = "sha256:80191e25b20c4577c2ef591a9a51f5a2a9761b66a277f2915f6da454cde26dff"
+url = "https://github.com/k1LoW/roots/releases/download/v0.4.2/roots_v0.4.2_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/597380081"
 
 [tools."github:k1LoW/roots"."platforms.macos-arm64"]
-checksum = "sha256:7d658c375cbc331d075b18fcab15cf24147046b9c88d5587886f6e2e545b8b2a"
-url = "https://github.com/k1LoW/roots/releases/download/v0.4.1/roots_v0.4.1_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/331596657"
+checksum = "sha256:4c80be4911a4f73557537bac3a6bf4c4124df0637ca08801d65bc25db80f189b"
+url = "https://github.com/k1LoW/roots/releases/download/v0.4.2/roots_v0.4.2_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/597380084"
 
 [[tools."github:ogulcancelik/herdr"]]
 version = "0.9.1"
