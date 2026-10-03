@@ -36,7 +36,7 @@ lefthook = "2.1.16"
 "github:suzuki-shunsuke/ghalint" = "1.5.6"
 "github:suzuki-shunsuke/pinact" = "v5.0.0"
 
-claude = "2.1.287"
+claude = "2.1.288"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
 "npm:@openai/codex" = "0.160.0"
 "npm:@earendil-works/pi-coding-agent" = "1.0.0"
