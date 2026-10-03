@@ -1,6 +1,7 @@
 {
   homebrew = {
     casks = [
+      "cherry-studio"
       "discord"
       "obsidian"
       "orcaslicer"
