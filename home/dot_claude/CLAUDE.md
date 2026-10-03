@@ -30,5 +30,6 @@ These are coding-task defaults. Subject to system and developer instructions, ex
 
 - Read only guidance relevant to the task; keep skill workflows in their skills rather than duplicating them here. If a skill causes a pause or departure from the request, link its exact `SKILL.md`, quote the applicable instruction, and distinguish its requirement from your interpretation.
 - Use `uv run` for Python execution by default, including one-off scripts and tooling.
+- Create Git worktrees with `git wt --nocd <branch> [<start-point>]` (`git -C <repo> wt ...` for other repos), not `git worktree add`; it applies the shared location and copy settings and prints the path on the last line.
 - Express acceptance criteria with EARS rather than Given/When/Then unless the project requires another format.
 - Give subagents bounded scopes and the same authorization limits; verify integrated results. Check activity before treating silence as a stall.
