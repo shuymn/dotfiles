@@ -1,4 +1,4 @@
-{ localConfig, ... }:
+{ capsule, localConfig, ... }:
 
 let
   role = localConfig.role or "minimal";
@@ -6,6 +6,7 @@ let
 in
 {
   imports = [
+    capsule.homeManagerModules.default
     ./profiles/common.nix
     (if builtins.pathExists roleModule then roleModule else throw "Unknown Nix role '${role}'")
   ];

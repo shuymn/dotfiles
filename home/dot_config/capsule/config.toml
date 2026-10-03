@@ -1,3 +1,5 @@
+schema_version = 2
+
 [character.vicmd]
 style = { fg = "magenta" }
 
@@ -13,15 +15,9 @@ connector = "via"
 [module.when]
 files = ["Cargo.toml"]
 
-[[module.source]]
-name = "version"
-command = ["rustc", "--version"]
-regex = 'rustc\s+(\d+\.\d+\.\d+)'
-
-[[module.source]]
-name = "nightly"
-command = ["rustc", "--version"]
-regex = 'rustc\s+\d+\.\d+\.\d+-(nightly)'
+[module.values]
+version = [{ command = ["rustc", "--version"], regex = 'rustc\s+(\d+\.\d+\.\d+)' }]
+nightly = [{ command = ["rustc", "--version"], regex = 'rustc\s+\d+\.\d+\.\d+-(nightly)' }]
 
 [module.style]
 fg = "red"
@@ -35,14 +31,11 @@ connector = "via"
 [module.when]
 files = ["bun.lock", "bun.lockb", "bunfig.toml"]
 
-[[module.source]]
-name = "version"
-file = ".bun-version"
-
-[[module.source]]
-name = "version"
-command = ["bun", "--version"]
-regex = '(\d[\d.]*)'
+[module.values]
+version = [
+  { file = ".bun-version" },
+  { command = ["bun", "--version"], regex = '(\d[\d.]*)' },
+]
 
 [module.style]
 fg = "red"
@@ -60,14 +53,11 @@ connector = "via"
 [module.when]
 files = ["package.json"]
 
-[[module.source]]
-name = "version"
-file = ".node-version"
-
-[[module.source]]
-name = "version"
-command = ["node", "--version"]
-regex = 'v?(\d[\d.]*)'
+[module.values]
+version = [
+  { file = ".node-version" },
+  { command = ["node", "--version"], regex = 'v?(\d[\d.]*)' },
+]
 
 [module.style]
 fg = "green"
@@ -85,10 +75,8 @@ connector = "via"
 [module.when]
 files = ["go.mod"]
 
-[[module.source]]
-name = "version"
-command = ["go", "version"]
-regex = 'go(\d[\d.]*)'
+[module.values]
+version = [{ command = ["go", "version"], regex = 'go(\d[\d.]*)' }]
 
 [module.style]
 fg = "cyan"
@@ -102,10 +90,8 @@ connector = "via"
 [module.when]
 files = ["pyproject.toml", "setup.py"]
 
-[[module.source]]
-name = "version"
-command = ["python3", "--version"]
-regex = 'Python\s+(\S+)'
+[module.values]
+version = [{ command = ["python3", "--version"], regex = 'Python\s+(\S+)' }]
 
 [module.style]
 fg = "yellow"
@@ -119,10 +105,8 @@ connector = "via"
 [module.when]
 files = ["Gemfile"]
 
-[[module.source]]
-name = "version"
-command = ["ruby", "--version"]
-regex = 'ruby\s+(\d+\.\d+\.\d+)'
+[module.values]
+version = [{ command = ["ruby", "--version"], regex = 'ruby\s+(\d+\.\d+\.\d+)' }]
 
 [module.style]
 fg = "red"

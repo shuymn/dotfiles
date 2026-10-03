@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ capsule, pkgs, ... }:
 
 {
   home.packages = with pkgs; [
@@ -16,6 +16,13 @@
     CVSEDITOR = "nvim";
     GIT_EDITOR = "nvim";
     SVN_EDITOR = "nvim";
+  };
+
+  programs.capsule = {
+    enable = true;
+    package = capsule.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    # Chezmoi owns the zsh initialization and Capsule config.
+    enableZshIntegration = false;
   };
 
   programs.neovim = {

@@ -14,10 +14,18 @@
       url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    capsule = {
+      url = "github:shuymn/capsule";
+      # Keep the upstream package pin for its release binary cache.
+      inputs.home-manager.follows = "home-manager";
+      inputs.nix-darwin.follows = "nix-darwin";
+    };
   };
 
   outputs =
     {
+      capsule,
       home-manager,
       nix-darwin,
       nixpkgs-unstable,
@@ -116,7 +124,7 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.extraSpecialArgs = {
-                inherit localConfig;
+                inherit capsule localConfig;
               };
               home-manager.users.${localConfig.username} = import ./nix/home;
             }

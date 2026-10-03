@@ -42,6 +42,12 @@ make switch
 | `chezmoi apply` | dotfile を実際のホームディレクトリに適用する |
 | `mise install` | mise 管理の実行環境と補助ツールをインストールする |
 
+## Capsule
+
+Capsule は公式 flake を Home Manager 経由で導入する。デフォルトブランチを追い、Renovate の lockfile maintenance で更新する。実際のコミットは `flake.lock` に固定される。設定と zsh 初期化は chezmoi が管理し、共有 daemon は使わない。
+
+旧 daemon 版からの更新は、バイナリ・設定・LaunchAgent をバックアップしてから、[公式の移行手順](https://github.com/shuymn/capsule/blob/v1.0.0/docs/migration.md)に従って旧 CLI で daemon を解除する。`cleanup = "check"` が適用を止めないよう、Homebrew 版と不要になった `shuymn/tap` を先に削除する。その後、`make switch` と `chezmoi apply ~/.config/capsule/config.toml` でバイナリと schema v2 設定を適用し、新しいシェルを起動する。
+
 ## ローカル Forgejo レビュー
 
 `fpr` は、GitHub を正本のまま保ち、localhost 限定の Forgejo で変更をレビューしてから承認済みの同一 SHA を GitHub PR として公開する。初期設定と運用手順は `~/.local/share/forgejo-review/README.md` を参照する。
