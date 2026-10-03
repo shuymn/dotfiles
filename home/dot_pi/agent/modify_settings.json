@@ -1,0 +1,26 @@
+#!/bin/sh
+# Manage shared preferences without overwriting Pi's runtime/local settings.
+exec chezmoi execute-template --with-stdin '
+{{- $settings := dict -}}
+{{- if trim .chezmoi.stdin -}}
+{{-   $settings = mustFromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $compaction := dict -}}
+{{- if hasKey $settings "compaction" -}}
+{{-   $compaction = get $settings "compaction" -}}
+{{- end -}}
+{{- $_ := set $compaction "enabled" true -}}
+{{- $_ := set $compaction "reserveTokens" 32768 -}}
+{{- $_ := set $compaction "keepRecentTokens" 12000 -}}
+{{- $_ := set $settings "compaction" $compaction -}}
+{{- $_ := set $settings "theme" "dark" -}}
+{{- $_ := set $settings "quietStartup" "header" -}}
+{{- $_ := set $settings "showCacheMissNotices" true -}}
+{{- $terminal := dict -}}
+{{- if hasKey $settings "terminal" -}}
+{{-   $terminal = get $settings "terminal" -}}
+{{- end -}}
+{{- $_ := set $terminal "showTerminalProgress" true -}}
+{{- $_ := set $settings "terminal" $terminal -}}
+{{ $settings | mustToPrettyJson }}
+'
