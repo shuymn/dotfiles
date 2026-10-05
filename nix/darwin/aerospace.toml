@@ -86,7 +86,7 @@ alt-shift-j = "move down"
 alt-shift-k = "move up"
 alt-shift-l = "move right"
 
-# Workspace number bindings are generated in profiles/personal.nix.
+# Workspace number bindings are generated in profiles/aerospace.nix.
 alt-a = 'exec-and-forget aerospace workspace "$(aerospace list-workspaces --monitor mouse --visible)" && aerospace list-workspaces --monitor mouse --empty no | aerospace workspace --stdin --wrap-around prev'
 alt-s = 'exec-and-forget aerospace workspace "$(aerospace list-workspaces --monitor mouse --visible)" && aerospace list-workspaces --monitor mouse --empty no | aerospace workspace --stdin --wrap-around next'
 alt-tab = "workspace-back-and-forth"
