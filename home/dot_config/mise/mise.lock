@@ -17,7 +17,7 @@ url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/3849248
 provenance = "github-attestations"
 
 [[tools."aqua:k1LoW/mo"]]
-version = "v1.6.9"
+version = "1.6.9"
 backend = "aqua:k1LoW/mo"
 
 [tools."aqua:k1LoW/mo"."platforms.linux-x64"]
@@ -31,7 +31,7 @@ url = "https://github.com/k1LoW/mo/releases/download/v1.6.9/mo_v1.6.9_darwin_arm
 url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/595342779"
 
 [[tools.betterleaks]]
-version = "v1.9.0"
+version = "1.9.0"
 backend = "aqua:betterleaks/betterleaks"
 
 [tools.betterleaks."platforms.linux-x64"]
