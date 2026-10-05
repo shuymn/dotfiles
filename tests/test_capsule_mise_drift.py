@@ -17,11 +17,13 @@ class CapsuleMiseDriftTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.bin = self.root / "bin"
         self.bin.mkdir()
-        jq = shutil.which("jq")
-        self.assertIsNotNone(jq, "jq is required")
-        (self.bin / "jq").symlink_to(jq)
+        # Keep PATH to this directory so runner-installed runtimes never leak in.
+        for command in ("jq", "awk"):
+            path = shutil.which(command)
+            self.assertIsNotNone(path, f"{command} is required")
+            (self.bin / command).symlink_to(path)
         self.env = {
-            "PATH": f"{self.bin}:/usr/bin:/bin",
+            "PATH": str(self.bin),
             "HOME": str(self.root),
             "MOCK_RECORDS": json.dumps([{"version": "1.27.1"}]),
             "MOCK_VERSION": "go version go1.26.0 darwin/arm64",
