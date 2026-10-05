@@ -51,10 +51,6 @@ Capsule は公式 flake を Home Manager 経由で導入する。デフォルト
 
 旧 daemon 版からの更新は、バイナリ・設定・LaunchAgent をバックアップしてから、[公式の移行手順](https://github.com/shuymn/capsule/blob/v1.0.0/docs/migration.md)に従って旧 CLI で daemon を解除する。`cleanup = "check"` が適用を止めないよう、Homebrew 版と不要になった `shuymn/tap` を先に削除する。その後、`make switch` と `chezmoi apply ~/.config/capsule/config.toml` でバイナリと schema v2 設定を適用し、新しいシェルを起動する。
 
-## ローカル Forgejo レビュー
-
-`fpr` は、GitHub を正本のまま保ち、localhost 限定の Forgejo で変更をレビューしてから承認済みの同一 SHA を GitHub PR として公開する。初期設定と運用手順は `~/.local/share/forgejo-review/README.md` を参照する。
-
 ## 所有モデル
 
 1つの対象パスには1つの管理元だけを持たせる。

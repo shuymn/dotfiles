@@ -16,3 +16,9 @@
 .config/spindle/lib-path.sh
 .tmux.conf
 .config/zsh/config/80_tmux.zsh
+.local/bin/fpr
+.local/share/forgejo-review/Makefile
+.local/share/forgejo-review/README.md
+.local/share/forgejo-review/compose.yaml
+.local/share/forgejo-review/gitconfig
+.local/share/forgejo-review/scripts/bootstrap.sh

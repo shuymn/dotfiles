@@ -59,14 +59,6 @@ check-source-state: ## Check chezmoi source state does not include local-only ta
 check: check-source-state ## Check source state and the Nix flake, including Home Manager/chezmoi ownership
 	@$(NIX_CMD) flake check "$(NIX_LOCAL_FLAKE)"
 
-.PHONY: check-fpr
-FPR_SHELL_SOURCES := home/dot_local/private_bin/executable_fpr \
-	home/dot_local/share/forgejo-review/scripts/executable_bootstrap.sh
-check-fpr: ## Check the fpr shell scripts and focused tests
-	@shfmt -d -i 2 -ci -sr $(FPR_SHELL_SOURCES)
-	@shellcheck -s sh $(FPR_SHELL_SOURCES)
-	@python3 -m unittest -v tests.test_fpr
-
 .PHONY: check-brew
 check-brew: require-host ## Check Homebrew against the nix-darwin generated Brewfile
 	@tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
