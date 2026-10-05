@@ -6,107 +6,97 @@ style = { fg = "magenta" }
 [time]
 disabled = false
 
+# Show the runtime selected by PATH, not the version requested by a file.
+# Bun takes precedence over Node when a Bun project is detected.
+[[module]]
+name = "bun"
+when.files = ["bun.lock", "bun.lockb", "bunfig.toml"]
+format = "v{version}"
+icon = ""
+connector = "via"
+style = { fg = "red" }
+arbitration = { group = "node.js", priority = 10 }
+
+[module.values]
+version = [{ command = ["bun", "--version"], regex = '(\d[\d.]*)' }]
+
+[[module]]
+name = "node"
+when.files = ["package.json"]
+format = "v{version}"
+icon = ""
+connector = "via"
+style = { fg = "green" }
+arbitration = { group = "node.js", priority = 20 }
+
+[module.values]
+version = [{ command = ["node", "--version"], regex = 'v?(\d[\d.]*)' }]
+
+[[module]]
+name = "python"
+when.files = ["pyproject.toml", "uv.lock", "setup.py"]
+format = "v{version}"
+icon = ""
+connector = "via"
+style = { fg = "yellow" }
+
+[module.values]
+version = [{ command = ["python3", "--version"], regex = 'Python\s+(\S+)' }]
+
+[[module]]
+name = "go"
+when.files = ["go.mod"]
+format = "v{version}"
+icon = ""
+connector = "via"
+style = { fg = "cyan" }
+
+[module.values]
+version = [{ command = ["go", "version"], regex = 'go(\d[\d.]*)' }]
+
 [[module]]
 name = "rust"
+when.files = ["Cargo.toml"]
 format = "v{version}[ ({nightly})]"
 icon = "󱘗"
 connector = "via"
-
-[module.when]
-files = ["Cargo.toml"]
+style = { fg = "red" }
 
 [module.values]
 version = [{ command = ["rustc", "--version"], regex = 'rustc\s+(\d+\.\d+\.\d+)' }]
 nightly = [{ command = ["rustc", "--version"], regex = 'rustc\s+\d+\.\d+\.\d+-(nightly)' }]
 
-[module.style]
-fg = "red"
-
 [[module]]
-name = "bun"
+name = "php"
+when.files = ["composer.json", "index.php"]
 format = "v{version}"
-icon = ""
+icon = ""
 connector = "via"
-
-[module.when]
-files = ["bun.lock", "bun.lockb", "bunfig.toml"]
+style = { fg = "magenta" }
 
 [module.values]
-version = [
-  { file = ".bun-version" },
-  { command = ["bun", "--version"], regex = '(\d[\d.]*)' },
-]
+version = [{ command = ["php", "--version"], regex = 'PHP\s+(\d+\.\d+\.\d+)' }]
 
-[module.style]
-fg = "red"
-
-[module.arbitration]
-group = "node.js"
-priority = 10
-
+# Read the assumed AWS context without invoking AWS or exposing credentials.
 [[module]]
-name = "node"
-format = "v{version}"
-icon = ""
-connector = "via"
-
-[module.when]
-files = ["package.json"]
+name = "aws"
+when.env = ["AWS_PROFILE", "AWS_DEFAULT_PROFILE"]
+format = "{profile}[ ({region})]"
+icon = "☁️"
+connector = "on"
+style = { fg = "yellow", bold = true }
 
 [module.values]
-version = [
-  { file = ".node-version" },
-  { command = ["node", "--version"], regex = 'v?(\d[\d.]*)' },
-]
-
-[module.style]
-fg = "green"
-
-[module.arbitration]
-group = "node.js"
-priority = 20
+profile = [{ env = "AWS_PROFILE" }, { env = "AWS_DEFAULT_PROFILE" }]
+region = [{ env = "AWS_REGION" }, { env = "AWS_DEFAULT_REGION" }]
 
 [[module]]
-name = "go"
-format = "v{version}"
-icon = ""
+name = "nix_shell"
+when.env = ["IN_NIX_SHELL"]
+format = "{kind}"
+icon = "❄️"
 connector = "via"
-
-[module.when]
-files = ["go.mod"]
+style = { fg = "blue", bold = true }
 
 [module.values]
-version = [{ command = ["go", "version"], regex = 'go(\d[\d.]*)' }]
-
-[module.style]
-fg = "cyan"
-
-[[module]]
-name = "python"
-format = "v{version}"
-icon = ""
-connector = "via"
-
-[module.when]
-files = ["pyproject.toml", "setup.py"]
-
-[module.values]
-version = [{ command = ["python3", "--version"], regex = 'Python\s+(\S+)' }]
-
-[module.style]
-fg = "yellow"
-
-[[module]]
-name = "ruby"
-format = "v{version}"
-icon = ""
-connector = "via"
-
-[module.when]
-files = ["Gemfile"]
-
-[module.values]
-version = [{ command = ["ruby", "--version"], regex = 'ruby\s+(\d+\.\d+\.\d+)' }]
-
-[module.style]
-fg = "red"
+kind = [{ env = "IN_NIX_SHELL" }]
