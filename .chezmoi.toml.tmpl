@@ -1,9 +1,13 @@
-{{- $roleFile := joinPath .chezmoi.homeDir ".config" "chezmoi" "nix-role" -}}
-{{- $persistedRole := "" -}}
-{{- if stat $roleFile -}}
-{{-   $persistedRole = include $roleFile | trim -}}
+{{- /* host.toml is the git-ignored host description shared with Nix; see `make host`. */ -}}
+{{- $hostFile := joinPath .chezmoi.workingTree "host.toml" -}}
+{{- if not (stat $hostFile) -}}
+{{-   $hostFile = joinPath .chezmoi.workingTree "nix" "host.default.toml" -}}
 {{- end -}}
-{{- $nixRole := env "DOTFILES_NIX_ROLE" | default ($persistedRole | default (index . "nixRole" | default "minimal")) -}}
+{{- $role := (include $hostFile | fromToml).role -}}
+{{- $roles := include (joinPath .chezmoi.workingTree "nix" "roles.toml") | fromToml -}}
+{{- if not (hasKey $roles $role) -}}
+{{-   fail (printf "unknown role %q in %s" $role $hostFile) -}}
+{{- end -}}
 sourceDir = {{ .chezmoi.workingTree | quote }}
 encryption = "age"
 color = false
@@ -12,7 +16,7 @@ color = false
 pager = "delta"
 
 [data]
-nixRole = {{ $nixRole | quote }}
+homeProfiles = {{ (index $roles $role).home | toJson }}
 
 [age]
 identity = "~/.config/age/key.txt"

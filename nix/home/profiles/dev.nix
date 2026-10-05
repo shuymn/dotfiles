@@ -43,7 +43,6 @@ in
       shfmt
       sops
       sqlmap
-      tmux
       yamllint
       yazi
       yq

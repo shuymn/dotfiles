@@ -7,7 +7,8 @@ __pycache__/
 
 etc/pi/agent/extensions/node_modules/
 
-# Local-only Nix host config generated from chezmoi data.
+# Local-only host values (see `make host`). nix/local.nix is the retired generated form.
+/host.toml
 nix/local.nix
 
 # Local-only age identities must never enter chezmoi source state.

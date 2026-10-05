@@ -1,9 +1,15 @@
 {
+{{- if has "lite" .homeProfiles }}
+    "astro": true,
+{{- end }}
     "html": true,
     "jsonl": true,
     "make": true,
     "material-icon-theme": true,
     "nix": true,
+{{- if has "lite" .homeProfiles }}
+    "prisma": true,
+{{- end }}
     "sql": true,
     "toml": true,
 }

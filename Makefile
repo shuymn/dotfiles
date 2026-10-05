@@ -4,15 +4,12 @@ CHEZMOI ?= chezmoi
 CHEZMOI_STATE_DIR ?= $(HOME)/.local/state/chezmoi
 CHEZMOI_STATE ?= $(CHEZMOI_STATE_DIR)/chezmoistate.boltdb
 CHEZMOI_CONFIG ?= $(HOME)/.config/chezmoi/chezmoi.toml
-NIX_ROLE_FILE ?= $(HOME)/.config/chezmoi/nix-role
 CHEZMOI_CONFIG_TEMPLATE ?= $(DOTPATH)/.chezmoi.toml.tmpl
 AGE_KEY ?= $(HOME)/.config/age/key.txt
+# path: includes the git-ignored host.toml, which a git+file flake would not see.
 NIX_LOCAL_FLAKE := path:$(DOTPATH)
-NIX_LOCAL_CONFIG ?= $(DOTPATH)/nix/local.nix
-NIX_LOCAL_TEMPLATE ?= $(DOTPATH)/nix/local.nix.tmpl
-NIX_ROLE ?=
-NIX_LOCAL_ENV := DOTFILES_NIX_LOCAL=$(NIX_LOCAL_CONFIG)
-CHEZMOI_TEMPLATE_ENV := $(if $(NIX_ROLE),DOTFILES_NIX_ROLE=$(NIX_ROLE),)
+HOST_CONFIG := $(DOTPATH)/host.toml
+ROLE ?= minimal
 NIX ?= nix
 MISE ?= $(NIX_CMD) run "$(NIX_LOCAL_FLAKE)\#mise" --
 NIX_FLAGS ?= --extra-experimental-features nix-command --extra-experimental-features flakes
@@ -43,18 +40,14 @@ install-nix: ## Install Nix if missing
 		curl -sSfL https://artifacts.nixos.org/nix-installer | sh -s -- install --enable-flakes; \
 	fi
 
-.PHONY: local
-local: ## Generate local Nix host config from chezmoi data
-	@mkdir -p "$(dir $(NIX_LOCAL_CONFIG))"
-	@$(CHEZMOI_TEMPLATE_ENV) $(CHEZMOI_CMD) execute-template < "$(NIX_LOCAL_TEMPLATE)" > "$(NIX_LOCAL_CONFIG)"
+.PHONY: host
+host: ## Create the git-ignored host.toml from this machine (ROLE=minimal|personal-lite|personal|work)
+	@/bin/sh "$(DOTPATH)/scripts/init-host.sh" "$(HOST_CONFIG)" "$(DOTPATH)/nix/roles.toml" "$(ROLE)"
 
-.PHONY: check-ownership
-check-ownership: ## Check Home Manager does not claim dotfile targets
-	@matches="$$(find nix -name '*.nix' -print0 \
-		| xargs -0 grep -nE 'home[.]file|home[.]activation|xdg[.](configFile|dataFile|stateFile|cacheFile)' 2>/dev/null || true)"; \
-	if [ -n "$$matches" ]; then \
-		printf '%s\n' "$$matches" >&2; \
-		echo "Home Manager must not manage dotfile targets. Keep target files under home/** or migrate ownership fully." >&2; \
+.PHONY: require-host
+require-host:
+	@if [ ! -f "$(HOST_CONFIG)" ]; then \
+		echo "$(HOST_CONFIG) not found; run 'make host ROLE=<role>' first" >&2; \
 		exit 1; \
 	fi
 
@@ -63,40 +56,28 @@ check-source-state: ## Check chezmoi source state does not include local-only ta
 	@/bin/sh "$(DOTPATH)/scripts/check-source-state.sh"
 
 .PHONY: check
-check: check-ownership check-source-state local ## Check source state, dotfile ownership, and the Nix flake
-	@$(NIX_LOCAL_ENV) $(NIX_CMD) flake check --impure "$(NIX_LOCAL_FLAKE)"
-
-.PHONY: check-fpr
-FPR_SHELL_SOURCES := home/dot_local/private_bin/executable_fpr \
-	home/dot_local/share/forgejo-review/scripts/executable_bootstrap.sh
-check-fpr: ## Check the fpr shell scripts and focused tests
-	@shfmt -d -i 2 -ci -sr $(FPR_SHELL_SOURCES)
-	@shellcheck -s sh $(FPR_SHELL_SOURCES)
-	@python3 -m unittest -v tests.test_fpr
+check: check-source-state ## Check source state and the Nix flake, including Home Manager/chezmoi ownership
+	@$(NIX_CMD) flake check "$(NIX_LOCAL_FLAKE)"
 
 .PHONY: check-brew
-check-brew: local ## Check Homebrew against the nix-darwin generated Brewfile
+check-brew: require-host ## Check Homebrew against the nix-darwin generated Brewfile
 	@tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
 	trap 'rm -f "$$tmpfile"' EXIT; \
-	$(NIX_LOCAL_ENV) $(NIX_CMD) eval --impure --raw "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).config.homebrew.brewfile" > "$$tmpfile"; \
+	$(NIX_CMD) eval --raw "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).config.homebrew.brewfile" > "$$tmpfile"; \
 	$(BREW) bundle check --file="$$tmpfile"; \
 	BREW="$(BREW)" /bin/sh "$(DOTPATH)/scripts/check-homebrew-state.sh" "$$tmpfile"
-
-.PHONY: check-mise-renovate
-check-mise-renovate: ## Check mise tools resolve to Renovate datasources with releaseTimestamp
-	@/bin/sh "$(DOTPATH)/scripts/check-mise-renovate-age.sh"
 
 .PHONY: audit-cli-path
 audit-cli-path: ## Classify non-Nix/non-mise PATH owners and shadows
 	@zsh -lc 'source "$(DOTPATH)/scripts/audit-cli-path.zsh"'
 
 .PHONY: build
-build: local ## Build the nix-darwin profile without switching
-	@$(NIX_LOCAL_ENV) $(NIX_CMD) build --impure --no-link "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).system"
+build: require-host ## Build the nix-darwin profile without switching
+	@$(NIX_CMD) build --no-link "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).system"
 
 .PHONY: switch
-switch: local ## Apply nix-darwin and Home Manager
-	@$(SUDO) env HOME=/var/root PATH="$$PATH" $(NIX_LOCAL_ENV) $(NIX_CMD) run --impure "$(NIX_LOCAL_FLAKE)#darwin-rebuild" -- switch --flake "$(NIX_LOCAL_FLAKE)#$(DARWIN_CONFIG)" --impure
+switch: require-host ## Apply nix-darwin and Home Manager
+	@$(SUDO) env HOME=/var/root PATH="$$PATH" $(NIX_CMD) run "$(NIX_LOCAL_FLAKE)#darwin-rebuild" -- switch --flake "$(NIX_LOCAL_FLAKE)#$(DARWIN_CONFIG)"
 
 .PHONY: gc
 gc: ## Delete old Nix generations and garbage collect the store
@@ -116,13 +97,12 @@ age-key: ## Generate local age identity for chezmoi encryption
 			$(NIX_CMD) shell nixpkgs\#age -c age-keygen -o "$(AGE_KEY)"; \
 		fi; \
 	fi
-	@$(MAKE) chezmoi-config NIX_ROLE="$(NIX_ROLE)"
+	@$(MAKE) chezmoi-config
 
 .PHONY: chezmoi-config
 chezmoi-config: ## Generate chezmoi config for plain chezmoi commands
 	@mkdir -p "$(CHEZMOI_STATE_DIR)" "$(dir $(CHEZMOI_CONFIG))"
-	@if [ -n "$(NIX_ROLE)" ]; then printf '%s\n' "$(NIX_ROLE)" > "$(NIX_ROLE_FILE)"; fi
-	@$(CHEZMOI_TEMPLATE_ENV) $(CHEZMOI_CMD) execute-template < "$(CHEZMOI_CONFIG_TEMPLATE)" > "$(CHEZMOI_CONFIG)"
+	@$(CHEZMOI_CMD) execute-template < "$(CHEZMOI_CONFIG_TEMPLATE)" > "$(CHEZMOI_CONFIG)"
 
 .PHONY: apply
 apply: chezmoi-config ## Apply chezmoi-managed dotfiles
@@ -131,6 +111,24 @@ apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 .PHONY: mise
 mise: ## Install mise-managed global tools
 	@MISE_LOCKED=1 $(MISE) install -C "$(HOME)"
+
+.PHONY: converge
+converge: require-host ## Apply chezmoi, nix-darwin, and mise in order; rerun to resume after a failure
+	@$(MAKE) --no-print-directory apply
+	@$(MAKE) --no-print-directory switch
+	@$(MAKE) --no-print-directory mise
+
+.PHONY: doctor
+doctor: require-host ## Report drift from the declared state without changing anything
+	@status=0; \
+	echo "== chezmoi status"; \
+	drift="$$($(CHEZMOI_CMD) status)" || status=1; \
+	if [ -n "$$drift" ]; then printf '%s\n' "$$drift"; status=1; fi; \
+	echo "== Homebrew"; \
+	$(MAKE) --no-print-directory check-brew || status=1; \
+	echo "== Commands outside Nix and mise"; \
+	$(MAKE) --no-print-directory audit-cli-path; \
+	exit $$status
 
 .PHONY: install-pi
 install-pi: ## Install the local pi extensions package when present
