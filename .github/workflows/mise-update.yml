@@ -3,7 +3,8 @@ name: Update mise tools
 # Re-resolve the major-version ranges in home/dot_config/mise/config.toml and
 # propose the new mise.lock. `mise lock --bump` only reads release metadata and
 # writes the lockfile; it never installs or runs the tools, so the maintainer
-# App token is created in the same job after it.
+# App token is created in the same job after it. Only tools whose version
+# changes are re-locked, so checksums of unchanged versions stay pinned.
 
 on:
   schedule:
@@ -40,26 +41,28 @@ jobs:
           MISE_YES: 1
         run: |
           set -eu
-          nix --extra-experimental-features nix-command --extra-experimental-features flakes shell .#mise -c \
-            sh -c 'cd home/dot_config/mise && mise trust config.toml && mise lock --bump --json' >"$RUNNER_TEMP/changes.json"
-          status=$(git status --porcelain --untracked-files=all)
-          if [ -z "$status" ]; then
+          mise_in_config_dir() {
+            nix --extra-experimental-features nix-command --extra-experimental-features flakes shell .#mise -c \
+              sh -c 'cd home/dot_config/mise && mise trust config.toml >/dev/null && mise "$@"' sh "$@"
+          }
+          mise_in_config_dir lock --bump --dry-run --json >"$RUNNER_TEMP/changes.json"
+          if [ "$(jq length "$RUNNER_TEMP/changes.json")" -eq 0 ]; then
             echo "changed=false" >>"$GITHUB_OUTPUT"
             exit 0
           fi
+          jq -r '.[].name' "$RUNNER_TEMP/changes.json" | while IFS= read -r tool; do
+            mise_in_config_dir lock --bump "$tool" </dev/null
+          done
+          status=$(git status --porcelain --untracked-files=all)
           if [ "$status" != " M $LOCK" ]; then
             printf 'mise lock changed unexpected files:\n%s\n' "$status" >&2
             exit 1
           fi
-          if [ "$(jq length "$RUNNER_TEMP/changes.json")" -eq 0 ]; then
-            echo "Refreshes lockfile metadata for the current versions." >"$RUNNER_TEMP/body.md"
-          else
-            {
-              echo "| Tool | From | To |"
-              echo "| --- | --- | --- |"
-              jq -r '.[] | "| `\(.name)` | \(.old_versions | join(", ")) | \(.new_versions | join(", ")) |"' "$RUNNER_TEMP/changes.json"
-            } >"$RUNNER_TEMP/body.md"
-          fi
+          {
+            echo "| Tool | From | To |"
+            echo "| --- | --- | --- |"
+            jq -r '.[] | "| `\(.name)` | \(.old_versions | join(", ")) | \(.new_versions | join(", ")) |"' "$RUNNER_TEMP/changes.json"
+          } >"$RUNNER_TEMP/body.md"
           cat "$RUNNER_TEMP/body.md" >>"$GITHUB_STEP_SUMMARY"
           echo "changed=true" >>"$GITHUB_OUTPUT"
 
