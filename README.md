@@ -44,7 +44,7 @@ make switch
 
 ## Capsule
 
-Capsule は公式 flake を Home Manager 経由で導入する。デフォルトブランチを追い、Renovate の lockfile maintenance で更新する。実際のコミットは `flake.lock` に固定される。設定と zsh 初期化は chezmoi が管理し、共有 daemon は使わない。
+Capsule は公式 flake を Home Manager 経由で導入する。デフォルトブランチを追い、Renovate の lockfile maintenance で更新する。実際のコミットは `flake.lock` に固定される。設定と zsh 初期化は chezmoi が管理し、共有 daemon は使わない。ランタイムは PATH 上のバージョンを表示し、mise のプロジェクト設定で解決されたバージョンと異なる場合だけ `(expected …)` を追加する。グローバル設定のみの場合や比較値を取得できない場合は追加表示しない。
 
 旧 daemon 版からの更新は、バイナリ・設定・LaunchAgent をバックアップしてから、[公式の移行手順](https://github.com/shuymn/capsule/blob/v1.0.0/docs/migration.md)に従って旧 CLI で daemon を解除する。`cleanup = "check"` が適用を止めないよう、Homebrew 版と不要になった `shuymn/tap` を先に削除する。その後、`make switch` と `chezmoi apply ~/.config/capsule/config.toml` でバイナリと schema v2 設定を適用し、新しいシェルを起動する。
 

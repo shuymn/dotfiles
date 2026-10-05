@@ -1,0 +1,40 @@
+#!/bin/sh
+# Optional Capsule value: print the project's expected version only on drift.
+# Exit nonzero on agreement or unavailable data so the optional section disappears.
+set -eu
+
+[ "$#" -eq 1 ] || exit 1
+tool=$1
+argument=--version
+case "$tool" in
+bun | node | php) runtime=$tool ;;
+python) runtime=python3 ;;
+rust) runtime=rustc ;;
+go)
+    runtime=go
+    argument=version
+    ;;
+*) exit 1 ;;
+esac
+
+command -v mise >/dev/null 2>&1 || exit 1
+command -v jq >/dev/null 2>&1 || exit 1
+
+# --local includes inherited project configuration but excludes global defaults.
+# Resolve aliases from local cache only; never install tools or fetch releases.
+records=$(MISE_OFFLINE=1 mise ls --local --current "$tool" --json 2>/dev/null) || exit 1
+expected=$(printf '%s\n' "$records" | jq -er '
+    .[0].version | select(type == "string") | ltrimstr("v")
+    | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+[A-Za-z0-9.+-]*$"))
+' 2>/dev/null) || exit 1
+
+output=$("$runtime" "$argument" 2>/dev/null) || exit 1
+actual=$(printf '%s\n' "$output" | awk '
+    match($0, /[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*/) {
+        print substr($0, RSTART, RLENGTH)
+        exit
+    }
+')
+[ -n "$actual" ] || exit 1
+[ "$actual" != "$expected" ] || exit 1
+printf '%s\n' "$expected"

@@ -6,12 +6,12 @@ style = { fg = "magenta" }
 [time]
 disabled = false
 
-# Show the runtime selected by PATH, not the version requested by a file.
+# Show the runtime selected by PATH; show mise's project version only on drift.
 # Bun takes precedence over Node when a Bun project is detected.
 [[module]]
 name = "bun"
 when.files = ["bun.lock", "bun.lockb", "bunfig.toml"]
-format = "v{version}"
+format = "v{version}[ (expected {expected})]"
 icon = ""
 connector = "via"
 style = { fg = "red" }
@@ -19,11 +19,12 @@ arbitration = { group = "node.js", priority = 10 }
 
 [module.values]
 version = [{ command = ["bun", "--version"], regex = '(\d[\d.]*)' }]
+expected = [{ command = ["capsule-mise-drift", "bun"] }]
 
 [[module]]
 name = "node"
 when.files = ["package.json"]
-format = "v{version}"
+format = "v{version}[ (expected {expected})]"
 icon = ""
 connector = "via"
 style = { fg = "green" }
@@ -31,33 +32,36 @@ arbitration = { group = "node.js", priority = 20 }
 
 [module.values]
 version = [{ command = ["node", "--version"], regex = 'v?(\d[\d.]*)' }]
+expected = [{ command = ["capsule-mise-drift", "node"] }]
 
 [[module]]
 name = "python"
 when.files = ["pyproject.toml", "uv.lock", "setup.py"]
-format = "v{version}"
+format = "v{version}[ (expected {expected})]"
 icon = ""
 connector = "via"
 style = { fg = "yellow" }
 
 [module.values]
 version = [{ command = ["python3", "--version"], regex = 'Python\s+(\S+)' }]
+expected = [{ command = ["capsule-mise-drift", "python"] }]
 
 [[module]]
 name = "go"
 when.files = ["go.mod"]
-format = "v{version}"
+format = "v{version}[ (expected {expected})]"
 icon = ""
 connector = "via"
 style = { fg = "cyan" }
 
 [module.values]
 version = [{ command = ["go", "version"], regex = 'go(\d[\d.]*)' }]
+expected = [{ command = ["capsule-mise-drift", "go"] }]
 
 [[module]]
 name = "rust"
 when.files = ["Cargo.toml"]
-format = "v{version}[ ({nightly})]"
+format = "v{version}[ ({nightly})][ (expected {expected})]"
 icon = "󱘗"
 connector = "via"
 style = { fg = "red" }
@@ -65,17 +69,19 @@ style = { fg = "red" }
 [module.values]
 version = [{ command = ["rustc", "--version"], regex = 'rustc\s+(\d+\.\d+\.\d+)' }]
 nightly = [{ command = ["rustc", "--version"], regex = 'rustc\s+\d+\.\d+\.\d+-(nightly)' }]
+expected = [{ command = ["capsule-mise-drift", "rust"] }]
 
 [[module]]
 name = "php"
 when.files = ["composer.json", "index.php"]
-format = "v{version}"
+format = "v{version}[ (expected {expected})]"
 icon = ""
 connector = "via"
 style = { fg = "magenta" }
 
 [module.values]
 version = [{ command = ["php", "--version"], regex = 'PHP\s+(\d+\.\d+\.\d+)' }]
+expected = [{ command = ["capsule-mise-drift", "php"] }]
 
 # Read the assumed AWS context without invoking AWS or exposing credentials.
 [[module]]
