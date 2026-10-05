@@ -6,18 +6,12 @@ on:
       - main
     paths:
       - .github/workflows/automation.yml
-      - .github/workflows/mise-update.yml
-      - scripts/*.py
-      - scripts/gh-api-retry.sh
       - tests/*.py
   pull_request:
     branches:
       - main
     paths:
       - .github/workflows/automation.yml
-      - .github/workflows/mise-update.yml
-      - scripts/*.py
-      - scripts/gh-api-retry.sh
       - tests/*.py
 
 jobs:

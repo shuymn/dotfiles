@@ -30,16 +30,15 @@
 ### Renovate and mise Updates
 
 - Pin Hosted Renovate compatibility validation through `.github/renovate-version`; do not reintroduce self-hosting solely to pin Renovate.
-- Keep Renovate's mise manager disabled. `.github/workflows/mise-update.yml` is the only automated writer of `home/dot_config/mise/{config.toml,mise.lock}`; its selection rules and trust boundary are in `docs/mise-update.md`.
-- Keep its three trust zones: `generate` runs upstream installers with read-only permissions and its outputs and artifacts are untrusted; `verify` checks the candidate without credentials; only `publish` holds the maintainer App token (current repository, contents and pull-requests write) and it runs only GitHub API calls and scripts from `github.sha`. Check out `github.sha` in `verify` and `publish`, never a ref reported by `generate`.
-- Never expose that App secret/token to `pull_request` workflows, force-update a branch, or let Renovate run mise through `allowedUnsafeExecutions`/`postUpgradeTasks`.
+- Keep Renovate's mise manager disabled. `home/dot_config/mise/config.toml` holds major-version ranges, and `.github/workflows/mise-update.yml` advances `mise.lock` with `mise lock --bump`; major updates are manual range edits (`docs/mise-update.md`).
+- Keep that job free of tool installs and tool execution, because it also holds the maintainer App token (current repository, contents and pull-requests write). Never expose that App secret/token to `pull_request` workflows or let Renovate run mise through `allowedUnsafeExecutions`/`postUpgradeTasks`.
 
 ### Change-Specific Validation
 
 | Change | Required check or reference |
 | --- | --- |
 | Migrating unmanaged global CLIs | Run `make audit-cli-path` first; use PATH evidence to choose ownership. |
-| Adding or renaming mise tools | Update `mise.lock` with `mise lock`, then run `make check-mise-updates`; every tool must report release timestamps, or `mise-update.yml` fails (see `docs/mise-update.md`). |
+| Adding or renaming mise tools | Write the tool as a major-version range (`node = "24"`) and run `mise lock` in `home/dot_config/mise`; see `docs/mise-update.md`. |
 | Homebrew taps, formulae, or casks | Run `make check-brew` to check availability and compare installed formula leaves/casks with the generated Brewfile. |
 | Nix or activation paths | Run `make check`; its flake checks evaluate Home Manager ownership for every role in `nix/roles.toml`. Run `make build` when the activated system changes. |
 | Chezmoi source state | Run `chezmoi diff`; inspect the intended home-directory changes without applying them. |
