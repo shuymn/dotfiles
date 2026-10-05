@@ -8,6 +8,7 @@ on:
       - flake.nix
       - flake.lock
       - nix/**
+      - home/**
       - Makefile
       - scripts/**
       - .github/workflows/nix.yml
@@ -18,6 +19,7 @@ on:
       - flake.nix
       - flake.lock
       - nix/**
+      - home/**
       - Makefile
       - scripts/**
       - .github/workflows/nix.yml

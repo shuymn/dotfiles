@@ -51,22 +51,12 @@ require-host:
 		exit 1; \
 	fi
 
-.PHONY: check-ownership
-check-ownership: ## Check Home Manager does not claim dotfile targets
-	@matches="$$(find nix -name '*.nix' -print0 \
-		| xargs -0 grep -nE 'home[.]file|home[.]activation|xdg[.](configFile|dataFile|stateFile|cacheFile)' 2>/dev/null || true)"; \
-	if [ -n "$$matches" ]; then \
-		printf '%s\n' "$$matches" >&2; \
-		echo "Home Manager must not manage dotfile targets. Keep target files under home/** or migrate ownership fully." >&2; \
-		exit 1; \
-	fi
-
 .PHONY: check-source-state
 check-source-state: ## Check chezmoi source state does not include local-only targets
 	@/bin/sh "$(DOTPATH)/scripts/check-source-state.sh"
 
 .PHONY: check
-check: check-ownership check-source-state ## Check source state, dotfile ownership, and the Nix flake
+check: check-source-state ## Check source state and the Nix flake, including Home Manager/chezmoi ownership
 	@$(NIX_CMD) flake check "$(NIX_LOCAL_FLAKE)"
 
 .PHONY: check-fpr

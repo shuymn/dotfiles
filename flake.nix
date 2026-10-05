@@ -101,9 +101,20 @@
           ];
         };
       defaultDarwinConfiguration = mkDarwinConfiguration defaultConfig;
+      pkgs = defaultDarwinConfiguration.pkgs;
     in
     {
       darwinConfigurations.default = defaultDarwinConfiguration;
+
+      checks.${defaultConfig.system} = import ./nix/checks.nix {
+        inherit pkgs;
+        inherit (pkgs) lib;
+        roles = builtins.fromTOML (builtins.readFile ./nix/roles.toml);
+        homeConfigurationFor =
+          role:
+          (mkDarwinConfiguration (defaultConfig // { inherit role; }))
+          .config.home-manager.users.${defaultConfig.username};
+      };
 
       packages.${defaultConfig.system} = {
         mise = miseFor defaultConfig.system;

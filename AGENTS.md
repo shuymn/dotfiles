@@ -16,7 +16,7 @@
 
 ### Configuration Ownership
 
-- Keep dotfile target state under `home/**` and Home Manager limited to environment declarations. Do not add `home.file`, `xdg.*File`, or file-writing `home.activation` for chezmoi-owned targets; migrate ownership in one direction and remove the other writer in the same change.
+- Keep dotfile target state under `home/**` and Home Manager limited to environment declarations plus the targets and activation steps listed in `nix/ownership.nix`; `make check` rejects anything else for every role and any chezmoi target that collides with that list. Extending the list is an ownership migration: move one direction and remove the other writer in the same change.
 - Put daily interactive CLI groups in `nix/home/profiles/*.nix` and role-specific Homebrew packages in `nix/darwin/profiles/*.nix`; compose both per role in `nix/roles.toml`, the single role table shared by nix-darwin, Home Manager, and chezmoi. Keep Home Manager wiring in `nix/home/default.nix` and macOS base settings in `nix/darwin/profiles/common.nix`.
 - Declare Nix daemon/client settings via `nix.settings` in `nix/darwin/profiles/common.nix`, not `home/dot_config/nix/nix.conf`.
 - Keep chezmoi source state inside `home/**`; do not point managed targets back to repo-root dotfiles with symlink templates. Preserve root `.chezmoi.toml.tmpl` and `make chezmoi-config` so plain chezmoi commands use this checkout after bootstrap; rerun `make chezmoi-config` after changing `host.toml`, `nix/roles.toml`, or the template, because chezmoi keeps the rendered data.
@@ -41,7 +41,7 @@
 | Migrating unmanaged global CLIs | Run `make audit-cli-path` first; use PATH evidence to choose ownership. |
 | Adding or renaming mise tools | Update `mise.lock` with `mise lock`, then run `make check-mise-updates`; every tool must report release timestamps, or `mise-update.yml` fails (see `docs/mise-update.md`). |
 | Homebrew taps, formulae, or casks | Run `make check-brew` to check availability and compare installed formula leaves/casks with the generated Brewfile. |
-| Nix or activation paths | Run `make check`, including ownership checks. |
+| Nix or activation paths | Run `make check`; its flake checks evaluate Home Manager ownership for every role in `nix/roles.toml`. Run `make build` when the activated system changes. |
 | Chezmoi source state | Run `chezmoi diff`; inspect the intended home-directory changes without applying them. |
 
 ### Documentation
