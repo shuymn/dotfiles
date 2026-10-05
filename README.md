@@ -8,12 +8,15 @@
 git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 make install-nix
-make apply NIX_ROLE=personal # personal 環境にする場合。未指定時は minimal
+make host ROLE=personal # personal 環境にする場合。未指定時は minimal
+make apply
 make switch
 mise install
 ```
 
-`make` ターゲットは初期セットアップ用の薄いラッパー。利用できるターゲットは `make help` または `Makefile` で確認する。Nix 系ターゲットは評価前に Git 管理外のローカル Nix 設定を生成する。
+`make` ターゲットは初期セットアップ用の薄いラッパー。利用できるターゲットは `make help` または `Makefile` で確認する。
+
+ユーザー名やホスト名などホスト固有の値とロールは、`make host` が作る Git 管理外の `host.toml` に置き、Nix と chezmoi の両方がここを読む。ロールを変えるときは `host.toml` を編集して `make apply` と `make switch` を実行する。
 
 最初の `make apply` は chezmoi 設定を生成し、このリポジトリを管理元にして dotfiles を適用する。その後は通常の `chezmoi diff` / `chezmoi apply` がこのリポジトリを参照する。
 
@@ -57,7 +60,7 @@ Capsule は公式 flake を Home Manager 経由で導入する。デフォルト
 1つの対象パスには1つの管理元だけを持たせる。
 
 - nix-darwin / Home Manager は環境宣言層。macOS 設定、Nix 設定、パッケージの利用可否、Homebrew 経由の GUI アプリなどを持つ
-- Nix モジュールは `nix/home/**` と `nix/darwin/**` に分け、どちらも `nix/local.nix` の同じロール名でロールモジュールを選ぶ
+- Nix モジュールは `nix/home/**` と `nix/darwin/**` に分け、ロールごとのプロファイルの組み合わせは `nix/roles.toml` に一か所で書く。chezmoi も同じ表を読む
 - chezmoi は `$HOME` に現れる dotfile の配置層。Home Manager の file モジュールと同じ対象パスを二重管理しない
 - mise はバージョン切り替え対象の実行環境と、バージョン固定した補助 CLI を持つ。リポジトリ固有のツールはプロジェクトローカルの環境に置く。更新は `mise-update` ワークフローが毎日行う（[docs/mise-update.md](docs/mise-update.md)）
 - ホスト ID、署名鍵、age 鍵、マシン固有の状態はローカル限定

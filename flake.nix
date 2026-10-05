@@ -32,9 +32,11 @@
       ...
     }:
     let
-      localConfigPath = builtins.getEnv "DOTFILES_NIX_LOCAL";
-      defaultConfig =
-        if localConfigPath == "" then import ./nix/local.default.nix else import localConfigPath;
+      # host.toml is git-ignored, so it exists only when the flake is evaluated
+      # from a path: reference to the checkout (see Makefile).
+      defaultConfig = builtins.fromTOML (
+        builtins.readFile (if builtins.pathExists ./host.toml then ./host.toml else ./nix/host.default.toml)
+      );
       unfreePackageNames = [
         "1password-cli"
         "acli"

@@ -39,9 +39,11 @@ if [ -e "$repo/home/dot_config/go/env" ]; then
   report "home/dot_config/go/env is not the macOS GOENV target; manage home/Library/Application Support/go/env instead."
 fi
 
-if git -C "$repo" ls-files --error-unmatch nix/local.nix >/dev/null 2>&1; then
-  report "nix/local.nix is generated from chezmoi data and must not be tracked."
-fi
+for path in host.toml nix/local.nix; do
+  if git -C "$repo" ls-files --error-unmatch "$path" >/dev/null 2>&1; then
+    report "$path holds local host values and must not be tracked."
+  fi
+done
 
 tracked_root_config=$(git -C "$repo" ls-files -- ".config")
 if [ -n "$tracked_root_config" ]; then

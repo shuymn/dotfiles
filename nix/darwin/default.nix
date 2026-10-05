@@ -1,12 +1,10 @@
 { localConfig, ... }:
 
 let
-  role = localConfig.role or "minimal";
-  roleModule = ./roles + "/${role}.nix";
+  role = localConfig.role;
+  roles = builtins.fromTOML (builtins.readFile ../roles.toml);
+  profiles = roles.${role}.darwin or (throw "Unknown role '${role}' in host.toml");
 in
 {
-  imports = [
-    ./profiles/common.nix
-    (if builtins.pathExists roleModule then roleModule else throw "Unknown Darwin role '${role}'")
-  ];
+  imports = [ ./profiles/common.nix ] ++ map (profile: ./profiles + "/${profile}.nix") profiles;
 }

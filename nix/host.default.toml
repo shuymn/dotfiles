@@ -1,0 +1,8 @@
+# Generic host values used when no git-ignored host.toml exists, such as in CI.
+# Never put real usernames, home directories, or host names here.
+system = "aarch64-darwin"
+username = "user"
+homeDirectory = "/Users/user"
+hostName = "localhost"
+computerName = "Mac"
+role = "minimal"

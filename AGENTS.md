@@ -8,24 +8,24 @@
 
 ### Local Data and Activation
 
-- Keep host-specific Nix values out of commits: generate ignored `nix/local.nix` from `nix/local.nix.tmpl` via chezmoi data; keep `nix/local.default.nix` generic. Never commit real usernames, home directories, host names, or ComputerName values.
+- Keep host-specific values in the git-ignored `host.toml` (created by `make host`), which both Nix and `.chezmoi.toml.tmpl` read; keep `nix/host.default.toml` generic. Evaluate the flake as `path:<checkout>`, as the Makefile does, because a `git+file` flake cannot see `host.toml`. Never commit real usernames, home directories, host names, or ComputerName values.
 - Keep shared Git behavior in `home/dot_gitconfig`; identity, signing keys, allowed signers, and machine IDs belong in ignored local files under `~/.config/git/`.
 - Keep chezmoi age encryption enabled in root `.chezmoi.toml.tmpl`. Never manage or commit `~/.config/age/key.txt`; back it up out-of-band.
-- Activate Nix/Home Manager only through nix-darwin. Prefer `make switch`, which regenerates local config; do not add standalone `homeConfigurations` or recommend `home-manager switch` unless non-Darwin support is requested.
+- Activate Nix/Home Manager only through nix-darwin. Prefer `make switch`; do not add standalone `homeConfigurations` or recommend `home-manager switch` unless non-Darwin support is requested.
 - Run `chezmoi apply` only when applying to the live home directory is intended; source edits alone do not imply activation.
 
 ### Configuration Ownership
 
 - Keep dotfile target state under `home/**` and Home Manager limited to environment declarations. Do not add `home.file`, `xdg.*File`, or file-writing `home.activation` for chezmoi-owned targets; migrate ownership in one direction and remove the other writer in the same change.
-- Put daily interactive CLI groups in `nix/home/profiles/*.nix`, compose through `nix/home/roles/*.nix`, and keep Home Manager wiring in `nix/home/default.nix`. Keep macOS base settings in `nix/darwin/profiles/common.nix`; compose role-specific Homebrew packages through Darwin profiles and roles.
+- Put daily interactive CLI groups in `nix/home/profiles/*.nix` and role-specific Homebrew packages in `nix/darwin/profiles/*.nix`; compose both per role in `nix/roles.toml`, the single role table shared by nix-darwin, Home Manager, and chezmoi. Keep Home Manager wiring in `nix/home/default.nix` and macOS base settings in `nix/darwin/profiles/common.nix`.
 - Declare Nix daemon/client settings via `nix.settings` in `nix/darwin/profiles/common.nix`, not `home/dot_config/nix/nix.conf`.
-- Keep chezmoi source state inside `home/**`; do not point managed targets back to repo-root dotfiles with symlink templates. Preserve root `.chezmoi.toml.tmpl` and `make chezmoi-config` so plain chezmoi commands use this checkout after bootstrap.
+- Keep chezmoi source state inside `home/**`; do not point managed targets back to repo-root dotfiles with symlink templates. Preserve root `.chezmoi.toml.tmpl` and `make chezmoi-config` so plain chezmoi commands use this checkout after bootstrap; rerun `make chezmoi-config` after changing `host.toml`, `nix/roles.toml`, or the template, because chezmoi keeps the rendered data.
 - Keep root-template helpers under `scripts/**` bootstrap-safe: invoke through `/bin/sh`, use POSIX sh unless the caller explicitly selects another shell, and do not require executable bits for rendering.
 
 ### Package and Editor Changes
 
 - Use mise for version-switched runtimes and pinned helper CLIs. Prefer `mise install`; existing `npm:`/`pipx:` entries may remain, but new global `npm:`/`pipx:`/`cargo:`/`go:`/`gem:` entries need an explicit exception reason.
-- For Zed, keep the app cask in Darwin profiles, settings/keymaps in `home/dot_config/zed/**`, and LSP/formatter binaries in Home Manager profiles. Render extension lists using chezmoi's `nixRole`; retain extensions that fetch tools only when pinned to local Nix/project binaries. Do not enable Home Manager Zed settings without migrating config ownership away from chezmoi in the same change.
+- For Zed, keep the app cask in Darwin profiles, settings/keymaps in `home/dot_config/zed/**`, and LSP/formatter binaries in Home Manager profiles. Gate role-specific extensions and LSP entries in `home/.chezmoitemplates/zed/*.jsonc` on chezmoi's `homeProfiles` data; retain extensions that fetch tools only when pinned to local Nix/project binaries. Do not enable Home Manager Zed settings without migrating config ownership away from chezmoi in the same change.
 
 ### Renovate and mise Updates
 
@@ -41,7 +41,7 @@
 | Migrating unmanaged global CLIs | Run `make audit-cli-path` first; use PATH evidence to choose ownership. |
 | Adding or renaming mise tools | Update `mise.lock` with `mise lock`, then run `make check-mise-updates`; every tool must report release timestamps, or `mise-update.yml` fails (see `docs/mise-update.md`). |
 | Homebrew taps, formulae, or casks | Run `make check-brew` to check availability and compare installed formula leaves/casks with the generated Brewfile. |
-| Nix or activation paths | Run `make check`, including generated local config and ownership checks. |
+| Nix or activation paths | Run `make check`, including ownership checks. |
 | Chezmoi source state | Run `chezmoi diff`; inspect the intended home-directory changes without applying them. |
 
 ### Documentation

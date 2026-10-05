@@ -1,9 +1,11 @@
 {
+{{- if has "lite" .homeProfiles }}
   "astro-language-server": {
     "binary": {
       "path": "astro-ls",
     },
   },
+{{- end }}
   "biome": {
     "binary": {
       "path": "biome",
@@ -15,12 +17,14 @@
       "path": "nixd",
     },
   },
+{{- if has "lite" .homeProfiles }}
   "prisma-language-server": {
     "binary": {
       "path": "prisma-language-server",
       "arguments": ["--stdio"],
     },
   },
+{{- end }}
   "vscode-html-language-server": {
     "binary": {
       "path": "vscode-html-language-server",

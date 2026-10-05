@@ -1,0 +1,19 @@
+# Role composition shared by nix-darwin, Home Manager, and chezmoi.
+# Each name selects nix/darwin/profiles/<name>.nix or nix/home/profiles/<name>.nix
+# on top of the common profile. host.toml picks one role.
+
+[minimal]
+darwin = []
+home = []
+
+[personal-lite]
+darwin = ["dev", "lite"]
+home = ["dev", "lite"]
+
+[personal]
+darwin = ["dev", "lite", "aerospace", "llm", "personal"]
+home = ["dev", "lite", "personal"]
+
+[work]
+darwin = ["aerospace", "dev", "llm", "work"]
+home = ["dev", "work"]
