@@ -9,5 +9,10 @@
 .config/herdr/scripts/tmux-relay
 .config/herdr/scripts/tmux-sync-tab
 .config/tmux/herdr-sync.conf
+.config/sketchybar/sketchybarrc
+.config/sketchybar/plugins/clock.sh
+.config/spindle/bootstrap-sketchybar.sh
+.config/spindle/emit.sh
+.config/spindle/lib-path.sh
 .tmux.conf
 .config/zsh/config/80_tmux.zsh

@@ -31,14 +31,6 @@
     },
     {
       "customType": "regex",
-      "description": "Update Nix packages annotated with renovate comments",
-      "managerFilePatterns": ["/^nix\\/packages\\/.*\\.nix$/"],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\";"
-      ]
-    },
-    {
-      "customType": "regex",
       "description": "Track mise go version via golang-version (github-tags lacks releaseTimestamp)",
       "managerFilePatterns": ["/^home\\/dot_config\\/mise\\/config\\.toml$/"],
       "matchStrings": ["\\ngo = \"(?<currentValue>[^\"]+)\""],

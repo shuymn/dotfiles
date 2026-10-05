@@ -14,7 +14,3 @@
 .config/fpr/**
 .ssh/id_ed25519_fpr_agent
 .ssh/id_ed25519_fpr_agent.pub
-
-{{- if ne .nixRole "personal" }}
-.config/sketchybar/**
-{{- end }}
