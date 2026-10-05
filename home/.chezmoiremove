@@ -9,3 +9,5 @@
 .config/herdr/scripts/tmux-relay
 .config/herdr/scripts/tmux-sync-tab
 .config/tmux/herdr-sync.conf
+.tmux.conf
+.config/zsh/config/80_tmux.zsh
