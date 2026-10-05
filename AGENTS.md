@@ -11,7 +11,7 @@
 - Keep host-specific values in the git-ignored `host.toml` (created by `make host`), which both Nix and `.chezmoi.toml.tmpl` read; keep `nix/host.default.toml` generic. Evaluate the flake as `path:<checkout>`, as the Makefile does, because a `git+file` flake cannot see `host.toml`. Never commit real usernames, home directories, host names, or ComputerName values.
 - Keep shared Git behavior in `home/dot_gitconfig`; identity, signing keys, allowed signers, and machine IDs belong in ignored local files under `~/.config/git/`.
 - Keep chezmoi age encryption enabled in root `.chezmoi.toml.tmpl`. Never manage or commit `~/.config/age/key.txt`; back it up out-of-band.
-- Activate Nix/Home Manager only through nix-darwin. Prefer `make switch`; do not add standalone `homeConfigurations` or recommend `home-manager switch` unless non-Darwin support is requested.
+- Activate Nix/Home Manager only through nix-darwin: `make switch`, or `make converge` to apply chezmoi, nix-darwin, and mise in order. Do not add standalone `homeConfigurations` or recommend `home-manager switch` unless non-Darwin support is requested.
 - Run `chezmoi apply` only when applying to the live home directory is intended; source edits alone do not imply activation.
 
 ### Configuration Ownership

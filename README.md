@@ -9,16 +9,14 @@ git clone https://github.com/shuymn/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 make install-nix
 make host ROLE=personal # personal 環境にする場合。未指定時は minimal
-make apply
-make switch
-mise install
+make converge
 ```
 
 `make` ターゲットは初期セットアップ用の薄いラッパー。利用できるターゲットは `make help` または `Makefile` で確認する。
 
-ユーザー名やホスト名などホスト固有の値とロールは、`make host` が作る Git 管理外の `host.toml` に置き、Nix と chezmoi の両方がここを読む。ロールを変えるときは `host.toml` を編集して `make apply` と `make switch` を実行する。
+ユーザー名やホスト名などホスト固有の値とロールは、`make host` が作る Git 管理外の `host.toml` に置き、Nix と chezmoi の両方がここを読む。ロールを変えるときは `host.toml` を編集して `make converge` を実行する。
 
-最初の `make apply` は chezmoi 設定を生成し、このリポジトリを管理元にして dotfiles を適用する。その後は通常の `chezmoi diff` / `chezmoi apply` がこのリポジトリを参照する。
+`make converge` は chezmoi 設定の生成と dotfiles の適用、nix-darwin の適用、mise のインストールをこの順に行う。途中で失敗したら原因を直して再実行する。その後は通常の `chezmoi diff` / `chezmoi apply` がこのリポジトリを参照する。
 
 chezmoi の暗号化には age を使う。秘密鍵はローカル限定で、chezmoi と git の管理対象外。既存の暗号化ファイルを復号する場合は別管理のバックアップから復元し、新しいローカル鍵を作る場合は `make age-key` を使う。
 
@@ -39,6 +37,8 @@ make switch
 | コマンド | 用途 |
 | --- | --- |
 | `make check` | 変更後の基本検証 |
+| `make converge` | chezmoi・nix-darwin・mise をまとめて適用する |
+| `make doctor` | 宣言と実機の差分を変更せずに報告する |
 | `make build` | 適用せずに Nix プロファイルをビルドする |
 | `make switch` | nix-darwin と Home Manager を適用する |
 | `chezmoi diff` | dotfile の未適用差分を確認する |

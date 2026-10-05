@@ -124,6 +124,24 @@ apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 mise: ## Install mise-managed global tools
 	@MISE_LOCKED=1 $(MISE) install -C "$(HOME)"
 
+.PHONY: converge
+converge: require-host ## Apply chezmoi, nix-darwin, and mise in order; rerun to resume after a failure
+	@$(MAKE) --no-print-directory apply
+	@$(MAKE) --no-print-directory switch
+	@$(MAKE) --no-print-directory mise
+
+.PHONY: doctor
+doctor: require-host ## Report drift from the declared state without changing anything
+	@status=0; \
+	echo "== chezmoi status"; \
+	drift="$$($(CHEZMOI_CMD) status)" || status=1; \
+	if [ -n "$$drift" ]; then printf '%s\n' "$$drift"; status=1; fi; \
+	echo "== Homebrew"; \
+	$(MAKE) --no-print-directory check-brew || status=1; \
+	echo "== Commands outside Nix and mise"; \
+	$(MAKE) --no-print-directory audit-cli-path; \
+	exit $$status
+
 .PHONY: install-pi
 install-pi: ## Install the local pi extensions package when present
 	@if [ -d "$(PI_EXTENSIONS_PROJECT)" ]; then \
