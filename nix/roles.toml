@@ -12,7 +12,7 @@ home = ["dev", "lite"]
 
 [personal]
 darwin = ["dev", "lite", "aerospace", "llm", "personal"]
-home = ["dev", "lite", "personal"]
+home = ["dev", "lite"]
 
 [work]
 darwin = ["aerospace", "dev", "llm", "work"]
