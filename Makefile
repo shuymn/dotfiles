@@ -82,9 +82,9 @@ check-brew: local ## Check Homebrew against the nix-darwin generated Brewfile
 	$(BREW) bundle check --file="$$tmpfile"; \
 	BREW="$(BREW)" /bin/sh "$(DOTPATH)/scripts/check-homebrew-state.sh" "$$tmpfile"
 
-.PHONY: check-mise-renovate
-check-mise-renovate: ## Check mise tools resolve to Renovate datasources with releaseTimestamp
-	@/bin/sh "$(DOTPATH)/scripts/check-mise-renovate-age.sh"
+.PHONY: check-mise-updates
+check-mise-updates: ## List pending mise tool updates and check every tool has release timestamps
+	@$(NIX_CMD) shell "$(NIX_LOCAL_FLAKE)#mise" -c python3 "$(DOTPATH)/scripts/update-mise-tools.py" --dry-run --config "$(DOTPATH)/home/dot_config/mise/config.toml"
 
 .PHONY: audit-cli-path
 audit-cli-path: ## Classify non-Nix/non-mise PATH owners and shadows

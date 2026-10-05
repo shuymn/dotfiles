@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Update mise.lock only for mise tools changed in config.toml.
 
-This is intended for Renovate PRs: Renovate changes configured versions and
-GitHub Actions regenerates only the affected lockfile sections for the trusted
-reconciler to commit back to the PR.
+update-mise-tools.py runs this after changing configured versions, so only the
+affected lockfile sections are regenerated.
 """
 
 from __future__ import annotations

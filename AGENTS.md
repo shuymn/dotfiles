@@ -27,18 +27,19 @@
 - Use mise for version-switched runtimes and pinned helper CLIs. Prefer `mise install`; existing `npm:`/`pipx:` entries may remain, but new global `npm:`/`pipx:`/`cargo:`/`go:`/`gem:` entries need an explicit exception reason.
 - For Zed, keep the app cask in Darwin profiles, settings/keymaps in `home/dot_config/zed/**`, and LSP/formatter binaries in Home Manager profiles. Render extension lists using chezmoi's `nixRole`; retain extensions that fetch tools only when pinned to local Nix/project binaries. Do not enable Home Manager Zed settings without migrating config ownership away from chezmoi in the same change.
 
-### Renovate and Lockfile Automation
+### Renovate and mise Updates
 
 - Pin Hosted Renovate compatibility validation through `.github/renovate-version`; do not reintroduce self-hosting solely to pin Renovate.
-- Keep `mise.lock` generation independent of where Renovate runs. PR workflows may generate candidates with read-only permissions; only the default-branch `workflow_run` reconciler may write the validated lockfile, using a maintainer App token scoped to the current repository with Contents-write permission.
-- Never expose that App secret/token to `pull_request`, execute PR code in the privileged job, force-update a PR ref, or let Renovate run mise through `allowedUnsafeExecutions`/`postUpgradeTasks`.
+- Keep Renovate's mise manager disabled. `.github/workflows/mise-update.yml` is the only automated writer of `home/dot_config/mise/{config.toml,mise.lock}`; its selection rules and trust boundary are in `docs/mise-update.md`.
+- Keep its three trust zones: `generate` runs upstream installers with read-only permissions and its outputs and artifacts are untrusted; `verify` checks the candidate without credentials; only `publish` holds the maintainer App token (current repository, contents and pull-requests write) and it runs only GitHub API calls and scripts from `github.sha`. Check out `github.sha` in `verify` and `publish`, never a ref reported by `generate`.
+- Never expose that App secret/token to `pull_request` workflows, force-update a branch, or let Renovate run mise through `allowedUnsafeExecutions`/`postUpgradeTasks`.
 
 ### Change-Specific Validation
 
 | Change | Required check or reference |
 | --- | --- |
 | Migrating unmanaged global CLIs | Run `make audit-cli-path` first; use PATH evidence to choose ownership. |
-| Adding or renaming mise tools | Run `make check-mise-renovate`. For missing `releaseTimestamp` or unsupported lookups, use `docs/renovate-mise-release-age.md`: prefer a timestamped backend, otherwise a regex custom manager with mise lookup disabled. |
+| Adding or renaming mise tools | Update `mise.lock` with `mise lock`, then run `make check-mise-updates`; every tool must report release timestamps, or `mise-update.yml` fails (see `docs/mise-update.md`). |
 | Homebrew taps, formulae, or casks | Run `make check-brew` to check availability and compare installed formula leaves/casks with the generated Brewfile. |
 | Nix or activation paths | Run `make check`, including generated local config and ownership checks. |
 | Chezmoi source state | Run `chezmoi diff`; inspect the intended home-directory changes without applying them. |

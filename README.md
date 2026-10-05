@@ -59,5 +59,5 @@ Capsule は公式 flake を Home Manager 経由で導入する。デフォルト
 - nix-darwin / Home Manager は環境宣言層。macOS 設定、Nix 設定、パッケージの利用可否、Homebrew 経由の GUI アプリなどを持つ
 - Nix モジュールは `nix/home/**` と `nix/darwin/**` に分け、どちらも `nix/local.nix` の同じロール名でロールモジュールを選ぶ
 - chezmoi は `$HOME` に現れる dotfile の配置層。Home Manager の file モジュールと同じ対象パスを二重管理しない
-- mise はバージョン切り替え対象の実行環境と、バージョン固定した補助 CLI を持つ。リポジトリ固有のツールはプロジェクトローカルの環境に置く
+- mise はバージョン切り替え対象の実行環境と、バージョン固定した補助 CLI を持つ。リポジトリ固有のツールはプロジェクトローカルの環境に置く。更新は `mise-update` ワークフローが毎日行う（[docs/mise-update.md](docs/mise-update.md)）
 - ホスト ID、署名鍵、age 鍵、マシン固有の状態はローカル限定

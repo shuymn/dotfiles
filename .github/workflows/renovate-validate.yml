@@ -8,9 +8,6 @@ on:
       - .github/workflows/renovate-validate.yml
       - .github/renovate.json
       - .github/renovate-version
-      - home/dot_config/mise/config.toml
-      - scripts/check-mise-renovate-age.py
-      - scripts/check-mise-renovate-age.sh
   pull_request:
     branches:
       - main
@@ -18,9 +15,6 @@ on:
       - .github/workflows/renovate-validate.yml
       - .github/renovate.json
       - .github/renovate-version
-      - home/dot_config/mise/config.toml
-      - scripts/check-mise-renovate-age.py
-      - scripts/check-mise-renovate-age.sh
 
 jobs:
   validate:
@@ -56,6 +50,3 @@ jobs:
         env:
           RENOVATE_VERSION: ${{ steps.renovate.outputs.version }}
         run: bunx --package=renovate@"${RENOVATE_VERSION:?}" renovate-config-validator --strict --no-global .github/renovate.json
-
-      - name: Check mise datasource compatibility
-        run: make check-mise-renovate

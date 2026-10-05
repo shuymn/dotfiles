@@ -6,8 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/automation.yml
-      - .github/workflows/mise-lock-candidate.yml
-      - .github/workflows/mise-lock-reconcile.yml
+      - .github/workflows/mise-update.yml
       - scripts/*.py
       - scripts/gh-api-retry.sh
       - tests/*.py
@@ -16,8 +15,7 @@ on:
       - main
     paths:
       - .github/workflows/automation.yml
-      - .github/workflows/mise-lock-candidate.yml
-      - .github/workflows/mise-lock-reconcile.yml
+      - .github/workflows/mise-update.yml
       - scripts/*.py
       - scripts/gh-api-retry.sh
       - tests/*.py

@@ -167,43 +167,57 @@ class VerifyCandidateTests(unittest.TestCase):
 
 
 class VerifyCandidateCliTests(unittest.TestCase):
-    def test_accepts_candidate_for_exact_git_revisions(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir) / "repo"
-            repo.mkdir()
-            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-            subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
-            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
-            config = repo / "home/dot_config/mise/config.toml"
-            lock = repo / "home/dot_config/mise/mise.lock"
-            config.parent.mkdir(parents=True)
-            config.write_text(BASE_CONFIG)
-            lock.write_text(BASE_LOCK)
-            subprocess.run(["git", "add", "."], cwd=repo, check=True)
-            subprocess.run(["git", "commit", "-qm", "base"], cwd=repo, check=True)
-            base_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
-            config.write_text(HEAD_CONFIG)
-            subprocess.run(["git", "commit", "-qam", "head"], cwd=repo, check=True)
-            head_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
-            candidate = Path(temp_dir) / "candidate.lock"
-            candidate.write_text(CANDIDATE_LOCK)
+    def verify(self, head_config: str, candidate_lock: str) -> tuple[subprocess.CompletedProcess[str], Path]:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        for name, text in {
+            "base-config.toml": BASE_CONFIG,
+            "base.lock": BASE_LOCK,
+            "config.toml": head_config,
+            "mise.lock": candidate_lock,
+        }.items():
+            (root / name).write_text(text)
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "scripts/verify-mise-lock-candidate.py",
+                "--base-config",
+                str(root / "base-config.toml"),
+                "--base-lock",
+                str(root / "base.lock"),
+                "--config",
+                str(root / "config.toml"),
+                "--candidate",
+                str(root / "mise.lock"),
+                "--run-url",
+                "https://github.com/example/dotfiles/actions/runs/1",
+                "--title-out",
+                str(root / "title.txt"),
+                "--body-out",
+                str(root / "body.md"),
+            ],
+            cwd=Path(__file__).parents[1],
+            text=True,
+            stderr=subprocess.PIPE,
+        )
+        return completed, root
 
-            subprocess.run(
-                [
-                    sys.executable,
-                    "scripts/verify-mise-lock-candidate.py",
-                    "--repo",
-                    str(repo),
-                    "--base",
-                    base_sha,
-                    "--head",
-                    head_sha,
-                    "--candidate",
-                    str(candidate),
-                ],
-                cwd=Path(__file__).parents[1],
-                check=True,
-            )
+    def test_accepts_candidate_and_renders_pull_request(self) -> None:
+        completed, root = self.verify(HEAD_CONFIG, CANDIDATE_LOCK)
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual((root / "title.txt").read_text(), "Update mise tool claude to 2.1.205\n")
+        self.assertIn("| `claude` | 2.1.201 | 2.1.205 |", (root / "body.md").read_text())
+
+    def test_rejects_major_update_even_with_consistent_lock(self) -> None:
+        head_config = BASE_CONFIG.replace('claude = "2.1.201"', 'claude = "3.0.0"')
+        candidate = BASE_LOCK.replace('version = "2.1.201"', 'version = "3.0.0"', 1)
+
+        completed, _ = self.verify(head_config, candidate)
+
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn("same major line", completed.stderr)
 
 
 if __name__ == "__main__":
