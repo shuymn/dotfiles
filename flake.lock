@@ -11,11 +11,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791336544,
-        "narHash": "sha256-XXoGYDe/d28zT7XmrZXFxquR0E36jW7qYhgRbG+KcZ4=",
+        "lastModified": 1791378163,
+        "narHash": "sha256-Bstg4o9OK3tgnOrfNdUpaIZcRuFxLZ67e2EhzBslZM4=",
         "owner": "shuymn",
         "repo": "capsule",
-        "rev": "78345f0fb8d194a7ad9cc379e319c944cbedd69a",
+        "rev": "62f87a8e87d3dc5b1df1ea3dad371bd40a83bbf8",
         "type": "github"
       },
       "original": {
