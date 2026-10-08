@@ -2,7 +2,7 @@
 
 # AGENTS.md
 
-`CLAUDE.md` links to this file. Shared home-level instructions are managed in `home/dot_claude/CLAUDE.md`; Codex and pi use links to its deployed copy. Edit the source, not the copies.
+`CLAUDE.md` links to this file. Shared home-level instructions live in `home/.chezmoitemplates/agents/AGENTS.md`, rendered into the Claude, Codex, and pi templates; add tool-specific instructions to that tool's template. Edit the source, not the copies.
 
 ## Repo-Specific Rules
 
