@@ -71,18 +71,18 @@ checksum = "sha256:90987a3a16d7db556d886ac3d551e7b6d3edf0a1cf43acaed622e8676be1d
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.292"
+version = "2.1.293"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:7045cd790b2c7b8cc6169d061aec7274d37a6a0d8ed318a6ff8868262433b1f9"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.292/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/616117246"
+checksum = "sha256:1843d4fe092b8cf426d1dbf5ac6e8d19393778690cd4e63db79cf2aa6cbe4a26"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.293/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/619298516"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:7a7dcc508696a2093dfc690398b86217f12b07809b7bd534c2fde4f417881556"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.292/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/616117003"
+checksum = "sha256:957caf0a59eb7ab6f839bd1153f93dc770b2b42fa56fd188766edfb10542fa7c"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.293/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/619298196"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -271,18 +271,18 @@ provenance = "github-attestations"
 provenance_verified = true
 
 [[tools."github:tomasz-tomczyk/crit"]]
-version = "0.21.1"
+version = "0.22.0"
 backend = "github:tomasz-tomczyk/crit"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.linux-x64"]
-checksum = "sha256:bbc7de53ebb29377c412d1737c658752efeaf44e8bd0f124278f6e41632ad670"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.21.1/crit-linux-amd64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/605400359"
+checksum = "sha256:fecd40eea356020cd605dfca6a4be6ab3c9635134ca5e28ee99e6286ab62c31d"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.22.0/crit-linux-amd64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/618661730"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.macos-arm64"]
-checksum = "sha256:40cc7014f0b6c7d604be0bfdf4c462e2366549c520b95b790b414aa221d2a9a0"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.21.1/crit-darwin-arm64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/605400362"
+checksum = "sha256:60153a194b85ba85ad72225694a2ccd7f348bc08bece756f7b56a0444a33e93d"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.22.0/crit-darwin-arm64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/618661722"
 
 [[tools."github:xdevplatform/xurl"]]
 version = "1.3.4"
@@ -325,19 +325,19 @@ url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.0/lazygi
 url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/613198499"
 
 [[tools.lefthook]]
-version = "2.1.17"
+version = "2.2.0"
 backend = "aqua:evilmartians/lefthook"
 
 [tools.lefthook."platforms.linux-x64"]
-checksum = "sha256:e3c6e271b6a77a8fac527d7cc21c1036f7605afcb6653aabe4b166913322f900"
-url = "https://github.com/evilmartians/lefthook/releases/download/v2.1.17/lefthook_2.1.17_Linux_x86_64.gz"
-url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/611880017"
+checksum = "sha256:93cdcec92f5918d067f566c4c82ce4334b396646ca70fbc4413918abfd26731f"
+url = "https://github.com/evilmartians/lefthook/releases/download/v2.2.0/lefthook_2.2.0_Linux_x86_64.gz"
+url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/619550696"
 provenance = "github-attestations"
 
 [tools.lefthook."platforms.macos-arm64"]
-checksum = "sha256:aabf434ea7049af9854eb5205520bc16fc52d3d55459c2332a3711cdd6743d34"
-url = "https://github.com/evilmartians/lefthook/releases/download/v2.1.17/lefthook_2.1.17_MacOS_arm64.gz"
-url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/611879927"
+checksum = "sha256:41eceba8ceeb954e9dabfd10cd7a3caed16dd65448cacee7347c43d49ab07f23"
+url = "https://github.com/evilmartians/lefthook/releases/download/v2.2.0/lefthook_2.2.0_MacOS_arm64.gz"
+url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/619550718"
 provenance = "github-attestations"
 
 [[tools.node]]
@@ -357,7 +357,7 @@ version = "1.0.4"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
-version = "0.160.1"
+version = "0.161.0"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
