@@ -15,4 +15,5 @@
 ## 手作業での変更
 
 - ツールの追加・変更は config にメジャー番号の範囲で書き、`home/dot_config/mise` で `mise lock` を実行して lock を更新する。
+- 自動更新から外すツールは config に正確な版を書き（例: `"0.38.0"`）、理由をコメントに残す。`mise lock --bump` はその版から動かさない。
 - メジャー更新は自動では入らない。`mise outdated --bump` で確認し、config の範囲を書き換えて `mise lock` する。

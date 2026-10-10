@@ -126,6 +126,20 @@ checksum = "sha256:1eff2797ff391b711560203067ce5faf8d82983f6870bf8b99fd970523de6
 url = "https://github.com/babarot/gh-infra/releases/download/v0.14.0/gh-infra_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/598483627"
 
+[[tools."github:fwdcloudsec/granted"]]
+version = "0.38.0"
+backend = "github:fwdcloudsec/granted"
+
+[tools."github:fwdcloudsec/granted"."platforms.linux-x64"]
+checksum = "sha256:2547cc521f1c932b32d0132b8fd82f43d1880f53a457b17b58b2f27711ed20bc"
+url = "https://github.com/fwdcloudsec/granted/releases/download/v0.38.0/granted_0.38.0_linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/fwdcloudsec/granted/releases/assets/233275667"
+
+[tools."github:fwdcloudsec/granted"."platforms.macos-arm64"]
+checksum = "sha256:cfab086d85baa4177060391d94b6d61ae141dc67659eb7e803ecee4ae4789cf6"
+url = "https://github.com/fwdcloudsec/granted/releases/download/v0.38.0/granted_0.38.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/fwdcloudsec/granted/releases/assets/233275732"
+
 [[tools."github:go-task/task"]]
 version = "3.54.0"
 backend = "github:go-task/task"

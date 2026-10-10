@@ -33,7 +33,6 @@ in
       golangci-lint
       gotools
       govulncheck
-      granted
       jq
       nixfmt
       pre-commit

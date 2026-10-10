@@ -37,6 +37,11 @@ lefthook = "2"
 "github:xdevplatform/xurl" = "1"
 "github:suzuki-shunsuke/ghalint" = "1"
 "github:suzuki-shunsuke/pinact" = "5"
+# Exact pin, so `mise lock --bump` never moves it: v0.39.0+ ships no Developer ID
+# signed macOS binary, and an ad-hoc signed build loses its keychain "Always
+# Allow" on every rebuild (fwdcloudsec/granted#936). Widen the range once
+# signed macOS releases return.
+"github:fwdcloudsec/granted" = "0.38.0"
 
 claude = "2"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
