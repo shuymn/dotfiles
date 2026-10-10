@@ -141,10 +141,18 @@ lsb() {
 alias lsbr='lsb --remote'
 
 if has "ghq"; then
+  # ghq は git worktree (.git がファイル) もリポジトリとして列挙するので除外する
+  _ghq_list_without_worktrees() {
+    local dir
+    ghq list --full-path "$@" | while IFS= read -r dir; do
+      [[ -f "$dir/.git" ]] || print -r -- "$dir"
+    done
+  }
+
   change-repository() {
     if [ -n "$1" ]; then
       local repo_path=""
-      repo_path="$(ghq list --full-path --exact "$1")"
+      repo_path="$(_ghq_list_without_worktrees --exact "$1")"
 
       if [ -z "$repo_path" ]; then
         echo "no directories found for '$1'"
@@ -155,7 +163,7 @@ if has "ghq"; then
       return
     fi
 
-    cd "$(ghq list --full-path | roots | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200' --preview-window='right:60%:wrap')"
+    cd "$(_ghq_list_without_worktrees | roots | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200' --preview-window='right:60%:wrap')"
   }
   alias cr='change-repository'
 fi
