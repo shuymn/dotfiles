@@ -24,6 +24,23 @@
         "type": "github"
       }
     },
+    "ghostty": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791332467,
+        "narHash": "sha256-2hQPCXqy9uMRAhOYubHLJ3JRytqyjBkOdCz1Xh9ekMo=",
+        "owner": "ghostty-org",
+        "repo": "ghostty",
+        "rev": "34f39002c6e3974b54e6a6d400bd83777c5ea558",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ghostty-org",
+        "repo": "ghostty",
+        "rev": "34f39002c6e3974b54e6a6d400bd83777c5ea558",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -42,6 +59,25 @@
         "owner": "nix-community",
         "ref": "release-26.05",
         "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "kastty": {
+      "inputs": {
+        "ghostty": "ghostty",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1791648294,
+        "narHash": "sha256-VrEt3ToZtjz4SvsW7lqqxAdHaRA4M4FIteMwJSBRGXo=",
+        "owner": "shuymn",
+        "repo": "kastty",
+        "rev": "1f887dfe6a53771c954482cfceea331c903b50c7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "shuymn",
+        "repo": "kastty",
         "type": "github"
       }
     },
@@ -100,6 +136,22 @@
     },
     "nixpkgs_2": {
       "locked": {
+        "lastModified": 1791487292,
+        "narHash": "sha256-tqM7xDEsaeK1p6VvRygeZ9LkQRpUUkbRT02BHv6hnTM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "8edc0c72e3a38faf5434e40d1f19431125fe4b30",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
         "lastModified": 1791447531,
         "narHash": "sha256-AsoGS8G2y3shwAtQWQhgV4Fa3uw6qzFejfqSblOGkhE=",
         "owner": "NixOS",
@@ -118,8 +170,9 @@
       "inputs": {
         "capsule": "capsule",
         "home-manager": "home-manager",
+        "kastty": "kastty",
         "nix-darwin": "nix-darwin",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs_3",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
     }

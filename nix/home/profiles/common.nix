@@ -1,4 +1,9 @@
-{ capsule, pkgs, ... }:
+{
+  capsule,
+  kastty,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = with pkgs; [
@@ -8,6 +13,7 @@
     chezmoi
     curl
     git
+    kastty.packages.${pkgs.stdenv.hostPlatform.system}.default
     mise
     ripgrep
   ];

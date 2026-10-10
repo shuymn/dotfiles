@@ -21,12 +21,16 @@
       inputs.home-manager.follows = "home-manager";
       inputs.nix-darwin.follows = "nix-darwin";
     };
+
+    # Keep the upstream nixpkgs pin for its release binary cache.
+    kastty.url = "github:shuymn/kastty";
   };
 
   outputs =
     {
       capsule,
       home-manager,
+      kastty,
       nix-darwin,
       nixpkgs-unstable,
       ...
@@ -80,7 +84,7 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.extraSpecialArgs = {
-                inherit capsule localConfig;
+                inherit capsule kastty localConfig;
               };
               home-manager.users.${localConfig.username} = import ./nix/home;
             }

@@ -219,22 +219,6 @@ url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/599036381
 provenance = "github-attestations"
 provenance_verified = true
 
-[[tools."github:shuymn/kastty"]]
-version = "0.2.1"
-backend = "github:shuymn/kastty"
-
-[tools."github:shuymn/kastty"."platforms.linux-x64"]
-checksum = "sha256:92766525de446b215ef904011e4482cc70a2529391b49e8542b024251f704cf1"
-url = "https://github.com/shuymn/kastty/releases/download/v0.2.1/kastty_v0.2.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/425419461"
-provenance = "github-attestations"
-
-[tools."github:shuymn/kastty"."platforms.macos-arm64"]
-checksum = "sha256:8a5b671da4d19d640763654e3fee1c8880a9776a7e8ba2e42d8dacc8d803c34f"
-url = "https://github.com/shuymn/kastty/releases/download/v0.2.1/kastty_v0.2.1_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/425419465"
-provenance = "github-attestations"
-
 [[tools."github:shuymn/pommitlint"]]
 version = "2.0.1"
 backend = "github:shuymn/pommitlint"
