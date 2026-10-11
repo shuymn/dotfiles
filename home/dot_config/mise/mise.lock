@@ -154,6 +154,23 @@ checksum = "sha256:12a69fcf37bb8d5bc9150c44f9a936775b73e59ff044c2c245232f198c135
 url = "https://github.com/go-task/task/releases/download/v3.54.0/task_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/go-task/task/releases/assets/604090068"
 
+[[tools."github:gokcehan/lf"]]
+version = "42"
+backend = "github:gokcehan/lf"
+
+[tools."github:gokcehan/lf".options]
+version_prefix = "r"
+
+[tools."github:gokcehan/lf"."platforms.linux-x64"]
+checksum = "sha256:c6abe6c0c11a0a4ae89754884aad67de18decc113935cbc5eaa57dc0d1850fb4"
+url = "https://github.com/gokcehan/lf/releases/download/r42/lf-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377672"
+
+[tools."github:gokcehan/lf"."platforms.macos-arm64"]
+checksum = "sha256:b08f3249cc9536fe7d9a29746a2de322c247f81cd543db541a770fe49b53bd37"
+url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
+
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
 backend = "github:k1LoW/git-wt"

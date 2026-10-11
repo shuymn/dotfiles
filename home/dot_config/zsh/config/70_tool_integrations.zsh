@@ -28,29 +28,29 @@ load "${HOME}/.config/op/plugins.sh"
 # bat
 export BAT_THEME="ansi"
 
-# yazi
-if has "yazi"; then
+# lf (keep the existing yy shortcut)
+if has "lf"; then
   yy() {
-    local tmp cwd yazi_status cd_status
-    tmp="$(mktemp -t "yazi-cwd.XXXXXX")" || return
+    local tmp cwd lf_status cd_status
+    tmp="$(mktemp -t "lf-cwd.XXXXXX")" || return
 
     {
-      command yazi --cwd-file="$tmp" "$@"
-      yazi_status=$?
+      command lf -last-dir-path="$tmp" "$@"
+      lf_status=$?
 
       cwd="$(command cat -- "$tmp" 2>/dev/null)"
       if [[ "$cwd" != "$PWD" && -d "$cwd" ]]; then
         builtin cd -- "$cwd"
         cd_status=$?
-        if ((cd_status != 0 && yazi_status == 0)); then
-          yazi_status=$cd_status
+        if ((cd_status != 0 && lf_status == 0)); then
+          lf_status=$cd_status
         fi
       fi
     } always {
       command rm -f -- "$tmp"
     }
 
-    return "$yazi_status"
+    return "$lf_status"
   }
 fi
 

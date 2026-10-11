@@ -43,7 +43,6 @@ in
       sops
       sqlmap
       yamllint
-      yazi
       yq
       zoxide
       zsh-completions

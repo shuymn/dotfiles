@@ -26,6 +26,8 @@ lefthook = "2"
 "github:babarot/gh-infra" = "0"
 "github:tomasz-tomczyk/crit" = "0"
 "github:go-task/task" = "3"
+# lf uses rN release tags; the next numbered release is a manual major update.
+"github:gokcehan/lf" = { version = "42", version_prefix = "r" }
 "github:k1LoW/git-wt" = "0"
 "aqua:k1LoW/mo" = "1"
 "github:Songmu/maltmill" = "1"
