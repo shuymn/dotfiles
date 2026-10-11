@@ -20,8 +20,6 @@
     min-free = 20 * 1024 * 1024 * 1024;
     max-free = 80 * 1024 * 1024 * 1024;
     nix-path = [ "nixpkgs=flake:nixpkgs" ];
-    extra-substituters = [ "https://shuymn.cachix.org" ];
-    extra-trusted-public-keys = [ "shuymn.cachix.org-1:bUcNU5/B3gNbM7htHCYmKVVb1bUwNx2vc2W4aOJlloQ=" ];
     trusted-users = [
       "root"
       localConfig.username

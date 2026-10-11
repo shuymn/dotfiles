@@ -38,7 +38,6 @@ in
       pre-commit
       rustup
       semgrep
-      shellcheck
       shfmt
       sops
       sqlmap

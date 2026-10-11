@@ -1,4 +1,4 @@
-{ capsule, localConfig, ... }:
+{ localConfig, ... }:
 
 let
   role = localConfig.role;
@@ -6,11 +6,7 @@ let
   profiles = roles.${role}.home or (throw "Unknown role '${role}' in host.toml");
 in
 {
-  imports = [
-    capsule.homeManagerModules.default
-    ./profiles/common.nix
-  ]
-  ++ map (profile: ./profiles + "/${profile}.nix") profiles;
+  imports = [ ./profiles/common.nix ] ++ map (profile: ./profiles + "/${profile}.nix") profiles;
 
   home.username = localConfig.username;
   home.homeDirectory = localConfig.homeDirectory;

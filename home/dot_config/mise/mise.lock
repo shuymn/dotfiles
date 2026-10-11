@@ -234,6 +234,38 @@ url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/599036381
 provenance = "github-attestations"
 provenance_verified = true
 
+[[tools."github:shuymn/capsule"]]
+version = "1.0.3"
+backend = "github:shuymn/capsule"
+
+[tools."github:shuymn/capsule"."platforms.linux-x64"]
+checksum = "sha256:e0054949770e9b55364ce03da1a40bab6099372566a83603fd4378d66038a1de"
+url = "https://github.com/shuymn/capsule/releases/download/v1.0.3/capsule-v1.0.3-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/611398350"
+provenance = "github-attestations"
+
+[tools."github:shuymn/capsule"."platforms.macos-arm64"]
+checksum = "sha256:08d240f04f7a91516027b2a9a357ac7f6f0f8de8d598180369f2d2ba916c8682"
+url = "https://github.com/shuymn/capsule/releases/download/v1.0.3/capsule-v1.0.3-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/611398353"
+provenance = "github-attestations"
+
+[[tools."github:shuymn/kastty"]]
+version = "0.4.0"
+backend = "github:shuymn/kastty"
+
+[tools."github:shuymn/kastty"."platforms.linux-x64"]
+checksum = "sha256:b400f93092c6d24e219283a11822a09b408defe6d11bc498597c4c575d0e1105"
+url = "https://github.com/shuymn/kastty/releases/download/v0.4.0/kastty_v0.4.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/628378842"
+provenance = "github-attestations"
+
+[tools."github:shuymn/kastty"."platforms.macos-arm64"]
+checksum = "sha256:3580ded4817e1fcbaba13cd9d1602cd99886db78eba7432077caabdd2616361d"
+url = "https://github.com/shuymn/kastty/releases/download/v0.4.0/kastty_v0.4.0_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/628378844"
+provenance = "github-attestations"
+
 [[tools."github:shuymn/pommitlint"]]
 version = "2.0.1"
 backend = "github:shuymn/pommitlint"
@@ -394,6 +426,20 @@ provenance = "github-attestations"
 checksum = "sha256:473e6213a1c55da12e60642249a6201fe9dca841b4ad8c59149798846ed87c62"
 url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261009/cpython-3.15.0+20261009-aarch64-apple-darwin-install_only_stripped.tar.gz"
 provenance = "github-attestations"
+
+[[tools.shellcheck]]
+version = "0.11.0"
+backend = "aqua:koalaman/shellcheck"
+
+[tools.shellcheck."platforms.linux-x64"]
+checksum = "sha256:8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
+url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056942"
+
+[tools.shellcheck."platforms.macos-arm64"]
+checksum = "sha256:56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79"
+url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz"
+url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056932"
 
 [[tools.terraform]]
 version = "1.16.5"

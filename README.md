@@ -69,6 +69,6 @@ chezmoi の暗号化には age を使う。鍵はリポジトリに入れず、�
 ## 更新の仕組み
 
 - **mise のツール**: `mise-update` ワークフローが毎日、範囲内の新しい版で `mise.lock` を更新する PR を作り、自動でマージする。メジャー更新は手で範囲を書き換える。詳しくは [docs/mise-update.md](docs/mise-update.md)。
-- **`flake.lock` と GitHub Actions**: Renovate が PR を作る。lock の更新と minor / patch は自動でマージされ、メジャー更新は手でマージする。Capsule などの flake input もこの経路で上がる。
+- **`flake.lock` と GitHub Actions**: Renovate が PR を作る。lock の更新と minor / patch は自動でマージされ、メジャー更新は手でマージする。
 - **Homebrew の cask**: `make switch` では更新しない。各アプリの自動更新か `brew upgrade --cask` に任せる。
 - **自動マージ**: main への必須チェックは `automerge-gate/all-passed` の 1 つだけ。PR で Enable auto-merge を押すと、ほかのチェックがすべて通った時点でマージされる。
