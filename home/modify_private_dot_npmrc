@@ -1,0 +1,13 @@
+#!/bin/sh
+# Manage only the default registry; preserve local auth tokens and other settings.
+# The private_ attribute keeps the resulting .npmrc readable only by its owner.
+exec awk '
+  /^[[:space:]]*registry[[:space:]]*=/ {
+    if (!seen++) print "registry=https://npm.flatt.tech/"
+    next
+  }
+  { print }
+  END {
+    if (!seen) print "registry=https://npm.flatt.tech/"
+  }
+'
