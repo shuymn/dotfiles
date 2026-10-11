@@ -68,11 +68,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1791698825,
-        "narHash": "sha256-F5mZegcxrGnNRWDHIjcXGmSrRCi8TSy6o/KXBlVIL9Y=",
+        "lastModified": 1791754523,
+        "narHash": "sha256-992BH0jyru1l2F0iZ0ZlXrKff9thYHTs/JxMFVBGvNY=",
         "owner": "shuymn",
         "repo": "kastty",
-        "rev": "0667eb8eec3c6475fc01bfcd71a7ab22eb2d94b9",
+        "rev": "4586ee8309aea84b4568b8895f21f09a85734e68",
         "type": "github"
       },
       "original": {
