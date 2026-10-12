@@ -113,18 +113,18 @@ url = "https://github.com/ast-grep/ast-grep/releases/download/0.50.0/app-aarch64
 url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/625198087"
 
 [[tools."github:babarot/gh-infra"]]
-version = "0.15.1"
+version = "0.16.0"
 backend = "github:babarot/gh-infra"
 
 [tools."github:babarot/gh-infra"."platforms.linux-x64"]
-checksum = "sha256:e17a994ba2395f05f46bf9077caa78b34764afebf589bd7269857c1f3e5b6273"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.15.1/gh-infra_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/628353582"
+checksum = "sha256:c531272b767f1ac7c88d9953ca929b245b802e7c873ad14dc0bce1e1af18c706"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.16.0/gh-infra_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/629357387"
 
 [tools."github:babarot/gh-infra"."platforms.macos-arm64"]
-checksum = "sha256:fbd92f4f1f3d8da85194b0137b301019132ac8de2b9fe2f854ad3760d45f2ba3"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.15.1/gh-infra_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/628353577"
+checksum = "sha256:52bb1e0f9e743464ce2c99ca8a99071ad0a4b4eed3fcdf45388bc36ab10f5cbd"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.16.0/gh-infra_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/629357389"
 
 [[tools."github:fwdcloudsec/granted"]]
 version = "0.38.0"
@@ -267,19 +267,19 @@ url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/628378844"
 provenance = "github-attestations"
 
 [[tools."github:shuymn/pommitlint"]]
-version = "2.0.1"
+version = "2.0.3"
 backend = "github:shuymn/pommitlint"
 
 [tools."github:shuymn/pommitlint"."platforms.linux-x64"]
-checksum = "sha256:ead07393cee3bbee597e620c5bb5bdeb2965126b0180c9b3bbd982559fa5b391"
-url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.1/pommitlint_v2.0.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/425218167"
+checksum = "sha256:bb14af90d07c716929b7aabf3bf2e4f0a99983d059791445fd95501406b9ab56"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.3/pommitlint_v2.0.3_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/631174215"
 provenance = "github-attestations"
 
 [tools."github:shuymn/pommitlint"."platforms.macos-arm64"]
-checksum = "sha256:37978880a7e0786646435df6885f999b4ee972531bba25eead80b3803b7ff54e"
-url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.1/pommitlint_v2.0.1_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/425218166"
+checksum = "sha256:dca86df29cc081dcefdffab035ca1a492228c76a2dfc9cf1f1b59529f147a0ed"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.3/pommitlint_v2.0.3_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/631174213"
 provenance = "github-attestations"
 
 [[tools."github:suzuki-shunsuke/ghalint"]]
@@ -356,18 +356,18 @@ checksum = "sha256:76812b213b1b2302c978d28fa52fa92d541704b9e7d9d5db8002c50e4018c
 url = "https://dl.google.com/go/go1.27.2.darwin-arm64.tar.gz"
 
 [[tools.lazygit]]
-version = "0.66.0"
+version = "0.66.1"
 backend = "aqua:jesseduffield/lazygit"
 
 [tools.lazygit."platforms.linux-x64"]
-checksum = "sha256:5b45541155d20bd32bf2cc5ab5b7e3d91c2eebf0fb1242281350edc27d59d2b7"
-url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.0/lazygit_0.66.0_linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/613198391"
+checksum = "sha256:7b3f30c2c06a42cf575280f907e58d7ea08411408b6b62bc926bc91cbc6c3f46"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.1/lazygit_0.66.1_linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/630328438"
 
 [tools.lazygit."platforms.macos-arm64"]
-checksum = "sha256:e9fe2fe1f1bbc1b4c3214b33e8e0d57a4d6e3c2276aa9aa713f9bcbdc223e65c"
-url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.0/lazygit_0.66.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/613198499"
+checksum = "sha256:c66b15f666216142a2f39143f5540c6a572473f03fab014dae07c33cd76e719a"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.1/lazygit_0.66.1_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/630328410"
 
 [[tools.lefthook]]
 version = "2.2.1"
