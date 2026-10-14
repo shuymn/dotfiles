@@ -1,3 +1,4 @@
+# Retained for manually installed gh-triage, outside Nix/mise management.
 done:
   max: 1000
   conditions:
