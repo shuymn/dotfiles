@@ -1,8 +1,8 @@
-# Load shared helpers first; later files may use has/load/add_path.
+# Load shared helpers first; later files may use has/load.
 builtin source "${XDG_CONFIG_HOME:?}/zsh/config/00_helpers.zsh"
 
 for config in "${XDG_CONFIG_HOME}/zsh/config"/[0-9][0-9]_*.zsh(N); do
-  [[ "${config:t}" == "00_helpers.zsh" ]] && continue
+  [[ "${config:t}" == "00_helpers.zsh" || "${config:t}" == "99_local.zsh" ]] && continue
   load "${config}"
 done
 

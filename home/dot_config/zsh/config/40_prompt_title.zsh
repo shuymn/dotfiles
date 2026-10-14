@@ -28,12 +28,7 @@ set_terminal_title() {
   local current_dir
   current_dir=$(current_dir_title)
 
-  local process_name
-  process_name=$(ps -p $$ -o comm=)
-  process_name=${process_name##*/}
-  process_name=${process_name#-}
-
-  print -Pn "\033]0;${process_name} - ${current_dir}\007"
+  printf '\033]0;%s - %s\007' "${ZSH_NAME:-zsh}" "$current_dir"
   report_herdr_pane_title "${current_dir}"
 }
 

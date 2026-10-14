@@ -44,37 +44,30 @@ function ni-shouldUseSocketFirewall() {
 }
 
 function ni-echoRun() {
-  local cmd="$1"
+  emulate -L zsh
+  local cmd="$1" sfwBin=""
   shift
-  local args="$@"
 
-  # Check if Socket Firewall should be used for package installation commands
-  # sfw supports: npm, yarn, pnpm, bun (and pip, cargo for other ecosystems)
   if ni-shouldUseSocketFirewall; then
-    local sfwBin
-    sfwBin=$(ni-getSocketFirewallBin)
-
     case $cmd in
       npm|yarn|pnpm|bun|deno)
-        # Check if this is an install/add command
-        if [[ "$args" =~ ^(install|add|i) ]]; then
-          echo "$ sfw $cmd $args"
-          eval "$sfwBin $cmd $args"
-          return
-        fi
+        case "$1" in
+          install|add|i) sfwBin=$(ni-getSocketFirewallBin) ;;
+        esac
         ;;
       npx|bunx)
-        # npx and bunx commands should also use sfw
-        echo "$ sfw $cmd $args"
-        eval "$sfwBin $cmd $args"
-        return
+        sfwBin=$(ni-getSocketFirewallBin)
         ;;
     esac
   fi
 
-  # Default behavior without Socket Firewall
-  echo "$ $cmd $args"
-  eval "$cmd $args"
+  if [[ -n "$sfwBin" ]]; then
+    print -r -- "\$ ${(q)sfwBin} ${(q)cmd} ${(j: :)${(q)@}}"
+    command "$sfwBin" "$cmd" "$@"
+  else
+    print -r -- "\$ ${(q)cmd} ${(j: :)${(q)@}}"
+    command "$cmd" "$@"
+  fi
 }
 
 # Support package manager
@@ -90,15 +83,15 @@ function ni-getPackageManager() {
   # detect package manager via package.json
   if [ -f "${cwd}/package.json" ]; then
     local packageManager
-    packageManager=$(cat "${cwd}/package.json" | jq -r .packageManager)
-    if [ "$packageManager" != "null" ]; then
+    packageManager=$(jq -r '.packageManager // empty' "${cwd}/package.json") || return
+    if [[ -n "$packageManager" ]]; then
       # parse packageManager name from "<pkg>@<version>"
-      packageManagerName=$(echo "$packageManager" | sed -e 's/@.*//')
-      packageManagerMajorVersion=$(echo "$packageManager" | sed -e 's/.*@//' | sed -e 's/\..*//')
+      local packageManagerName=${packageManager%%@*}
+      local packageManagerMajorVersion=${${packageManager#*@}%%.*}
       # supported package manager
       if [ "$packageManagerName" = "npm" ] || [ "$packageManagerName" = "pnpm" ] || [ "$packageManagerName" = "yarn" ] || [ "$packageManagerName" = "bun" ]; then
         # yarn and version >= 2, then  yarn-berry
-        if [ "$packageManagerName" = "yarn" ] && [ "$packageManagerMajorVersion" -ge 2 ]; then
+        if [[ "$packageManagerName" == yarn && "$packageManagerMajorVersion" == <-> ]] && (( packageManagerMajorVersion >= 2 )); then
           echo "yarn-berry"
           return
         fi
@@ -141,7 +134,8 @@ function ni-getPackageManager() {
       return
     fi
     # recursive call to getPackageManager
-    ret=$(ni-getPackageManager "$parentDir")
+    local ret
+    ret=$(ni-getPackageManager "$parentDir") || return
     if [ -n "$ret" ]; then
       echo "$ret"
       return
@@ -157,51 +151,53 @@ function ni-getPackageManager() {
 ## deno install
 # Note: # ni <subcommand> - run subcommand
 function ni() {
+  emulate -L zsh
   # with argument - subcommand
   if [ $# -gt 0 ]; then
     case $1 in
       add)
         shift
-        ni-add $@
+        ni-add "$@"
         ;;
       run)
         shift
-        ni-run $@
+        ni-run "$@"
         ;;
       upgrade)
         shift
-        ni-upgrade $@
+        ni-upgrade "$@"
         ;;
       upgrade-interactive)
         shift
-        ni-upgrade-interactive $@
+        ni-upgrade-interactive "$@"
         ;;
       remove)
         shift
-        ni-remove $@
+        ni-remove "$@"
         ;;
       # Special ni run <script>
       test)
         shift
-        ni-run test $@
+        ni-run test "$@"
         ;;
       exec)
         shift
-        ni-exec $@
+        ni-exec "$@"
         ;;
       dlx)
         shift
-        ni-dlx $@
+        ni-dlx "$@"
         ;;
       *)
-        echo "Unknown subcommand: $1"
+        print -u2 -- "Unknown subcommand: $1"
+        return 2
         ;;
     esac
     return
   fi
   # without argument - install
   local manager
-  manager=$(ni-getPackageManager)
+  manager=$(ni-getPackageManager) || return
   case $manager in
     npm)
       ni-echoRun npm install
@@ -235,67 +231,32 @@ function ni() {
 ## bun add -d @types/node
 
 function ni-add() {
-  # support both `ni add pkg --dev` and `ni add --dev pkg`
-  POSITIONAL_ARGS=()
-  SUPPORTED_FLGAG=()
-  while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-      -D|--dev)
-        shift
-        SUPPORTED_FLGAG+=("--dev")
-        ;;
-      *)
-        POSITIONAL_ARGS+=("$1")
-        shift
-        ;;
+  local -a args=()
+  local dev=false manager
+  while (( $# > 0 )); do
+    case "$1" in
+      -D|--dev) dev=true ;;
+      *) args+=("$1") ;;
     esac
+    shift
   done
 
-  local manager
-  manager=$(ni-getPackageManager)
-  # normailze flag by package manager
-  flag=""
-  for arg in "${SUPPORTED_FLGAG}"; do
-    # --dev or -D
-    if [ "$arg" = "--dev" ] ; then
-      case $manager in
-        npm)
-          flag="$POSITIONAL_ARGS --save-dev"
-          ;;
-        yarn*)
-          flag="$POSITIONAL_ARGS --dev"
-          ;;
-        pnpm)
-          flag="$POSITIONAL_ARGS -D"
-          ;;
-        bun)
-          flag="$POSITIONAL_ARGS -d"
-          ;;
-      esac
-    else
-      flag="$POSITIONAL_ARGS $arg"
-    fi
-  done
-  # trim space from $flag
-  flag=$(echo "$flag" | sed -e 's/^ *//')
-  # execute
+  manager=$(ni-getPackageManager) || return
+  if [[ "$dev" == true ]]; then
+    case $manager in
+      npm) args+=(--save-dev) ;;
+      yarn*|deno) args+=(--dev) ;;
+      pnpm) args+=(-D) ;;
+      bun) args+=(-d) ;;
+    esac
+  fi
+
   case $manager in
-    npm)
-      ni-echoRun npm install $flag
-      ;;
-    yarn*)
-      ni-echoRun yarn add $flag
-      ;;
-    pnpm)
-      ni-echoRun pnpm add $flag
-      ;;
-    bun)
-      ni-echoRun bun add $flag
-      ;;
-    deno)
-      ni-echoRun deno add --npm $flag
-      ;;
+    npm) ni-echoRun npm install "${args[@]}" ;;
+    yarn*) ni-echoRun yarn add "${args[@]}" ;;
+    pnpm) ni-echoRun pnpm add "${args[@]}" ;;
+    bun) ni-echoRun bun add "${args[@]}" ;;
+    deno) ni-echoRun deno add --npm "${args[@]}" ;;
   esac
 }
 
@@ -306,33 +267,15 @@ function ni-add() {
 ## pnpm run dev --port=3000
 ## bun run dev --port=3000
 ## deno run dev --port=3000
-function ni-run(){
+function ni-run() {
   local manager
-  manager=$(ni-getPackageManager)
-  # npm require -- for additional args
-  additionalArgs=""
+  manager=$(ni-getPackageManager) || return
   case $manager in
-    npm)
-      additionalArgs="--"
-      ;;
-  esac
-  # execute
-  case $manager in
-    npm)
-      ni-echoRun npm run $additionalArgs $@
-      ;;
-    yarn*)
-      ni-echoRun yarn run $@
-      ;;
-    pnpm)
-      ni-echoRun pnpm run $@
-      ;;
-    bun)
-      ni-echoRun bun run $@
-      ;;
-    deno)
-      ni-echoRun deno run $@
-      ;;
+    npm) ni-echoRun npm run -- "$@" ;;
+    yarn*) ni-echoRun yarn run "$@" ;;
+    pnpm) ni-echoRun pnpm run "$@" ;;
+    bun) ni-echoRun bun run "$@" ;;
+    deno) ni-echoRun deno run "$@" ;;
   esac
 }
 
@@ -345,27 +288,26 @@ function ni-run(){
 ## deno outdated --update
 function ni-upgrade(){
   local manager
-  manager=$(ni-getPackageManager)
-  packageName=$1
+  manager=$(ni-getPackageManager) || return
   case $manager in
     npm)
-      ni-echoRun npm upgrade $packageName
+      ni-echoRun npm upgrade "$@"
       ;;
     yarn)
-      ni-echoRun yarn upgrade $packageName
+      ni-echoRun yarn upgrade "$@"
       ;;
     yarn-berry)
-      ni-echoRun yarn up $packageName
+      ni-echoRun yarn up "$@"
       ;;
     pnpm)
-      ni-echoRun pnpm update $packageName
+      ni-echoRun pnpm update "$@"
       ;;
     bun)
       # https://bun.sh/blog/bun-v0.8.0
-      ni-echoRun bun update $packageName
+      ni-echoRun bun update "$@"
       ;;
     deno)
-      ni-echoRun deno outdated --update $packageName
+      ni-echoRun deno outdated --update "$@"
       ;;
   esac
 }
@@ -374,7 +316,7 @@ function ni-upgrade(){
 # use https://github.com/dylang/npm-check
 function ni-upgrade-interactive(){
   local manager
-  manager=$(ni-getPackageManager)
+  manager=$(ni-getPackageManager) || return
   case $manager in
     npm)
       ni-echoRun npm-check -u
@@ -383,13 +325,14 @@ function ni-upgrade-interactive(){
       ni-echoRun yarn upgrade-interactive --latest
       ;;
     yarn-berry)
-      ni-echoRun 'yarn up --interactive "*"'
+      ni-echoRun yarn up --interactive '*'
       ;;
     pnpm)
       ni-echoRun pnpm --recursive update -i --latest
       ;;
     bun)
-      echo "bun does not support upgrade interactive command"
+      print -u2 -- "bun does not support upgrade interactive command"
+      return 1
       ;;
     deno)
       # https://github.com/denoland/deno/releases/tag/v2.2.0
@@ -406,22 +349,22 @@ function ni-upgrade-interactive(){
 ## deno uninstall npm:webpack
 function ni-remove(){
   local manager
-  manager=$(ni-getPackageManager)
+  manager=$(ni-getPackageManager) || return
   case $manager in
     npm)
-      ni-echoRun npm uninstall $@
+      ni-echoRun npm uninstall "$@"
       ;;
     yarn*)
-      ni-echoRun yarn remove $@
+      ni-echoRun yarn remove "$@"
       ;;
     pnpm)
-      ni-echoRun pnpm remove $@
+      ni-echoRun pnpm remove "$@"
       ;;
     bun)
-      ni-echoRun bun remove $@
+      ni-echoRun bun remove "$@"
       ;;
     deno)
-      ni-echoRun deno uninstall $@
+      ni-echoRun deno uninstall "$@"
       ;;
   esac
 }
@@ -435,27 +378,28 @@ function ni-remove(){
 ## [ ] deno 
 function ni-exec(){
   local manager
-  manager=$(ni-getPackageManager)
+  manager=$(ni-getPackageManager) || return
   case $manager in
     npm)
       # https://docs.npmjs.com/cli/v8/commands/npm-exec
-      ni-echoRun npm exec --no -- $@
+      ni-echoRun npm exec --no -- "$@"
       ;;
     yarn)
       # yarn v1 does not support exec
-      ni-echoRun yarn $@
+      ni-echoRun yarn "$@"
       ;;
     yarn-berry)
-      ni-echoRun yarn exec $@
+      ni-echoRun yarn exec "$@"
       ;;
     pnpm)
-      ni-echoRun pnpm exec $@
+      ni-echoRun pnpm exec "$@"
       ;;
     bun)
-      ni-echoRun bunx $@
+      ni-echoRun bunx "$@"
       ;;
     deno)
-      echo "deno does not support exec command"
+      print -u2 -- "deno does not support exec command"
+      return 1
       ;;
   esac
 }
@@ -469,26 +413,27 @@ function ni-exec(){
 ## [ ] deno
 function ni-dlx(){
   local manager
-  manager=$(ni-getPackageManager)
+  manager=$(ni-getPackageManager) || return
   case $manager in
     npm)
-      ni-echoRun npx $@
+      ni-echoRun npx "$@"
       ;;
     yarn)
       # yarn v1 does not support dlx
-      ni-echoRun npx $@
+      ni-echoRun npx "$@"
       ;;
     yarn-berry)
-      ni-echoRun yarn dlx $@
+      ni-echoRun yarn dlx "$@"
       ;;
     pnpm)
-      ni-echoRun pnpm dlx $@
+      ni-echoRun pnpm dlx "$@"
       ;;
     bun)
-      ni-echoRun bunx $@
+      ni-echoRun bunx "$@"
       ;;
     deno)
-      echo "deno does not support dlx command"
+      print -u2 -- "deno does not support dlx command"
+      return 1
       ;;
   esac
 }
@@ -550,7 +495,7 @@ function _ni(){
             while IFS=$'\t' read -r key value; do
               escaped_key=${key//:/\\:}
               script_entries+=("$escaped_key:$value")
-              done < <(cat package.json | jq -r '.scripts | to_entries | .[] | select(.key != "") | "\(.key)\t\(.value)"')
+              done < <(cat package.json | jq -r '.scripts // {} | to_entries | .[] | select(.key != "") | "\(.key)\t\(.value)"')
             _describe -t scripts 'scripts' script_entries
           elif [ -f "deno.json" ]; then
             local -a task_entries
@@ -558,7 +503,7 @@ function _ni(){
             while IFS=$'\t' read -r key value; do
               escaped_key=${key//:/\\:}
               task_entries+=("$escaped_key:$value")
-            done < <(cat deno.json | jq -r '.tasks | to_entries | .[] | select(.key != "") | "\(.key)\t\(.value)"')
+            done < <(cat deno.json | jq -r '.tasks // {} | to_entries | .[] | select(.key != "") | "\(.key)\t\(.value)"')
             _describe -t tasks 'tasks' task_entries
           else
             _files

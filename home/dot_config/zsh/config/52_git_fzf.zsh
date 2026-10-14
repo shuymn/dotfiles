@@ -3,17 +3,20 @@ if ! has "fzf"; then
 fi
 
 change-branch() {
-  local all && all=false
+  emulate -L zsh
+  setopt pipefail no_aliases
+
+  local all=false
 
   while [[ "$1" = "-a" || "$1" = "--all" ]]; do
     all=true
     shift 1
   done
 
-  local target && target="$1"
+  local target="$1"
 
   if [ -n "$target" ]; then
-    if ! [[ $target =~ ^-?[0-9]+([.][0-9]+)?$ ]]; then
+    if ! [[ $target =~ ^-?[0-9]+$ ]]; then
       # 明示的にブランチを指定された場合は reflogで絞った一覧ではなく、参照の存在で判断する
       # master/mainは相互にフォールバックする
       local -a candidates
@@ -45,31 +48,47 @@ change-branch() {
         fi
       done
 
-      echo "branch '$target' does not exist"
-      return
+      print -u2 -- "branch '$target' does not exist"
+      return 1
     fi
   fi
 
-  local branches && branches=$(git branch | sed -e 's/[ +*]//g')
+  local branches
+  branches=$(git branch --format='%(refname:short)') || return
 
   if [ "$all" = false ]; then
-    branches=$(echo "$branches" | grep -x -f- --color=never <(git reflog | awk '$3 ~ /checkout/ {print $8}' | awk '!c[$1]++ {print $1}'))
+    branches=$(
+      git reflog --format='%gs' |
+        awk '$1 == "checkout:" && !seen[$NF]++ { print $NF }' |
+        grep -Fx -f <(print -r -- "$branches")
+    ) || {
+      print -u2 -- "no recently visited local branches; use cb --all"
+      return 1
+    }
+  fi
+
+  if [[ -z "$branches" ]]; then
+    print -u2 -- "no local branches"
+    return 1
   fi
 
   if [ -n "$target" ]; then
-    local ba && IFS=$'\n' ba=($(echo $branches))
-    local branch && branch=${ba[$((target + 1))]}
+    local -a branch_names=("${(@f)branches}")
+    local branch=${branch_names[$((target + 1))]}
 
     if [ -z "$branch" ]; then
-      echo "branch #$target does not exist"
-      return
+      print -u2 -- "branch #$target does not exist"
+      return 1
     fi
 
     git switch "$branch"
     return
   fi
 
-  local branch && branch=$(echo "$branches" | fzf +m) && git switch "$branch"
+  local branch
+  branch=$(print -r -- "$branches" | fzf --no-multi) || return
+  [[ -n "$branch" ]] || return 1
+  git switch "$branch"
 }
 alias cb='change-branch'
 
@@ -93,7 +112,11 @@ lsb() {
       shift
       ;;
     --author)
-      author="${2:-}"
+      if (( $# < 2 )); then
+        print -u2 -- "usage: lsb [--remote|-r] [--author <pattern>]"
+        return 2
+      fi
+      author="$2"
       shift 2
       ;;
     --author=*)
@@ -150,27 +173,40 @@ if has "ghq"; then
   }
 
   change-repository() {
+    emulate -L zsh
+    setopt pipefail no_aliases
+
+    local repo_path
     if [ -n "$1" ]; then
-      local repo_path=""
-      repo_path="$(_ghq_list_without_worktrees --exact "$1")"
+      repo_path="$(_ghq_list_without_worktrees --exact "$1")" || return
 
       if [ -z "$repo_path" ]; then
-        echo "no directories found for '$1'"
+        print -u2 -- "no directories found for '$1'"
         return 1
       fi
-
-      cd "$repo_path"
-      return
+    else
+      repo_path=$(
+        _ghq_list_without_worktrees | roots |
+          fzf --no-multi --preview 'eza -aT --level=2 --ignore-glob=.git -- {} | head -200' \
+            --preview-window='right:60%:wrap'
+      ) || return
     fi
 
-    cd "$(_ghq_list_without_worktrees | roots | fzf --preview 'eza -aT --level=2 --ignore-glob='.git' {} | head -200' --preview-window='right:60%:wrap')"
+    [[ -n "$repo_path" ]] || return 1
+    builtin cd -- "$repo_path"
   }
   alias cr='change-repository'
 fi
 
 if has "gh"; then
   gh-pr-checkout-fzf() {
-    gh pr checkout "$(gh pr list | fzf | cut -f1)"
+    emulate -L zsh
+    setopt pipefail no_aliases
+
+    local selection
+    selection=$(gh pr list | fzf --no-multi) || return
+    [[ -n "$selection" ]] || return 1
+    gh pr checkout "${selection%%$'\t'*}"
   }
   alias cbpr='gh-pr-checkout-fzf'
 fi

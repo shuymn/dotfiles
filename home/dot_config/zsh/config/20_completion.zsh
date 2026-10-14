@@ -13,7 +13,6 @@ zstyle ':completion:*' group-name ''
 zstyle ':completion:*' verbose yes
 zstyle ':completion:*' use-cache yes
 zstyle ':completion:*' cache-path "${XDG_CACHE_HOME}/zsh"
-zstyle ':completion:*:sudo:*' command-path /usr/local/sbin /usr/local/bin /usr/sbin /usr/bin /sbin /bin
 
 autoload -Uz compinit
 compinit -d "${XDG_CACHE_HOME}/zsh/.zcompdump"

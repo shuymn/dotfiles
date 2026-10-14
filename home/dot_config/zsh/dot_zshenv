@@ -41,14 +41,12 @@ path=( \
   ${^DOTFILES_NIX_PROFILE_DIRS}/bin(N-/) \
   "$path[@]" \
 )
-path=(${^path}(N-/))
 
 typeset -gx -U fpath
 fpath=( \
   ${^DOTFILES_NIX_PROFILE_DIRS}/share/zsh/site-functions(N-/) \
   "$fpath[@]" \
 )
-fpath=(${^fpath}(N-/))
 
 # Language
 export LANGUAGE="en_US.UTF-8"
@@ -82,6 +80,3 @@ export HISTSIZE=10000
 export SAVEHIST=0
 
 setopt no_global_rcs
-
-# dotpath
-export DOTPATH="${0:A:h}"

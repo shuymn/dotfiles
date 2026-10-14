@@ -1,5 +1,4 @@
 # History
-setopt extended_history
 unsetopt share_history
 unsetopt inc_append_history
 unsetopt append_history
@@ -9,4 +8,3 @@ setopt hist_ignore_all_dups
 setopt hist_ignore_space
 setopt hist_no_store
 setopt hist_reduce_blanks
-setopt hist_save_no_dups

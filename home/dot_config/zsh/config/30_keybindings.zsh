@@ -1,7 +1,5 @@
 # Key bindings
 bindkey -e
-bindkey '^p' up-line-or-history
-bindkey '^n' down-line-or-history
 bindkey '^k' up-line-or-history
 bindkey '^j' down-line-or-history
 
@@ -13,6 +11,13 @@ bindkey '^g' edit-command-line
 # Temporarily stash/restore the current command line, matching Claude Code's ctrl+s.
 # When a line is already stashed, ctrl+s is a no-op instead of stacking lines.
 typeset -gi _push_line_stashed=0
+_reset-push-line-stash() {
+  _push_line_stashed=0
+}
+autoload -Uz add-zle-hook-widget
+# ZLE restores pushed lines when a new editing session starts.
+add-zle-hook-widget line-init _reset-push-line-stash
+
 _toggle-push-line() {
   if (( _push_line_stashed )); then
     if [[ -z "${BUFFER}" ]]; then
