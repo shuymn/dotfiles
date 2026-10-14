@@ -31,7 +31,7 @@ scrollback_limit_bytes = 104857600
 
 [experimental]
 reveal_hidden_cursor_for_cjk_ime = true
-cjk_ime_agents = ["pi", "claude", "codex", "cursor", "opencode"]
+cjk_ime_agents = ["pi", "claude", "codex"]
 switch_ascii_input_source_in_prefix = true
 
 [keys]

@@ -1,4 +1,6 @@
 # Retire only formerly managed files; preserve session data and other configs.
+.config/hammerspoon/init.lua
+.config/opencode/opencode.jsonc
 .config/zellij/config.kdl
 .config/zellij/popup.kdl
 .config/zellij/layouts/compact-home.kdl
