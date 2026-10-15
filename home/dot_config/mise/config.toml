@@ -45,7 +45,8 @@ shellcheck = "0"
 # signed macOS binary, and an ad-hoc signed build loses its keychain "Always
 # Allow" on every rebuild (fwdcloudsec/granted#936). Widen the range once
 # signed macOS releases return.
-"github:fwdcloudsec/granted" = "0.38.0"
+# aqua creates the macOS assumego -> granted link missing from release archives.
+"aqua:fwdcloudsec/granted" = "0.38.0"
 
 claude = "2"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
