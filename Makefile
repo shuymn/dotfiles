@@ -61,10 +61,11 @@ check: check-source-state ## Check source state and the Nix flake, including Hom
 
 .PHONY: check-brew
 check-brew: require-host ## Check Homebrew against the nix-darwin generated Brewfile
-	@tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
+	@set -eu; \
+	tmpfile="$$(mktemp "$${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")"; \
 	trap 'rm -f "$$tmpfile"' EXIT; \
 	$(NIX_CMD) eval --raw "$(NIX_LOCAL_FLAKE)#darwinConfigurations.$(DARWIN_CONFIG).config.homebrew.brewfile" > "$$tmpfile"; \
-	$(BREW) bundle check --file="$$tmpfile"; \
+	$(BREW) bundle check --no-upgrade --verbose --file="$$tmpfile"; \
 	BREW="$(BREW)" /bin/sh "$(DOTPATH)/scripts/check-homebrew-state.sh" "$$tmpfile"
 
 .PHONY: audit-cli-path

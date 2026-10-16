@@ -63,12 +63,14 @@ chezmoi の暗号化には age を使う。鍵はリポジトリに入れず、�
 | 設定ファイル | `home/` 以下（chezmoi のソース） |
 | その Mac 固有の値、鍵、認証情報 | `host.toml` や各ツールのローカル設定（リポジトリには入れない） |
 
-- Homebrew は宣言にない cask や formula が入っていると `make switch` が止まる。手で入れたものは宣言に足すか、アンインストールする。
+- 開発用の Python などは mise、日常利用する CLI は Nix、GUI アプリは Homebrew で管理する。CLI 内部のランタイム依存はその管理元に閉じ込め、mise の開発用ランタイムとは分ける。例えば `gcloud` は Nix の Python で動かし、開発用の `python` は mise が選ぶ。
+- Homebrew は宣言したアプリとその依存関係を管理する。それ以外の cask や formula が入っていると `make switch` が止まる。依存の欠落は `brew missing` で確認し、単にエラーを消すために推移的依存を宣言へ追加しない。
 - Home Manager が書いてよいファイルは `nix/ownership.nix` に列挙している。`make check` は全ロールについて、これ以外のファイルを書いていないか、chezmoi の管理対象と重なっていないかを検査する。
 
 ## 更新の仕組み
 
 - **mise のツール**: `mise-update` ワークフローが毎日、範囲内の新しい版で `mise.lock` を更新する PR を作り、自動でマージする。メジャー更新は手で範囲を書き換える。詳しくは [docs/mise-update.md](docs/mise-update.md)。
 - **`flake.lock` と GitHub Actions**: Renovate が PR を作る。lock の更新と minor / patch は自動でマージされ、メジャー更新は手でマージする。
+- **Google Cloud SDK**: work ロールの Nix パッケージとして更新する。追加コンポーネントは `google-cloud-sdk.withExtraComponents` で宣言し、`gcloud components install/update` は使わない。
 - **Homebrew の cask**: `make switch` では更新しない。各アプリの自動更新か `brew upgrade --cask` に任せる。
 - **自動マージ**: main への必須チェックは `automerge-gate/all-passed` の 1 つだけ。PR で Enable auto-merge を押すと、ほかのチェックがすべて通った時点でマージされる。

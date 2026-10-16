@@ -8,6 +8,10 @@ fi
 
 brewfile=$1
 brew_cmd=${BREW:-brew}
+
+# A missing cask runtime can make its remaining dependencies look like extras.
+"$brew_cmd" missing
+
 tmpdir=${TMPDIR:-/tmp}
 expected_formulae=$(mktemp "$tmpdir/dotfiles-brew-formulae.XXXXXX")
 actual_formulae=$(mktemp "$tmpdir/dotfiles-brew-leaves.XXXXXX")

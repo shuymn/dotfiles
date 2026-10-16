@@ -8,6 +8,7 @@
     docker
     docker-buildx
     docker-compose
+    google-cloud-sdk
     grpcurl
     phpactor
     watch
