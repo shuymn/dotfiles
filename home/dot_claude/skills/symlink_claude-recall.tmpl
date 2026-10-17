@@ -1,0 +1,4 @@
+{{- /* Claude Code loads plugin directories under ~/.claude/skills as <name>@skills-dir. */ -}}
+{{- if has "dev" .homeProfiles -}}
+/etc/profiles/per-user/{{ .chezmoi.username }}/share/claude-plugin/claude-recall
+{{- end -}}

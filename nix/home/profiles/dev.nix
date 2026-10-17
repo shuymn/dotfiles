@@ -22,6 +22,7 @@ in
       awscli2
       bat
       biome
+      claude-recall
       delta
       difftastic
       eza

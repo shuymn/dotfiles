@@ -38,6 +38,9 @@
   };
   nix.nixPath = [ "nixpkgs=flake:nixpkgs" ];
 
+  # /etc/profiles/per-user links only pathsToLink; ~/.claude/skills/claude-recall points here.
+  environment.pathsToLink = [ "/share/claude-plugin" ];
+
   networking = {
     computerName = localConfig.computerName;
     hostName = localConfig.hostName;

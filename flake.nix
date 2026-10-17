@@ -14,10 +14,16 @@
       url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    babarot-nur = {
+      url = "github:babarot/nur-packages";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
     {
+      babarot-nur,
       home-manager,
       nix-darwin,
       nixpkgs-unstable,
@@ -66,6 +72,8 @@
 
                   # Use unstable mise until the 26.05 darwin pin includes the HTTP backend symlink fix.
                   mise = miseFor localConfig.system;
+
+                  inherit (babarot-nur.packages.${localConfig.system}) claude-recall;
                 })
               ];
 
