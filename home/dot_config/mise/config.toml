@@ -51,6 +51,8 @@ shellcheck = "0"
 claude = "2"
 # The npm package includes the full vendor bundle (including codex-code-mode-host).
 "npm:@openai/codex" = "0"
+# Release archives name the binary "antigravity"; expose it as the documented "agy".
+"github:google-antigravity/antigravity-cli" = { version = "1", bin = "agy" }
 "npm:@earendil-works/pi-coding-agent" = "1"
 "npm:skills" = "1"
 "pipx:tavily-cli" = "0"
