@@ -172,18 +172,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.4.0"
+version = "1.4.1"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:fd96967583c1eed94733c039638fa59b71ddbd823c75ebc8dd0e677463565aad"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.0/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/646245209"
+checksum = "sha256:e165aa7bccbd1c43e3db4a89f499b6bcf32598ce59b1de6184188cdec4418dab"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.1/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/651550275"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:92b4bfb5b51e7b44ff3dcdb1a3179cb2c31b798a79185e19df3a51ae9ff121c7"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.0/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/646245413"
+checksum = "sha256:603c83664ba6c92e3f53b634d522341c415c9dd6a6ddeb5cfe0546f0c4353900"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.1/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/651550437"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -248,19 +248,19 @@ url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/64089
 provenance = "github-attestations"
 
 [[tools."github:shuymn/capsule"]]
-version = "1.0.4"
+version = "1.1.1"
 backend = "github:shuymn/capsule"
 
 [tools."github:shuymn/capsule"."platforms.linux-x64"]
-checksum = "sha256:0c7d751049d8587b42e7d98b3959a59e8b6303985ff354c7d5dbdf13c53cf6f4"
-url = "https://github.com/shuymn/capsule/releases/download/v1.0.4/capsule-v1.0.4-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/639586091"
+checksum = "sha256:edb608401c918947a1a7aa7ee6d0e9239d3f8562a4a35d4f59de101454ca1764"
+url = "https://github.com/shuymn/capsule/releases/download/v1.1.1/capsule-v1.1.1-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/649425502"
 provenance = "github-attestations"
 
 [tools."github:shuymn/capsule"."platforms.macos-arm64"]
-checksum = "sha256:a961bc8708d3e65c583f7c3503a3a6aa90d9d4c84cf6b3f0e8bb5cb9a0112dfa"
-url = "https://github.com/shuymn/capsule/releases/download/v1.0.4/capsule-v1.0.4-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/639586092"
+checksum = "sha256:7fc725c5146df6a71bbb80dab3904e1bfeeafaa0384957ea528f4f783993b570"
+url = "https://github.com/shuymn/capsule/releases/download/v1.1.1/capsule-v1.1.1-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/649425503"
 provenance = "github-attestations"
 
 [[tools."github:shuymn/kastty"]]
