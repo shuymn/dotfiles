@@ -172,18 +172,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.4.1"
+version = "1.4.2"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:e165aa7bccbd1c43e3db4a89f499b6bcf32598ce59b1de6184188cdec4418dab"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.1/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/651550275"
+checksum = "sha256:6395837ac0e193dd3fe50f1228e1c4aea345ca99636d54404ab7e74397d4091c"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.2/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/652019030"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:603c83664ba6c92e3f53b634d522341c415c9dd6a6ddeb5cfe0546f0c4353900"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.1/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/651550437"
+checksum = "sha256:4fed2474da314f109cf505f1325eb84307afcd586242e6b691f074fd1a73e6aa"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.2/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/652019145"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
