@@ -44,6 +44,20 @@ checksum = "sha256:94da891b45a3889bf1bbb908e4e12ccafd1f162b760ce7eb9c471e1b45354
 url = "https://github.com/k1LoW/mo/releases/download/v1.6.9/mo_v1.6.9_darwin_arm64.zip"
 url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/595342779"
 
+[[tools."aqua:kayac/ecspresso"]]
+version = "2.8.7"
+backend = "aqua:kayac/ecspresso"
+
+[tools."aqua:kayac/ecspresso"."platforms.linux-x64"]
+checksum = "sha256:88e9573b48b020db810e458ee6cff16b54061f984c573f940da4d6408eb38d82"
+url = "https://github.com/kayac/ecspresso/releases/download/v2.8.7/ecspresso_2.8.7_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/592330638"
+
+[tools."aqua:kayac/ecspresso"."platforms.macos-arm64"]
+checksum = "sha256:8c26a9d293cb0c29242e0ce9fbed0504368085f9d1fd33233a8ba568a210efb2"
+url = "https://github.com/kayac/ecspresso/releases/download/v2.8.7/ecspresso_2.8.7_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/592330641"
+
 [[tools.betterleaks]]
 version = "1.9.0"
 backend = "aqua:betterleaks/betterleaks"

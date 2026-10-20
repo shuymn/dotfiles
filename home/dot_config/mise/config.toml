@@ -41,6 +41,7 @@ shellcheck = "0"
 "github:xdevplatform/xurl" = "1"
 "github:suzuki-shunsuke/ghalint" = "1"
 "github:suzuki-shunsuke/pinact" = "5"
+"aqua:kayac/ecspresso" = "2"
 # Exact pin, so `mise lock --bump` never moves it: v0.39.0+ ships no Developer ID
 # signed macOS binary, and an ad-hoc signed build loses its keychain "Always
 # Allow" on every rebuild (fwdcloudsec/granted#936). Widen the range once
