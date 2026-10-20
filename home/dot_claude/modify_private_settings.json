@@ -139,6 +139,10 @@ exec chezmoi execute-template --with-stdin '
           {
             "type": "command",
             "command": "~/.claude/hooks/deny-git-worktree-add.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/ask-git-push-protected.py"
           }
         ]
       }
