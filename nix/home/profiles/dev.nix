@@ -31,7 +31,6 @@ in
       ghq
       gh-stack
       gnused
-      golangci-lint
       gotools
       govulncheck
       jq
