@@ -99,18 +99,18 @@ checksum = "sha256:80afd4c069b46a6fa8f3ec520bebc750a7843e4a8d5b9583d29ad436c00a3
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.302"
+version = "2.1.303"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:0d865f10fe49f2e731ab9d4f7bdcce082cad4f7bbf71d2cbbf7be47b9d8ae5dc"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.302/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/647956172"
+checksum = "sha256:9ef730488e8b75d47f23c156282a73c89db3342aaf756ed7ec0b78a88fb31f3e"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.303/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/654495696"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:757a3b11dbd1b6881bb513cc50ab7a7fc03d8b77011dde7687152c3b61cc71f3"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.302/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/647955921"
+checksum = "sha256:cf40802aba7ff81f3c9085b7016e181a9ad2bc2ea9afa0853bff2fd2b496855c"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.303/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/654495511"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -141,18 +141,18 @@ url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.0/app-aarch64
 url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/644256001"
 
 [[tools."github:babarot/gh-infra"]]
-version = "0.17.3"
+version = "0.17.4"
 backend = "github:babarot/gh-infra"
 
 [tools."github:babarot/gh-infra"."platforms.linux-x64"]
-checksum = "sha256:c52b889a3d5a9432baac6b737a66903046e4146e311dd27791e82a553067daa9"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.17.3/gh-infra_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/633402779"
+checksum = "sha256:6319bb861b62012fe281d66d32abf8f5764c4cf169fe90e2e62db65e6c90db18"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.17.4/gh-infra_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/656608901"
 
 [tools."github:babarot/gh-infra"."platforms.macos-arm64"]
-checksum = "sha256:c2d6565f3579bd024aaac21e4344d015758a2350ea194af0c8edb64609757168"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.17.3/gh-infra_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/633402777"
+checksum = "sha256:c2aa18348cd898e7a99da3eacec7141085eed3b975c9c931dd60b52506a4d2d5"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.17.4/gh-infra_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/656608905"
 
 [[tools."github:go-task/task"]]
 version = "3.54.0"
@@ -433,7 +433,7 @@ version = "0.163.0"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
-version = "1.7.2"
+version = "1.7.4"
 backend = "npm:skills"
 
 [[tools."pipx:tavily-cli"]]
@@ -481,17 +481,17 @@ checksum = "sha256:85e1bc78ab45bdc5f82a7bac3929e37d072834a584d22583a2498dc67bb62
 url = "https://releases.hashicorp.com/terraform/1.16.6/terraform_1.16.6_darwin_arm64.zip"
 
 [[tools.uv]]
-version = "0.13.1"
+version = "0.13.2"
 backend = "aqua:astral-sh/uv"
 
 [tools.uv."platforms.linux-x64"]
-checksum = "sha256:eadd9d27c134ab5ac1ffd4473b97a741407f3ea238288f03121fc4deddf90220"
-url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639313223"
+checksum = "sha256:e14d48c117ec33601d6f860dda47aa5ea490d77a5a9ef770529c448fa6747d9f"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.2/uv-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/657430342"
 provenance = "github-attestations"
 
 [tools.uv."platforms.macos-arm64"]
-checksum = "sha256:cfe454573412ff7380d15fc7dae5997ab53ffce72fce0a78e91ddbc84001acd2"
-url = "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/639312976"
+checksum = "sha256:4a5d878cd0db3a57d79eec638c275e71c394e10533ae54c77b33d940866f53b7"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.2/uv-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/657430030"
 provenance = "github-attestations"
