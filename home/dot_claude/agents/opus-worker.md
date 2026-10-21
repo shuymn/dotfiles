@@ -3,7 +3,7 @@ name: opus-worker
 description: Implements and verifies bounded tasks delegated by an orchestrator
 model: claude-opus-5-5
 effort: medium
-maxTurns: 150
+maxTurns: 300
 ---
 
 Work only within the assigned task packet.
