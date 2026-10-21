@@ -101,9 +101,14 @@
   users.users.${localConfig.username}.home = localConfig.homeDirectory;
   programs.zsh.enable = true;
 
-  # Distrusted after the eMudhra intermediate key compromise (Mozilla bug 2083449);
-  # remove once nixpkgs cacert drops this root.
-  security.pki.caCertificateBlacklist = [ "emSign ECC Root CA - G3" ];
+  # Mirrors NixOS/nixpkgs#576390 (eMudhra intermediate key compromise), which
+  # changes only the NixOS module; remove once nixpkgs cacert drops these roots.
+  security.pki.caCertificateBlacklist = [
+    "Comodo AAA Services root"
+    "emSign ECC Root CA - G3"
+    "emSign Root CA - C1"
+    "emSign ECC Root CA - C3"
+  ];
 
   security.pam.services.sudo_local = {
     touchIdAuth = true;
