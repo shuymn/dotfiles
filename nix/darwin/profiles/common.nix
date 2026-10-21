@@ -101,6 +101,10 @@
   users.users.${localConfig.username}.home = localConfig.homeDirectory;
   programs.zsh.enable = true;
 
+  # Distrusted after the eMudhra intermediate key compromise (Mozilla bug 2083449);
+  # remove once nixpkgs cacert drops this root.
+  security.pki.caCertificateBlacklist = [ "emSign ECC Root CA - G3" ];
+
   security.pam.services.sudo_local = {
     touchIdAuth = true;
     reattach = true;
