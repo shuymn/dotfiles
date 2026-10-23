@@ -1,4 +1,15 @@
 {{ template "agents/AGENTS.md" . }}
+## Shell
+
+The Bash tool runs commands in zsh, with GNU `sed` on PATH. Write commands for zsh, or wrap bash-style logic in `bash -c '…'` or a `bash <<'EOF'` heredoc:
+
+- Expand lists through arrays (`"${arr[@]}"`) or `${=var}`; zsh keeps an unquoted `$var` as one word.
+- Quote glob characters in arguments (`--include='*.ts'`); an unmatched glob aborts the whole command.
+- Brace a variable before `:` (`"${host}:path"`); `$var:t`-style suffixes are history modifiers.
+- Read pipeline exit codes from `$pipestatus`.
+- Call `/usr/bin/log` for macOS unified logs; `log` is a zsh builtin.
+- Edit in place with `sed -i`, without the BSD `''` argument.
+
 ## Auto Memory
 
 - Keep in auto memory only what is private to one repository (operations, approvals, infrastructure facts) and learnings not yet confirmed as general.
