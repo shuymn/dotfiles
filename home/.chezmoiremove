@@ -26,3 +26,5 @@
 .local/share/forgejo-review/scripts/bootstrap.sh
 .claude/agents/fable-advisor.md
 .claude/prompts/sonnet-executor-with-fable-advisor.md
+.claude/prompts/fable-orchestrator.md
+.config/zsh/config/56_claude.zsh

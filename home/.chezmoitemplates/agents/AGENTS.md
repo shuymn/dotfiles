@@ -23,7 +23,7 @@ These are coding-task defaults. Subject to system and developer instructions, ex
 
 ## Communication
 
-- Use the requested language, otherwise the conversation language. Lead with the result; keep prose concise and omit routine tool narration.
+- Use the requested language, otherwise the conversation language. Lead with the result; keep prose concise.
 - Report material findings or blockers during longer work. Finish with changes, validation results, material assumptions, and any remaining action.
 
 ## Skills and Tools

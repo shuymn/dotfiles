@@ -18,7 +18,6 @@ disable-model-invocation: true
 - **memory:** 前回のコミット以降の差分（`git -C <memory dir> diff` と未追跡のファイル）と、索引 `MEMORY.md` を含む全ファイル。初回は全ファイル。
 - **hiden の未承認の書き換え:** `diff -ru "$(chezmoi source-path ~/.claude/skills/hiden)" ~/.claude/skills/hiden`。左が承認済み、右がセッションが書き換えた現物。
 - **常時読み込む指示:** `~/.claude/CLAUDE.md` と、そのリポジトリの AGENTS.md・CLAUDE.md。
-- 移行中の `~/.claude/memory/` が残っていれば、それも対象に含める（撤去の条件: hiden への移行を終えてディレクトリを消したら、この行を消す）。
 
 ## 3. 確かめる
 

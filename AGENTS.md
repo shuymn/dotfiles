@@ -4,6 +4,8 @@
 
 `CLAUDE.md` links to this file. Shared home-level instructions live in `home/.chezmoitemplates/agents/AGENTS.md`, rendered into the Claude, Codex, and pi templates; add tool-specific instructions to that tool's template. Edit the source, not the copies.
 
+This is one person's dotfiles for their own Macs. Prefer built-in tool features and small scripts over custom machinery, and size security fixes to a single-user threat model.
+
 ## Repo-Specific Rules
 
 ### Local Data and Activation
