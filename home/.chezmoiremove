@@ -24,3 +24,5 @@
 .local/share/forgejo-review/compose.yaml
 .local/share/forgejo-review/gitconfig
 .local/share/forgejo-review/scripts/bootstrap.sh
+.claude/agents/fable-advisor.md
+.claude/prompts/sonnet-executor-with-fable-advisor.md

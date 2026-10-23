@@ -113,11 +113,21 @@ apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 mise: ## Install mise-managed global tools
 	@MISE_LOCKED=1 $(MISE) install -C "$(HOME)"
 
+.PHONY: agents
+agents: ## Install missing shared agent skills and Claude Code plugins on dev roles
+	@dev=$$($(CHEZMOI_CMD) execute-template '{{ has "dev" .homeProfiles }}') || exit 1; \
+	if [ "$$dev" = true ]; then \
+		$(MISE) exec -C "$(HOME)" -- sh "$(DOTPATH)/scripts/install-agents.sh"; \
+	else \
+		echo "Skip agents: this role has no dev home profile"; \
+	fi
+
 .PHONY: converge
-converge: require-host ## Apply chezmoi, nix-darwin, and mise in order; rerun to resume after a failure
+converge: require-host ## Apply chezmoi, nix-darwin, mise, and agent extras in order; rerun to resume after a failure
 	@$(MAKE) --no-print-directory apply
 	@$(MAKE) --no-print-directory switch
 	@$(MAKE) --no-print-directory mise
+	@$(MAKE) --no-print-directory agents
 
 .PHONY: doctor
 doctor: require-host ## Report drift from the declared state without changing anything

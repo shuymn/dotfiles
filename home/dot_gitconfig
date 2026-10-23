@@ -74,6 +74,8 @@
 
 [wt]
 	basedir = ../{gitroot}-worktrees
+	# Move deleted worktrees to the Trash so a mistaken `git wt -D` can be restored.
+	remover = trash
 
 [tag]
 	sort = version:refname

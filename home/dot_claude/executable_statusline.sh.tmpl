@@ -127,10 +127,30 @@ comp_location() {
   echo "$out"
 }
 
+# Mark knowledge written by sessions but not yet reviewed with /wasure
+comp_pending() {
+  local root=$1 marks=""
+  if ! diff -rq {{ joinPath .chezmoi.sourceDir "dot_claude/skills/hiden" | quote }} "$HOME/.claude/skills/hiden" >/dev/null 2>&1; then
+    marks+=" hiden"
+  fi
+  if [ -n "$root" ]; then
+    local mem="$HOME/.claude/projects/${root//[^a-zA-Z0-9]/-}/memory"
+    if [ -d "$mem/.git" ] && [ -n "$(git -C "$mem" status --porcelain 2>/dev/null)" ]; then
+      marks+=" memory"
+    fi
+  fi
+  if [ -n "$marks" ]; then
+    PARTS+="${SEP}${YELLOW}✎${marks}${R}"
+  fi
+}
+
 # ── Main ─────────────────────────────────────────────────────────
 
 INPUT=$(cat)
 PARTS="$(comp_location)"
+# Worktrees share the main checkout's memory, so resolve the root from the common git dir
+common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+comp_pending "${common:+${common%/.git}}"
 
 append_dot "ctx" ".context_window.used_percentage" 80 30
 append_rate "5h" ".rate_limits.five_hour"

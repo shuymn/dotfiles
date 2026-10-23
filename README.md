@@ -27,7 +27,7 @@ make converge
 
 各ロールの組み合わせは `nix/roles.toml` にある。
 
-`make converge` は、chezmoi で設定ファイルを置き、nix-darwin を適用し、mise のツールを入れる。途中で止まったら原因を直して再実行すればよい。初回の nix-darwin 適用が既存の `/etc/bashrc` や `/etc/zshrc` を理由に止まったときは、退避してから再実行する。
+`make converge` は、chezmoi で設定ファイルを置き、nix-darwin を適用し、mise のツールを入れ、dev のロールでは足りないエージェントのスキルと Claude Code のプラグインを入れる（`make agents`）。途中で止まったら原因を直して再実行すればよい。初回の nix-darwin 適用が既存の `/etc/bashrc` や `/etc/zshrc` を理由に止まったときは、退避してから再実行する。
 
 ```bash
 sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin

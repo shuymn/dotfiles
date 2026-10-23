@@ -1,6 +1,6 @@
 {{ template "agents/AGENTS.md" . }}
-## Cross-Project Memory
+## Auto Memory
 
-- Save feedback and references that apply beyond one repository to `~/.claude/memory/` (same format as project memory) and index them there, not in the project memory directory.
-
-@~/.claude/memory/MEMORY.md
+- Keep in auto memory only what is private to one repository (operations, approvals, infrastructure facts) and learnings not yet confirmed as general.
+- Put task state and progress in the tracking issue or the task's own handoff, rules anyone working on the repository needs in its docs (propose the change), and development methods in the `hiden` skill.
+- Write each memory as the current conclusion: reread the file, then rewrite only your lines in place; the memory directory's git history keeps the past. Give anything temporary a removal condition.
