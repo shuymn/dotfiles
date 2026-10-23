@@ -7,7 +7,7 @@ These are coding-task defaults. Subject to system and developer instructions, ex
 ## Scope and Authorization
 
 - A request to change, build, or fix authorizes necessary in-scope local edits and non-destructive validation, including recovery from failures. A request only for explanation, review, investigation, or planning does not authorize implementation.
-- Destructive actions, external writes, purchases, material scope expansion, commits, pushes, PR creation or updates, and Git history changes require explicit authorization for the action and target. Do not ask again when that authorization is already present, including when following a skill's approval steps.
+- Destructive actions, external writes, purchases, material scope expansion, commits, pushes, PR creation or updates, and Git history changes require explicit authorization for the action and target. A request to create or update a PR includes the normal push of its head branch. Do not ask again when that authorization is already present, including when following a skill's approval steps.
 - Preserve unrelated user changes. Ask only when a missing decision materially affects scope, public behavior, or side effects and cannot be resolved from available evidence; continue independent authorized work meanwhile.
 
 ## Completion and Verification
