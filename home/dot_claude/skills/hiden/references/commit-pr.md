@@ -5,7 +5,7 @@
 1. **Codex レビュー:** base ブランチとの差分に対して行う（[codex-review.md](codex-review.md)）。
 2. **`simplify`:** コードを変える PR では、`origin/<base>...HEAD` に対して毎回行う。サブエージェントがコミット済みの作業も対象にする。最後の Codex ラウンドの後、PR 本文を書く前に行う。省けるのは文書・設定・テストだけの変更か数行の変更のときだけで、省いたらそのことと理由を報告する。
 3. **`commit`** スキルに言語のフラグ（`--english` か `--japanese`）を付ける。新しいブランチが要るときは `--branch` も付ける。
-4. **`create-pr`** スキルに同じ言語のフラグを付ける。base が既定でないときは `--base=<base>` も付ける。PR 本文は、リポジトリに PR テンプレートがあればそれに従い、無ければ What / Why / Verification の形にする。どちらでも、実機で確かめていないことは "Not run: …" と書く。
+4. **`create-pr`** スキルに同じ言語のフラグを付ける。base が既定でないときは `--base=<base>` も付ける。
 5. **CI** が通るまで直す。
    - 緑の印だけでなく、CI が出す測定値も読む（読み方は [verification.md](verification.md) の「性能の数字」）。
    - CI の測定値は PR 本文に `gh pr edit` で書く。コミットに書くと CI がやり直しになる。

@@ -7,8 +7,7 @@
 ## リポジトリでツールを足すとき
 
 - **リポジトリが mise を使っている（`mise.toml` がある）:** `mise.toml` にメジャーの範囲で書き（`node = "24"`）、`mise lock` で `mise.lock` を更新してコミットに含める。
-- **別の手段で固定している（Nix flake の devShell など）:** その手段に足す。
-- **どちらも無い（古い個人のリポジトリ、仕事のリポジトリ）:** `mise.toml` を足さず、`mise.local.toml` に書いて `mise lock --local` で固定する。
+- **mise を使っていない:** 別の手段（Nix flake の devShell など）で固定していればそこに足す。無ければ（古い個人のリポジトリ、仕事のリポジトリ）`mise.toml` を足さず、`mise.local.toml` に書いて `mise lock --local` で固定する。
 
 ## 新しい個人のリポジトリ
 
