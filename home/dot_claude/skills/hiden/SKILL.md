@@ -1,6 +1,6 @@
 ---
 name: hiden
-description: Use when the owner hands work to you as orchestrator, or when making a design decision, committing or opening a PR, requesting a Codex review, holding a review retrospective, adding or pinning a tool, or setting up a repository's CI or GitHub Actions workflows.
+description: Use when the owner hands work to you as orchestrator, or when making a design decision, debugging a failure, verifying or benchmarking a change, committing or opening a PR, requesting a Codex review, holding a review retrospective, adding or pinning a tool, or setting up a repository's CI or GitHub Actions workflows.
 ---
 
 # hiden
@@ -24,8 +24,9 @@ description: Use when the owner hands work to you as orchestrator, or when makin
 | 実装エージェントへの指示書 | [subagent-brief.md](references/subagent-brief.md) |
 | Codex レビュー（計画・コード・資料） | [codex-review.md](references/codex-review.md) |
 | コミットと PR | [commit-pr.md](references/commit-pr.md) |
-| 設計判断（ライブラリ、一貫性、構造、未実装の扱い、公開テキスト、Artifact） | [judgment.md](references/judgment.md) |
-| 検証手法の選択、繰り返す指摘を仕組みで塞ぐ | [verification.md](references/verification.md) |
+| 設計判断（ライブラリ、一貫性、構造、未実装の扱い、公開テキスト） | [judgment.md](references/judgment.md) |
+| 検証（証拠の強さ、実アプリでの確認、性能の数字）、繰り返す指摘を仕組みで塞ぐ | [verification.md](references/verification.md) |
+| 原因の分からない失敗、外れた修正 | [debugging.md](references/debugging.md) |
 | レビュー台帳、振り返り、文書整理 | [retro.md](references/retro.md) |
 | ツールの追加と版の固定、新しいリポジトリの CI、Actions の GitHub App トークン | [toolchain.md](references/toolchain.md) |
 

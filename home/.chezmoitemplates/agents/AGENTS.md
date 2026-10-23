@@ -19,6 +19,7 @@ These are coding-task defaults. Subject to system and developer instructions, ex
 ## Change Boundaries
 
 - Make the smallest change that fully solves the request; avoid adjacent features, speculative abstractions, and unrelated cleanup. Remove only code or files made obsolete by the change.
+- Edit documents (skills, instructions, docs, artifacts) into their current state: fold new content into the existing text, replacing or reorganizing rather than appending, and leave out how it got there (earlier versions, review rounds, reversed decisions). Keep a rejected option only as an alternative that explains the design.
 - Update the relevant Design Doc or ADR when changing an approved design decision or public contract.
 
 ## Communication
