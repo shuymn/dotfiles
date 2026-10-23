@@ -18,7 +18,7 @@
    - 動かせば答えが出る問いは、机上で比べずに使い捨ての試作を走らせて決める。
 2. **設計レビュー:** [codex-review.md](codex-review.md) のとおりに Codex に読ませる。採った指摘は設計書を直すか、小さなものは指示書への追補（amendments）に書く。
 3. **指示書:** 設計書と追補のパス、範囲、測定・報告させるもの、[subagent-brief.md](subagent-brief.md) の規則とリポジトリ固有の共通規則をまとめて渡す。
-4. **実装:** 実装エージェントを `isolation: "worktree"` で 1 体ずつ起動する（専用のワークツリーが `agent-<id>` ブランチで作られる。PR の前に `git branch -m` で作業名に付け替える）。早めにこまめにコミットさせ、報告は [subagent-brief.md](subagent-brief.md) の最後のとおりに確かめる。
+4. **実装:** 実装エージェントを `subagent_type: "opus-worker"`、`isolation: "worktree"` で 1 体ずつ起動する（相談と報告の形は opus-worker の定義にある）（専用のワークツリーが `agent-<id>` ブランチで作られる。PR の前に `git branch -m` で作業名に付け替える）。早めにこまめにコミットさせ、報告は [subagent-brief.md](subagent-brief.md) の最後のとおりに確かめる。
 5. **PR とマージ:** [commit-pr.md](commit-pr.md) の手順で進め、CI が緑になったらマージする。委任しているときは次が加わる。
    - レビューと simplify で採った指摘はすべて台帳に記録する（[retro.md](retro.md)）。
    - simplify は Codex に報告だけをさせ、実装エージェントに適用させる。依頼文の冒頭で、途中で撤回した実装を名指しして残骸を探させる。
