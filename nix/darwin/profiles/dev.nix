@@ -3,6 +3,7 @@
     casks = [
       "1password"
       "appcleaner"
+      "claude"
       "codex-app"
       "ghostty"
       "google-chrome"
