@@ -106,3 +106,15 @@ style = { fg = "blue", bold = true }
 
 [module.values]
 kind = [{ env = "IN_NIX_SHELL" }]
+
+# In the dotfiles checkout, count targets that `chezmoi apply` would change.
+# The helper shows the previous refresh because chezmoi status is too slow to await.
+[[module]]
+name = "chezmoi"
+format = "{count} unapplied"
+icon = "🏠"
+connector = "with"
+style = { fg = "yellow", bold = true }
+
+[module.values]
+count = [{ command = ["capsule-chezmoi-drift"] }]

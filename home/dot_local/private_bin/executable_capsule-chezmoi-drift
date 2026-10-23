@@ -1,0 +1,41 @@
+#!/bin/sh
+# Optional Capsule value: inside the chezmoi working tree, print how many targets
+# `chezmoi status` reports. Exit nonzero when clean or unknown so the module hides.
+# chezmoi status runs modify_ scripts and exceeds Capsule's 500 ms command limit,
+# so print the previous result and refresh it in a detached background job.
+set -eu
+
+command -v chezmoi >/dev/null 2>&1 || exit 1
+root=$(chezmoi execute-template '{{ .chezmoi.workingTree }}' 2>/dev/null) || exit 1
+[ -n "$root" ] || exit 1
+root=$(cd "$root" 2>/dev/null && pwd -P) || exit 1
+cwd=$(pwd -P)
+case "$cwd/" in
+"$root"/*) ;;
+*) exit 1 ;;
+esac
+
+dir=${XDG_CACHE_HOME:-$HOME/.cache}/capsule
+cache=$dir/chezmoi-status
+lock=$dir/chezmoi-status.lock
+mkdir -p "$dir" 2>/dev/null || exit 1
+
+# A refresh killed before cleanup leaves its lock; reclaim it after a minute.
+find "$lock" -prune -mmin +1 -exec rmdir {} \; 2>/dev/null || true
+if mkdir "$lock" 2>/dev/null; then
+    # Job control gives the job its own process group, so Capsule's cleanup of
+    # this command's group does not kill it.
+    set -m
+    (
+        trap 'rmdir "$lock"' EXIT
+        cd "$root"
+        if chezmoi status >"$cache.tmp" 2>/dev/null; then
+            mv -f "$cache.tmp" "$cache"
+        else
+            rm -f "$cache.tmp" "$cache"
+        fi
+    ) </dev/null >/dev/null 2>&1 &
+fi
+
+[ -s "$cache" ] || exit 1
+wc -l <"$cache" | tr -d ' '
