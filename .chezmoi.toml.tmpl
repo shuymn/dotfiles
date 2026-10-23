@@ -11,6 +11,8 @@
 sourceDir = {{ .chezmoi.workingTree | quote }}
 encryption = "age"
 color = false
+# Same state file the Makefile passes, so plain chezmoi sees run_onchange_ history.
+persistentState = {{ joinPath .chezmoi.homeDir ".local/state/chezmoi/chezmoistate.boltdb" | quote }}
 
 [diff]
 pager = "delta"

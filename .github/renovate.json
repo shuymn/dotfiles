@@ -16,6 +16,17 @@
       "matchStrings": ["(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
       "datasourceTemplate": "npm",
       "depNameTemplate": "renovate"
+    },
+    {
+      "customType": "regex",
+      "description": "Track pinned VS Code extensions through their GitHub releases",
+      "managerFilePatterns": [
+        "/^home\\/\\.chezmoiscripts\\/run_onchange_after_install-vscode-extensions\\.sh\\.tmpl$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s*install \\S+@(?<currentValue>\\S+)"
+      ],
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "packageRules": [

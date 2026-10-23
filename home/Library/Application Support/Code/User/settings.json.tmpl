@@ -1,0 +1,142 @@
+{
+  // Review-only setup: nothing formats, rewrites, or completes code on save or typing.
+  // editor
+  "editor.accessibilitySupport": "off",
+  "editor.find.addExtraSpaceOnTop": false,
+  "editor.fontFamily": "\"Cartograph CF\",\"UDEV Gothic 35NF\"",
+  "editor.fontSize": 11,
+  "editor.minimap.enabled": false,
+  "editor.overviewRulerBorder": false,
+  "editor.renderWhitespace": "trailing",
+  "editor.scrollBeyondLastLine": false,
+  "editor.unicodeHighlight.ambiguousCharacters": false,
+  "editor.occurrencesHighlight": "multiFile",
+  "editor.dragAndDrop": false,
+  // window
+  "window.autoDetectColorScheme": true,
+  "window.commandCenter": false,
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.revealIfOpen": true,
+  "workbench.layoutControl.enabled": false,
+  "workbench.list.smoothScrolling": true,
+  "workbench.panel.showLabels": false,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "workbench.startupEditor": "none",
+  // privacy
+  "telemetry.telemetryLevel": "off",
+  "workbench.enableExperiments": false,
+  "chat.disableAIFeatures": true,
+  // New folders open in Restricted Mode, where the Go extension is disabled.
+  "security.workspace.trust.startupPrompt": "once",
+  // explorer
+  "explorer.fileNesting.enabled": true,
+  // Object settings merge with the defaults, so list only additions.
+  "explorer.fileNesting.patterns": {
+    "go.mod": "go.sum, go.work, go.work.sum",
+    "*.sqlite": "${capture}.${extname}-*",
+    "*.db": "${capture}.${extname}-*",
+    "*.sqlite3": "${capture}.${extname}-*",
+    "*.db3": "${capture}.${extname}-*",
+    "*.sdb": "${capture}.${extname}-*",
+    "*.s3db": "${capture}.${extname}-*"
+  },
+  // extensions: versions are pinned by the chezmoi install script.
+  "extensions.autoUpdate": "off",
+  "extensions.ignoreRecommendations": true,
+  "extensions.experimental.affinity": {
+    "vscodevim.vim": 1
+  },
+  // terminal
+  "terminal.integrated.fontSize": 11,
+  "terminal.integrated.persistentSessionReviveProcess": "never",
+  "terminal.integrated.scrollback": 10000,
+  // files
+  "files.associations": {
+    "*.cnf": "ini",
+    "wrangler.json": "jsonc"
+  },
+  "files.simpleDialog.enable": true,
+  // git
+  "git.autofetch": true,
+  "git.blame.ignoreWhitespace": true,
+  // Worktrees come from `git wt`; VS Code only lists and opens them.
+  "git.detectWorktrees": true,
+  "git.openRepositoryInParentFolders": "always",
+  "git.untrackedChanges": "separate",
+  // scm
+  "scm.alwaysShowRepositories": true,
+  "scm.defaultViewMode": "tree",
+  "scm.diffDecorationsGutterWidth": 2,
+  // The repository explorer (experimental, single selection only) shows each
+  // repository's branches and worktrees, with "Open Worktree in New Window".
+  "scm.repositories.explorer": true,
+  "scm.repositories.selectionMode": "single",
+  // diff editor
+  "diffEditor.experimental.showMoves": true,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  // json
+  "json.schemaDownload.trustedDomains": {
+    "https://raw.githubusercontent.com/": true,
+    "https://biomejs.dev": true
+  },
+  // vim
+  "vim.leader": "<space>",
+  "vim.useSystemClipboard": true,
+  "vim.easymotion": true,
+  "vim.visualstar": true,
+  "vim.hlsearch": true,
+  "vim.highlightedyank.enable": true,
+  "vim.visualModeKeyBindingsNonRecursive": [
+    { "before": ["x"], "after": ["\"", "_", "x"] },
+    { "before": ["s"], "after": ["\"", "_", "s"] }
+  ],
+  "vim.normalModeKeyBindingsNonRecursive": [
+    { "before": ["u"], "commands": [{ "command": "undo" }] },
+    { "before": ["<C-r>"], "commands": [{ "command": "redo" }] },
+    { "before": ["x"], "after": ["\"", "_", "x"] },
+    { "before": ["s"], "after": ["\"", "_", "s"] },
+    { "before": ["j"], "after": ["g", "j"] },
+    { "before": ["k"], "after": ["g", "k"] },
+    { "before": ["<C-e>"], "after": ["$"] },
+    { "before": ["<C-a>"], "after": ["^"] },
+    { "before": ["+"], "after": ["<C-a>"] },
+    { "before": ["_"], "after": ["<C-x>"] },
+    { "before": ["n"], "after": ["n", "z", "z"] },
+    { "before": ["N"], "after": ["N", "z", "z"] },
+    { "before": ["*"], "after": ["*", "z", "z"] },
+    { "before": ["#"], "after": ["#", "z", "z"] },
+    { "before": ["f"], "after": ["<leader>", "<leader>", "f"] },
+    { "before": ["F"], "after": ["<leader>", "<leader>", "F"] }
+  ],
+  "vim.handleKeys": {
+    "<C-a>": false,
+    "<C-f>": false,
+    "<C-n>": false,
+    "<C-c>": false,
+    "<C-x>": false,
+    "<C-w>": false
+  },
+  // go: use the Nix-managed gopls instead of one the extension installs.
+  "go.alternateTools": {
+    "gopls": "/etc/profiles/per-user/{{ .chezmoi.username }}/bin/gopls"
+  },
+  // Pinned at its default: auto-updates would install tools beside Nix.
+  "go.toolsManagement.autoUpdate": false,
+  "go.toolsManagement.checkForUpdates": "off",
+  "go.diagnostic.vulncheck": "Off",
+  // Tests are not run from VS Code: drops the Testing view and run/debug code lenses.
+  "go.testExplorer.enable": false,
+  "go.enableCodeLens": {
+    "runtest": false
+  },
+  // vscode-go's own [go] defaults format and organize imports on save.
+  "[go]": {
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "never"
+    },
+    "editor.gotoLocation.multipleImplementations": "gotoAndPeek",
+    "editor.gotoLocation.alternativeDefinitionCommand": "editor.action.goToImplementation"
+  }
+}

@@ -28,3 +28,5 @@
 .claude/prompts/sonnet-executor-with-fable-advisor.md
 .claude/prompts/fable-orchestrator.md
 .config/zsh/config/56_claude.zsh
+.config/zed/settings.json
+.config/zed/keymap.json

@@ -28,7 +28,7 @@ This is one person's dotfiles for their own Macs. Prefer built-in tool features 
 
 - Keep Homebrew for GUI apps and their required dependencies; manage standalone daily CLIs with Nix/Home Manager. A Nix CLI's private runtime dependencies stay in its Nix closure, separate from mise's development runtimes.
 - Use mise for version-switched runtimes and pinned helper CLIs. Prefer `mise install`; existing `npm:`/`pipx:` entries may remain, but new global `npm:`/`pipx:`/`cargo:`/`go:`/`gem:` entries need an explicit exception reason.
-- For Zed, keep the app cask in Darwin profiles, settings/keymaps in `home/dot_config/zed/**`, and LSP/formatter binaries in Home Manager profiles. Gate role-specific extensions and LSP entries in `home/.chezmoitemplates/zed/*.jsonc` on chezmoi's `homeProfiles` data; retain extensions that fetch tools only when pinned to local Nix/project binaries. Do not enable Home Manager Zed settings without migrating config ownership away from chezmoi in the same change.
+- VS Code is a review-only editor: keep the cask in Darwin profiles, settings and keybindings in `home/Library/Application Support/Code/User/**` holding only non-default values, extension versions pinned in `home/.chezmoiscripts/run_onchange_after_install-vscode-extensions.sh.tmpl`, and language servers in Home Manager profiles referenced by absolute path so the Go extension runs Nix-built tools.
 - Claude Code is pinned through mise; keep `autoUpdates: false` and `DISABLE_AUTOUPDATER=1`, which are intentional, rather than suggesting auto-update or the `stable` channel.
 
 ### Renovate and mise Updates

@@ -3,7 +3,9 @@
 let
   lspPackages = with pkgs; [
     basedpyright
-    gopls
+    # Build with the Go that mise provides; vscode-go asks to recompile a gopls
+    # built with an older Go, and gopls cannot check newer language features.
+    (gopls.override { buildGoLatestModule = buildGo127Module; })
     lua-language-server
     nixd
     ruff

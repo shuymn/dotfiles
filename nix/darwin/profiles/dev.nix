@@ -16,7 +16,6 @@
       "tableplus"
       "ukelele"
       "visual-studio-code"
-      "zed"
     ];
   };
 }
