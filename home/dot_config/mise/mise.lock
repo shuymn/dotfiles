@@ -75,42 +75,42 @@ url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/
 provenance = "cosign"
 
 [[tools.bun]]
-version = "1.4.3"
+version = "1.4.4"
 backend = "core:bun"
 
 [tools.bun."platforms.linux-x64"]
-checksum = "sha256:3e730528d89775f03f87f05c06787c4df4099d0a37f3f252e7b829cb23816e18"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64.zip"
+checksum = "sha256:bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64.zip"
 
 [tools.bun."platforms.linux-x64-baseline"]
-checksum = "sha256:1fc2edac843102909e3a1be1d8d9802cc6071cf074e67e88231f4ffe0f8b397b"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64-baseline.zip"
+checksum = "sha256:e0446eb55995772eb9894bebae9a6be368d985a8b9271ee124486f9946eedd76"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64-baseline.zip"
 
 [tools.bun."platforms.linux-x64-musl"]
-checksum = "sha256:6e9ea98554ea0d05efda5840ae292618aaa3adefd66b0853520c5c86a37eac9c"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64-musl.zip"
+checksum = "sha256:a5a8ccc5e74dcb883fe974f125a7bdb3b41e5195ed1b870e73f17effd3eb2b2d"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64-musl.zip"
 
 [tools.bun."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:4b5b0b5503f6ebf15161e8c56eb5a263134c05cd98a86dc11ee43ac5bda9862e"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64-musl-baseline.zip"
+checksum = "sha256:6e9c37098b293920aed28bfb51ab240e26d23bfdd9bbfecb3ad428ac166549bc"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64-musl-baseline.zip"
 
 [tools.bun."platforms.macos-arm64"]
-checksum = "sha256:80afd4c069b46a6fa8f3ec520bebc750a7843e4a8d5b9583d29ad436c00a3403"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-darwin-aarch64.zip"
+checksum = "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc510"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.306"
+version = "2.1.308"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:9dc640d16d8228eff9620bde9e0f70d38385a2124f4e7d0a959d0337f0e4b14a"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.306/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/661106756"
+checksum = "sha256:6a699c7205d3c5f99e03a21d6b0511366f41c9a7284547b6e0785504ebdb261a"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.308/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/664635981"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:7d83cdfb0a9457f712881bb2f86b0f8fd655c818dbb8abf679c43fd04de44171"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.306/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/661106615"
+checksum = "sha256:e05000c2f5194208379b025df141e4f286ada8b3151fd7c1876d2a339ecf8fa3"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.308/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/664635796"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.4.4"
+version = "1.4.5"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:9ae4f7f0667a2868e15bb9ad93819ff7527c7187f12d12e3b5191137c726287b"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.4/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/661602299"
+checksum = "sha256:90cc1894b6862510869ad4cf1a6f4c043b7ae7c095bad8d5c355788a0ca935c7"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.5/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/664730169"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:85482aa8969300183f71c9653d9f581248fba7f506342a8eb087f3d2503203bd"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.4/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/661602559"
+checksum = "sha256:6d628d7d25dfa188ef676564e39714667c4899b52bea6b5639d6591bc22b8696"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.5/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/664730318"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -294,19 +294,19 @@ url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/628378844"
 provenance = "github-attestations"
 
 [[tools."github:shuymn/pommitlint"]]
-version = "2.0.3"
+version = "2.0.4"
 backend = "github:shuymn/pommitlint"
 
 [tools."github:shuymn/pommitlint"."platforms.linux-x64"]
-checksum = "sha256:bb14af90d07c716929b7aabf3bf2e4f0a99983d059791445fd95501406b9ab56"
-url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.3/pommitlint_v2.0.3_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/631174215"
+checksum = "sha256:96d02e55b5507f7823075d47ba46c585a7b16df85f76711a4c7368ac71e6f61c"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.4/pommitlint_v2.0.4_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/663972620"
 provenance = "github-attestations"
 
 [tools."github:shuymn/pommitlint"."platforms.macos-arm64"]
-checksum = "sha256:dca86df29cc081dcefdffab035ca1a492228c76a2dfc9cf1f1b59529f147a0ed"
-url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.3/pommitlint_v2.0.3_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/631174213"
+checksum = "sha256:3520fff3ad06391ec9e151a3f3e88d76220dffad75ca077128bc7953baeee57b"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.4/pommitlint_v2.0.4_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/663972623"
 provenance = "github-attestations"
 
 [[tools."github:suzuki-shunsuke/ghalint"]]
@@ -326,21 +326,20 @@ url_api = "https://api.github.com/repos/suzuki-shunsuke/ghalint/releases/assets/
 provenance = "github-attestations"
 
 [[tools."github:suzuki-shunsuke/pinact"]]
-version = "5.0.0"
+version = "5.0.1"
 backend = "github:suzuki-shunsuke/pinact"
 
 [tools."github:suzuki-shunsuke/pinact"."platforms.linux-x64"]
-checksum = "sha256:d005bbb85da80dacdc07816f24a5da723a9f6d1e9f3d3e7e73df33f9caa1358f"
-url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v5.0.0/pinact_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/558638065"
+checksum = "sha256:12500c0fff5db94a0155e2e76ed959d1dc0e899056ee168d8fb7b4840e7c04f0"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v5.0.1/pinact_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/664460175"
 provenance = "github-attestations"
 
 [tools."github:suzuki-shunsuke/pinact"."platforms.macos-arm64"]
-checksum = "sha256:3437ebfc9db720e431e86fd03ed19173b88dcb80b0f177d11a892126108661b5"
-url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v5.0.0/pinact_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/558638064"
+checksum = "sha256:58390ac843b7a14414df79762e2f64051158d00549762b1c49ded3d2f1746007"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v5.0.1/pinact_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/664460145"
 provenance = "github-attestations"
-provenance_verified = true
 
 [[tools."github:tomasz-tomczyk/crit"]]
 version = "0.23.0"
@@ -425,7 +424,7 @@ checksum = "sha256:89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc
 url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "1.3.0"
+version = "1.4.0"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
@@ -481,17 +480,17 @@ checksum = "sha256:7472a54cca911d46c0e399a5ebbce44444912d0d4dad7495f37f1fa51e7ca
 url = "https://releases.hashicorp.com/terraform/1.17.0/terraform_1.17.0_darwin_arm64.zip"
 
 [[tools.uv]]
-version = "0.13.4"
+version = "0.13.5"
 backend = "aqua:astral-sh/uv"
 
 [tools.uv."platforms.linux-x64"]
-checksum = "sha256:2b428396f12572d4429cf210ca234dd599a33b3af0958a4d5ed569d63e3f344f"
-url = "https://github.com/astral-sh/uv/releases/download/0.13.4/uv-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/659693663"
+checksum = "sha256:f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/664336023"
 provenance = "github-attestations"
 
 [tools.uv."platforms.macos-arm64"]
-checksum = "sha256:e0b1d4743ce64c55d9f0f4a444afa6b81125680070ee04e853fcd0f6c1ebf8f1"
-url = "https://github.com/astral-sh/uv/releases/download/0.13.4/uv-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/659693291"
+checksum = "sha256:743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73"
+url = "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/664335803"
 provenance = "github-attestations"
