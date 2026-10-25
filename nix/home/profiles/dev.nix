@@ -69,7 +69,7 @@ in
     settings = {
       aliases.infra = ''!gh-infra "$@"'';
       aliases.stack = ''!gh-stack "$@"'';
-      git_protocol = "ssh";
+      git_protocol = "https";
       prompt = "enabled";
       pager = "delta";
     };

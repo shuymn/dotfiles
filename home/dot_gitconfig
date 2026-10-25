@@ -52,6 +52,11 @@
 	helper =
 	helper = "!gh auth git-credential"
 
+# Route GitHub SSH remotes through the gh token so agents never wait on the SSH agent.
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+	insteadOf = ssh://git@github.com/
+
 [column]
 	ui = auto
 
