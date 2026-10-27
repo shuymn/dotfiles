@@ -278,19 +278,19 @@ url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/649425503
 provenance = "github-attestations"
 
 [[tools."github:shuymn/kastty"]]
-version = "0.4.0"
+version = "0.4.1"
 backend = "github:shuymn/kastty"
 
 [tools."github:shuymn/kastty"."platforms.linux-x64"]
-checksum = "sha256:b400f93092c6d24e219283a11822a09b408defe6d11bc498597c4c575d0e1105"
-url = "https://github.com/shuymn/kastty/releases/download/v0.4.0/kastty_v0.4.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/628378842"
+checksum = "sha256:0b72405c63fc9343dd0153e8dc46b4ffb9ef314df0486ac03d4d8c6b7ee4a8f0"
+url = "https://github.com/shuymn/kastty/releases/download/v0.4.1/kastty_v0.4.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/678660801"
 provenance = "github-attestations"
 
 [tools."github:shuymn/kastty"."platforms.macos-arm64"]
-checksum = "sha256:3580ded4817e1fcbaba13cd9d1602cd99886db78eba7432077caabdd2616361d"
-url = "https://github.com/shuymn/kastty/releases/download/v0.4.0/kastty_v0.4.0_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/628378844"
+checksum = "sha256:dc3d3f21ba876495e5f198ae9da81cfb1dbf1d6a1e0d5f4673f3f9df7deb437e"
+url = "https://github.com/shuymn/kastty/releases/download/v0.4.1/kastty_v0.4.1_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/678660805"
 provenance = "github-attestations"
 
 [[tools."github:shuymn/pommitlint"]]
@@ -310,19 +310,19 @@ url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/663972
 provenance = "github-attestations"
 
 [[tools."github:suzuki-shunsuke/ghalint"]]
-version = "1.5.6"
+version = "1.5.7"
 backend = "github:suzuki-shunsuke/ghalint"
 
 [tools."github:suzuki-shunsuke/ghalint"."platforms.linux-x64"]
-checksum = "sha256:98ee0e3330de7286f470d1e89c03ff7ce70d7a5998ba0f15969c400447be579c"
-url = "https://github.com/suzuki-shunsuke/ghalint/releases/download/v1.5.6/ghalint_1.5.6_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/suzuki-shunsuke/ghalint/releases/assets/409631220"
+checksum = "sha256:b8eaba77baea50540caf43e81ea32049ca07fecba267a84c78a27ce5a86631a3"
+url = "https://github.com/suzuki-shunsuke/ghalint/releases/download/v1.5.7/ghalint_1.5.7_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/ghalint/releases/assets/676756679"
 provenance = "github-attestations"
 
 [tools."github:suzuki-shunsuke/ghalint"."platforms.macos-arm64"]
-checksum = "sha256:1262cac411e27b4653e6b66b7b06580ebcc2026fdd903e12e6cb0e4591639de6"
-url = "https://github.com/suzuki-shunsuke/ghalint/releases/download/v1.5.6/ghalint_1.5.6_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/suzuki-shunsuke/ghalint/releases/assets/409631219"
+checksum = "sha256:c3abc5c3a8eedafbeb3d3d2d27a2757876fd5d4937c7306a3932906d578f968a"
+url = "https://github.com/suzuki-shunsuke/ghalint/releases/download/v1.5.7/ghalint_1.5.7_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/ghalint/releases/assets/676756660"
 provenance = "github-attestations"
 
 [[tools."github:suzuki-shunsuke/pinact"]]
@@ -440,17 +440,17 @@ version = "0.1.8"
 backend = "pipx:tavily-cli"
 
 [[tools.python]]
-version = "3.15.1"
+version = "3.15.2"
 backend = "core:python"
 
 [tools.python."platforms.linux-x64"]
-checksum = "sha256:01d901e09ca673c99a6c9bd9ec2cfbd58dbe8813d07514c36cb73cfd20b18bd8"
-url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-3.15.1+20261021-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+checksum = "sha256:7b03163a980c607ba8194709d4a4086735a7a9c488cc475b098157306927b36b"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.15.2+20261026-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
 [tools.python."platforms.macos-arm64"]
-checksum = "sha256:1a4eb4d5aa82400de6eeb94e6fc6d870f5fabc97eb1d801f7eeba8072117b11c"
-url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-3.15.1+20261021-aarch64-apple-darwin-install_only_stripped.tar.gz"
+checksum = "sha256:1b1b03fca8aa351698403f3d100ee83db7a5d99748fc7707681ac31a6a846ad9"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.15.2+20261026-aarch64-apple-darwin-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
 [[tools.shellcheck]]
