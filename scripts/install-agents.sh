@@ -36,7 +36,7 @@ install_skills() {
 
 install_skills shuymn/skills \
 	adversarial-verify commit create-pr extensible-by-design github-clone-workspace \
-	goal-loop-engineering proofread prune-tests simplify triage-review
+	proofread prune-tests simplify triage-review
 install_skills mattpocock/skills grilling writing-for-agents
 install_skills GoogleChrome/modern-web-guidance modern-web-guidance
 install_skills cloudflare/security-audit-skill security-audit
