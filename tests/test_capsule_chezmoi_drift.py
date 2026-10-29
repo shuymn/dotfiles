@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -10,6 +11,9 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "home/dot_local/private_bin/executable_capsule-chezmoi-drift"
+# The helper runs on macOS, whose /bin/sh is bash in POSIX mode. Linux dash refuses
+# `set -m` without a tty, so the refresh would stay in Capsule's process group.
+SHELL = ["/bin/sh"] if sys.platform == "darwin" else [shutil.which("bash"), "--posix"]
 
 
 class CapsuleChezmoiDriftTests(unittest.TestCase):
@@ -50,7 +54,7 @@ class CapsuleChezmoiDriftTests(unittest.TestCase):
         path.chmod(0o755)
 
     def run_helper(self, cwd=None):
-        return subprocess.run(["/bin/sh", str(SCRIPT)], env=self.env, cwd=cwd or self.work,
+        return subprocess.run([*SHELL, str(SCRIPT)], env=self.env, cwd=cwd or self.work,
                               capture_output=True, text=True, timeout=5)
 
     def wait_for_refresh(self):
@@ -125,7 +129,7 @@ class CapsuleChezmoiDriftTests(unittest.TestCase):
     def test_refresh_survives_process_group_cleanup(self):
         # Capsule kills the command's process group once the command finishes.
         self.env["MOCK_DELAY"] = "0.3"
-        process = subprocess.Popen(["/bin/sh", str(SCRIPT)], env=self.env, cwd=self.work,
+        process = subprocess.Popen([*SHELL, str(SCRIPT)], env=self.env, cwd=self.work,
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                    start_new_session=True)
         process.wait(timeout=5)
