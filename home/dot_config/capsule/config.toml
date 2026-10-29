@@ -107,14 +107,15 @@ style = { fg = "blue", bold = true }
 [module.values]
 kind = [{ env = "IN_NIX_SHELL" }]
 
-# In the dotfiles checkout, count targets that `chezmoi apply` would change.
+# In the dotfiles checkout, show what `chezmoi apply` would change in git's symbols.
+# "[[" is a literal "["; a lone "[" opens an optional section.
 # The helper shows the previous refresh because chezmoi status is too slow to await.
 [[module]]
 name = "chezmoi"
-format = "{count} unapplied"
+format = "[[{status}]"
 icon = "🏠"
 connector = "with"
 style = { fg = "yellow", bold = true }
 
 [module.values]
-count = [{ command = ["capsule-chezmoi-drift"] }]
+status = [{ command = ["capsule-chezmoi-drift"] }]

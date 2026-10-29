@@ -25,7 +25,7 @@ class CapsuleChezmoiDriftTests(unittest.TestCase):
         self.outside.mkdir()
         self.cache = self.root / "cache/capsule/chezmoi-status"
         # Keep PATH to this directory so the real chezmoi never runs.
-        for command in ("find", "mkdir", "rmdir", "mv", "rm", "wc", "tr", "sleep"):
+        for command in ("find", "mkdir", "rmdir", "mv", "rm", "sleep"):
             path = shutil.which(command)
             self.assertIsNotNone(path, f"{command} is required")
             (self.bin / command).symlink_to(path)
@@ -34,12 +34,14 @@ class CapsuleChezmoiDriftTests(unittest.TestCase):
             "HOME": str(self.root),
             "XDG_CACHE_HOME": str(self.root / "cache"),
             "MOCK_ROOT": str(self.work),
-            "MOCK_STATUS": " M .zshrc\nA  .local/bin/tool\n",
+            "MOCK_STATUS": " M .zshrc\n A .local/bin/tool\n",
         }
         self.mock("chezmoi", 'case "$1" in\n'
                   'execute-template) printf "%s" "$MOCK_ROOT" ;;\n'
                   'status) sleep "${MOCK_DELAY:-0}"; printf "%s" "$MOCK_STATUS"; '
                   'exit "${MOCK_STATUS_EXIT:-0}" ;;\n'
+                  'source-path) case "$2" in *modified) printf "/src/modify_x" ;; '
+                  '*) printf "/src/x" ;; esac ;;\n'
                   '*) exit 2 ;;\nesac')
 
     def mock(self, name, body):
@@ -68,11 +70,41 @@ class CapsuleChezmoiDriftTests(unittest.TestCase):
             with self.subTest(cwd=cwd):
                 result = self.run_helper(cwd)
                 self.assertEqual(result.returncode, 0)
-                self.assertEqual(result.stdout, "2\n")
+                self.assertEqual(result.stdout, "!+\n")
                 self.wait_for_refresh()
 
+    def test_maps_status_to_git_indicators(self):
+        cases = {
+            " A a\n M b\n": "!+\n",
+            "MM a\n D b\n R c\n": "=✘!\n",
+            " M a\nDA b\n": "=!\n",
+        }
+        for status, expected in cases.items():
+            with self.subTest(status=status):
+                self.cache.parent.mkdir(parents=True, exist_ok=True)
+                self.cache.write_text(status)
+                self.env["MOCK_STATUS"] = status
+                result = self.run_helper()
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, expected)
+                self.wait_for_refresh()
+
+    def test_modify_script_target_is_not_a_conflict(self):
+        # Apply overwrites modify_ targets without asking, unlike other edited targets.
+        self.env["MOCK_STATUS"] = "MM .modified\n"
+        self.run_helper()
+        self.wait_for_refresh()
+        self.assertEqual(self.run_helper().stdout, "!\n")
+        self.wait_for_refresh()
+        self.env["MOCK_STATUS"] = "MM .edited\n"
+        self.run_helper()
+        self.wait_for_refresh()
+        self.assertEqual(self.run_helper().stdout, "=\n")
+        self.wait_for_refresh()
+
     def test_clean_or_failed_status_is_hidden(self):
-        for env in ({"MOCK_STATUS": ""}, {"MOCK_STATUS_EXIT": "1"}):
+        # "M " means the target already matches the source, so apply changes nothing.
+        for env in ({"MOCK_STATUS": ""}, {"MOCK_STATUS": "M  .zshrc\n"}, {"MOCK_STATUS_EXIT": "1"}):
             with self.subTest(env=env):
                 self.cache.parent.mkdir(parents=True, exist_ok=True)
                 self.cache.write_text(" M .zshrc\n")

@@ -1,6 +1,8 @@
 #!/bin/sh
-# Optional Capsule value: inside the chezmoi working tree, print how many targets
-# `chezmoi status` reports. Exit nonzero when clean or unknown so the module hides.
+# Optional Capsule value: inside the chezmoi working tree, print `chezmoi status`
+# as Capsule's git indicators: = target edited since the last apply, so apply asks
+# before overwriting it, ✘ apply deletes, ! apply modifies or runs a script, + apply adds.
+# Exit nonzero when clean or unknown so the module hides.
 # chezmoi status runs modify_ scripts and exceeds Capsule's 500 ms command limit,
 # so print the previous result and refresh it in a detached background job.
 set -eu
@@ -29,7 +31,21 @@ if mkdir "$lock" 2>/dev/null; then
     (
         trap 'rmdir "$lock"' EXIT
         cd "$root"
-        if chezmoi status >"$cache.tmp" 2>/dev/null; then
+        if status=$(chezmoi status 2>/dev/null); then
+            # Apply overwrites modify_ targets without asking, so clear their
+            # first column to keep them out of the conflicts.
+            printf '%s\n' "$status" | while IFS= read -r line; do
+                case $line in
+                '') continue ;;
+                [!\ ][!\ ]*)
+                    source=$(chezmoi source-path "$HOME/${line#???}" 2>/dev/null) || source=
+                    case ${source##*/} in
+                    modify_*) line=" ${line#?}" ;;
+                    esac
+                    ;;
+                esac
+                printf '%s\n' "$line"
+            done >"$cache.tmp"
             mv -f "$cache.tmp" "$cache"
         else
             rm -f "$cache.tmp" "$cache"
@@ -38,4 +54,15 @@ if mkdir "$lock" 2>/dev/null; then
 fi
 
 [ -s "$cache" ] || exit 1
-wc -l <"$cache" | tr -d ' '
+conflicted= deleted= modified= added=
+while IFS= read -r line; do
+    case $line in
+    [!\ ][!\ ]*) conflicted='=' ;;
+    ?D*) deleted='✘' ;;
+    ?[MR]*) modified='!' ;;
+    ?A*) added='+' ;;
+    esac
+done <"$cache"
+indicators=$conflicted$deleted$modified$added
+[ -n "$indicators" ] || exit 1
+printf '%s\n' "$indicators"
