@@ -14,6 +14,7 @@
 - **版の固定:** mise で行う（言語別の版ファイルは使わない）。`mise.toml` にメジャーの範囲、`mise.lock`（`locked = true`）で固定する。Renovate の mise マネージャは無効にし、日次の mise-update ワークフローが `mise lock --bump` で PR を作る。見本は shuymn/dotfiles の `.github/workflows/mise-update.yml`。
 - **ローカルの検査:** lefthook から走らせる。security/gha ワークフローのツール（actionlint・ghalint・betterleaks など）も mise で固定し、CI とローカルで同じものを使う。
 - **Actions:** SHA で固定する。
+- **GitHub のリポジトリ設定:** マージ方式、rulesets、許可する Actions、セキュリティ機能は `.github/infra.yaml` に宣言し、gh-infra（`mise.toml` で固定）の `plan` で差分を見てから `apply` する。`gh api` で直接変えない。見本は同じ構成の既存リポジトリ（例: shuymn/octo-translator）の `infra.yaml`。Why: API で直接変えると設定がリポジトリに残らず、標準とのずれも `plan` で見えなくなる。
 - **JS/TS:** lint と format は oxlint と oxfmt。Cloudflare Workers の型は、`wrangler types` の生成物をコミットせず、`@cloudflare/workers-types` を tsconfig の `types` に入れ、使う binding だけを手書きの `src/env.d.ts`（`declare namespace Cloudflare { interface Env {...} }`）で宣言する。
 
 Why: オーナーの明示的な好みで、リポジトリ間で揃っていることを各ベンダーの推奨より優先する。
