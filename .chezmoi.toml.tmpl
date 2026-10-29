@@ -15,7 +15,7 @@ color = false
 persistentState = {{ joinPath .chezmoi.homeDir ".local/state/chezmoi/chezmoistate.boltdb" | quote }}
 
 [diff]
-pager = "delta"
+pager = "delta --side-by-side"
 
 [data]
 homeProfiles = {{ (index $roles $role).home | toJson }}

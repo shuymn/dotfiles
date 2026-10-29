@@ -42,7 +42,7 @@ chezmoi の暗号化には age を使う。鍵はリポジトリに入れず、�
 | やりたいこと | コマンド |
 | --- | --- |
 | リポジトリの変更を Mac に反映する | `make converge` |
-| 設定ファイルだけ反映する / 差分を見る | `chezmoi apply` / `chezmoi diff` |
+| 設定ファイルだけ反映する / apply で何が起きるか見る | `chezmoi apply` / `make diff` |
 | Nix の変更だけ反映する | `make switch` |
 | 宣言と Mac の差を確かめる（変更しない） | `make doctor` |
 | 変更を検証する | `make check` |

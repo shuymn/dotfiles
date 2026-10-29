@@ -105,6 +105,10 @@ chezmoi-config: ## Generate chezmoi config for plain chezmoi commands
 	@mkdir -p "$(CHEZMOI_STATE_DIR)" "$(dir $(CHEZMOI_CONFIG))"
 	@$(CHEZMOI_CMD) execute-template < "$(CHEZMOI_CONFIG_TEMPLATE)" > "$(CHEZMOI_CONFIG)"
 
+.PHONY: diff
+diff: chezmoi-config ## Summarize and diff what apply would change
+	@/bin/sh "$(DOTPATH)/scripts/chezmoi-plan.sh" $(CHEZMOI_CMD)
+
 .PHONY: apply
 apply: chezmoi-config ## Apply chezmoi-managed dotfiles
 	@$(CHEZMOI_CMD) apply
