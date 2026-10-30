@@ -4,6 +4,7 @@
 {
   homeFiles = [
     ".cache/.keep"
+    ".config/colima/default/colima.yaml"
     ".config/direnv/lib/hm-nix-direnv.sh"
     ".config/gh/config.yml"
     ".local/share/gh/extensions"
