@@ -5,7 +5,6 @@
   homeFiles = [
     ".cache/.keep"
     ".config/direnv/lib/hm-nix-direnv.sh"
-    ".config/gh-dash/config.yml"
     ".config/gh/config.yml"
     ".local/share/gh/extensions"
     ".local/share/nvim/site/pack/hm"
