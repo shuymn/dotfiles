@@ -1,5 +1,8 @@
 { config, pkgs, ... }:
 
+let
+  dockerBin = "${pkgs.docker}/bin/docker";
+in
 {
   # The service starts the VM at login. isActive makes colima select its docker
   # context on start; ~/.docker/config.json stays unmanaged because
@@ -66,6 +69,28 @@
         rootDisk = 20;
         env = { };
       };
+    };
+  };
+
+  # Weekly cleanup of stopped containers and unused images older than two
+  # weeks; colima's data disk fills up otherwise. Volumes are left alone.
+  launchd.agents.docker-prune = {
+    enable = true;
+    config = {
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        "${dockerBin} container prune -f --filter until=336h && ${dockerBin} image prune -af --filter until=336h"
+      ];
+      StartCalendarInterval = [
+        {
+          Weekday = 1;
+          Hour = 12;
+          Minute = 0;
+        }
+      ];
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/docker-prune.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/docker-prune.log";
     };
   };
 
