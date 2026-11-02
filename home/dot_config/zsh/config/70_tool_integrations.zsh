@@ -6,6 +6,7 @@ fi
 # Homebrew
 if has "brew" && uname | grep Darwin >/dev/null 2>&1; then
   export HOMEBREW_NO_ENV_HINTS="true"
+  export HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS="true"
 fi
 
 # terraform
