@@ -141,18 +141,18 @@ url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.0/app-aarch64
 url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/644256001"
 
 [[tools."github:babarot/gh-infra"]]
-version = "0.17.5"
+version = "0.18.0"
 backend = "github:babarot/gh-infra"
 
 [tools."github:babarot/gh-infra"."platforms.linux-x64"]
-checksum = "sha256:8de12718b62985b9571a3070ffd775c8581b90c64b7602a15a5300e248468fe1"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.17.5/gh-infra_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/675567906"
+checksum = "sha256:b3a1c51899cda58eed6313a9f83e059b9980a1417e455190049e83d7da35818e"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.18.0/gh-infra_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/697883292"
 
 [tools."github:babarot/gh-infra"."platforms.macos-arm64"]
-checksum = "sha256:4fc2c0a923011afac9eb8d3c1a09f1f58c8760ce9193682377c5d9e28ac350ad"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.17.5/gh-infra_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/675567867"
+checksum = "sha256:210f9f57a2b61bc25c025fe5e8cb7cce6b3fc194f8a9c15dd20cc3757aae0e9c"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.18.0/gh-infra_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/697883261"
 
 [[tools."github:go-task/task"]]
 version = "3.54.0"
