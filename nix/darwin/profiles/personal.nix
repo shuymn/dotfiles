@@ -3,6 +3,7 @@
     casks = [
       "cherry-studio"
       "discord"
+      "grok-bot"
       "obsidian"
       "orcaslicer"
       "zotero"
