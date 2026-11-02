@@ -110,7 +110,8 @@ diff: chezmoi-config ## Summarize and diff what apply would change
 	@/bin/sh "$(DOTPATH)/scripts/chezmoi-plan.sh" $(CHEZMOI_CMD)
 
 .PHONY: apply
-apply: chezmoi-config ## Apply chezmoi-managed dotfiles
+apply: chezmoi-config ## Apply chezmoi-managed dotfiles, backing up overwritten home files to $(CHEZMOI_STATE_DIR)/backup
+	@/bin/sh "$(DOTPATH)/scripts/chezmoi-backup.sh" "$(CHEZMOI_STATE_DIR)/backup" $(CHEZMOI_CMD)
 	@$(CHEZMOI_CMD) apply
 
 .PHONY: mise
