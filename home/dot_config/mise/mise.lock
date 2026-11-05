@@ -59,19 +59,19 @@ url = "https://github.com/kayac/ecspresso/releases/download/v2.8.7/ecspresso_2.8
 url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/592330641"
 
 [[tools.betterleaks]]
-version = "1.9.0"
+version = "1.10.0"
 backend = "aqua:betterleaks/betterleaks"
 
 [tools.betterleaks."platforms.linux-x64"]
-checksum = "sha256:f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108929"
+checksum = "sha256:9d9ad503cd5d80d18a939352266c3fcca52f10da9b83cd5cfe646989b13940fe"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.10.0/betterleaks_1.10.0_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/710841396"
 provenance = "cosign"
 
 [tools.betterleaks."platforms.macos-arm64"]
-checksum = "sha256:83dd7eaab13d44a1e8e347a17064cdef153a1478db473276d41b38d55613d3f2"
-url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108927"
+checksum = "sha256:91eaea97709d3308c7712574a56260539c65fbd0672711537aa68d566ea630b3"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.10.0/betterleaks_1.10.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/710841276"
 provenance = "cosign"
 
 [[tools.bun]]
@@ -99,18 +99,18 @@ checksum = "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.317"
+version = "2.1.318"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:153511cf79cd27c55c9f9c919cc532eb90647f7893cb3f4e78dac776991714e0"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.317/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/703596770"
+checksum = "sha256:e6d426ca0c123f61fad58a361da0329f2a93cd206bc87040ed8d9576dd9eb583"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.318/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/707216832"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:d550cb26bfbbdb79052435544f7edc090c2b02f5fd9b30431bfb98d07a4bb318"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.317/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/703596562"
+checksum = "sha256:cd7fa988d60e7aef7ed453847650255138440b229d081496b8ed0ab75836603b"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.318/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/707216476"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.4.12"
+version = "1.5.0"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:3368d1923fc869f21ec8fce83252a8c96c89283aac9393958ac91fbf7a3949e4"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.12/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/693488645"
+checksum = "sha256:f65e365a67be49abdaf92f5669c3157bd4b9c569f6b9f448340b00ca261b0f01"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.0/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/708344397"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:4c989b5ccf0e39c99a1ce6df82410abb628d4d83e0d3183527702df744d9c589"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.4.12/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/693494302"
+checksum = "sha256:105fb4f6181665f85cea79a9a26ef9e106ea0666b9a0904bb63a45e64951286b"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.0/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/708344653"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -262,19 +262,19 @@ url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/64089
 provenance = "github-attestations"
 
 [[tools."github:shuymn/capsule"]]
-version = "1.1.1"
+version = "1.2.0"
 backend = "github:shuymn/capsule"
 
 [tools."github:shuymn/capsule"."platforms.linux-x64"]
-checksum = "sha256:edb608401c918947a1a7aa7ee6d0e9239d3f8562a4a35d4f59de101454ca1764"
-url = "https://github.com/shuymn/capsule/releases/download/v1.1.1/capsule-v1.1.1-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/649425502"
+checksum = "sha256:569b1d0535baa7617f88e09450d8af5a84b6b576d4bb0ffb22572c9db5c27ef2"
+url = "https://github.com/shuymn/capsule/releases/download/v1.2.0/capsule-v1.2.0-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/707408228"
 provenance = "github-attestations"
 
 [tools."github:shuymn/capsule"."platforms.macos-arm64"]
-checksum = "sha256:7fc725c5146df6a71bbb80dab3904e1bfeeafaa0384957ea528f4f783993b570"
-url = "https://github.com/shuymn/capsule/releases/download/v1.1.1/capsule-v1.1.1-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/649425503"
+checksum = "sha256:973263c19d05c27850e072b580b5c16e86851182930181152999091391694af8"
+url = "https://github.com/shuymn/capsule/releases/download/v1.2.0/capsule-v1.2.0-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/capsule/releases/assets/707408225"
 provenance = "github-attestations"
 
 [[tools."github:shuymn/kastty"]]
