@@ -45,18 +45,18 @@ url = "https://github.com/k1LoW/mo/releases/download/v1.7.0/mo_v1.7.0_darwin_arm
 url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/662490656"
 
 [[tools."aqua:kayac/ecspresso"]]
-version = "2.8.7"
+version = "2.8.8"
 backend = "aqua:kayac/ecspresso"
 
 [tools."aqua:kayac/ecspresso"."platforms.linux-x64"]
-checksum = "sha256:88e9573b48b020db810e458ee6cff16b54061f984c573f940da4d6408eb38d82"
-url = "https://github.com/kayac/ecspresso/releases/download/v2.8.7/ecspresso_2.8.7_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/592330638"
+checksum = "sha256:595e0027e95c2c0ec1108d2ff582082a6b87da94f7db4b959696c789a98a6fd9"
+url = "https://github.com/kayac/ecspresso/releases/download/v2.8.8/ecspresso_2.8.8_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/711719498"
 
 [tools."aqua:kayac/ecspresso"."platforms.macos-arm64"]
-checksum = "sha256:8c26a9d293cb0c29242e0ce9fbed0504368085f9d1fd33233a8ba568a210efb2"
-url = "https://github.com/kayac/ecspresso/releases/download/v2.8.7/ecspresso_2.8.7_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/592330641"
+checksum = "sha256:7e90e7f2f9a9dd1ca1eb5fa2ffec09055121428f2eea7e2e2c10cfcde7fba40f"
+url = "https://github.com/kayac/ecspresso/releases/download/v2.8.8/ecspresso_2.8.8_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/kayac/ecspresso/releases/assets/711719405"
 
 [[tools.betterleaks]]
 version = "1.10.0"
@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.5.0"
+version = "1.5.1"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:f65e365a67be49abdaf92f5669c3157bd4b9c569f6b9f448340b00ca261b0f01"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.0/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/708344397"
+checksum = "sha256:2a64ccfc5f6679c253769f0760614af5de04d8dc1eeeec9b9752ba4c8dd92250"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.1/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/712499297"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:105fb4f6181665f85cea79a9a26ef9e106ea0666b9a0904bb63a45e64951286b"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.0/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/708344653"
+checksum = "sha256:2179ba83eb5429ec19260d022196abb3cbe5e65e11e2c2ef2d19af564c1558db"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.1/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/712499474"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -216,19 +216,19 @@ url_api = "https://api.github.com/repos/k1LoW/git-wt/releases/assets/622546217"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/octocov"]]
-version = "0.83.4"
+version = "0.83.5"
 backend = "github:k1LoW/octocov"
 
 [tools."github:k1LoW/octocov"."platforms.linux-x64"]
-checksum = "sha256:238ea9ab3d3fa089448b18ee6d5d84f74f785fd03be4c8761e2fb455372b86f1"
-url = "https://github.com/k1LoW/octocov/releases/download/v0.83.4/octocov_v0.83.4_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/680546884"
+checksum = "sha256:3aa6973a8e68036b640dac6ef0c5456dda12289c7abbdaf7b919a036555d8e9c"
+url = "https://github.com/k1LoW/octocov/releases/download/v0.83.5/octocov_v0.83.5_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/711698412"
 provenance = "github-attestations"
 
 [tools."github:k1LoW/octocov"."platforms.macos-arm64"]
-checksum = "sha256:7dc191effd1b1e4e8cc85abba95197f8af813deadd7e1b04981e3866d0026701"
-url = "https://github.com/k1LoW/octocov/releases/download/v0.83.4/octocov_v0.83.4_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/680546876"
+checksum = "sha256:31cee98c5c21f5c4e07a30df13456daa6bba73cc666875831f9207a73bbdc20b"
+url = "https://github.com/k1LoW/octocov/releases/download/v0.83.5/octocov_v0.83.5_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/octocov/releases/assets/711698408"
 provenance = "github-attestations"
 
 [[tools."github:k1LoW/roots"]]
