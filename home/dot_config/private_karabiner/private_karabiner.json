@@ -168,6 +168,16 @@
             ],
             "name": "Default profile",
             "selected": true,
+            "simple_modifications": [
+                {
+                    "from": { "key_code": "international3" },
+                    "to": [{ "key_code": "backslash" }]
+                },
+                {
+                    "from": { "key_code": "international1" },
+                    "to": [{ "key_code": "grave_accent_and_tilde" }]
+                }
+            ],
             "virtual_hid_keyboard": {
                 "country_code": 0,
                 "keyboard_type_v2": "ansi"
