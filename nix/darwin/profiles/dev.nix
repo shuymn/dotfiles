@@ -3,18 +3,17 @@
     casks = [
       "1password"
       "appcleaner"
+      "azookey"
       "claude"
       "codex-app"
       "ghostty"
       "google-chrome"
       "karabiner-elements"
       "linearmouse"
-      "paseo"
       "raycast"
       "slack"
       "spotify"
       "tableplus"
-      "ukelele"
       "visual-studio-code"
     ];
   };
