@@ -99,18 +99,18 @@ checksum = "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.318"
+version = "2.1.319"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:e6d426ca0c123f61fad58a361da0329f2a93cd206bc87040ed8d9576dd9eb583"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.318/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/707216832"
+checksum = "sha256:8cf226393c8eca446d6ca60fa6bbe3fa7b5fa4de82a7b410d1edbd48689cd776"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.319/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/715419124"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:cd7fa988d60e7aef7ed453847650255138440b229d081496b8ed0ab75836603b"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.318/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/707216476"
+checksum = "sha256:7ae10919ce40346befabe3c18da4d5ccc860201b6785b3ae726d8961472d0e5d"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.319/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/715418856"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.5.1"
+version = "1.5.2"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:2a64ccfc5f6679c253769f0760614af5de04d8dc1eeeec9b9752ba4c8dd92250"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.1/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/712499297"
+checksum = "sha256:da696a8dc6122a63d5ffbdd21b02c8a62d5361fba0ed7d3bc2d2619889e62711"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.2/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/716115232"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:2179ba83eb5429ec19260d022196abb3cbe5e65e11e2c2ef2d19af564c1558db"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.1/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/712499474"
+checksum = "sha256:c3f56b381c4755cdd02e5de67373c24788b2a2aeade156756b4419b67253bd0c"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.2/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/716115358"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -428,7 +428,7 @@ version = "1.5.0"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
-version = "0.166.0"
+version = "0.167.0"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
