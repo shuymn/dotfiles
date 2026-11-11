@@ -31,18 +31,18 @@ url = "https://github.com/fwdcloudsec/granted/releases/download/v0.38.0/granted_
 url_api = "https://api.github.com/repos/fwdcloudsec/granted/releases/assets/233275732"
 
 [[tools."aqua:k1LoW/mo"]]
-version = "1.7.0"
+version = "1.8.0"
 backend = "aqua:k1LoW/mo"
 
 [tools."aqua:k1LoW/mo"."platforms.linux-x64"]
-checksum = "sha256:6760e48a24a406915d396ba1d13dd7d5650eea52156f40a8cd075da14b864ab3"
-url = "https://github.com/k1LoW/mo/releases/download/v1.7.0/mo_v1.7.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/662490660"
+checksum = "sha256:d5c19224248756bd6948d1f549c876bf5f6540ae3d74bf4799cb12d87a5f8f4b"
+url = "https://github.com/k1LoW/mo/releases/download/v1.8.0/mo_v1.8.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/730258451"
 
 [tools."aqua:k1LoW/mo"."platforms.macos-arm64"]
-checksum = "sha256:0787226aa3ff99cc85c483f512c29afd889359276ca10841b3a147c9969b3746"
-url = "https://github.com/k1LoW/mo/releases/download/v1.7.0/mo_v1.7.0_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/662490656"
+checksum = "sha256:e533b07109a6dc7cf2be5ce16e1bbc3b5fb6891efeacd951b2b17bda4aa80028"
+url = "https://github.com/k1LoW/mo/releases/download/v1.8.0/mo_v1.8.0_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/k1LoW/mo/releases/assets/730258445"
 
 [[tools."aqua:kayac/ecspresso"]]
 version = "2.8.8"
@@ -99,18 +99,18 @@ checksum = "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.321"
+version = "2.1.322"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:361ef5837059512dcddb0d6b6319357b61604ff849b3dcd2693e2fcbb40b207a"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.321/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/728668200"
+checksum = "sha256:3d2bc5ae54d4d4cd63510e9fcca5b6d48d2b18806708df8c8f691aa486c5dca8"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.322/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/729757174"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:3ff73ad0d0cacc1ee8f5227942e471ada18ffa82475c8681525c621b2c9d6f53"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.321/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/728667678"
+checksum = "sha256:0ff389f1a313f50778c2472c2f85882ca82c10156398c68cfc3c332004694646"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.322/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/729756939"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -141,18 +141,18 @@ url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.1/app-aarch64
 url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/701845634"
 
 [[tools."github:babarot/gh-infra"]]
-version = "0.19.0"
+version = "0.20.0"
 backend = "github:babarot/gh-infra"
 
 [tools."github:babarot/gh-infra"."platforms.linux-x64"]
-checksum = "sha256:53279aaff9ec965e352f4ddb260edfafbac21992732dab4c76a9de59414c651d"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.19.0/gh-infra_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/703991219"
+checksum = "sha256:78e66c9c441c1df9fb14f0945e9b60aeef9b428098bbf531de4fa017872f8687"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.20.0/gh-infra_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/730122243"
 
 [tools."github:babarot/gh-infra"."platforms.macos-arm64"]
-checksum = "sha256:91b4241a43b3ebf07209ba26deb68f5a85abdf93a9de3cfb32416c0ba6dbbad2"
-url = "https://github.com/babarot/gh-infra/releases/download/v0.19.0/gh-infra_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/703991190"
+checksum = "sha256:456d80aa86f6a184b0b447cf915ae9aa537fd9d52ef8ae62b83d8396d84ce686"
+url = "https://github.com/babarot/gh-infra/releases/download/v0.20.0/gh-infra_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/babarot/gh-infra/releases/assets/730122136"
 
 [[tools."github:go-task/task"]]
 version = "3.54.0"
@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.5.3"
+version = "1.5.5"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:1b4850599cce73a17f94ffb422df3bf9531531b77dbddc40c1a435e0c2c16807"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.3/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/720124204"
+checksum = "sha256:bfe2c25edeadd98c2942417c9972ee0e1faa3f0afdc90711e84d5f3a633b5078"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.5/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/732160120"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:b47034e1367fc3c9f2856f1e1ae30bf12819a7213821ba3cce2123b090f2df8a"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.3/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/720124361"
+checksum = "sha256:e079f5ba69d548443031d4d9a66a998fe2781c6ee9380a9bc6e9565ba7d093b7"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.5/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/732160429"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -370,16 +370,16 @@ url = "https://github.com/xdevplatform/xurl/releases/download/v1.3.4/xurl_Darwin
 url_api = "https://api.github.com/repos/xdevplatform/xurl/releases/assets/599260750"
 
 [[tools.go]]
-version = "1.27.3"
+version = "1.27.4"
 backend = "core:go"
 
 [tools.go."platforms.linux-x64"]
-checksum = "sha256:65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40"
-url = "https://dl.google.com/go/go1.27.3.linux-amd64.tar.gz"
+checksum = "sha256:7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840"
+url = "https://dl.google.com/go/go1.27.4.linux-amd64.tar.gz"
 
 [tools.go."platforms.macos-arm64"]
-checksum = "sha256:dd3908cf20959d798c1e06ebe5b72213f0505ce01373b40ce3110975a6cd99c2"
-url = "https://dl.google.com/go/go1.27.3.darwin-arm64.tar.gz"
+checksum = "sha256:91a44a2b8a716600ad94a4f143e156116620db8828086a6e3602291be9bd0bb4"
+url = "https://dl.google.com/go/go1.27.4.darwin-arm64.tar.gz"
 
 [[tools.lazygit]]
 version = "0.66.3"
@@ -412,19 +412,19 @@ url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/63
 provenance = "github-attestations"
 
 [[tools.node]]
-version = "24.22.2"
+version = "24.22.3"
 backend = "core:node"
 
 [tools.node."platforms.linux-x64"]
-checksum = "sha256:361718c444e49af2ca5a110c83ba6a8901143f23ab285ebbef0341f391f482a9"
-url = "https://nodejs.org/dist/v24.22.2/node-v24.22.2-linux-x64.tar.gz"
+checksum = "sha256:061ec3e3062115705b56b51fa9cc330ab50d34b6969387d4e4b1a50c6809acc2"
+url = "https://nodejs.org/dist/v24.22.3/node-v24.22.3-linux-x64.tar.gz"
 
 [tools.node."platforms.macos-arm64"]
-checksum = "sha256:aa9549349e47dffaa42dcf95d6e06ade8c4bdafc980979883b88767670df385a"
-url = "https://nodejs.org/dist/v24.22.2/node-v24.22.2-darwin-arm64.tar.gz"
+checksum = "sha256:ff6e17d4874b76d272212b908cc020d6e815fba5a6c7eaaa06add725840307fd"
+url = "https://nodejs.org/dist/v24.22.3/node-v24.22.3-darwin-arm64.tar.gz"
 
 [[tools."npm:@earendil-works/pi-coding-agent"]]
-version = "1.5.0"
+version = "1.5.2"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
@@ -432,7 +432,7 @@ version = "0.167.0"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
-version = "1.7.6"
+version = "1.8.0"
 backend = "npm:skills"
 
 [[tools."pipx:tavily-cli"]]
