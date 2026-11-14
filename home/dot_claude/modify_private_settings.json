@@ -120,6 +120,16 @@ exec chezmoi execute-template --with-stdin '
         ]
       }
     ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/log-compact-summary.sh"
+          }
+        ]
+      }
+    ],
     "WorktreeCreate": [
       {
         "hooks": [
