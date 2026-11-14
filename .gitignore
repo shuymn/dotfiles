@@ -15,4 +15,10 @@ nix/local.nix
 home/dot_config/age/
 home/private_dot_config/age/
 
+# CLIProxyAPI OAuth credentials and local client/management keys.
+home/dot_cli-proxy-api/
+home/private_dot_cli-proxy-api/
+home/dot_config/cliproxyapi/
+home/private_dot_config/cliproxyapi/
+
 .config/

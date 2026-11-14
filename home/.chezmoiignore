@@ -6,6 +6,11 @@
 .config/git/config.local
 .config/git/allowed_signers
 
+# CLIProxyAPI OAuth credentials and local client/management keys.
+.cli-proxy-api/**
+.config/cliproxyapi/**
+.local/state/cliproxyapi/**
+
 # Local chezmoi state/cache.
 .local/state/chezmoi/**
 .cache/chezmoi/**

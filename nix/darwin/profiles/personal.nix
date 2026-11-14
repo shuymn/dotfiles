@@ -1,11 +1,16 @@
 {
   homebrew = {
+    brews = [
+      "cliproxyapi"
+    ];
     casks = [
       "cherry-studio"
       "discord"
       "grok-bot"
+      "nani"
       "obsidian"
       "orcaslicer"
+      "t3-code"
       "zotero"
     ];
   };
