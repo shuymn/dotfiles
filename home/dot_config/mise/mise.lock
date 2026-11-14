@@ -99,18 +99,18 @@ checksum = "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip"
 
 [[tools.claude]]
-version = "2.1.322"
+version = "2.1.325"
 backend = "aqua:anthropics/claude-code"
 
 [tools.claude."platforms.linux-x64"]
-checksum = "sha256:3d2bc5ae54d4d4cd63510e9fcca5b6d48d2b18806708df8c8f691aa486c5dca8"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.322/claude-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/729757174"
+checksum = "sha256:9686b0fb1eefbd7f2cc1f53f932516c29cd605e9d976223323a6c6e9a4c9c7fe"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.325/claude-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/745018803"
 
 [tools.claude."platforms.macos-arm64"]
-checksum = "sha256:0ff389f1a313f50778c2472c2f85882ca82c10156398c68cfc3c332004694646"
-url = "https://github.com/anthropics/claude-code/releases/download/v2.1.322/claude-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/729756939"
+checksum = "sha256:b0dc23f2d8c3ef55b2b22f03ef204e98b06b22b6c51a15b66d263b13442c4e03"
+url = "https://github.com/anthropics/claude-code/releases/download/v2.1.325/claude-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/anthropics/claude-code/releases/assets/745018486"
 
 [[tools."github:Songmu/maltmill"]]
 version = "1.5.0"
@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.5.7"
+version = "1.5.8"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:d6150a8d2a9e29a3d171b2325d6f66b6e7059628f4799a20c069b8ed8f78fdbb"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.7/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/739961571"
+checksum = "sha256:905d4accfbd61bc00bee84bfaf24c59b85d334cabd786cf99237b66cfe06ab98"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.8/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/742336511"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:4a9e98bd6f354f762f67b8dd0595eec2a50bb842fcd35e7c7777b67f48c3dea5"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.7/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/739962000"
+checksum = "sha256:fc9a89abcdc045a6a770085e73e377d23d067940fb57773a157f137e0bc3829f"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.8/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/742336876"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -342,18 +342,18 @@ url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/6
 provenance = "github-attestations"
 
 [[tools."github:tomasz-tomczyk/crit"]]
-version = "0.23.2"
+version = "0.23.3"
 backend = "github:tomasz-tomczyk/crit"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.linux-x64"]
-checksum = "sha256:10aa756a3146362be3a349cc8223955e23a1cd6daa0abbb13dd500741f793a90"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.23.2/crit-linux-amd64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/695421980"
+checksum = "sha256:5d6ff2c3e01e9c46992b8d99966a1509705858a0328338b7b72fd512defe95ec"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.23.3/crit-linux-amd64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/744839767"
 
 [tools."github:tomasz-tomczyk/crit"."platforms.macos-arm64"]
-checksum = "sha256:b97dcfb1c54f301cfba4a1b92edaaa6e9f9a3c0ba5230120aa79f6d8253fbd35"
-url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.23.2/crit-darwin-arm64"
-url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/695421985"
+checksum = "sha256:c4c53e185cb2d09912a0707c8f15f12a63a18a79e5b1a98c9a466dde143a7295"
+url = "https://github.com/tomasz-tomczyk/crit/releases/download/v0.23.3/crit-darwin-arm64"
+url_api = "https://api.github.com/repos/tomasz-tomczyk/crit/releases/assets/744839766"
 
 [[tools."github:xdevplatform/xurl"]]
 version = "1.3.4"
@@ -428,7 +428,7 @@ version = "1.5.2"
 backend = "npm:@earendil-works/pi-coding-agent"
 
 [[tools."npm:@openai/codex"]]
-version = "0.167.2"
+version = "0.169.0"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
