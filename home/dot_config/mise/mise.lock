@@ -127,18 +127,18 @@ url = "https://github.com/Songmu/maltmill/releases/download/v1.5.0/maltmill_v1.5
 url_api = "https://api.github.com/repos/Songmu/maltmill/releases/assets/367631473"
 
 [[tools."github:ast-grep/ast-grep"]]
-version = "0.51.2"
+version = "0.51.3"
 backend = "github:ast-grep/ast-grep"
 
 [tools."github:ast-grep/ast-grep"."platforms.linux-x64"]
-checksum = "sha256:40604c21c38d4c7581c56bdddeef277c56bf3c0113620aa96e78ae87e82366df"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.2/app-x86_64-unknown-linux-gnu.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/734234607"
+checksum = "sha256:22803eb0c5bf83164fb7fd76d4721d355ecf0c8466ef47342c1ec7d80897ca47"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.3/app-x86_64-unknown-linux-gnu.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/753396224"
 
 [tools."github:ast-grep/ast-grep"."platforms.macos-arm64"]
-checksum = "sha256:ea4f4082d25e5f8e0450add6fd488dd008a373c90483cc2031759c8431f1dcfb"
-url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.2/app-aarch64-apple-darwin.zip"
-url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/734229272"
+checksum = "sha256:7954eab1e2803d1485f263377be7f359db6d3915312b5d773cd575eb009330b1"
+url = "https://github.com/ast-grep/ast-grep/releases/download/0.51.3/app-aarch64-apple-darwin.zip"
+url_api = "https://api.github.com/repos/ast-grep/ast-grep/releases/assets/753396910"
 
 [[tools."github:babarot/gh-infra"]]
 version = "0.20.0"
@@ -432,11 +432,11 @@ version = "0.169.0"
 backend = "npm:@openai/codex"
 
 [[tools."npm:skills"]]
-version = "1.8.1"
+version = "1.9.0"
 backend = "npm:skills"
 
 [[tools."pipx:tavily-cli"]]
-version = "0.2.1"
+version = "0.2.2"
 backend = "pipx:tavily-cli"
 
 [[tools.python]]
