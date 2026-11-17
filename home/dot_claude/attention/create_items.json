@@ -1,9 +1,5 @@
 {
   "items": [
-    {"id": "authorize-writes", "role": "orchestrator",
-     "rule": "Commit, push, PR, merge and other external writes only with explicit authorization for that action and target; once given (a requested PR includes its branch push), do not ask again.",
-     "why": "Whether a hand-off authorizes a write is conversation meaning no hook can read; hooks cover only main/force pushes and publish commands.",
-     "source": "CLAUDE.md Scope and Authorization"},
     {"id": "essence", "role": "orchestrator",
      "rule": "Judge every result, finding and side effect by the purpose (what the owner or users get, as a number if one exists; check on real inputs; an accepted side effect needs a written reason, and 'succeeds' must mean usable) and whether the critical path or its bottleneck moves; off-path work waits or is tracked. PRs, ledgers, review rounds and rules are means.",
      "why": "Whether work serves the purpose is judgment no hook can read: two orchestrators admitted spending most effort on means off the critical path, and one accepted a side effect that defeated the purpose.",
