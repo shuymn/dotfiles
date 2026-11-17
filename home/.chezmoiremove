@@ -30,3 +30,4 @@
 .config/zsh/config/56_claude.zsh
 .config/zed/settings.json
 .config/zed/keymap.json
+.claude/skills/hiden/references/toolchain.md
