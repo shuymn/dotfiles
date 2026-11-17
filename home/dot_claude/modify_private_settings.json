@@ -98,34 +98,86 @@ exec chezmoi execute-template --with-stdin '
     "defaultMode": "auto"
   },
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/deny-git-worktree-add.sh",
-            "if": "Bash(git *)"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/deny-rm.sh",
-            "if": "Bash(rm *)"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/ask-git-push-protected.py",
-            "if": "Bash(git *)"
-          }
-        ]
-      }
-    ],
     "PostCompact": [
       {
         "hooks": [
           {
+            "command": "~/.claude/hooks/log-compact-summary.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/deny-git-worktree-add.sh",
+            "if": "Bash(git *)",
+            "type": "command"
+          },
+          {
+            "command": "~/.claude/hooks/deny-rm.sh",
+            "if": "Bash(rm *)",
+            "type": "command"
+          },
+          {
+            "command": "~/.claude/hooks/ask-git-push-protected.py",
+            "if": "Bash(git *)",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "matcher": "Bash|Read|Grep|Glob|mcp__pencil__.*",
+        "hooks": [
+          {
             "type": "command",
-            "command": "~/.claude/hooks/log-compact-summary.sh"
+            "command": "~/.claude/hooks/guard-agent-actions.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/attention-budget.py pre"
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/worker-signal.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/worker-signal.py"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/orchestration-context.py"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/orchestration-context.py",
+            "timeout": 60
           }
         ]
       }
@@ -134,8 +186,8 @@ exec chezmoi execute-template --with-stdin '
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "~/.claude/hooks/worktree-create.sh"
+            "command": "~/.claude/hooks/worktree-create.sh",
+            "type": "command"
           }
         ]
       }
@@ -144,8 +196,30 @@ exec chezmoi execute-template --with-stdin '
       {
         "hooks": [
           {
+            "command": "~/.claude/hooks/worktree-remove.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
             "type": "command",
-            "command": "~/.claude/hooks/worktree-remove.sh"
+            "command": "~/.claude/hooks/attention-budget.py post"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/attention-budget.py post"
           }
         ]
       }
