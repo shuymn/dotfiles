@@ -130,9 +130,13 @@ comp_location() {
 # Mark knowledge written by sessions but not yet reviewed with /wasure
 comp_pending() {
   local root=$1 marks=""
-  if ! diff -rq {{ joinPath .chezmoi.sourceDir "dot_claude/skills/hiden" | quote }} "$HOME/.claude/skills/hiden" >/dev/null 2>&1; then
-    marks+=" hiden"
-  fi
+  local skill
+  for skill in hiden toolchain public-text; do
+    if ! diff -rq {{ joinPath .chezmoi.sourceDir "dot_claude/skills" | quote }}"/$skill" "$HOME/.claude/skills/$skill" >/dev/null 2>&1; then
+      marks+=" hiden"
+      break
+    fi
+  done
   if [ -n "$root" ]; then
     local mem="$HOME/.claude/projects/${root//[^a-zA-Z0-9]/-}/memory"
     if [ -d "$mem/.git" ] && [ -n "$(git -C "$mem" status --porcelain 2>/dev/null)" ]; then
