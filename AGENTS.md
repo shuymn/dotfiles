@@ -37,10 +37,21 @@ This is one person's dotfiles for their own Macs. Prefer built-in tool features 
 - Keep Renovate's mise manager disabled. `home/dot_config/mise/config.toml` holds major-version ranges, and `.github/workflows/mise-update.yml` advances `mise.lock` with `mise lock --bump`; major updates are manual range edits (`docs/mise-update.md`).
 - Keep that job free of tool installs and tool execution, because it also holds the maintainer App token (current repository, contents and pull-requests write). Never expose that App secret/token to `pull_request` workflows or let Renovate run mise through `allowedUnsafeExecutions`/`postUpgradeTasks`.
 
+### Agent Knowledge Upkeep
+
+Sessions rewrite the live `~/.claude/skills/{hiden,toolchain,public-text,wasure}` and `agents/steward.md` in place; their source is `home/dot_claude/**`. Left alone they drift back into sediment, so:
+
+- Sync: `chezmoi add` each live edit into the source. A deleted file also needs a `.chezmoiremove` line; `create_*.json` seeds (budget, items) apply only on first creation, so edit the seed and the live file together. A new skill joins the `for skill in …` list in `executable_statusline.sh.tmpl` and the diff step of `wasure`, or its drift is never reviewed.
+- Size: prose caps in `~/.claude/attention/budget.json` and its `create_budget.json` seed only go down; added text pays for itself by deleting at least as much.
+- Wording: the model reads words literally. A named product or repo ("only on X") reads as "only there", and a blurred name carries nothing; write the mechanism that decides the rule, or delete the line. Mark parentheses that look like closed lists with 「例:」. Keep a Why only where it marks where the rule stops applying; hiden `手法を直すとき` states the policy, so apply it to every diff `wasure` reviews.
+- Splits: workers reach a skill by name and never open hiden paths. A rule a worker must find alone becomes its own skill with a distinct leading word; what the orchestrator copies into a brief stays a hiden reference.
+- Prune pass (when `wasure` shows hiden has grown, or after a large rewrite): list product-named lines, incident-only Whys and no-ops; probe each "ambiguous" claim with 3 blind readers and rotated options, and edit only what they misread, because most flags read fine; have Codex review the diff for lost judgment; then re-sync and lower the caps to the new sizes.
+
 ### Change-Specific Validation
 
 | Change | Required check or reference |
 | --- | --- |
+| hiden, `toolchain`, `public-text`, `wasure`, `steward` | `uv run ~/.claude/hooks/attention-budget.py status` shows no `OVER`; `diff -rq "$(chezmoi source-path ~/.claude/skills/<name>)" ~/.claude/skills/<name>` is empty after `chezmoi add`; relative links in `references/` resolve. |
 | Migrating unmanaged global CLIs | Run `make audit-cli-path` first; use PATH evidence to choose ownership. |
 | Adding or renaming mise tools | Write the tool as a major-version range (`node = "24"`) and run `mise lock` in `home/dot_config/mise`; see `docs/mise-update.md`. |
 | Homebrew taps, formulae, or casks | Run `make check-brew` to check availability and compare installed formula leaves/casks with the generated Brewfile. |
