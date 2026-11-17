@@ -15,4 +15,4 @@
 - キットは `~/.claude/projects/<cwd の英数字以外を - にしたもの>/<名前>-orchestration/`、または `worker-signals.json` の `orchestrators` に載せた作業場所。cwd かその親から探す。`/tmp` やセッションの scratchpad には置かない。
 - `state.md`（`NORTH.md` でもよい。先頭に本質: 目的、完了条件、経路、オーナーの指示と決定、制約。続けて進行中、次の一手、未決。現在の状態だけを 3000 バイト以内で書き、委任・完了・マージ・オーナーの決定のたびに直す）、`attention/items.json`、`watch`（状態を古くする更新のパスを 1 行ずつ: 台帳、`signals/seen`。検知できるのは一部）。worker が複数なら `units.json` と、状態を出す `bin/board` も置く。
 - `orchestration-context.py` が、開始・再開・clear・compaction の後に、状態、項目、予算の使用量、マクロの問い、board を文脈へ入れる（要約ではなくこれが正）。`watch` の印が状態より新しければ、フックがターンの終わりを 1 度止める（状態を直す。変化が無ければ touch）。
-- 引き継ぎ（非常に長いセッションで、委任中のものが無い段の区切りに、オーナーへ提案し承認後に行う）: state.md を直し、PR の watch を外し、`t3_thread_launch` で T3 プロジェクトの根（worktree なし）に「state.md を読んで続ける」で立て、リンクを報告して止める。新スレッドは `<orchestration-state>` が文脈にあることを確かめ（無ければ報告して止まる）、PR を watch し直す。
+- 引き継ぎ（非常に長いセッションで、委任中のものが無い段の区切りに、尋ねずに行う）: state.md を直し、PR の watch を外し、`t3_thread_launch` で T3 プロジェクトの根（worktree なし）に「state.md を読んで続ける」で立て、リンクを報告して止める。新スレッドは `<orchestration-state>` が文脈にあることを確かめ（無ければ報告して止まる）、PR を watch し直す。
