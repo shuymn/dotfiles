@@ -30,7 +30,7 @@ jobs:
       pull-requests: read
       actions: read
     steps:
-      - uses: pkgdeps/automerge-gate@ffeac77f5a305b8b58a06af0664f3099c72e14ee # v5.0.6
+      - uses: pkgdeps/automerge-gate@e236ff324ef647b5810d1a563739bc8ed9e8caf2 # v5.1.0
         with:
           gate-mode: private
           context: automerge-gate/all-passed
