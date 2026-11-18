@@ -52,6 +52,7 @@ mergeable=$(jq -r .mergeable <<<"$view")
 [[ $mergeable == MERGEABLE ]] || die "PR $pr is not mergeable ($mergeable; UNKNOWN means GitHub has not decided yet, retry)"
 
 repo=$(gh repo view --json nameWithOwner,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed)
+nwo=$(jq -r .nameWithOwner <<<"$repo")
 if [[ -z $method ]]; then
   allowed=$(jq -r '[if .mergeCommitAllowed then "--merge" else empty end, if .squashMergeAllowed then "--squash" else empty end,
                     if .rebaseMergeAllowed then "--rebase" else empty end] | join(" ")' <<<"$repo")
@@ -78,23 +79,45 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-# The owner-only path list is read from the base on GitHub, never from the working tree or the PR head, so a PR
-# cannot loosen it for itself. The dotfiles repository (the one holding the chezmoi source) must have the list.
+# The owner-only path list is read from one fetched base commit, never from the working tree or the PR head, so a PR
+# cannot loosen it for itself. The dotfiles repository (the one holding the chezmoi source) must have the list;
+# elsewhere a list that cannot be read means no managed paths, as before the list existed.
 base=$(jq -r .baseRefName <<<"$view")
 list=.claude/kaizen-managed
-git fetch -q --no-tags origin "+refs/heads/$base:refs/remotes/origin/$base" || die "could not fetch origin/$base"
-common() { git -C "${1:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true; }
-src=$(chezmoi source-path 2>/dev/null || true)
-here=$(common)
-[[ -n $src && -n $here && $(common "$src") == "$here" ]] && dotfiles=1 || dotfiles=''
-patterns=$(git show "refs/remotes/origin/$base:$list" 2>/dev/null || true)
-[[ -z $dotfiles || -n ${patterns//[[:space:]]/} ]] || die "could not read $list from origin/$base, so PR $pr is not merged"
+src=$(chezmoi source-path) || die "could not resolve the chezmoi source, so whether $list applies is unknown"
+common() { git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true; }
+here=$(common .)
+[[ -n $here && $(common "$src") == "$here" ]] && dotfiles=1 || dotfiles=''
+unreadable() { [[ -z $dotfiles ]] || die "$*, so PR $pr is not merged"; }
+lower() { tr '[:upper:]' '[:lower:]' <<<"$1"; }
+origin=$(git remote get-url origin 2>/dev/null || true)
+origin=${origin%/}
+origin=$(sed -nE 's#^.*github\.com[:/]+([^/]+/[^/]+)$#\1#p' <<<"${origin%.git}")
+base_sha='' patterns=''
+if [[ $(lower "$origin") != "$(lower "$nwo")" ]]; then
+  unreadable "origin is '$origin' but gh resolves $nwo"
+elif ! git fetch -q --no-tags origin "+refs/heads/$base:refs/remotes/origin/$base"; then
+  unreadable "could not fetch origin/$base"
+else
+  base_sha=$(git rev-parse --verify "refs/remotes/origin/$base^{commit}") || die "could not resolve origin/$base"
+  entry=$(git ls-tree --full-tree "$base_sha" -- "$list") || die "could not read the tree of origin/$base"
+  read -r mode type oid _ <<<"$entry"
+  if [[ -z $entry ]]; then
+    unreadable "origin/$base has no $list"
+  elif [[ $type != blob || ($mode != 100644 && $mode != 100755) ]]; then
+    die "$list on origin/$base is not a regular file ($mode $type), so PR $pr is not merged"
+  else
+    patterns=$(git cat-file blob "$oid") || die "could not read $list from origin/$base"
+    [[ -n ${patterns//[[:space:]]/} ]] || unreadable "$list on origin/$base is empty"
+  fi
+fi
 if [[ -n $patterns ]]; then
   git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q --no-tags origin "refs/pull/$pr/head" ||
     die "could not fetch the head of PR $pr"
-  mb=$(git merge-base "refs/remotes/origin/$base" "$head") || die "could not find the merge base of $head and origin/$base"
+  mb=$(git merge-base "$base_sha" "$head") || die "could not find the merge base of $head and origin/$base"
   # Without renames, a file moved out of a managed path is listed under its old path too.
-  git diff --name-only --no-renames -z "$mb" "$head" >"$changed" || die "could not list the files PR $pr changes"
+  git diff --name-only --no-relative --no-renames -z "$mb" "$head" >"$changed" ||
+    die "could not list the files PR $pr changes"
   hits=()
   while IFS= read -r -d '' file; do
     while read -r pattern; do
@@ -119,13 +142,18 @@ else
   die "could not read the checks: $(cat "$err")"
 fi
 
-nwo=$(jq -r .nameWithOwner <<<"$repo")
 # shellcheck disable=SC2016  # GraphQL variables, not shell
 queue=$(gh api graphql -f o="${nwo%%/*}" -f r="${nwo#*/}" -F n="$pr" \
   -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){isMergeQueueEnabled}}}' \
   -q .data.repository.pullRequest.isMergeQueueEnabled) || die "could not read whether the base uses a merge queue"
 [[ $queue == false ]] || die "the base merges through a merge queue, which merge-pr does not handle"
 
+if [[ -n $patterns ]]; then  # a retargeted or moved base was not the one the list and the diff came from
+  now=$(gh pr view "$pr" --json baseRefName -q .baseRefName) || die "could not reread the base of PR $pr"
+  [[ $now == "$base" ]] || die "PR $pr was retargeted from $base to $now: check it again"
+  now=$(gh api "repos/$nwo/git/ref/heads/$base" -q .object.sha) || die "could not reread origin/$base"
+  [[ $now == "$base_sha" ]] || die "$base moved from $base_sha to $now while PR $pr was checked: rerun"
+fi
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
 [[ -z $auto ]] || armed=1
