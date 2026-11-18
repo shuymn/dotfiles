@@ -73,12 +73,13 @@ def running_push(common_dir):
         parts = line.split(None, 3)
         if len(parts) < 4 or parts[1].startswith("Z") or os.path.basename(parts[3].split()[0]) != "git":
             continue
-        toks, j, where = parts[3].split()[1:], 0, process_cwd(parts[0])
+        toks, j = parts[3].split()[1:], 0
         while j < len(toks) and toks[j].startswith("-"):  # git has already applied -C to its own cwd
             j += 2 if toks[j] in ("-C", "-c") else 1
-        if not (j < len(toks) and toks[j] == "push" and seconds(parts[2]) < 1800 and where):
+        if not (j < len(toks) and toks[j] == "push" and seconds(parts[2]) < 1800):
             continue
-        if git_output(where, "rev-parse", "--path-format=absolute", "--git-common-dir") == common_dir:
+        where = process_cwd(parts[0])
+        if where and git_output(where, "rev-parse", "--path-format=absolute", "--git-common-dir") == common_dir:
             return f"{parts[0]} {parts[3][:120]}"
     return None
 

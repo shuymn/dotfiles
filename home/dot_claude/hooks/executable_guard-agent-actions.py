@@ -89,11 +89,11 @@ def check_bash(command: str, cwd: str) -> None:
     check_public_text(command, cwd)
     delegated = (cwd + os.sep).startswith(WORKTREES) or AGENT_WORKTREE.search(cwd + os.sep)
     reason = "External writes belong to the orchestrator: report the command you would run instead of running it."
-    for seg in segments(code_only(command)):
-        if GH_PR_MERGE.match(seg) and not re.search(r"\s(?:--help|-h)\b", seg):
-            deny(reason if delegated else "Merge with ~/.claude/bin/merge-pr <pr> <head-sha> [--merge|--squash|--rebase]: it "
-                 "merges only that head, once every check on it passed, and reads the result back.")
-    if not delegated:
+    if not delegated:  # a delegated worktree's `gh pr merge` falls under its gh write rule below
+        for seg in segments(code_only(command)):
+            if GH_PR_MERGE.match(seg) and not re.search(r"\s(?:--help|-h)\b", seg):
+                deny("Merge with ~/.claude/bin/merge-pr <pr> <head-sha> [--merge|--squash|--rebase]: it merges only that "
+                     "head, once every check on it passed, and reads the result back.")
         return
     if "merge-pr" in command:  # merge-pr checks its own checkout; this also covers a `cd` out of the worktree first
         deny(reason)
