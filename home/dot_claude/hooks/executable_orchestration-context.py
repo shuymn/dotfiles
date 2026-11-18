@@ -52,7 +52,7 @@ IGNORE = "If you were not handed this orchestration (a planner, or a product age
 QUESTIONS = (
     "Before the next completion: is the critical path to the purpose moving, and is its blocker being worked? Is anything "
     "running that does not serve it (cancel, defer, track)? Very long session at a step boundary with no delegate running: "
-    "propose a fresh orchestrator thread (hiden references/attention.md)."
+    "hand over to a fresh orchestrator thread without asking (hiden references/attention.md)."
 )
 
 
