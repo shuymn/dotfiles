@@ -119,10 +119,11 @@ fi
 if [[ -n $patterns ]]; then
   git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q --no-tags origin "refs/pull/$pr/head" ||
     die "could not fetch the head of PR $pr"
-  mb=$(git merge-base "$base_sha" "$head") || die "could not find the merge base of $head and origin/$base"
-  # Without renames, a file moved out of a managed path is listed under its old path too.
-  git diff --name-only --no-relative --no-renames -z "$mb" "$head" >"$changed" ||
-    die "could not list the files PR $pr changes"
+  # Every commit the PR adds, not the net diff, which depends on where the base is: a PR that reverts an unmerged
+  # managed change would undo it once that change lands. -m lists a merge's changes against each parent; without
+  # renames, a file moved out of a managed path is listed under its old path too.
+  git log --format= --name-only -z --no-renames --no-relative -m "$base_sha..$head" >"$changed" ||
+    die "could not list the files PR $pr's commits touch"
   hits=()
   while IFS= read -r -d '' file; do
     while read -r pattern; do
@@ -161,7 +162,8 @@ if [[ -n $patterns ]]; then  # a retargeted or moved base was not the one the li
 fi
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
-# With --auto the list is the one read above; only owner-merged PRs change it, so an extension governs later requests.
+# With --auto the list is the one read above: it governs requests made after it lands, and any PR commit touching a
+# managed path is owner-only, so a base that moves while auto-merge waits cannot bring in an unchecked managed change.
 [[ -z $auto ]] || armed=1
 gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
 readback() { gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"' || echo "UNREAD"; }

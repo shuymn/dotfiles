@@ -31,10 +31,17 @@ esac
 """
 
 # Only the base commit holds the list, so a script that read the PR head or the working tree would let the PR through.
-# A diff without --no-relative behaves as with diff.relative=true: from a subdirectory it lists only the paths below
-# it, relative to it.
+# A diff or log without --no-relative behaves as with diff.relative=true: from a subdirectory it lists only the paths
+# below it, relative to it. MOCK_CHANGED is the net diff from the merge base; MOCK_TOUCHED what every PR commit touches.
 GIT = r"""
 echo "git $*" >> "$MOCK_LOG"
+emit() {  # $1: newline-separated paths; $2: set to list them as diff.relative=true would from the current directory
+  sub=''
+  if [ -n "$2" ]; then sub=$(pwd -P); sub=${sub#"$MOCK_ROOT"}; sub=${sub#/}; fi
+  printf '%s\n' "$1" | while IFS= read -r f; do
+    if [ -z "$sub" ]; then printf '%s\0' "$f"; else case $f in "$sub"/*) printf '%s\0' "${f#"$sub"/}" ;; esac; fi
+  done
+}
 case "$*" in
   "rev-parse --show-toplevel") echo "$MOCK_ROOT" ;;
   "-C . rev-parse --path-format=absolute --git-common-dir") echo "$MOCK_ROOT/.git" ;;
@@ -52,12 +59,10 @@ case "$*" in
   "cat-file blob linkoid") printf '../elsewhere' ;;
   "cat-file -e $MOCK_HEAD^{commit}") ;;
   "merge-base $MOCK_BASE_SHA $MOCK_HEAD") echo base0 ;;
-  "diff --name-only --no-relative --no-renames -z base0 $MOCK_HEAD") printf '%s\n' "$MOCK_CHANGED" | tr '\n' '\0' ;;
-  "diff --name-only --no-renames -z base0 $MOCK_HEAD")
-    sub=$(pwd -P); sub=${sub#"$MOCK_ROOT"}; sub=${sub#/}
-    printf '%s\n' "$MOCK_CHANGED" | while IFS= read -r f; do
-      if [ -z "$sub" ]; then printf '%s\0' "$f"; else case $f in "$sub"/*) printf '%s\0' "${f#"$sub"/}" ;; esac; fi
-    done ;;
+  "diff --name-only --no-relative --no-renames -z base0 $MOCK_HEAD") emit "$MOCK_CHANGED" ;;
+  "diff --name-only --no-renames -z base0 $MOCK_HEAD") emit "$MOCK_CHANGED" relative ;;
+  "log --format= --name-only -z --no-renames --no-relative -m $MOCK_BASE_SHA..$MOCK_HEAD") emit "$MOCK_TOUCHED" ;;
+  "log --format= --name-only -z --no-renames -m $MOCK_BASE_SHA..$MOCK_HEAD") emit "$MOCK_TOUCHED" relative ;;
   *) echo "unexpected: git $*" >&2; exit 128 ;;
 esac
 """
@@ -106,8 +111,10 @@ class MergePrManagedPathTests(unittest.TestCase):
     def in_dotfiles(self):
         self.env["MOCK_SOURCE_COMMON"] = str(self.checkout / ".git")
 
-    def run_merge(self, *changed, cwd=None):
+    def run_merge(self, *changed, touched=None, cwd=None):
+        """`changed` is the PR's net diff; `touched` lists what each of its commits touches, by default the same."""
         self.env["MOCK_CHANGED"] = "\n".join(changed)
+        self.env["MOCK_TOUCHED"] = "\n".join(changed if touched is None else touched)
         return subprocess.run([shutil.which("bash"), str(SCRIPT), "7", HEAD[:12]], env=self.env,
                               cwd=cwd or self.checkout, capture_output=True, text=True, timeout=10)
 
@@ -198,6 +205,20 @@ class MergePrManagedPathTests(unittest.TestCase):
                 self.env[name] = value
                 self.assert_refused(self.run_merge("README.md"), message)
                 del self.env[name]
+
+    def test_refuses_a_managed_path_touched_by_any_commit(self):
+        for case, touched in (
+                # B edits the list, H reverts B: the net diff against the base is README only.
+                ("reverted change", ("README.md", ".claude/kaizen-managed", ".claude/kaizen-managed")),
+                # -m lists a merge's changes against each parent; the second parent's side touched a managed file.
+                ("merge commit", ("README.md", "home/dot_claude/CLAUDE.md", "README.md"))):
+            with self.subTest(case=case):
+                self.assert_owner_only(self.run_merge("README.md", touched=touched), touched[1])
+
+    def test_unmanaged_multi_commit_pr_merges(self):
+        self.in_dotfiles()
+        self.assert_merged(self.run_merge("README.md", "docs/setup.md", touched=(
+            "README.md", "docs/setup.md", "README.md", "home/dot_config/git/config", "home/dot_config/git/config")))
 
     def test_unmanaged_paths_merge(self):
         self.in_dotfiles()
