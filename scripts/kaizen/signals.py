@@ -11,7 +11,8 @@ count.
     that the hook's own matcher (matching_unit of home/dot_claude/hooks/executable_orchestration-context.py) treats as
     a chance to deliver the unit.
   - counted: after the write, Bash results show a test the worker wrote failing (a FAIL line naming it, and no
-    import, syntax, collection or compile error in the output) and that same test passing, in either order (green
+    import, syntax, collection or compile error in the output) and that same test (module, class and name) passing,
+    in a run that selected it, in either order (green
     with the fix, then red on a copy with it removed, shows the same thing as red first, then green).
   - ambiguous: a red for the intended reason and a green were seen, but not for the same written test.
   - deliveries: hook_additional_context attachments holding the unit text.
