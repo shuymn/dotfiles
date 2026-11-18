@@ -95,6 +95,8 @@ def check_bash(command: str, cwd: str) -> None:
                  "merges only that head, once every check on it passed, and reads the result back.")
     if not delegated:
         return
+    if "merge-pr" in command:  # merge-pr checks its own checkout; this also covers a `cd` out of the worktree first
+        deny(reason)
     for seg in segments(command):
         if GIT_PUSH.search(seg) or WRANGLER_WRITE.search(seg) or PUBLISH.search(seg):
             deny(reason)

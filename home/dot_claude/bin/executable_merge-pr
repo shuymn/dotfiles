@@ -78,7 +78,7 @@ fi
 
 owner=$(jq -r '.nameWithOwner | split("/")[0]' <<<"$repo") name=$(jq -r '.nameWithOwner | split("/")[1]' <<<"$repo")
 # shellcheck disable=SC2016  # GraphQL variables, not shell
-queue=$(gh api graphql -F o="$owner" -F r="$name" -F n="$pr" \
+queue=$(gh api graphql -f o="$owner" -f r="$name" -F n="$pr" \
   -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){isMergeQueueEnabled}}}' \
   -q .data.repository.pullRequest.isMergeQueueEnabled) || die "could not read whether the base uses a merge queue"
 [[ $queue == false ]] || die "the base merges through a merge queue, which merge-pr does not handle"
