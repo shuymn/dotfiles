@@ -18,7 +18,9 @@ count.
   - deliveries: hook_additional_context attachments holding the unit text.
   - harm: median assistant turns (API responses) and final report length (the last SubagentHandback message, else
     the last assistant text) for workers with and without an opportunity.
-The patterns are coarse (regex over tool output); --examples prints source lines to read by hand. Prints to stdout
+The patterns are coarse (regex over tool output): modules with the same last name in different packages count as
+one, and a summary-only green is trusted when the command's selection is not parsed (pytest --deselect, a shell
+fallback after a display command). --examples prints source lines to read by hand. Prints to stdout
 only and writes nothing.
 """
 import argparse
