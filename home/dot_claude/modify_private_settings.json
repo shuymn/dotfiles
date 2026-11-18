@@ -211,6 +211,16 @@ exec chezmoi execute-template --with-stdin '
             "command": "~/.claude/hooks/attention-budget.py post"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "i=$(cat; echo .); case $i in *opus-worker*) printf %s \"${i%.}\" | ~/.claude/hooks/orchestration-context.py;; esac",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [

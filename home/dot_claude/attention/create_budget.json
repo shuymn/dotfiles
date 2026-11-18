@@ -1,14 +1,15 @@
 {
   "caps": {
-    "orchestrator": 7,
-    "worker": 5,
-    "reviewer": 3
+    "orchestrator": 5,
+    "worker": 2,
+    "reviewer": 2
   },
   "registers": [
     "~/.claude/attention/items.json"
   ],
   "prose": {
-    "~/.claude/agents/opus-worker.md": 1655,
+    "~/.claude/attention/units.json": 462,
+    "~/.claude/agents/opus-worker.md": 1618,
     "~/.claude/agents/steward.md": 1461,
     "~/.claude/skills/hiden/SKILL.md": 9363,
     "~/.claude/skills/hiden/references/codex-review.md": 8419,

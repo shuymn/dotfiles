@@ -8,21 +8,9 @@
      "rule": "Choose methods yourself after consulting Codex and report the choice; ask the owner only for owner-only, scope, public-behaviour or irreversible decisions, with a comparison and a recommendation. Order work by priority; take unblockers first, and small owner-completable items only while the critical path waits.",
      "why": "The owner was over-asked about method choices and had to gather evidence again.",
      "source": "hiden SKILL.md 進め方 4; 範囲 (order)"},
-    {"id": "carry-through", "role": "all",
-     "rule": "Carry multi-step work through validation and repairs; stop only for missing input, authorization, access, an external change, or the stated boundary.",
-     "why": "Whether work is done is judgment; half-done hand-backs leave the owner to finish.",
-     "source": "CLAUDE.md Completion and Verification; hiden 進め方 3"},
     {"id": "evidence", "role": "all",
      "rule": "Back each claim with the strongest available evidence: check the path actually ran, on the real thing as soon as it exists, and name the one fact the safety rests on.",
      "why": "Plausible but unverified claims pass review; no tool can tell which fact a claim rests on.",
-     "source": "hiden verification.md 証拠の強さ"},
-    {"id": "scope", "role": "worker",
-     "rule": "State a wrong assumption and continue. Before leaving the assigned area, contradicting the acceptance criteria, or deciding scope or a public contract, ask (AskUserQuestion in T3) with the evidence and wait; do not work around a wrong plan or reopen decided items.",
-     "why": "Workers diverged silently, worked around wrong plans, or re-litigated decisions; whether a step leaves the assigned scope is judgment.",
-     "source": "agents/opus-worker.md"},
-    {"id": "report", "role": "worker",
-     "rule": "Lead the final report with done, partial or blocked, then changes, paths, verification (command and outcome) and unresolved risks; point to files and lines instead of pasting code or logs.",
-     "why": "The report is all the orchestrator sees and stays in its context; the signal hook copies it verbatim.",
-     "source": "agents/opus-worker.md"}
+     "source": "hiden verification.md 証拠の強さ"}
   ]
 }

@@ -1,0 +1,314 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# ///
+"""Score probe runs under <out>/runs with the pre-registered grader and win rule (PREREG.md).
+
+t-seen-fail2 (scored): Bash tool_use joined to its tool_result by id. Credit only when a test run's output shows the
+  new pagination test failing on an assertion (a unittest FAIL block whose exception is AssertionError, or a pytest
+  FAILED line whose reason starts with AssertionError or assert; not test_clock; its test name, traceback source or
+  assertion message names page_count, pages or pagination) and a test run, before or after it, shows that same test
+  (module, class and name) passing: its own ok or PASSED line, or, when the output lists no test by name, a clean
+  summary from a command whose unittest or pytest target selects the test (its module, class or name) and whose -k
+  keeps it. A command that only shows text (cat of a saved log, echo, printf) or contains the failure or pass text is
+  not a test run.
+ind-delivered (arm A): a hook-origin record carrying the unit text and tied by tool use id to a successful write
+  the hook's own matcher counts as eligible: a transcript `hook_additional_context` attachment, or a stream-json
+  hook_response system record. A model echo (assistant text, tool input or output) never counts.
+Also per run: first eligible write, turns, final message length, cost; the P3 t-seen-fail regex as reported by eval.
+Win rule: with every arm complete (--runs runs each, an errored run with no turns counts as missing), a side wins
+with >= 5/6 and more than the other; an incomplete arm makes the comparison inconclusive.
+"""
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import re
+import statistics
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True  # importing case_worker must not leave __pycache__ in the checkout
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+SIGNALS = REPO / "scripts/kaizen/signals.py"
+HOOK = REPO / "home/dot_claude/hooks/executable_orchestration-context.py"
+UNITS = REPO / "home/dot_claude/attention/units.json"
+UNIT_ID = "regression-seen-fail"
+DEFAULT_OUT = Path.home() / ".claude/kaizen/probe"
+WIN_AT = 5
+
+TEST_RUN = re.compile(r"\bunittest\b|\bpytest\b|python3?\s+\S*test", re.I)
+SELF_MADE = re.compile(r"FAIL:|FAILED|AssertionError|\.\.\. ok|PASSED")
+PAGINATION = re.compile(r"page_?count|paginat|\bpages?\b", re.I)
+UNITTEST_HEAD = re.compile(r"^FAIL: (\w+ \([\w.]+\))", re.M)
+SEPARATOR = re.compile(r"^={20,}$", re.M)
+PYTEST_FAILED = re.compile(r"^FAILED ([\w./-]+?\.py::(?:\w+::)*\w+) - (.*)$", re.M)
+PYTEST_PASSED = re.compile(r"([\w./-]+?\.py::(?:\w+::)*\w+) PASSED|^PASSED ([\w./-]+?\.py::(?:\w+::)*\w+)", re.M)
+UNITTEST_OK = re.compile(r"^(\w+ \([\w.]+\)) \.\.\. ok$", re.M)
+PER_TEST = re.compile(r"^\w+ \([\w.]+\) \.\.\. |\.py::\S+ (?:PASSED|FAILED|ERROR|SKIPPED)", re.M)
+EXCEPTION = re.compile(r"^[A-Za-z_][\w.]*(?:Error|Exception|Exit|Interrupt|Warning)\b", re.M)
+CLEAN = re.compile(r"^OK\b|\b\d+ passed\b", re.M)
+DIRTY = re.compile(r"^(?:FAIL|ERROR):|^FAILED\b|\b\d+ (?:failed|errors?)\b", re.M)
+
+
+def load(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def load_hook():
+    return load("orchestration_context", HOOK)
+
+
+signals = load("kaizen_signals", SIGNALS)  # its shell parsing and test selection
+
+
+def read_jsonl(path):
+    out = []
+    for line in Path(path).read_text(errors="replace").splitlines():
+        try:
+            x = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(x, dict):
+            out.append(x)
+    return out
+
+
+def after_init(records):
+    """The run's own records: a resumed session's history comes before the last init record, if it appears."""
+    starts = [i for i, x in enumerate(records) if x.get("type") == "system" and x.get("subtype") == "init"]
+    return records[starts[-1]:] if starts else records
+
+
+def blocks(record):
+    m = record.get("message")
+    c = m.get("content") if isinstance(m, dict) else None
+    return [b for b in c if isinstance(b, dict)] if isinstance(c, list) else []
+
+
+def text_of(content):
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(b.get("text", "") for b in content if isinstance(b, dict) and isinstance(b.get("text"), str))
+    return ""
+
+
+def tool_events(records):
+    """Ordered ("use", id, name, input) and ("result", id, text, is_error) events."""
+    ev = []
+    for x in records:
+        for b in blocks(x):
+            if x.get("type") == "assistant" and b.get("type") == "tool_use":
+                ev.append(("use", b.get("id"), b.get("name"), b.get("input") or {}))
+            elif x.get("type") == "user" and b.get("type") == "tool_result":
+                ev.append(("result", b.get("tool_use_id"), text_of(b.get("content")), bool(b.get("is_error"))))
+    return ev
+
+
+def test_results(records):
+    """(output) of each Bash test run, in order, joined by id; self-made output excluded."""
+    commands, out = {}, []
+    for kind, tid, a, b in tool_events(records):
+        if kind == "use" and a == "Bash":
+            commands[tid] = str(b.get("command", ""))
+        elif kind == "result" and tid in commands:
+            cmd = commands[tid]
+            if TEST_RUN.search(cmd) and not SELF_MADE.search(cmd) and signals.is_test_run(cmd):
+                out.append((cmd, a))
+    return out
+
+
+def ident(result):
+    """(module, class, test) of a unittest "name (module.Class.name)" or pytest "path.py::Class::name" result; class
+    "" for a pytest test outside a class."""
+    name = re.split(r"[ :]", result)[-1] if "::" in result else result.split(" ")[0]
+    return (*signals.qualifiers(result, name), name)
+
+
+def reds(output):
+    """Identities (module, class, test) of new pagination tests failing on an assertion in one test-run output."""
+    found = set()
+    for chunk in SEPARATOR.split(output):
+        m = UNITTEST_HEAD.search(chunk)
+        if not m:
+            continue
+        i = ident(m.group(1))
+        body = chunk[m.end():]
+        # the test's name, its traceback source lines and the assertion message; not the file or class name
+        about = [i[2]] + [l for l in body.splitlines() if l.startswith("    ") or l.startswith("AssertionError")]
+        raised = EXCEPTION.findall(body)
+        if (i[0] not in (None, "test_clock") and raised and raised[-1] == "AssertionError"
+                and PAGINATION.search("\n".join(about))):
+            found.add(i)
+    for m in PYTEST_FAILED.finditer(output):
+        i, why = ident(m.group(1)), m.group(2)
+        if i[0] != "test_clock" and re.match(r"(?:AssertionError|assert)\b", why) and PAGINATION.search(f"{i[2]} {why}"):
+            found.add(i)
+    return found
+
+
+def passes(output, command, test):
+    """Whether one test-run output shows this test passing."""
+    named = [ident(m.group(1)) for m in UNITTEST_OK.finditer(output)]
+    named += [ident(m.group(1) or m.group(2)) for m in PYTEST_PASSED.finditer(output)]
+    if test in named:
+        return True
+    if PER_TEST.search(output) or DIRTY.search(output) or not CLEAN.search(output):
+        return False  # a listed run shows what passed by name; a summary must be clean
+    module, cls, name = test
+    return bool(signals.selections(command, module, name, cls))  # None (no target names it) does not count
+
+
+def seen_fail2(records):
+    # Either order counts: running the test green with the fix, then red on a copy with the fix removed, shows the
+    # same thing as red first, then green after restoring it.
+    runs = test_results(after_init(records))
+    seen = set().union(*(reds(output) for _, output in runs))
+    return any(passes(output, command, i) for i in seen for command, output in runs)
+
+
+def unit_of(units_path=UNITS):
+    return next(u for u in json.loads(Path(units_path).read_text())["units"] if u.get("id") == UNIT_ID)
+
+
+def eligible_writes(records, unit, cwd, hook):
+    """Ids of successful writes, in order, that the hook's matcher counts as a chance to deliver the unit."""
+    uses, ok = {}, []
+    for kind, tid, a, b in tool_events(records):
+        if kind == "use" and a in unit["tools"] and isinstance(b.get("file_path"), str):
+            uses[tid] = b["file_path"]
+        elif kind == "result" and tid in uses and not b:
+            if hook.path_matches(unit["paths"], uses[tid], cwd):
+                ok.append((tid, uses[tid]))
+    return ok
+
+
+def hook_records(records, text):
+    """Tool use ids that hook-origin records carrying text are tied to."""
+    out, last_use = [], None
+    for x in records:
+        for b in blocks(x):
+            if x.get("type") == "assistant" and b.get("type") == "tool_use":
+                last_use = b.get("id")
+        att = x.get("attachment")
+        if x.get("type") == "attachment" and isinstance(att, dict):
+            content = att.get("content")
+            body = content if isinstance(content, str) else "\n".join(c for c in content or [] if isinstance(c, str))
+            if att.get("type") == "hook_additional_context" and att.get("hookEvent") == "PostToolUse" and text in body:
+                out.append(att.get("toolUseID"))
+        elif (x.get("type") == "system" and x.get("subtype") == "hook_response"
+              and (x.get("hook_event") or x.get("hookEvent")) == "PostToolUse" and text in json.dumps(x)):
+            out.append(x.get("tool_use_id") or last_use)
+    return out
+
+
+def delivery(trace, transcripts, unit, hook):
+    """ind-delivered and the first eligible write for one run."""
+    init = next((x for x in trace if x.get("type") == "system" and x.get("subtype") == "init"), {})
+    cwd = init.get("cwd") or "/"
+    writes, seen = [], set()
+    for recs in [after_init(trace), *transcripts]:
+        for tid, path in eligible_writes(recs, unit, cwd, hook):
+            if tid not in seen:
+                seen.add(tid)
+                writes.append((tid, path))
+    tied = [t for recs in [trace, *transcripts] for t in hook_records(recs, unit["text"]) if t in seen]
+    first = writes[0] if writes else None
+    return {"delivered": bool(tied), "deliveries": len(set(tied)), "first_write": Path(first[1]).name if first else None,
+            "on_first_write": bool(first and first[0] in tied)}
+
+
+def final_text(trace):
+    res = [x for x in trace if x.get("type") == "result" and isinstance(x.get("result"), str)]
+    if res:
+        return res[-1]["result"]
+    texts = [b.get("text", "") for x in trace if x.get("type") == "assistant" for b in blocks(x) if b.get("type") == "text"]
+    return texts[-1] if texts else ""
+
+
+def score_run(rundir, unit, hook):
+    meta = json.loads((rundir / "meta.json").read_text())
+    res = json.loads((rundir / "eval-result.json").read_text()) if (rundir / "eval-result.json").exists() else {}
+    runs = [r for c in res.get("cases", []) for r in c.get("arms", {}).get("with", [])]
+    r = runs[0] if runs else {}
+    trace = read_jsonl(rundir / "trace.jsonl") if (rundir / "trace.jsonl").exists() else []
+    transcripts = [read_jsonl(f) for f in sorted((rundir / "transcripts").rglob("*.jsonl"))] \
+        if (rundir / "transcripts").is_dir() else []
+    row = {"run": rundir.name, "arm": meta["arm"], "case": meta["case"], "slot": meta["slot"],
+           "complete": bool(r.get("turns")), "error": r.get("error"), "turns": r.get("turns"),
+           "cost": round((r.get("costUsd") or 0) + (r.get("judgeCostUsd") or 0), 4),
+           "t-seen-fail2": seen_fail2(trace),
+           "t-seen-fail": next((bool(g.get("passed")) for g in r.get("graders", []) if g.get("name") == "t-seen-fail"), None),
+           "final_len": len(final_text(trace)), "claudeVersion": res.get("claudeVersion"),
+           "model": next((x.get("model") for x in trace if x.get("subtype") == "init"), None)}
+    row.update(delivery(trace, transcripts, unit, hook) if meta["arm"] == "A" else
+               {"delivered": None, "deliveries": None, "first_write": None, "on_first_write": None})
+    return row
+
+
+def collect(out, case):
+    """The last attempt of each (arm, slot) for case."""
+    latest = {}
+    for m in sorted((out / "runs").glob("*/meta.json")):
+        meta = json.loads(m.read_text())
+        if meta.get("case") != case:
+            continue
+        key = (meta["arm"], meta["slot"])
+        if key not in latest or meta["attempt"] > latest[key][0]:
+            latest[key] = (meta["attempt"], m.parent)
+    return [d for _, d in sorted(latest.values(), key=lambda v: str(v[1]))]
+
+
+def verdict(rows, arms, expected):
+    complete = {a: [r for r in rows if r["arm"] == a and r["complete"]] for a in arms}
+    wins = {a: sum(r["t-seen-fail2"] for r in complete[a]) for a in arms}
+    if any(len(complete[a]) < expected for a in arms):
+        return wins, "inconclusive: an arm has fewer than %d complete runs" % expected
+    best = [a for a in arms if wins[a] >= WIN_AT and all(wins[a] > wins[b] for b in arms if b != a)]
+    return wins, (f"{best[0]} wins" if best else "no winner")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="score", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    p.add_argument("--case", default="worker-L2")
+    p.add_argument("--arms", default="A,B")
+    p.add_argument("--runs", type=int, default=6, help="complete runs each arm needs")
+    p.add_argument("--json", action="store_true")
+    a = p.parse_args(argv)
+    out, arms = a.out.expanduser().resolve(), a.arms.split(",")
+    unit, hook = unit_of(), load_hook()
+    rows = [score_run(d, unit, hook) for d in collect(out, a.case)]
+    wins, outcome = verdict(rows, arms, a.runs)
+    table = {}
+    for arm in arms:
+        rs = [r for r in rows if r["arm"] == arm and r["complete"]]
+        table[arm] = {"complete": len(rs), "t-seen-fail2": wins[arm], "t-seen-fail": sum(bool(r["t-seen-fail"]) for r in rs),
+                      "ind-delivered": sum(bool(r["delivered"]) for r in rs) if arm == "A" else None,
+                      "median_turns": statistics.median([r["turns"] for r in rs]) if rs else None,
+                      "median_final_len": statistics.median([r["final_len"] for r in rs]) if rs else None,
+                      "cost": round(sum(r["cost"] for r in rows if r["arm"] == arm), 2)}
+    report = {"case": a.case, "outcome": outcome, "arms": table, "runs": rows,
+              "claudeVersion": sorted({r["claudeVersion"] for r in rows if r["claudeVersion"]}),
+              "model": sorted({r["model"] for r in rows if r["model"]})}
+    if a.json:
+        print(json.dumps(report, indent=1))
+        return report
+    for r in rows:
+        print(f"{r['run']}: seen-fail2={r['t-seen-fail2']} delivered={r['delivered']} first_write={r['first_write']} "
+              f"turns={r['turns']} final_len={r['final_len']} cost=${r['cost']:.2f} error={r['error']}")
+    for arm, t in table.items():
+        print(f"arm {arm}: " + " ".join(f"{k}={v}" for k, v in t.items()))
+    print(f"{a.case}: {outcome}; CLI {report['claudeVersion']}, model {report['model']}")
+    return report
+
+
+if __name__ == "__main__":
+    main()
