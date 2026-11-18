@@ -112,8 +112,7 @@ echo "$result"
 [[ $rc == 0 ]] || echo "merge-pr: gh pr merge exited $rc (a cleanup step such as --delete-branch can fail after the merge)" >&2
 if [[ $result != "MERGED $head "* ]]; then
   if [[ -n $auto && $result != MERGED* ]]; then
-    armed=''
-    if gh pr merge "$pr" --disable-auto >/dev/null 2>&1; then note="auto-merge disabled"; else note="could not disable auto-merge: check the PR"; fi
+    if gh pr merge "$pr" --disable-auto >/dev/null 2>&1; then armed='' note="auto-merge disabled"; else note="retrying on exit"; fi
     die "PR $pr is not merged on $head ($result); $note"
   fi
   die "PR $pr is not merged on $head ($result)"
