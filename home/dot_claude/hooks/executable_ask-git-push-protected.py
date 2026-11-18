@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # Claude Code PreToolUse(Bash) hook: ask before a force push or a push to main/master.
+# In a repository with a pre-push hook, deny a push from a delegated worker's worktree while its tracked files have
+# uncommitted changes (the worker is still editing, and pre-push would test that tree, not the pushed commits), and a
+# push while another `git push` started in the last 30 minutes still runs (parallel pre-push runs time out). The scan
+# narrows the window between sessions; it is not a lock.
 # Other pushes pass through, so work branches and PRs can go out without a prompt.
 # Any parse error lets the command through: this is a confirmation step, not a security boundary.
 import json
@@ -10,6 +14,7 @@ import subprocess
 import sys
 
 PROTECTED = {"main", "master"}
+DELEGATED = re.compile(r"/\.t3/worktrees/|-worktrees/agent-[^/]+/")  # worktrees the orchestrator hands to workers
 OPTS_WITH_VALUE = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
 
 
@@ -29,6 +34,56 @@ def git_output(cwd, *args):
 
 def current_branch(cwd):
     return git_output(cwd, "symbolic-ref", "--short", "-q", "HEAD")
+
+
+def has_pre_push(cwd):
+    hooks = git_output(cwd, "config", "--get", "core.hooksPath")
+    if hooks:
+        hooks = os.path.expanduser(hooks)
+        if not os.path.isabs(hooks):
+            hooks = os.path.join(git_output(cwd, "rev-parse", "--show-toplevel") or cwd, hooks)
+    else:
+        hooks = git_output(cwd, "rev-parse", "--path-format=absolute", "--git-path", "hooks")
+    return bool(hooks) and os.access(os.path.join(hooks, "pre-push"), os.X_OK)
+
+
+def seconds(etime):
+    days, _, rest = etime.rpartition("-")
+    total = 0
+    for part in rest.split(":"):
+        total = total * 60 + int(part)
+    return total + int(days or 0) * 86400
+
+
+def running_push():
+    """A live `git push` started within the last 30 minutes by any process, as "pid command"."""
+    try:
+        out = subprocess.run(["ps", "-axo", "pid=,stat=,etime=,command="], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        parts = line.split(None, 3)
+        if len(parts) < 4 or parts[1].startswith("Z") or os.path.basename(parts[3].split()[0]) != "git":
+            continue
+        toks, j = parts[3].split()[1:], 0
+        while j < len(toks) and toks[j].startswith("-"):
+            j += 2 if toks[j] in ("-C", "-c") else 1
+        if j < len(toks) and toks[j] == "push" and seconds(parts[2]) < 1800:
+            return f"{parts[0]} {parts[3][:120]}"
+    return None
+
+
+def pre_push_block(cwd):
+    if not has_pre_push(cwd):
+        return None
+    top = git_output(cwd, "rev-parse", "--show-toplevel") or cwd
+    if DELEGATED.search(top + os.sep) and git_output(cwd, "status", "--porcelain", "--untracked-files=no"):
+        return (f"{top} has uncommitted changes to tracked files: its worker is still editing, and pre-push would test "
+                "that tree instead of the pushed commits. Push after the worker has reported and committed.")
+    other = running_push()
+    if other:
+        return f"another git push is running (pid {other}); parallel pre-push runs time out. Push after it ends."
+    return None
 
 
 def push_reason(tokens, cwd):
@@ -106,9 +161,12 @@ def check(command, cwd):
             if alias:
                 sub, args = alias[0], alias[1:] + args
         if sub == "push":
+            block = pre_push_block(git_cwd)
+            if block:
+                return "deny", block
             reason = push_reason(args, git_cwd)
             if reason:
-                return reason
+                return "ask", f"{reason}は取り消しにくいので確認します。作業ブランチへの push なら確認は要りません。"
     return None
 
 
@@ -118,17 +176,18 @@ def main():
         command = data.get("tool_input", {}).get("command") or ""
         if "push" not in command:
             return
-        reason = check(command, data.get("cwd") or os.getcwd())
+        result = check(command, data.get("cwd") or os.getcwd())
     except Exception:  # noqa: BLE001 — fail open, see the header
         return
-    if reason:
+    if result:
+        decision, reason = result
         print(
             json.dumps(
                 {
                     "hookSpecificOutput": {
                         "hookEventName": "PreToolUse",
-                        "permissionDecision": "ask",
-                        "permissionDecisionReason": f"{reason}は取り消しにくいので確認します。作業ブランチへの push なら確認は要りません。",
+                        "permissionDecision": decision,
+                        "permissionDecisionReason": reason,
                     }
                 },
                 ensure_ascii=False,
