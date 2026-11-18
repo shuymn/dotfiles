@@ -51,7 +51,7 @@ BOARD_SECONDS = 40  # one deadline for all boards, under the hook timeout
 IGNORE = "If you were not handed this orchestration (a planner, or a product agent in the same checkout), ignore this."
 QUESTIONS = (
     "Before the next completion: is the critical path to the purpose moving, and is its blocker being worked? Is anything "
-    "running that does not serve it (cancel, defer, track)? Very long session at a step boundary with no delegate running: "
+    "running that does not serve it (cancel, defer, track)? Very long session at a step boundary with no delegate running or awaiting follow-up: "
     "hand over to a fresh orchestrator thread without asking (hiden references/attention.md)."
 )
 
