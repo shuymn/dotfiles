@@ -5,12 +5,12 @@
 """Check what a push or a PR would publish for local paths, host.toml values and private terms.
 
 Run before `git push` and `gh pr create`/`edit`, with the exact range and metadata that will be published.
-Every commit in RANGE is checked (the lines its diff adds and its message), not only the end state, because a push
-publishes intermediate commits too.
+Every commit in RANGE is checked (the paths and lines it adds, and its message), not only the end state, because a
+push publishes intermediate commits too.
 
 Rejected: absolute local paths, string values from the repository's git-ignored host.toml (except the generic ones
-in nix/host.default.toml, the role names in nix/roles.toml and the GitHub owner in origin's URL), and each line of
-~/.claude/kaizen/private-terms.
+in nix/host.default.toml, the role names in nix/roles.toml, and a username that is the GitHub owner in origin's
+URL), and each line of ~/.claude/kaizen/private-terms.
 Not caught: private words that are in none of these (add them to private-terms), and text that is published by
 other means than RANGE and the given metadata.
 
@@ -24,9 +24,10 @@ import sys
 import tomllib
 from pathlib import Path
 
-# LOCAL_PATH in ~/.claude/hooks/guard-agent-actions.py, but /Users and /home must start a path, so the repository's
-# own home/ directory in a diff header (b/home/...) is not a hit.
-LOCAL_PATH = re.compile(r"(?<![\w.-])(?:/Users|/home)/[A-Za-z0-9._-]+/|\.t3/(?:scratch|worktrees|userdata)/|/tmp/claude-\d+/|/private/var/folders/")
+# LOCAL_PATH in ~/.claude/hooks/guard-agent-actions.py, but a home or volume path must start the token (so the
+# repository's own home/ directory is not a hit) and may end it without a slash; /Volumes is added.
+LOCAL_PATH = re.compile(r"(?<![\w.-])(?:/Users|/home|/Volumes)/[A-Za-z0-9._-]+(?:/|(?![A-Za-z0-9._-]))"
+                        r"|\.t3/(?:scratch|worktrees|userdata)/|/tmp/claude-\d+/|/private/var/folders/")
 
 
 def die(message: str) -> None:
@@ -43,11 +44,21 @@ def git(*args: str, check: bool = True) -> str:
     return result.stdout
 
 
+def read(path: Path, missing: str | None = None) -> str:
+    """The file's text; `missing` stands in for a file that does not exist, which is otherwise an error."""
+    try:
+        return path.read_text()
+    except FileNotFoundError:
+        if missing is None:
+            die(f"cannot read {path}: no such file")
+        return missing
+    except (OSError, UnicodeDecodeError) as e:
+        die(f"cannot read {path}: {e}")
+
+
 def read_toml(path: Path) -> dict:
     try:
-        return tomllib.loads(path.read_text())
-    except FileNotFoundError:
-        return {}
+        return tomllib.loads(read(path, ""))
     except tomllib.TOMLDecodeError as e:
         die(f"cannot parse {path}: {e}")
 
@@ -60,23 +71,29 @@ def owner_login() -> str:
 
 def host_values(root: Path, main: Path) -> set[str]:
     """String values of host.toml; a linked worktree has none of its own, so the main checkout's is used."""
-    values = {v for d in (root, main) for v in read_toml(d / "host.toml").values() if isinstance(v, str)}
     public = {v for v in read_toml(root / "nix/host.default.toml").values() if isinstance(v, str)}
     public |= set(read_toml(root / "nix/roles.toml"))
     owner = owner_login()
-    return {v for v in values - public if v.strip() and v.lower() != owner}
+    return {v for d in (root, main) for key, v in read_toml(d / "host.toml").items()
+            if isinstance(v, str) and v.strip() and v not in public and not (key == "username" and v.lower() == owner)}
 
 
 def private_terms() -> list[str]:
-    path = Path.home() / ".claude/kaizen/private-terms"
-    if not path.exists():
-        return []
-    return [t for line in path.read_text().splitlines() if (t := line.strip()) and not t.startswith("#")]
+    text = read(Path.home() / ".claude/kaizen/private-terms", "")
+    return [t for line in text.splitlines() if (t := line.strip()) and not t.startswith("#")]
 
 
-def added_text(diff: str) -> str:
-    """The lines a diff publishes anew: added lines and new paths, not removed or context lines."""
-    return "\n".join(line for line in diff.splitlines() if not line.startswith(("-", " ", "@@", "\\")))
+def added_lines(patch: str) -> str:
+    """The lines a patch adds. Headers (old names, quoted paths) and removed or context lines are left out."""
+    added, in_hunk = [], False
+    for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            in_hunk = False
+        elif line.startswith("@@"):
+            in_hunk = True
+        elif in_hunk and line.startswith("+"):
+            added.append(line[1:])
+    return "\n".join(added)
 
 
 def main() -> int:
@@ -87,7 +104,8 @@ def main() -> int:
     parser.add_argument("--body-file", type=Path, help="file holding the PR body")
     parser.add_argument("--branch", help="branch name")
     args = parser.parse_args()
-    if ".." not in args.range:
+    ends = args.range.split("..")
+    if len(ends) != 2 or not all(ends) or any(e.startswith(".") or e.endswith(".") for e in ends):
         parser.error("RANGE must be <base>..<head>")
 
     root = Path(git("rev-parse", "--show-toplevel").strip())
@@ -99,16 +117,16 @@ def main() -> int:
     for sha in git("rev-list", "--reverse", args.range).split():
         short = sha[:9]
         texts.append((f"commit {short} message", git("show", "-s", "--format=%B", sha)))
-        diff = git("show", "--format=", "--patch", "--text", "--no-color", "--no-ext-diff",
-                   "--diff-merges=first-parent", sha)
-        texts.append((f"commit {short} diff", added_text(diff)))
+        common = ("show", "--format=", "-M", "--no-relative", "--diff-merges=first-parent")
+        # Destination names only: a deleted or renamed-away name is not published anew.
+        names = git(*common, "--name-only", "-z", "--diff-filter=ACMRT", sha)
+        texts.append((f"commit {short} path", names.replace("\0", "\n")))
+        patch = git(*common, "--patch", "--text", "--no-color", "--no-ext-diff", sha)
+        texts.append((f"commit {short} diff", added_lines(patch)))
     if args.title is not None:
         texts.append(("--title", args.title))
     if args.body_file is not None:
-        try:
-            texts.append(("--body-file", args.body_file.read_text()))
-        except OSError as e:
-            die(f"cannot read --body-file: {e}")
+        texts.append(("--body-file", read(args.body_file)))
     if args.branch is not None:
         texts.append(("--branch", args.branch))
 
