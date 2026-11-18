@@ -8,7 +8,8 @@
 # refuses unless --allow-no-checks), no fixup!/amend!/squash! commit is left for a non-squash merge, and
 # <repo root>/.claude/merge-check <pr> <head> passes when that file is executable (repository-specific checks such
 # as benchmarks or frozen oracles). --auto is for a repository whose required check runs only on merge intent: it
-# enables auto-merge pinned to that head and waits up to 15 minutes for GitHub to merge it. Merge queues and --admin
+# enables auto-merge on that head, waits up to 15 minutes for GitHub to merge it, and disables auto-merge again
+# whenever that head was not the one merged (a later push would otherwise merge unchecked). Merge queues and --admin
 # are out of scope.
 set -euo pipefail
 die() { echo "merge-pr: $*" >&2; exit 1; }
@@ -35,6 +36,7 @@ while (($#)); do
   esac
   shift
 done
+[[ -z $auto || " ${flags[*]} " != *" --delete-branch "* ]] || die "--delete-branch is skipped by gh with --auto: delete the branch after the merge"
 
 for _ in 1 2 3 4 5; do
   view=$(gh pr view "$pr" --json headRefOid,state,isDraft,mergeable)
@@ -89,15 +91,21 @@ queue=$(gh api graphql -f o="${nwo%%/*}" -f r="${nwo#*/}" -F n="$pr" \
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
 gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
-readback() { gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"'; }
+readback() { gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"' || echo "UNREAD"; }
 result=$(readback)
 if [[ -n $auto && $rc == 0 ]]; then
-  for _ in $(seq 45); do
-    [[ $result == "OPEN $head "* ]] || break
+  deadline=$((SECONDS + 900))
+  while [[ $result == "OPEN $head "* || $result == UNREAD ]] && ((SECONDS < deadline)); do
     sleep 20
     result=$(readback)
   done
 fi
 echo "$result"
 [[ $rc == 0 ]] || echo "merge-pr: gh pr merge exited $rc (a cleanup step such as --delete-branch can fail after the merge)" >&2
-[[ $result == "MERGED $head "* ]] || die "PR $pr is not merged on $head ($result)${auto:+; auto-merge stays enabled on that head}"
+if [[ $result != "MERGED $head "* ]]; then
+  if [[ -n $auto && $result != MERGED* ]]; then
+    if gh pr merge "$pr" --disable-auto >/dev/null 2>&1; then note="auto-merge disabled"; else note="could not disable auto-merge: check the PR"; fi
+    die "PR $pr is not merged on $head ($result); $note"
+  fi
+  die "PR $pr is not merged on $head ($result)"
+fi
