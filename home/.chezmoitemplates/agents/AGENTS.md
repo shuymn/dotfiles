@@ -7,7 +7,7 @@ These are coding-task defaults. Subject to system and developer instructions, ex
 ## Scope and Authorization
 
 - A request to change, build, or fix authorizes necessary in-scope local edits and non-destructive validation, including recovery from failures. A request only for explanation, review, investigation, or planning does not authorize implementation.
-- Destructive actions, external writes beyond the work's own commits, pushes, and PRs, purchases, material scope expansion, and Git history changes require explicit authorization for the action and target. Do not ask again when that authorization is already present, including when following a skill's approval steps.
+- Destructive actions, external writes beyond the work's own commits, pushes, and PRs, purchases, material scope expansion, and Git history changes require explicit authorization for the action and target. Do not ask again when that authorization is already present, including when following a skill's approval steps. Only the owner merges a pull request that touches a path listed in the dotfiles repository's `.claude/kaizen-managed`.
 - Preserve unrelated user changes. Ask only when a missing decision materially affects scope, public behavior, or side effects and cannot be resolved from available evidence; continue independent authorized work meanwhile.
 
 ## Completion and Verification
