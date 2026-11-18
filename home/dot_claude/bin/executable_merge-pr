@@ -116,28 +116,34 @@ else
     [[ -n ${patterns//[[:space:]]/} ]] || unreadable "$list on origin/$base is empty"
   fi
 fi
+# Truncated history hides deletions behind boundary commits and can pick an older common ancestor, so a shallow clone
+# is made whole once before the checks below; where it cannot be, they are skipped as before the list existed.
+if [[ -n $patterns && $(git rev-parse --is-shallow-repository) == true ]]; then
+  if fetch_err=$(git fetch -q --no-tags --unshallow origin "+refs/heads/$base:refs/remotes/origin/$base" \
+      "refs/pull/$pr/head" 2>&1); then
+    [[ $(git rev-parse --verify "refs/remotes/origin/$base^{commit}") == "$base_sha" ]] ||
+      die "origin/$base moved while PR $pr was checked: rerun"
+  else
+    unreadable "could not fetch the full history for PR $pr: $fetch_err"
+    patterns=''
+  fi
+fi
 if [[ -n $patterns ]]; then
   git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q --no-tags origin "refs/pull/$pr/head" ||
     die "could not fetch the head of PR $pr"
-  # In a shallow clone, a boundary commit inside the range reads as a root, whose deletions git log leaves out.
-  shallow=$(git rev-parse --git-path shallow)
-  boundary() { [[ -s $shallow ]] && grep -qxFf "$shallow" <<<"$(git rev-list "$base_sha..$head")"; }
-  for _ in 1 2 3 4 5; do
-    boundary || break
-    git fetch -q --no-tags --deepen=100 origin "refs/pull/$pr/head" || break
-  done
-  ! boundary || unreadable "the history of PR $pr is still cut short by the shallow clone"
   # Every commit the PR adds, not the net diff, which depends on where the base is: a PR that reverts an unmerged
   # managed change would undo it once that change lands. Merges are listed against each parent; without renames, a
   # file moved out of a managed path is listed under its old path too.
-  git log --format= --name-only -z --no-renames --no-relative --diff-merges=separate --no-show-signature \
-    "$base_sha..$head" >"$changed" || die "could not list the files PR $pr's commits touch"
+  git log --format= --name-only -z --no-renames --no-relative --ignore-submodules=none --diff-merges=separate \
+    --no-show-signature "$base_sha..$head" >"$changed" || die "could not list the files PR $pr's commits touch"
   # The merge result too: a base-side rename can carry the PR's edit into a managed path.
-  if tree=$(git merge-tree --write-tree "$base_sha" "$head"); then
-    git diff --name-only -z --no-renames --no-relative "$base_sha" "${tree%%$'\n'*}" >>"$changed" ||
-      die "could not list the files the merge of PR $pr changes"
+  if tree=$(git merge-tree --write-tree "$base_sha" "$head" 2>"$err"); then
+    git diff --name-only -z --no-renames --no-relative --ignore-submodules=none "$base_sha" "${tree%%$'\n'*}" \
+      >>"$changed" || die "could not list the files the merge of PR $pr changes"
   else
-    unreadable "PR $pr does not merge cleanly into origin/$base here, so GitHub cannot merge it cleanly either"
+    reason="PR $pr does not merge cleanly into origin/$base here, so GitHub cannot merge it cleanly either"
+    [[ ! -s $err ]] || reason+=": $(cat "$err")"
+    unreadable "$reason"
   fi
   hits=()
   while IFS= read -r -d '' file; do
