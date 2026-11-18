@@ -37,12 +37,13 @@ def die(message: str) -> None:
 
 
 def git(*args: str, check: bool = True) -> str:
-    result = subprocess.run(["git", *args], capture_output=True, text=True, errors="replace")
+    """Git's output decoded as is: universal newlines would turn a bare CR into a line break."""
+    result = subprocess.run(["git", *args], capture_output=True)
     if result.returncode != 0 and not check:
         return ""
     if result.returncode != 0:
-        die(f"git {' '.join(args)} failed: {result.stderr.strip()}")
-    return result.stdout
+        die(f"git {' '.join(args)} failed: {result.stderr.decode(errors='replace').strip()}")
+    return result.stdout.decode(errors="replace")
 
 
 def read(path: Path, missing: str | None = None) -> str:
@@ -57,11 +58,11 @@ def read(path: Path, missing: str | None = None) -> str:
         die(f"cannot read {path}: {e}")
 
 
-def read_toml(path: Path) -> dict:
+def parse_toml(text: str, name: str) -> dict:
     try:
-        return tomllib.loads(read(path, ""))
+        return tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
-        die(f"cannot parse {path}: {e}")
+        die(f"cannot parse {name}: {e}")
 
 
 def owner_login() -> str:
@@ -70,12 +71,16 @@ def owner_login() -> str:
     return m.group(1).lower() if m else ""
 
 
-def host_values(root: Path, main: Path) -> set[str]:
-    """String values of host.toml; a linked worktree has none of its own, so the main checkout's is used."""
-    public = {v for v in read_toml(root / "nix/host.default.toml").values() if isinstance(v, str)}
-    public |= set(read_toml(root / "nix/roles.toml"))
+def host_values(root: Path, main: Path, base: str) -> set[str]:
+    """String values of host.toml; a linked worktree has none of its own, so the main checkout's is used. The generic
+    values are read from the range's base, so a commit in the range cannot exempt a value by adding it there."""
+    def at_base(name: str) -> dict:
+        return parse_toml(git("show", f"{base}:{name}", check=False), f"{base}:{name}")
+
+    public = {v for v in at_base("nix/host.default.toml").values() if isinstance(v, str)}
+    public |= set(at_base("nix/roles.toml"))
     owner = owner_login()
-    return {v for d in (root, main) for key, v in read_toml(d / "host.toml").items()
+    return {v for d in (root, main) for key, v in parse_toml(read(d / "host.toml", ""), str(d / "host.toml")).items()
             if isinstance(v, str) and v.strip() and v not in public and not (key == "username" and v.lower() == owner)}
 
 
@@ -87,7 +92,7 @@ def private_terms() -> list[str]:
 def added_lines(patch: str) -> str:
     """The lines a patch adds. Headers (old names, quoted paths) and removed or context lines are left out."""
     added, in_hunk = [], False
-    for line in patch.splitlines():
+    for line in patch.split("\n"):  # not splitlines(): U+2028 or a bare CR inside an added line is not a line break
         if line.startswith("diff --git "):
             in_hunk = False
         elif line.startswith("@@"):
@@ -95,6 +100,13 @@ def added_lines(patch: str) -> str:
         elif in_hunk and line.startswith("+"):
             added.append(line[1:])
     return "\n".join(added)
+
+
+def scan(where: str, text: str, hosts: list[str], terms: list[str]) -> list[str]:
+    lower = text.lower()
+    return ([f"{where}: local path {m.group(0)!r}" for m in LOCAL_PATH.finditer(text)]
+            + [f"{where}: a host.toml value ({v!r})" for v in hosts if v.lower() in lower]
+            + [f"{where}: private term {t!r}" for t in terms if t.lower() in lower])
 
 
 def main() -> int:
@@ -111,7 +123,7 @@ def main() -> int:
 
     root = Path(git("rev-parse", "--show-toplevel").strip())
     main_checkout = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()).parent
-    hosts = sorted(host_values(root, main_checkout))
+    hosts = sorted(host_values(root, main_checkout, ends[0]))
     terms = private_terms()
 
     texts = []  # (where, text)
@@ -122,7 +134,7 @@ def main() -> int:
         # Destination names only: a deleted or renamed-away name is not published anew.
         names = git(*common, "--name-only", "-z", "--diff-filter=ACMRT", sha)
         texts.append((f"commit {short} path", names.replace("\0", "\n")))
-        patch = git(*common, "--patch", "--text", "--no-color", "--no-ext-diff", sha)
+        patch = git(*common, "--patch", "--text", "--no-color", "--no-ext-diff", "--no-textconv", sha)
         texts.append((f"commit {short} diff", added_lines(patch)))
     if args.title is not None:
         texts.append(("--title", args.title))
@@ -133,10 +145,7 @@ def main() -> int:
 
     hits = {}  # ordered and without repeats
     for where, text in texts:
-        hits.update(dict.fromkeys(f"{where}: local path {m.group(0)!r}" for m in LOCAL_PATH.finditer(text)))
-        lower = text.lower()
-        hits.update(dict.fromkeys(f"{where}: a host.toml value ({v!r})" for v in hosts if v.lower() in lower))
-        hits.update(dict.fromkeys(f"{where}: private term {t!r}" for t in terms if t.lower() in lower))
+        hits.update(dict.fromkeys(scan(where, text, hosts, terms)))
     for hit in hits:
         print(f"public-check: {hit}", file=sys.stderr)
     return 1 if hits else 0

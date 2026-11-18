@@ -2,6 +2,8 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import importlib.machinery
+import importlib.util
 import tempfile
 import unittest
 
@@ -21,10 +23,13 @@ def patch(path, *lines):
 
 
 # Each commit is files in $MOCK_COMMITS, listed in $MOCK_SHAS: <id>.msg, <id>.diff, and the NUL-separated names Git
-# lists with --diff-filter=ACMRT (<id>.names) and without it (<id>.allnames).
+# lists with --diff-filter=ACMRT (<id>.names) and without it (<id>.allnames). Files at the range's base are under
+# $MOCK_BASE.
 GIT = r"""
+echo "git $*" >> "$MOCK_LOG"
 for last; do :; done
 case "$*" in
+  "show main:"*) cat "$MOCK_BASE/${2#main:}" 2>/dev/null || exit 128 ;;
   "rev-parse --show-toplevel") echo "$MOCK_ROOT" ;;
   "rev-parse --path-format=absolute --git-common-dir") echo "$MOCK_ROOT/.git" ;;
   "remote get-url origin") echo "$MOCK_ORIGIN" ;;
@@ -34,7 +39,7 @@ case "$*" in
     cat "$MOCK_COMMITS/$last.names" 2>/dev/null || true ;;
   "show --format= -M --no-relative --diff-merges=first-parent --name-only -z $last")
     cat "$MOCK_COMMITS/$last.allnames" 2>/dev/null || cat "$MOCK_COMMITS/$last.names" 2>/dev/null || true ;;
-  "show --format= -M --no-relative --diff-merges=first-parent --patch --text --no-color --no-ext-diff $last")
+  "show --format= -M --no-relative --diff-merges=first-parent --patch --text --no-color --no-ext-diff --no-textconv $last")
     cat "$MOCK_COMMITS/$last.diff" ;;
   *) echo "unexpected: git $*" >&2; exit 1 ;;
 esac
@@ -65,11 +70,13 @@ class PublicCheckTests(unittest.TestCase):
         git.chmod(0o755)
         self.checkout = self.root / "checkout"
         (self.checkout / "nix").mkdir(parents=True)
+        self.base = self.root / "base"
+        (self.base / "nix").mkdir(parents=True)
         (self.checkout / "host.toml").write_text(
             f'system = "aarch64-darwin"\nusername = "alice"\nhomeDirectory = "{local("Users", "alice")[:-1]}"\n'
             'hostName = "alice-mbp"\nrole = "personal"\n')
-        (self.checkout / "nix/host.default.toml").write_text('system = "aarch64-darwin"\nusername = "user"\n')
-        (self.checkout / "nix/roles.toml").write_text("[minimal]\n[personal]\n")
+        (self.base / "nix/host.default.toml").write_text('system = "aarch64-darwin"\nusername = "user"\n')
+        (self.base / "nix/roles.toml").write_text("[minimal]\n[personal]\n")
         self.commits = self.root / "commits"
         self.commits.mkdir()
         self.home = self.root / "home"
@@ -78,6 +85,8 @@ class PublicCheckTests(unittest.TestCase):
             "PATH": str(self.bin),
             "HOME": str(self.home),
             "MOCK_ROOT": str(self.checkout),
+            "MOCK_BASE": str(self.base),
+            "MOCK_LOG": str(self.root / "git.log"),
             "MOCK_COMMITS": str(self.commits),
             "MOCK_SHAS": "",
             "MOCK_ORIGIN": "git@github.com:Alice/dotfiles.git",
@@ -85,7 +94,7 @@ class PublicCheckTests(unittest.TestCase):
 
     def commit(self, sha, message, diff, names=("a.md",), deleted=()):
         (self.commits / f"{sha}.msg").write_text(message)
-        (self.commits / f"{sha}.diff").write_text(diff)
+        (self.commits / f"{sha}.diff").write_bytes(diff.encode())
         (self.commits / f"{sha}.names").write_text("".join(f"{n}\0" for n in names))
         (self.commits / f"{sha}.allnames").write_text("".join(f"{n}\0" for n in (*names, *deleted)))
         self.env["MOCK_SHAS"] += f" {sha}"
@@ -187,6 +196,27 @@ class PublicCheckTests(unittest.TestCase):
                 self.assertIn("cannot read", result.stderr)
                 self.assertNotIn("Traceback", result.stderr)
                 (self.home / ".claude/kaizen/private-terms").write_bytes(b"\xff\n")
+
+    def test_added_line_is_not_split_on_other_line_breaks(self):
+        for separator in ("\u2028", "\r"):
+            with self.subTest(separator=repr(separator)):
+                self.env["MOCK_SHAS"] = ""
+                self.commit("c1", "docs: note\n", patch("a.md", f"note{separator}see {local('home', 'bob')}x"))
+                self.assert_hit(self.check(), f"commit c1 diff: local path '{local('home', 'bob')}'")
+        self.assertIn("--no-textconv", (self.root / "git.log").read_text())
+
+    def test_generic_values_come_from_the_base(self):
+        (self.checkout / "nix/host.default.toml").write_text('hostName = "alice-mbp"\n')
+        self.commit("c1", "chore: defaults\n", patch("nix/host.default.toml", 'hostName = "alice-mbp"'))
+        self.assert_hit(self.check(), "commit c1 diff: a host.toml value ('alice-mbp')")
+
+    def test_own_source_has_no_hits(self):
+        loader = importlib.machinery.SourceFileLoader("public_check", str(SCRIPT))
+        module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+        loader.exec_module(module)
+        source = SCRIPT.read_text()
+        added = module.added_lines(patch("scripts/kaizen/public-check", *source.split("\n")))
+        self.assertEqual(module.scan("source", added, [], []), [])
 
 
 if __name__ == "__main__":
