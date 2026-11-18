@@ -7,7 +7,8 @@
 # mergeable, every check on the head passed (a failing check that is not required also refuses; no checks at all
 # refuses unless --allow-no-checks), no fixup!/amend!/squash! commit is left for a non-squash merge, and
 # <repo root>/.claude/merge-check <pr> <head> passes when that file is executable (repository-specific checks such
-# as benchmarks or frozen oracles). --auto is for a repository whose required check runs only on merge intent: it
+# as benchmarks or frozen oracles), and the PR touches no path listed in .claude/kaizen-managed on its base branch
+# (such PRs are the owner's to merge). --auto is for a repository whose required check runs only on merge intent: it
 # enables auto-merge on that head, waits up to 15 minutes for GitHub to merge it, and disables auto-merge again
 # whenever that head was not the one merged (a later push would otherwise merge unchecked). Merge queues and --admin
 # are out of scope.
@@ -39,7 +40,7 @@ done
 [[ -z $auto || -z $delete_branch ]] || die "--delete-branch is skipped by gh with --auto: delete the branch after the merge"
 
 for _ in 1 2 3 4 5; do
-  view=$(gh pr view "$pr" --json headRefOid,state,isDraft,mergeable)
+  view=$(gh pr view "$pr" --json headRefOid,baseRefName,state,isDraft,mergeable)
   [[ $(jq -r .mergeable <<<"$view") != UNKNOWN ]] && break
   sleep 3
 done
@@ -68,14 +69,45 @@ if [[ -n $root && -x $root/.claude/merge-check ]]; then
   "$root/.claude/merge-check" "$pr" "$head" || die "$root/.claude/merge-check refused"
 fi
 
-err=$(mktemp)
+err=$(mktemp) changed=$(mktemp)
 armed=''  # set while auto-merge is enabled on a head this run has not seen merged
 cleanup() {
-  rm -f "$err"
+  rm -f "$err" "$changed"
   [[ -z $armed ]] || gh pr merge "$pr" --disable-auto >/dev/null 2>&1 || echo "merge-pr: could not disable auto-merge: check the PR" >&2
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
+
+# The owner-only path list is read from the base on GitHub, never from the working tree or the PR head, so a PR
+# cannot loosen it for itself. The dotfiles repository (the one holding the chezmoi source) must have the list.
+base=$(jq -r .baseRefName <<<"$view")
+list=.claude/kaizen-managed
+git fetch -q --no-tags origin "+refs/heads/$base:refs/remotes/origin/$base" || die "could not fetch origin/$base"
+common() { git -C "${1:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true; }
+src=$(chezmoi source-path 2>/dev/null || true)
+here=$(common)
+[[ -n $src && -n $here && $(common "$src") == "$here" ]] && dotfiles=1 || dotfiles=''
+patterns=$(git show "refs/remotes/origin/$base:$list" 2>/dev/null || true)
+[[ -z $dotfiles || -n ${patterns//[[:space:]]/} ]] || die "could not read $list from origin/$base, so PR $pr is not merged"
+if [[ -n $patterns ]]; then
+  git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q --no-tags origin "refs/pull/$pr/head" ||
+    die "could not fetch the head of PR $pr"
+  mb=$(git merge-base "refs/remotes/origin/$base" "$head") || die "could not find the merge base of $head and origin/$base"
+  # Without renames, a file moved out of a managed path is listed under its old path too.
+  git diff --name-only --no-renames -z "$mb" "$head" >"$changed" || die "could not list the files PR $pr changes"
+  hits=()
+  while IFS= read -r -d '' file; do
+    while read -r pattern; do
+      pattern=${pattern%$'\r'}
+      # shellcheck disable=SC2053  # the pattern is a glob on purpose
+      [[ -z $pattern || $file != $pattern ]] || { hits+=("$file"); break; }
+    done <<<"$patterns"
+  done <"$changed"
+  ((${#hits[@]} == 0)) || die "PR $pr touches paths listed in $list on $base, so only the owner merges it, in the GitHub UI by \
+enabling auto-merge on the checked head $head:
+$(printf '%s\n' "${hits[@]}")"
+fi
+
 checks=$(gh pr checks "$pr" --json name,bucket 2>"$err" || true)  # judged by its content: valid JSON, or the no-checks error
 if jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
   bad=$(jq -r '.[] | select(.bucket != "pass" and .bucket != "skipping") | "\(.bucket)\t\(.name)"' <<<"$checks")

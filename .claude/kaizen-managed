@@ -1,0 +1,7 @@
+home/dot_claude/**
+home/.chezmoiignore
+home/.chezmoiremove
+home/.chezmoitemplates/agents/**
+scripts/kaizen/**
+docs/kaizen.md
+.claude/kaizen-managed
