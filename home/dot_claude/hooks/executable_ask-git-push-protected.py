@@ -2,8 +2,8 @@
 # Claude Code PreToolUse(Bash) hook: ask before a force push or a push to main/master.
 # In a repository with a pre-push hook, deny a push from a delegated worker's worktree while its tracked files have
 # uncommitted changes (the worker is still editing, and pre-push would test that tree, not the pushed commits), and a
-# push while another `git push` started in the last 30 minutes still runs (parallel pre-push runs time out). The scan
-# narrows the window between sessions; it is not a lock.
+# push while another `git push` of the same repository (any of its worktrees) started in the last 30 minutes still runs
+# (parallel pre-push runs time out). The scan narrows the window between sessions; it is not a lock.
 # Other pushes pass through, so work branches and PRs can go out without a prompt.
 # Any parse error lets the command through: this is a confirmation step, not a security boundary.
 import json
@@ -55,8 +55,16 @@ def seconds(etime):
     return total + int(days or 0) * 86400
 
 
-def running_push():
-    """A live `git push` started within the last 30 minutes by any process, as "pid command"."""
+def process_cwd(pid):
+    try:
+        out = subprocess.run(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return next((line[1:] for line in out.splitlines() if line.startswith("n")), None)
+
+
+def running_push(common_dir):
+    """A live `git push` of the repository with this common git dir, started within the last 30 minutes."""
     try:
         out = subprocess.run(["ps", "-axo", "pid=,stat=,etime=,command="], capture_output=True, text=True, timeout=5).stdout
     except (OSError, subprocess.SubprocessError):
@@ -65,10 +73,14 @@ def running_push():
         parts = line.split(None, 3)
         if len(parts) < 4 or parts[1].startswith("Z") or os.path.basename(parts[3].split()[0]) != "git":
             continue
-        toks, j = parts[3].split()[1:], 0
+        toks, j, where = parts[3].split()[1:], 0, process_cwd(parts[0])
         while j < len(toks) and toks[j].startswith("-"):
+            if toks[j] == "-C" and j + 1 < len(toks) and where:
+                where = os.path.join(where, toks[j + 1])
             j += 2 if toks[j] in ("-C", "-c") else 1
-        if j < len(toks) and toks[j] == "push" and seconds(parts[2]) < 1800:
+        if not (j < len(toks) and toks[j] == "push" and seconds(parts[2]) < 1800 and where):
+            continue
+        if git_output(where, "rev-parse", "--path-format=absolute", "--git-common-dir") == common_dir:
             return f"{parts[0]} {parts[3][:120]}"
     return None
 
@@ -80,7 +92,7 @@ def pre_push_block(cwd):
     if DELEGATED.search(top + os.sep) and git_output(cwd, "status", "--porcelain", "--untracked-files=no"):
         return (f"{top} has uncommitted changes to tracked files: its worker is still editing, and pre-push would test "
                 "that tree instead of the pushed commits. Push after the worker has reported and committed.")
-    other = running_push()
+    other = running_push(git_output(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir"))
     if other:
         return f"another git push is running (pid {other}); parallel pre-push runs time out. Push after it ends."
     return None
@@ -130,6 +142,8 @@ def push_reason(tokens, cwd):
 
 
 def check(command, cwd):
+    """The strongest decision over every push in the command: a deny wins over an ask."""
+    asked = None
     for seg in re.split(r"&&|\|\||;|\||\n", command):
         try:
             toks = shlex.split(seg)
@@ -160,14 +174,14 @@ def check(command, cwd):
             )
             if alias:
                 sub, args = alias[0], alias[1:] + args
-        if sub == "push":
+        if sub == "push" and not {"--help", "-h"} & set(args):
             block = pre_push_block(git_cwd)
             if block:
                 return "deny", block
             reason = push_reason(args, git_cwd)
-            if reason:
-                return "ask", f"{reason}は取り消しにくいので確認します。作業ブランチへの push なら確認は要りません。"
-    return None
+            if reason and not asked:
+                asked = "ask", f"{reason}は取り消しにくいので確認します。作業ブランチへの push なら確認は要りません。"
+    return asked
 
 
 def main():

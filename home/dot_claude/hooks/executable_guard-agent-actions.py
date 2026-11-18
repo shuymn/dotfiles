@@ -29,8 +29,9 @@ PUBLISH = re.compile(r"\b(?:npm|pnpm|yarn|bun|cargo|deno)\s+publish\b")
 GIT_PUSH = re.compile(r"\bgit\b(?:\s+-[Cc]\s+\S+|\s+--?[\w-]+(?:=\S+)?)*\s+push\b")
 CAT_SUBST = re.compile(r"\"?\$\((?:cat\s+|<\s*)[\"']?[^\"')]*" + re.escape(SECRETS) + r"[^\"')]*[\"']?\)\"?")
 LOCAL_PATH = re.compile(r"(?:/Users|/home)/[A-Za-z0-9._-]+/|\.t3/(?:scratch|worktrees|userdata)/|/tmp/claude-\d+/|/private/var/folders/")
-MERGE_PR = re.compile(r"(?:^|/)merge-pr(?:\.sh)?\b")
-GH_PR_MERGE = re.compile(r"^gh\s+(?:-R\s+\S+\s+|--repo[ =]\S+\s+)?pr\s+merge\b")
+MERGE_PR = re.compile(r"^(?:\S*/)?merge-pr(?:\.sh)?(?:\s|$)")
+REPO_OPT = r"(?:(?:-R|--repo)[ =]\S+\s+)?"
+GH_PR_MERGE = re.compile(rf"^gh\s+{REPO_OPT}pr\s+{REPO_OPT}merge\b")
 PENCIL_GENERATE = re.compile(r"\bgenerate\w*\s*\(", re.IGNORECASE)
 
 
@@ -53,6 +54,7 @@ def segments(command: str):
 
 def code_only(command: str) -> str:
     """The command without heredoc bodies and quoted strings, so text that only mentions a command does not match."""
+    command = command.replace("\\\n", " ")
     command = re.sub(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2(?=\n|$)", " ", command, flags=re.S)
     return re.sub(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"", "''", command)
 
@@ -88,13 +90,15 @@ def check_bash(command: str, cwd: str) -> None:
     delegated = (cwd + os.sep).startswith(WORKTREES) or AGENT_WORKTREE.search(cwd + os.sep)
     reason = "External writes belong to the orchestrator: report the command you would run instead of running it."
     for seg in segments(code_only(command)):
+        if delegated and MERGE_PR.match(seg):
+            deny(reason)
         if GH_PR_MERGE.match(seg) and not re.search(r"\s(?:--help|-h)\b", seg):
             deny(reason if delegated else "Merge with ~/.claude/bin/merge-pr <pr> <head-sha> [--merge|--squash|--rebase]: it "
                  "merges only that head, once every check on it passed, and reads the result back.")
     if not delegated:
         return
     for seg in segments(command):
-        if GIT_PUSH.search(seg) or WRANGLER_WRITE.search(seg) or PUBLISH.search(seg) or MERGE_PR.search(seg):
+        if GIT_PUSH.search(seg) or WRANGLER_WRITE.search(seg) or PUBLISH.search(seg):
             deny(reason)
         if re.match(r"^gh\b", seg):
             if re.match(r"^gh\s+api\b", seg):

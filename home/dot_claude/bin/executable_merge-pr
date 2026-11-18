@@ -44,9 +44,9 @@ mergeable=$(jq -r .mergeable <<<"$view")
 
 repo=$(gh repo view --json nameWithOwner,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed)
 base=$(jq -r .baseRefName <<<"$view")
-if gh api "repos/$(jq -r .nameWithOwner <<<"$repo")/rules/branches/$base" -q '.[].type' 2>/dev/null | grep -qx merge_queue; then
-  die "$base merges through a merge queue, which merge-pr does not handle"
-fi
+rules=$(gh api --paginate "repos/$(jq -r .nameWithOwner <<<"$repo")/rules/branches/$(jq -rn --arg b "$base" '$b | @uri')" \
+  -q '.[].type') || die "could not read the rules of $base"
+! grep -qx merge_queue <<<"$rules" || die "$base merges through a merge queue, which merge-pr does not handle"
 if [[ -z $method ]]; then
   allowed=$(jq -r '[if .mergeCommitAllowed then "--merge" else empty end, if .squashMergeAllowed then "--squash" else empty end,
                     if .rebaseMergeAllowed then "--rebase" else empty end] | join(" ")' <<<"$repo")
@@ -60,9 +60,15 @@ if [[ $method != --squash ]]; then
 $marked"
 fi
 
+root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [[ -n $root && -x $root/.claude/merge-check ]]; then
+  "$root/.claude/merge-check" "$pr" "$head" || die "$root/.claude/merge-check refused"
+fi
+
 err=$(mktemp)
 trap 'rm -f "$err"' EXIT
-if checks=$(gh pr checks "$pr" --json name,bucket 2>"$err") && jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
+checks=$(gh pr checks "$pr" --json name,bucket 2>"$err" || true)  # judged by its content: valid JSON, or the no-checks error
+if jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
   bad=$(jq -r '.[] | select(.bucket != "pass" and .bucket != "skipping") | "\(.bucket)\t\(.name)"' <<<"$checks")
   [[ -z $bad ]] || die "not every check on $head passed (pending: wait and rerun):
 $bad"
@@ -72,12 +78,10 @@ else
   die "could not read the checks: $(cat "$err")"
 fi
 
-root=$(git rev-parse --show-toplevel 2>/dev/null || true)
-if [[ -n $root && -x $root/.claude/merge-check ]]; then
-  "$root/.claude/merge-check" "$pr" "$head" || die "$root/.claude/merge-check refused"
-fi
-
-gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"}
+# The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
+rc=0
+gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
 result=$(gh pr view "$pr" --json state,mergeCommit -q '"\(.state) \(.mergeCommit.oid // "" | .[0:9])"')
 echo "$result"
+[[ $rc == 0 ]] || echo "merge-pr: gh pr merge exited $rc (a cleanup step such as --delete-branch can fail after the merge)" >&2
 [[ $result == MERGED* ]] || die "PR $pr is not merged ($result): the repository may queue merges, which merge-pr does not handle"
