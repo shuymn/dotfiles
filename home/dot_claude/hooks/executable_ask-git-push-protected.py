@@ -74,9 +74,7 @@ def running_push(common_dir):
         if len(parts) < 4 or parts[1].startswith("Z") or os.path.basename(parts[3].split()[0]) != "git":
             continue
         toks, j, where = parts[3].split()[1:], 0, process_cwd(parts[0])
-        while j < len(toks) and toks[j].startswith("-"):
-            if toks[j] == "-C" and j + 1 < len(toks) and where:
-                where = os.path.join(where, toks[j + 1])
+        while j < len(toks) and toks[j].startswith("-"):  # git has already applied -C to its own cwd
             j += 2 if toks[j] in ("-C", "-c") else 1
         if not (j < len(toks) and toks[j] == "push" and seconds(parts[2]) < 1800 and where):
             continue

@@ -17,6 +17,9 @@ shift 2
 [[ $pr =~ ^[0-9]+$ ]] || die "pass the PR number, not '$pr'"
 [[ $want =~ ^[0-9a-f]{7,40}$ ]] || die "pass the head SHA (7-40 hex digits), not '$want'"
 [[ -z ${GH_REPO:-} ]] || die "run inside the PR's repository instead of setting GH_REPO"
+root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+[[ "$root/" != */.t3/worktrees/* && "$root/" != *-worktrees/agent-* ]] ||
+  die "a delegated worktree does not merge: report the command to the orchestrator"
 
 method='' allow_no_checks='' flags=()
 while (($#)); do
@@ -31,7 +34,7 @@ while (($#)); do
 done
 
 for _ in 1 2 3 4 5; do
-  view=$(gh pr view "$pr" --json headRefOid,state,isDraft,mergeable,baseRefName)
+  view=$(gh pr view "$pr" --json headRefOid,state,isDraft,mergeable)
   [[ $(jq -r .mergeable <<<"$view") != UNKNOWN ]] && break
   sleep 3
 done
@@ -43,10 +46,6 @@ mergeable=$(jq -r .mergeable <<<"$view")
 [[ $mergeable == MERGEABLE ]] || die "PR $pr is not mergeable ($mergeable; UNKNOWN means GitHub has not decided yet, retry)"
 
 repo=$(gh repo view --json nameWithOwner,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed)
-base=$(jq -r .baseRefName <<<"$view")
-rules=$(gh api --paginate "repos/$(jq -r .nameWithOwner <<<"$repo")/rules/branches/$(jq -rn --arg b "$base" '$b | @uri')" \
-  -q '.[].type') || die "could not read the rules of $base"
-! grep -qx merge_queue <<<"$rules" || die "$base merges through a merge queue, which merge-pr does not handle"
 if [[ -z $method ]]; then
   allowed=$(jq -r '[if .mergeCommitAllowed then "--merge" else empty end, if .squashMergeAllowed then "--squash" else empty end,
                     if .rebaseMergeAllowed then "--rebase" else empty end] | join(" ")' <<<"$repo")
@@ -60,7 +59,6 @@ if [[ $method != --squash ]]; then
 $marked"
 fi
 
-root=$(git rev-parse --show-toplevel 2>/dev/null || true)
 if [[ -n $root && -x $root/.claude/merge-check ]]; then
   "$root/.claude/merge-check" "$pr" "$head" || die "$root/.claude/merge-check refused"
 fi
@@ -78,10 +76,17 @@ else
   die "could not read the checks: $(cat "$err")"
 fi
 
+owner=$(jq -r '.nameWithOwner | split("/")[0]' <<<"$repo") name=$(jq -r '.nameWithOwner | split("/")[1]' <<<"$repo")
+# shellcheck disable=SC2016  # GraphQL variables, not shell
+queue=$(gh api graphql -F o="$owner" -F r="$name" -F n="$pr" \
+  -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){isMergeQueueEnabled}}}' \
+  -q .data.repository.pullRequest.isMergeQueueEnabled) || die "could not read whether the base uses a merge queue"
+[[ $queue == false ]] || die "the base merges through a merge queue, which merge-pr does not handle"
+
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
 gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
-result=$(gh pr view "$pr" --json state,mergeCommit -q '"\(.state) \(.mergeCommit.oid // "" | .[0:9])"')
+result=$(gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"')
 echo "$result"
 [[ $rc == 0 ]] || echo "merge-pr: gh pr merge exited $rc (a cleanup step such as --delete-branch can fail after the merge)" >&2
-[[ $result == MERGED* ]] || die "PR $pr is not merged ($result): the repository may queue merges, which merge-pr does not handle"
+[[ $result == "MERGED $head "* ]] || die "PR $pr is not merged on $head ($result)"
