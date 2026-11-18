@@ -40,6 +40,12 @@ SETTINGS = os.path.expanduser("~/.claude/settings.json")
 HOOK_MARK = "attention-budget.py"
 STATE_DIR = os.path.join(tempfile.gettempdir(), "attention-budget")
 SELF_NAME = os.path.basename(__file__)
+# Every instruction file in these directories needs a prose cap, so splitting a file cannot move text out of the budget.
+CAPPED_DIRS = ["~/.claude/skills/hiden", "~/.claude/skills/toolchain", "~/.claude/skills/public-text", "~/.claude/skills/wasure"]
+
+
+def in_capped_dir(path):
+    return path.endswith(".md") and any(path.startswith(expand(d) + os.sep) for d in CAPPED_DIRS)
 
 
 def expand(path):
@@ -126,6 +132,10 @@ def violations(budget, override=None):
                 where = "the global register" if label == "global" else f"global + {label}"
                 out.append(f"role '{role}' carries {n} attention items in {where}; the cap is {cap}")
     _, prose = tracked(budget)
+    found = {os.path.join(r, n) for d in CAPPED_DIRS for r, _, fs in os.walk(expand(d)) for n in fs}
+    found |= {p for p, text in override.items() if text is not None}  # a Write about to create the file
+    for path in sorted(p for p in found if in_capped_dir(p) and p not in prose):
+        out.append(f"{path} has no prose cap in budget.json: add one, or fold the text into a capped file")
     for path, cap in sorted(prose.items()):
         text = override.get(path, read(path))
         size = len(text.encode("utf-8")) if text is not None else 0
@@ -228,7 +238,7 @@ def edit_errors(budget, path, text):
             return [f"budget.json would not parse ({e})"]
         return budget_change_errors(budget, new) or violations(new) or None
     regs, prose = tracked(budget)
-    if path not in regs and path not in prose:
+    if path not in regs and path not in prose and not in_capped_dir(path):
         return None
     try:
         return violations(budget, {path: text}) or None
