@@ -39,8 +39,11 @@ case "$*" in
   "rev-parse --show-toplevel") echo "$MOCK_ROOT" ;;
   "-C . rev-parse --path-format=absolute --git-common-dir") echo "$MOCK_ROOT/.git" ;;
   "-C $MOCK_SOURCE rev-parse --path-format=absolute --git-common-dir") echo "$MOCK_SOURCE_COMMON" ;;
-  "remote get-url origin") echo "$MOCK_ORIGIN" ;;
-  "fetch -q --no-tags origin +refs/heads/main:refs/remotes/origin/main") exit "${MOCK_FETCH_EXIT:-0}" ;;
+  "-C . remote get-url origin") echo "$MOCK_ORIGIN" ;;
+  "-C $MOCK_SOURCE remote get-url origin")
+    if [ -n "$MOCK_SOURCE_ORIGIN" ]; then echo "$MOCK_SOURCE_ORIGIN"; else echo "error: No such remote" >&2; exit 2; fi ;;
+  "fetch -q --no-tags origin +refs/heads/main:refs/remotes/origin/main")
+    [ -z "$MOCK_FETCH_FAILS" ] || { echo "fatal: unable to access the remote" >&2; exit 128; } ;;
   "rev-parse --verify refs/remotes/origin/main^{commit}") echo "$MOCK_BASE_SHA" ;;
   "ls-tree --full-tree $MOCK_BASE_SHA -- .claude/kaizen-managed")
     if [ -n "$MOCK_LIST_ENTRY" ]; then printf '%s\t.claude/kaizen-managed\n' "$MOCK_LIST_ENTRY"
@@ -150,9 +153,15 @@ class MergePrManagedPathTests(unittest.TestCase):
                                "home/dot_claude/CLAUDE.md")
 
     def test_dotfiles_refuses_when_the_base_has_no_list(self):
-        self.in_dotfiles()
         self.base_list.unlink()
-        self.assert_refused(self.run_merge("README.md"), "origin/main has no .claude/kaizen-managed")
+        for clone in ("worktree of the source", "separate clone"):
+            with self.subTest(clone=clone):
+                if clone == "worktree of the source":
+                    self.in_dotfiles()
+                else:  # another git common dir, but the source's origin is the repository gh merges
+                    self.env["MOCK_SOURCE_COMMON"] = str(self.root / "source/.git")
+                    self.env["MOCK_SOURCE_ORIGIN"] = "https://github.com/O/r/"
+                self.assert_refused(self.run_merge("README.md"), "origin/main has no .claude/kaizen-managed")
 
     def test_refuses_a_list_that_is_not_a_regular_file(self):
         for entry in ("040000 tree treeoid", "120000 blob linkoid"):
@@ -173,11 +182,14 @@ class MergePrManagedPathTests(unittest.TestCase):
         self.assert_refused(self.run_merge("README.md"), "origin is 'someone/r' but gh resolves o/r")
 
     def test_fetch_failure_refuses_only_in_dotfiles(self):
-        self.env["MOCK_FETCH_EXIT"] = "1"
-        self.assert_merged(self.run_merge("home/dot_claude/CLAUDE.md"))
+        self.env["MOCK_FETCH_FAILS"] = "1"
+        result = self.run_merge("home/dot_claude/CLAUDE.md")
+        self.assert_merged(result)
+        self.assertEqual(result.stderr, "")
         (self.root / "merged").unlink()
         self.in_dotfiles()
-        self.assert_refused(self.run_merge("README.md"), "could not fetch origin/main")
+        self.assert_refused(self.run_merge("README.md"),
+                            "could not fetch origin/main: fatal: unable to access the remote, so PR 7 is not merged")
 
     def test_refuses_when_the_base_changes_before_the_merge(self):
         for name, value, message in (("MOCK_BASE_NOW", "dev", "retargeted from main to dev"),

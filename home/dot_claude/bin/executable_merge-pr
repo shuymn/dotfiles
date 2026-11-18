@@ -80,24 +80,29 @@ trap cleanup EXIT
 trap 'exit 130' INT TERM
 
 # The owner-only path list is read from one fetched base commit, never from the working tree or the PR head, so a PR
-# cannot loosen it for itself. The dotfiles repository (the one holding the chezmoi source) must have the list;
-# elsewhere a list that cannot be read means no managed paths, as before the list existed.
+# cannot loosen it for itself. The dotfiles repository (a checkout or clone of the chezmoi source's repository) must
+# have the list; elsewhere a list that cannot be read means no managed paths, as before the list existed.
 base=$(jq -r .baseRefName <<<"$view")
 list=.claude/kaizen-managed
 src=$(chezmoi source-path) || die "could not resolve the chezmoi source, so whether $list applies is unknown"
 common() { git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true; }
-here=$(common .)
-[[ -n $here && $(common "$src") == "$here" ]] && dotfiles=1 || dotfiles=''
-unreadable() { [[ -z $dotfiles ]] || die "$*, so PR $pr is not merged"; }
 lower() { tr '[:upper:]' '[:lower:]' <<<"$1"; }
-origin=$(git remote get-url origin 2>/dev/null || true)
-origin=${origin%/}
-origin=$(sed -nE 's#^.*github\.com[:/]+([^/]+/[^/]+)$#\1#p' <<<"${origin%.git}")
+github_repo() {  # owner/repo of origin in the checkout at $1, lowercased; empty when it is not on GitHub
+  local url
+  url=$(git -C "$1" remote get-url origin 2>/dev/null || true)
+  url=${url%/}
+  lower "$(sed -nE 's#^.*github\.com[:/]+([^/]+/[^/]+)$#\1#p' <<<"${url%.git}")"
+}
+here=$(common .) origin=$(github_repo .) src_origin=$(github_repo "$src")
+dotfiles=''
+[[ -n $here && $(common "$src") == "$here" ]] && dotfiles=1
+[[ -n $src_origin && $src_origin == "$(lower "$nwo")" ]] && dotfiles=1
+unreadable() { [[ -z $dotfiles ]] || die "$*, so PR $pr is not merged"; }
 base_sha='' patterns=''
-if [[ $(lower "$origin") != "$(lower "$nwo")" ]]; then
+if [[ $origin != "$(lower "$nwo")" ]]; then
   unreadable "origin is '$origin' but gh resolves $nwo"
-elif ! git fetch -q --no-tags origin "+refs/heads/$base:refs/remotes/origin/$base"; then
-  unreadable "could not fetch origin/$base"
+elif ! fetch_err=$(git fetch -q --no-tags origin "+refs/heads/$base:refs/remotes/origin/$base" 2>&1); then
+  unreadable "could not fetch origin/$base: $fetch_err"
 else
   base_sha=$(git rev-parse --verify "refs/remotes/origin/$base^{commit}") || die "could not resolve origin/$base"
   entry=$(git ls-tree --full-tree "$base_sha" -- "$list") || die "could not read the tree of origin/$base"
@@ -156,6 +161,7 @@ if [[ -n $patterns ]]; then  # a retargeted or moved base was not the one the li
 fi
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
+# With --auto the list is the one read above; only owner-merged PRs change it, so an extension governs later requests.
 [[ -z $auto ]] || armed=1
 gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
 readback() { gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"' || echo "UNREAD"; }
