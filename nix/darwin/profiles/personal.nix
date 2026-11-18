@@ -10,6 +10,7 @@
       "nani"
       "obsidian"
       "orcaslicer"
+      "pen"
       "t3-code"
       "zotero"
     ];
