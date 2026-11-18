@@ -1,14 +1,15 @@
 {
   "caps": {
-    "orchestrator": 7,
-    "worker": 5,
-    "reviewer": 3
+    "orchestrator": 5,
+    "worker": 2,
+    "reviewer": 2
   },
   "registers": [
     "~/.claude/attention/items.json"
   ],
   "prose": {
-    "~/.claude/agents/opus-worker.md": 1655,
+    "~/.claude/attention/units.json": 462,
+    "~/.claude/agents/opus-worker.md": 1618,
     "~/.claude/agents/steward.md": 1461,
     "~/.claude/skills/hiden/SKILL.md": 9363,
     "~/.claude/skills/hiden/references/codex-review.md": 8419,
@@ -17,7 +18,7 @@
     "~/.claude/skills/hiden/references/judgment.md": 3619,
     "~/.claude/skills/hiden/references/orchestration.md": 8129,
     "~/.claude/skills/hiden/references/retro.md": 3122,
-    "~/.claude/skills/hiden/references/subagent-brief.md": 4027,
+    "~/.claude/skills/hiden/references/subagent-brief.md": 4026,
     "~/.claude/skills/hiden/references/verification.md": 6133,
     "~/.claude/skills/hiden/references/attention.md": 3792,
     "~/.claude/skills/hiden/references/git-tests.md": 3330,
