@@ -5,7 +5,7 @@
 ## 委任の原則
 
 - **続きの送り先:** 同じ領域の続き（ターン上限からの再開、レビューと simplify の修正、次の作業）は、キャッシュが温かいうちか、そのワークツリーや未コミットの変更が要るときだけ同じエージェントに送る（`SendMessage`、T3 Code では `t3_thread_send`）。それ以外は指示書・前の報告・ブランチを渡して新しく立てる。相談が届いたらその場で答える（待たせるとキャッシュが切れる）。
-- **T3 Code の中では:** 実装エージェントは `delegate_task`（`isolation: "worktree"`）の子として起動し、依頼文は固定の 1 行で `~/.claude/agents/opus-worker.md` の本文に従わせる（相談は `AskUserQuestion`）。子は通知で起こすので、`t3_thread_wait` や見回りで待たない。オーケストレーターは対象リポジトリの T3 プロジェクトの中で動かす。Claude のモデルと労力は成果を最大にする向きで選ぶ。Why: worktree 隔離は git の作業場所でしか使えず、トップレベルのスレッドで代用すると知らせ・push・後片付けを自前で作ることになる。
+- **T3 Code の中では:** 実装エージェントは `delegate_task`（`isolation: "worktree"`）の子として起動し、依頼文は固定の 1 行で `~/.claude/agents/opus-worker.md` の本文に従わせる（相談は `AskUserQuestion`）。子は通知で起こすので、`t3_thread_wait` や見回りで待たない。オーケストレーターは対象リポジトリの T3 プロジェクトの中で動かす。Claude のモデルと労力は成果を最大にする向きで選ぶ。
 - **長いセッションと compaction:** 本質と状態はキット（`state.md` か `NORTH.md`、`units.json`、`bin/board`）に置き、フックが開始と compaction の後に文脈へ戻す（[attention.md](attention.md)）。
 
 ## 1 PR の段
@@ -18,6 +18,7 @@
 4. **実装:** T3 Code の外では、`subagent_type: "opus-worker"`、`isolation: "worktree"` で 1 体ずつ起動する（専用のワークツリーが `agent-<id>` ブランチで作られる。PR の前に `git branch -m` で作業名に付け替える）。早めにこまめにコミットさせ、報告は [subagent-brief.md](subagent-brief.md) の「報告の確認」のとおりに確かめる。
 5. **PR とマージ:** [commit-pr.md](commit-pr.md) の手順で進める。委任しているときは次が加わる。
    - レビューと simplify で採った指摘はすべて台帳に記録する（[retro.md](retro.md)）。
+   - push は、そのワークツリーの worker が報告を終えてから行う。
    - simplify は Codex に報告だけをさせ、実装エージェントに適用させる。依頼文の冒頭で、途中で撤回した実装を名指しして残骸を探させる。
 
 ## 目的の層と計画の層
