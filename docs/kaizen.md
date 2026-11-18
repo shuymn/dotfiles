@@ -26,14 +26,14 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
    - 守りを緩めるのはオーナーだけ。守りとは、許可・破壊・外部・公開の線、フック、merge-pr、hiden の本質を指す。
    - kaizen の PR は、オーナーが GitHub の UI でマージする。
    - オーナーの決定は、週 1 回ほどにまとめる。開いている kaizen の PR は 1 本まで。
-   - 費用は 1 周期 50 ドル相当まで。周期は 1 日 1 回まで。
+   - 1 周期の Claude の費用は 50 ドル相当まで（Codex は別に数える）。周期は 1 日 1 回まで。
 
 ## 2. 証拠と、配る仕組み
 
 | 証拠（P はパイロット） | 設計への帰結 |
 |---|---|
 | P1: 短く整ったケースでは、hiden が無くても Opus は全部通った。進め方 4 の 1 行だけを消すと、hiden が無いときより悪くなった | 成果の合否では配分を比べられない。釣り合う組の行は、片方だけを取らない |
-| P2: 実際の判断点の文脈は数十万トークンあり、その長さで成果を試すと 1 周期で上限の数倍の費用になる | 成果のベンチマークは周期に入れない |
+| P2: 実際の判断点の文脈は長く、その長さで成果を試すと 1 周期の上限を大きく超える | 成果のベンチマークは周期に入れない |
 | P3: 埋もれた事実は、負荷によらず 100% 拾われた。落ちたのは既定の作法で、負荷によらなかった。作法とは、実際の入力で確かめる、修正を外してテストが落ちるのを見る、確認のラウンドを頼む、の 3 つ | 床は作法の側にある。単位はそこにだけ置く |
 | P3: 判断の直前に 1 単位だけ渡す配り方（just-in-time）は、hiden 全体の常駐に一度も負けなかった。worker の「落ちるのを見る」は 5/6 対 0/6 で、全体を常駐させるとこの作法が消えた | 束を常駐させず、判断点で 1 単位を渡す |
 | P3: description だけで置いた skill は、merge と format の 6 run で 1 回も呼ばれなかった（worker では試していない） | 床の単位を「必要時」に置かない |
@@ -120,7 +120,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 ## 4. 最初の変更（証拠の強い順）
 
-1. **worker の回帰テストの単位**（P3。基準を満たした唯一の差）: §3.2 のとおり、PostToolUse で届ける。指示書の句は消す。
+1. **worker の回帰テストの単位**（P3。基準を満たした唯一の差）: §3.2 のとおり、PostToolUse で届ける。指示書の句は、§3.2 と PR2 のとおり、配達を確かめた worker と作業の形についてだけ消す。
 2. **作業するセッションから meta の務めを取る**（原則 4）。P3 で全体の常駐が作法を消したことは、間接の裏付けにとどまる。meta の話が混ざる率は増えなかったので、強い証拠ではない。
    - SKILL.md の「手法を直すとき」を消す。
    - retro.md を消す。
@@ -160,7 +160,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - P3 の道具（build、run-jobs、score）を `scripts/kaizen/probe/` に置いて使う（PR2 で入れる）。
   - grader は事前に登録する。
   - 負荷は L2 の疑似の履歴。
-  - 2 腕 × 6 run。P3 の worker の実績は 1 run 0.29〜0.34 ドルで、合計 3.5〜4.1 ドル。
+  - 2 腕 × 6 run。短い疑似の履歴なので、1 回の probe は周期の上限の 1 割に収まる。
 - 判定の基準は「勝つ側が 5/6 以上」。結果は証拠として PR か提案に付ける。
 - 狙うのは作法の床だけにする。埋もれた事実は拾われるので、狙わない。
 
@@ -180,7 +180,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 **正直な限界**
 
-- 該当するセッションは週に数件から数十件しかない。検定はせず、数と元の行を数件並べる。
+- 該当するセッションは少ない。検定はせず、数と元の行を数件並べる。
 - 向きを言うのは、2 週以上かつ該当 10 件以上たまってから。はっきりした事故が 1 件あれば、revert を提案するには足りる。
 - 信号は regex とツール呼び出しで作るので粗い。元の行を 3 件出して、意図した項目を数えていることを確かめる。
 - 観測は窓が閉じたら外す。規則ごとの常設の telemetry は置かない。
@@ -220,7 +220,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - 費用: Claude の子は残りを上限として渡せる経路だけで走らせる（improver は `claude -p --max-budget-usd`、probe は `claude plugin eval --max-cost-usd`）。上限を渡せない段は走らせず判断事項にする。Codex のレビューは Claude の予算の外で数え、digest に回数を出す。
 
 **マージの後（適用）:**
-- 次の周期が、次の全部を満たすときだけ、そのマージのコミットから管理パスを `chezmoi apply` する。退避は `chezmoi-backup.sh` が行う。
+- 対象は、管理パスの一覧に入る chezmoi のソースが生成・削除するホーム側のターゲット（`docs/kaizen.md` や `scripts/kaizen/**` は含まない）。次の周期が、次の全部を満たすときだけ、そのマージのコミットから対象を `chezmoi apply` する。退避は `chezmoi-backup.sh` が行う。
   - 適用に使うチェックアウトが、main のそのマージのコミットにあり、作業ツリーが清潔。
   - 適用の前の live が、前回に適用したソースと一致する（オーナーや別のセッションの編集が無い）。
   - 第一親とマージのコミットのソースを同じ入力（`host.toml` と live の settings など）で描画した対象の差分が、live に対する `chezmoi diff` と一致する（`modify_` で生成する settings.json も描画の結果で比べる）。
@@ -229,11 +229,11 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 | ID | 準備状態（モデルが最善を出せる注意の環境か。それを確かめられるか） | 検査 | FAIL のとき |
 |---|---|---|---|
-| R1 | 管理パスの live が source と一致する | 管理パスに絞った `chezmoi diff` | 上の「マージの後（適用）」の条件を満たせば apply する。満たさなければ判断事項 |
+| R1 | 適用の対象（上の「対象」）の live が source と一致する | 対象に絞った `chezmoi diff` | 上の「マージの後（適用）」の条件を満たせば apply する。満たさなければ判断事項 |
 | R2 | 配達が効く | settings の登録を見る。fixture をフックに渡し、worker がテストを書くと単位が出て、親と他の役割と同じ worker の 2 回目では出ないことを確かめる | owner |
 | R3 | 常駐の量が上限内にある | `attention-budget.py status` に OVER が無い | improver の候補 |
 | R4 | 観測できる | transcript と Codex の記録が読める。`gh auth status` が通る | 認証は owner |
-| R5 | 周期が生きている | 最後の run が 3 日以内。開いている kaizen PR が 14 日以内。未適用のマージが無い | digest |
+| R5 | 周期が生きている | 今の run より前に完了した最後の run が 3 日以内。開いている kaizen PR が 14 日以内。未適用のマージが無い | digest |
 
 作業するセッションの文に meta の務めが戻っていないかは、文を変える差分のレビューで見る（語の一覧での検査は言い換えを拾えないので置かない）。
 
@@ -260,12 +260,12 @@ PR はすべてオーナーが UI でマージする。
 | PR0（オーナーの作業） | live と source のずれを、`/wasure` の hiden の差分の判定だけを使って解消する | オーナーが採った差分が source に入り、hiden、agents、items の承認済みの対象で live と source が一致する |
 | PR1 | 守り: 管理パスの一覧、merge-pr の拒否、公開の検査、AGENTS.md の一文 | merge-pr が拒否する: 一覧の各種のパス（`home/.chezmoiremove`、`home/.chezmoiignore` を含む）に触れる試験 PR、一覧そのものを直す PR、一覧が読めない場合。管理パスに触れない PR は通る。公開の検査が拒否する: 途中のコミットだけにあるローカルのパス、PR 本文だけにあるローカルのパス。オーナーが UI で auto-merge を有効にして必須チェックが走ることを、この PR 自身で確かめる |
 | PR2 | 回帰テストの単位: `scripts/kaizen/probe/`、`attention/units.json`、`orchestration-context.py` の PostToolUse の分岐、settings の PostToolUse の登録、items の `report`・`carry-through` の削除と `scope` の畳み込み、items を通常の管理ファイルにする。指示書の句は、実際の配達を確かめた worker と作業の形についてだけ外す | (1) probe で PostToolUse と開始時の注入を比べ、結果を記録した。(2) fixture のテスト: ネイティブの `opus-worker` で `agent_id` ごとに 1 回だけ出て、親、他の役割、同じ worker の 2 回目では出ない。(3) 実際の worker の子 1 件で配達を確かめた（probe とは別に記録する）。(4) 基準値を記録した。(5) budget に OVER が無く、上限を下げた |
-| PR3 | 周期: `scripts/kaizen/{cycle.md,writing.md,observe.py,ready.py}`、schedule、ステータスライン | 何も無い日、証拠がある日、段が失敗した日のどれでも、schedule から settle まで通り、記録が残る。わざと壊した R2 が FAIL になる。digest が毎日出る。observe が実際のログを一度読み切る。費用の記録が 50 ドル以下 |
-| PR4 | orchestrator から取る分（§4 の 2〜5）。AGENTS.md の Upkeep を「セッションは live の hiden を書き換えない」に直す | PR3 の observe が実際のログを読めた後に出す。fixture のテストが通る。量が §4 の目安に収まり、上限を下げた。Codex のレビューで失った判断が無い。リンクが解決する |
+| PR3 | 周期: `scripts/kaizen/{cycle.md,writing.md,observe.py,ready.py}`、§6 の条件付きの apply、schedule、ステータスライン | 何も無い日、証拠がある日、段が失敗した日のどれでも、schedule から settle まで通り、記録が残る。apply は、条件を満たす fixture で適用し、live の編集・汚れたチェックアウト・描画の差分の不一致の各 fixture で拒否して判断事項にする。わざと壊した R2 が FAIL になる。digest が毎日出る。observe が実際のログを一度読み切る。Claude の費用の記録が 50 ドル以下 |
+| PR4 | orchestrator から取る分（§4 の 2、3、5 と、4 のうち PR2 で済ませた items 以外）。AGENTS.md の Upkeep を「セッションは live の hiden を書き換えない」に直す | PR3 の observe が実際のログを読めた後に出す。fixture のテストが通る。量が §4 の目安に収まり、上限を下げた。Codex のレビューで失った判断が無い。リンクが解決する |
 
 ## 8. 退けた案
 
-- 成果のベンチマーク（plugin eval）をゲートにする: 天井効果があり、実際の長さでは 1 周期 150 ドルを超える。
+- 成果のベンチマーク（plugin eval）をゲートにする: 天井効果があり、実際の長さでは周期の上限を大きく超える。
 - 実使用で A/B をする: 1 人では検出力が無く、並行するセッションが別の指示で動いてしまう。
 - 選択式の状況テスト: 天井に当たり、言うことと行動が食い違う。
 - worker に hiden の全体か worker 用の抜粋を常駐させる: P3 で just-in-time に負けた（抜粋との比較は 3 run だけ）。
