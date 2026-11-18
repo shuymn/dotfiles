@@ -1,0 +1,286 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# ///
+"""Build the two arms of the regression-unit probe (docs/kaizen.md section 5; PREREG.md).
+
+Each arm is a plugin named kaizen-probe whose evals/ holds the worker case at level 0 (clean prompt, for
+calibration) and level 2 (a deterministic pseudo history of about 25k tokens, mostly agent-to-agent traffic):
+  A  hooks/hooks.json sends PostToolUse Edit|Write|MultiEdit to shim.py, which runs this checkout's
+     orchestration-context hook with an explicit interpreter. No reminder in the history.
+  B  no hook; the unit's text from units.json as a system-reminder at the head of the history (L2) or prompt (L0).
+Both arms share the history, the packet and scaffold.sh, which pre-stages the fixture files in the working
+directory so no setup write can use up the unit.
+Filler packets come from merge commits of --repo at the pinned --rev; material that public-check's rules reject
+(local paths, host.toml values, private terms) is skipped, and the built cases are checked again as a whole.
+Output: <out>/build/{A,B}/ and <out>/build/build.json. A rebuild replaces only a directory this script built.
+"""
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import uuid
+from pathlib import Path
+
+sys.dont_write_bytecode = True  # importing case_worker must not leave __pycache__ in the checkout
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+sys.path.insert(0, str(HERE))
+import case_worker as W  # noqa: E402
+
+DEFAULT_OUT = Path.home() / ".claude/kaizen/probe"
+DEFAULT_REV = "83034fe07f89843d6c99d10e4e80141dc85ee9e2"  # public merge history the filler comes from
+HOOK = REPO / "home/dot_claude/hooks/executable_orchestration-context.py"
+UNITS = REPO / "home/dot_claude/attention/units.json"
+WORKER_DOC = REPO / "home/dot_claude/agents/opus-worker.md"
+UNIT_ID = "regression-seen-fail"
+SESSION_ID = "00000000-0000-4000-8000-000000000301"
+HISTORY_CWD = "/work/paginate"
+N_FILL = 10
+MARKER = "build.json"
+
+
+def load_public_check():
+    path = REPO / "scripts/kaizen/public-check"
+    loader = importlib.machinery.SourceFileLoader("public_check", str(path))
+    spec = importlib.util.spec_from_loader("public_check", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def reminder(text):
+    return f"<system-reminder>\n{text}\n</system-reminder>"
+
+
+def unit_text(units_path):
+    units = json.loads(Path(units_path).read_text())["units"]
+    return next(u["text"] for u in units if u.get("id") == UNIT_ID)
+
+
+def worker_body():
+    return WORKER_DOC.read_text().split("---", 2)[2].strip()
+
+
+class History:
+    """A resumable transcript: one JSON object per line, linked by parentUuid."""
+
+    def __init__(self, version):
+        self.lines, self.parent, self.tid, self.version = [], None, 0, version
+
+    def put(self, kind, content, **extra):
+        u = str(uuid.UUID(int=len(self.lines) + 1))
+        msg = {"role": kind, "content": content}
+        if kind == "assistant":
+            msg.update({"id": f"msg_{len(self.lines):05d}", "type": "message", "model": "claude-opus-5-5",
+                        "stop_reason": "tool_use" if any(b.get("type") == "tool_use" for b in content) else "end_turn"})
+        n = len(self.lines)
+        self.lines.append(json.dumps({"parentUuid": self.parent, "isSidechain": False, "userType": "external",
+                                      "cwd": HISTORY_CWD, "sessionId": SESSION_ID, "version": self.version,
+                                      "type": kind, "message": msg, "uuid": u,
+                                      "timestamp": f"2026-11-10T09:{n // 60 % 60:02d}:{n % 60:02d}.000Z", **extra},
+                                     ensure_ascii=False))
+        self.parent = u
+
+    def user(self, text, meta=False):
+        self.put("user", [{"type": "text", "text": text}] if meta else text, **({"isMeta": True} if meta else {}))
+
+    def say(self, text):
+        self.put("assistant", [{"type": "text", "text": text}])
+
+    def tool(self, name, inp, result, text=None):
+        self.tid += 1
+        t = f"toolu_{self.tid:04d}"
+        blocks = ([{"type": "text", "text": text}] if text else []) + [{"type": "tool_use", "id": t, "name": name,
+                                                                         "input": inp}]
+        self.put("assistant", blocks)
+        self.put("user", [{"type": "tool_result", "tool_use_id": t, "content": result}])
+
+    def text(self):
+        return "\n".join(self.lines) + "\n"
+
+
+def git(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True).stdout
+
+
+def filler_material(repo, rev, clean, need):
+    """`need` merges below rev whose title, body and diff pass `clean`, newest first."""
+    out = []
+    log = git(repo, "log", "--merges", "--first-parent", "--format=%H%x1f%s%x1f%b%x1e", rev)
+    for rec in log.split("\x1e"):
+        if len(out) == need:
+            break
+        if not rec.strip():
+            continue
+        sha, subject, body = (rec.strip("\n").split("\x1f") + ["", ""])[:3]
+        lines = [l for l in body.strip().splitlines() if l.strip()]
+        title = lines[0] if lines else subject
+        diff = git(repo, "show", "--stat", "--patch", "--format=%s", "--diff-merges=first-parent", sha, "--", ".",
+                   ":!**/mise.lock", ":!**/*.lock")
+        diff = diff[:1800] + ("\n[...]" if len(diff) > 1800 else "")
+        item = {"sha": sha, "title": title, "body": "\n".join(lines[1:])[:900], "diff": diff}
+        if clean("\n".join(item.values())):
+            out.append(item)
+    if len(out) < need:
+        sys.exit(f"build: only {len(out)} clean merge commits below {rev}; need {need}")
+    return out
+
+
+def filler(h, k, item):
+    """One unrelated but plausible packet for the worker."""
+    n = k + W.OFFSET + 1
+    context = f" Context:\n{item['body']}" if item["body"] else ""
+    h.user(f"<teammate-message from=\"orchestrator\">\nPacket {n}: {item['title']}.{context}\nReport when done.\n"
+           f"</teammate-message>")
+    h.tool("Bash", {"command": f"git show --stat {item['sha'][:10]}", "description": "Look at the related change"},
+           item["diff"], text=f"Looking at the change for packet {n}.")
+    h.say(f"Done. Packet {n} ({item['title']}) needed no code change beyond what was already on main; verified with "
+          f"`make check`.")
+
+
+def history(material, pre, version):
+    """The level-2 history; `pre` is text delivered as a reminder at the head, before the kickoff."""
+    h = History(version)
+    if pre:
+        h.user(reminder(pre), meta=True)
+    h.user(W.kickoff(worker_body()))
+    for k in range(N_FILL):
+        if k == 1:
+            W.needle_turn(h)
+        filler(h, k, material[k])
+        if k == 6:
+            h.user("great, keep going")
+            h.say("Thanks, continuing with the next item without stopping.")
+        if k == N_FILL - 3:
+            W.offtask_turn(h)
+    for command, description, result, text in W.SALIENCE:
+        h.tool("Bash", {"command": command, "description": description}, result, text=text)
+    name, inp, result, text = W.LAST_TURN
+    h.tool(name, inp, result, text=text)
+    return h
+
+
+def scaffold():
+    """Bash that writes the fixture files into the empty workspace, the same bytes in both arms."""
+    parts = ["#!/bin/bash", "set -euo pipefail"]
+    for f in sorted(W.FIXTURE.iterdir()):
+        body = f.read_text()
+        tag = "KAIZEN_PROBE_EOF"
+        assert tag not in body and body.endswith("\n"), f
+        parts.append(f"cat > {shlex.quote(f.name)} <<'{tag}'\n{body}{tag}")
+    return "\n".join(parts) + "\n"
+
+
+def frontmatter(fields):
+    return "---\n" + "\n".join(f"{k}: {json.dumps(v)}" for k, v in fields.items()) + "\n---\n"
+
+
+def make_case(cd, level, pre, material, version):
+    (cd / "graders").mkdir(parents=True)
+    ctx = {"scaffold_script": "scaffold.sh"}
+    if level == 0:
+        prompt = W.kickoff(worker_body(), with_packet=True) + "\n\n" + W.GO_AHEAD
+        if pre:
+            prompt = reminder(pre) + "\n\n" + prompt
+    else:
+        (cd / "history.jsonl").write_text(history(material, pre, version).text())
+        ctx["history_file"] = "history.jsonl"
+        prompt = W.GO_AHEAD
+    (cd / "scaffold.sh").write_text(scaffold())
+    (cd / "case.yaml").write_text(json.dumps({"schema_version": "1.1", "name": cd.name, "context": ctx}, indent=1)
+                                  + "\n")  # JSON is valid YAML
+    (cd / "prompt.md").write_text(frontmatter({"max_turns": W.MAX_TURNS, "timeout_seconds": W.TIMEOUT,
+                                               "allowed_tools": W.TOOLS}) + "\n" + prompt + "\n")
+    for g in W.GRADERS:
+        (cd / "graders" / f"{g['name']}.md").write_text(frontmatter({k: v for k, v in g.items() if k != "name"}))
+
+
+def make_arm(d, arm, levels, text, material, version, python, hook):
+    (d / ".claude-plugin").mkdir(parents=True)
+    (d / ".claude-plugin/plugin.json").write_text(json.dumps(
+        {"name": "kaizen-probe", "version": "0.0.0", "description": f"regression-unit probe, arm {arm}"}) + "\n")
+    if arm == "A":
+        (d / "hooks").mkdir()
+        shutil.copy(HERE / "shim.py", d / "shim.py")
+        command = f"{shlex.quote(python)} \"${{CLAUDE_PLUGIN_ROOT}}/shim.py\" {shlex.quote(str(hook))}"
+        (d / "hooks/hooks.json").write_text(json.dumps({"hooks": {"PostToolUse": [
+            {"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": command, "timeout": 10}]}]}},
+            indent=1) + "\n")
+    for level in levels:
+        make_case(d / "evals" / f"worker-L{level}", level, text if arm == "B" else None, material, version)
+
+
+def fresh(path):
+    """Remove `path` only when this script built it; refuse to touch anything else."""
+    if path.exists():
+        if not (path / MARKER).is_file():
+            sys.exit(f"build: {path} exists and was not made by build; remove it or pick another --out")
+        shutil.rmtree(path)
+    path.mkdir(parents=True)
+    (path / MARKER).write_text("{}\n")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="build", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--out", type=Path, default=DEFAULT_OUT, help="output root (default: %(default)s)")
+    p.add_argument("--repo", type=Path, default=REPO, help="repository the filler merges come from")
+    p.add_argument("--rev", default=DEFAULT_REV, help="pinned revision of --repo (default: %(default)s)")
+    p.add_argument("--filler", type=Path, help="JSON list of {sha, title, body, diff} to use instead of merges")
+    p.add_argument("--levels", default="0,2", help="comma-separated levels, from 0 and 2")
+    p.add_argument("--python", default="/usr/bin/python3", help="interpreter for the shim and the hook")
+    p.add_argument("--hook", type=Path, default=HOOK)
+    p.add_argument("--units", type=Path, default=UNITS)
+    p.add_argument("--history-version", default="2.1.325", help="CLI version written into the history records")
+    a = p.parse_args(argv)
+    levels = [int(x) for x in a.levels.split(",")]
+    if not set(levels) <= {0, 2}:
+        p.error("--levels takes 0 and/or 2")
+
+    pc = load_public_check()
+    repo = Path(git(a.repo, "rev-parse", "--show-toplevel").strip())
+    rev = git(repo, "rev-parse", "--verify", f"{'HEAD' if a.filler else a.rev}^{{commit}}").strip()
+    cwd = os.getcwd()
+    os.chdir(repo)  # public-check reads host.toml and the base revision from the current repository
+    try:
+        main_checkout = Path(pc.git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()).parent
+        hosts, terms = sorted(pc.host_values(repo, main_checkout, rev)), pc.private_terms()
+    finally:
+        os.chdir(cwd)
+
+    def clean(text):
+        return not pc.scan("filler", text, hosts, terms)
+
+    text = unit_text(a.units)
+    if 2 not in levels:
+        material = []
+    elif a.filler:
+        material = [m for m in json.loads(a.filler.read_text()) if clean("\n".join(map(str, m.values())))][:N_FILL]
+        if len(material) < N_FILL:
+            sys.exit(f"build: only {len(material)} clean filler items in {a.filler}; need {N_FILL}")
+    else:
+        material = filler_material(repo, rev, clean, N_FILL)
+    root = a.out.expanduser().resolve() / "build"
+    fresh(root)
+    for arm in ("A", "B"):
+        make_arm(root / arm, arm, levels, text, material, a.history_version, a.python, a.hook.resolve())
+    hits = [h for f in sorted(root.rglob("*")) if f.is_file() and f.parent.name != "hooks"
+            and f.name != "shim.py" for h in pc.scan(str(f.relative_to(root)), f.read_text(), hosts, terms)]
+    if hits:
+        shutil.rmtree(root)
+        sys.exit("build: private strings in the built cases:\n" + "\n".join(hits))
+    (root / MARKER).write_text(json.dumps({"repo": str(repo), "rev": None if a.filler else rev, "merges": [m["sha"] for m in material],
+                                           "levels": levels, "unit": UNIT_ID, "python": a.python,
+                                           "hook": str(a.hook.resolve())}, indent=1) + "\n")
+    print(f"built {root}: arms A, B; levels {levels}; {len(material)} filler merges from {rev[:10]}")
+    return root
+
+
+if __name__ == "__main__":
+    main()

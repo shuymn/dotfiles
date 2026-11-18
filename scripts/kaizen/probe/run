@@ -1,0 +1,205 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# ///
+"""Run built probe arms through `claude plugin eval`, one eval call per run, under a cost envelope (PREREG.md).
+
+Each run gets its own directory <out>/runs/<case>-<arm>-<slot>/ holding a fresh HOME and TMPDIR (also exported as
+EVAL_KAIZEN_PROBE_TMPDIR for the shim), so live hooks and settings never load and unit markers never cross runs.
+The real `claude` executable is resolved before HOME changes. Every call passes --no-publish, --scaffold (the
+fixture is pre-staged), the case's tool grants and --max-cost-usd = the envelope minus all spend recorded under
+<out>; no run starts once less than --min-remaining is left. Jobs run in shuffled order; a slot whose directory
+exists is skipped, so an interrupted round resumes. Calls run one at a time, so the envelope is exact up
+to the one run in flight. An errored run with no turns is rerun once (<dir>-r1).
+After each run the trace, the session transcripts and shim.log are copied into the run directory, then the
+eval's kept temp directory named by this run's tracePath (only if it appeared after launch) and the run's HOME and
+TMPDIR are deleted. Nothing else is removed.
+--dry-run prints the commands without running or creating anything.
+"""
+import argparse
+import json
+import os
+import random
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True  # importing case_worker must not leave __pycache__ in the checkout
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import case_worker as W  # noqa: E402
+
+DEFAULT_OUT = Path.home() / ".claude/kaizen/probe"
+RESULT = "eval-result.json"
+E_DIR = re.compile(r"^e-[A-Za-z0-9]+$")
+
+
+def resolve_claude(given=None):
+    """The real executable, not a version-manager shim that would look for its config under the new HOME."""
+    if given:
+        path = shutil.which(given) or given
+    elif shutil.which("mise"):
+        r = subprocess.run(["mise", "which", "claude"], capture_output=True, text=True)
+        path = r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else shutil.which("claude")
+    else:
+        path = shutil.which("claude")
+    if not path or not os.access(path, os.X_OK):
+        sys.exit("run: cannot find the claude executable; pass --claude")
+    return os.path.realpath(path)
+
+
+def spent(out):
+    """All spend recorded under out, calibration and reruns included."""
+    total = 0.0
+    for f in out.rglob(RESULT):
+        try:
+            total += json.loads(f.read_text()).get("costUsd") or 0
+        except (OSError, ValueError):
+            continue
+    return total
+
+
+def run_env(rundir, base=None):
+    home, tmp = rundir / "home", rundir / "tmp"
+    return {**(os.environ if base is None else base), "HOME": str(home), "TMPDIR": str(tmp),
+            "EVAL_KAIZEN_PROBE_TMPDIR": str(tmp)}
+
+
+def command(claude, armdir, case, rundir, max_cost, model):
+    return [claude, "plugin", "eval", str(armdir), "--case", case, "--runs", "1", "--ablation", "none",
+            "--trust-plugin", "--no-publish", "--scaffold", "--concurrency", "1", "--max-cost-usd", f"{max_cost:.2f}",
+            "--threshold", "0", "--model", model, "--keep-temp", "--allow-tools", *W.GRANT,
+            "--output-dir", str(rundir / "eval-out"), "--json", str(rundir / RESULT)]
+
+
+def wipe(root):
+    """rmtree that first makes directories writable (the sandbox leaves some read-only)."""
+    for d, dirs, _ in os.walk(root):
+        for name in dirs:
+            p = os.path.join(d, name)
+            if not os.path.islink(p):
+                os.chmod(p, 0o700)
+    os.chmod(root, 0o700)
+    shutil.rmtree(root)
+
+
+def e_dir_candidates(rundir):
+    return [Path("/tmp"), Path("/private/tmp"), rundir / "tmp"]
+
+
+def snapshot(rundir):
+    return {str(p.resolve() / n) for p in e_dir_candidates(rundir) if p.is_dir()
+            for n in os.listdir(p) if E_DIR.match(n)}
+
+
+def runs_of(result):
+    return [r for c in result.get("cases", []) for r in c.get("arms", {}).get("with", [])]
+
+
+def harvest(rundir, before):
+    """Copy the trace, transcripts and shim log; delete the run's own temp directories. Returns the eval result."""
+    res = rundir / RESULT
+    result = json.loads(res.read_text()) if res.exists() else {}
+    for run in runs_of(result):
+        tp = Path(run.get("tracePath") or "")
+        if tp.is_file():
+            shutil.copy(tp, rundir / "trace.jsonl")
+        e = next((a for a in tp.parents if E_DIR.match(a.name)), None) if tp.name else None
+        if e is None or not e.is_dir():
+            continue
+        projects = e / "config" / "projects"
+        if projects.is_dir():
+            for f in projects.rglob("*.jsonl"):
+                dst = rundir / "transcripts" / f.relative_to(projects)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(f, dst)
+        owned = str(e.resolve()) not in before and any(e.resolve().parent == p.resolve()
+                                                         for p in e_dir_candidates(rundir) if p.exists())
+        if owned:
+            wipe(e)
+        else:
+            print(f"run: left {e} (not created by this run)", file=sys.stderr)
+    log = rundir / "tmp" / "shim.log"
+    if log.is_file():
+        shutil.copy(log, rundir / "shim.log")
+    for d in (rundir / "home", rundir / "tmp"):
+        if d.exists():
+            wipe(d)
+    return result
+
+
+def one(a, claude, case, arm, slot, attempt, remaining_budget):
+    name = f"{case}-{arm}-{slot}" + (f"-r{attempt - 1}" if attempt > 1 else "")
+    rundir = a.out / "runs" / name
+    remaining = remaining_budget()
+    if remaining is None:
+        print(f"SKIP {name}: less than ${a.min_remaining:.2f} of the ${a.budget:.2f} envelope left", flush=True)
+        return None
+    cmd = command(claude, a.out / "build" / arm, case, rundir, remaining, a.model)
+    if a.dry_run:
+        env = run_env(rundir, {})
+        print(" ".join(f"{k}={v}" for k, v in env.items()) + " " + " ".join(cmd), flush=True)
+        return None
+    rundir.mkdir(parents=True)
+    for d in ("home", "tmp"):
+        (rundir / d).mkdir()
+    before = snapshot(rundir)
+    started = time.time()
+    with open(rundir / "eval.out", "w") as so, open(rundir / "eval.err", "w") as se:
+        rc = subprocess.run(cmd, stdout=so, stderr=se, env=run_env(rundir), cwd=rundir).returncode
+    result = harvest(rundir, before)
+    runs = runs_of(result)
+    meta = {"case": case, "arm": arm, "slot": slot, "attempt": attempt, "exit": rc, "started": started,
+            "seconds": round(time.time() - started), "maxCostUsd": round(remaining, 2),
+            "claudeVersion": result.get("claudeVersion"), "costUsd": result.get("costUsd")}
+    (rundir / "meta.json").write_text(json.dumps(meta, indent=1) + "\n")
+    print(f"{name} exit={rc} cost=${result.get('costUsd') or 0:.2f} turns={[r.get('turns') for r in runs]}", flush=True)
+    errored = not runs or all(r.get("error") and not r.get("turns") for r in runs)
+    if errored and attempt == 1:
+        return one(a, claude, case, arm, slot, 2, remaining_budget)
+    return rundir
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--out", type=Path, default=DEFAULT_OUT, help="output root holding build/ (default: %(default)s)")
+    p.add_argument("--case", default="worker-L2", help="case name: worker-L2 (probe) or worker-L0 (calibration)")
+    p.add_argument("--arms", default="A,B")
+    p.add_argument("--runs", type=int, default=6, help="runs per arm")
+    p.add_argument("--budget", type=float, default=5.00, help="total USD envelope for everything under --out")
+    p.add_argument("--min-remaining", type=float, default=0.50, help="start no run with less than this left")
+    p.add_argument("--model", default="opus")
+    p.add_argument("--claude", help="claude executable (default: `mise which claude`, else PATH)")
+    p.add_argument("--dry-run", action="store_true")
+    a = p.parse_args(argv)
+    a.out = a.out.expanduser().resolve()
+    arms = a.arms.split(",")
+    for arm in arms:
+        if not (a.out / "build" / arm / "evals" / a.case).is_dir():
+            sys.exit(f"run: no case {a.case} in {a.out / 'build' / arm}; run build first")
+    claude = resolve_claude(a.claude)  # before any HOME change
+
+    jobs = [(arm, slot) for slot in range(a.runs) for arm in arms
+            if not (a.out / "runs" / f"{a.case}-{arm}-{slot}").exists()]
+    random.SystemRandom().shuffle(jobs)
+    if not a.dry_run:
+        (a.out / "runs").mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%dT%H%M%S")
+        (a.out / "runs" / f"order-{a.case}-{stamp}.json").write_text(json.dumps(jobs) + "\n")
+
+    def remaining():
+        left = a.budget - spent(a.out)
+        return left if left >= a.min_remaining else None
+
+    for arm, slot in jobs:
+        one(a, claude, a.case, arm, slot, 1, remaining)
+    if not a.dry_run:
+        print(f"{a.case}: spent ${spent(a.out):.2f} of ${a.budget:.2f} under {a.out}", flush=True)
+
+
+if __name__ == "__main__":
+    main()
