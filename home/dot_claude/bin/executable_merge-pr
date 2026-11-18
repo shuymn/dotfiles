@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Merge a PR now, only on the head that was checked, then read the result back.
+# Usage: merge-pr <pr-number> <head-sha-or-prefix> [--merge|--squash|--rebase] [--delete-branch]
+#                 [--subject <text>] [--body <text>] [--allow-no-checks]
+# Run inside a checkout of the PR's repository (GH_REPO is refused, so every read, the merge and the repository's
+# own check see the same repository). It refuses unless the head is the one given, the PR is open, ready and
+# mergeable, every check on the head passed (a failing check that is not required also refuses; no checks at all
+# refuses unless --allow-no-checks), no fixup!/amend!/squash! commit is left for a non-squash merge, and
+# <repo root>/.claude/merge-check <pr> <head> passes when that file is executable (repository-specific checks such
+# as benchmarks or frozen oracles). Auto-merge, merge queues and --admin are out of scope: it merges synchronously.
+set -euo pipefail
+die() { echo "merge-pr: $*" >&2; exit 1; }
+usage="usage: merge-pr <pr-number> <head-sha> [--merge|--squash|--rebase] [--delete-branch] [--subject s] [--body b] [--allow-no-checks]"
+pr=${1:?$usage}
+want=${2:?$usage}
+shift 2
+[[ $pr =~ ^[0-9]+$ ]] || die "pass the PR number, not '$pr'"
+[[ $want =~ ^[0-9a-f]{7,40}$ ]] || die "pass the head SHA (7-40 hex digits), not '$want'"
+[[ -z ${GH_REPO:-} ]] || die "run inside the PR's repository instead of setting GH_REPO"
+
+method='' allow_no_checks='' flags=()
+while (($#)); do
+  case $1 in
+    --merge|--squash|--rebase) [[ -z $method ]] || die "pass one merge method"; method=$1 ;;
+    --delete-branch) flags+=("$1") ;;
+    --subject|--body) (($# >= 2)) || die "$1 needs a value"; flags+=("$1" "$2"); shift ;;
+    --allow-no-checks) allow_no_checks=1 ;;
+    *) die "unsupported option '$1'. $usage" ;;
+  esac
+  shift
+done
+
+for _ in 1 2 3 4 5; do
+  view=$(gh pr view "$pr" --json headRefOid,state,isDraft,mergeable,baseRefName)
+  [[ $(jq -r .mergeable <<<"$view") != UNKNOWN ]] && break
+  sleep 3
+done
+head=$(jq -r .headRefOid <<<"$view")
+[[ $head == "$want"* ]] || die "head is $head, not $want: check the new head first"
+[[ $(jq -r .state <<<"$view") == OPEN ]] || die "PR $pr is not open"
+[[ $(jq -r .isDraft <<<"$view") == false ]] || die "PR $pr is a draft"
+mergeable=$(jq -r .mergeable <<<"$view")
+[[ $mergeable == MERGEABLE ]] || die "PR $pr is not mergeable ($mergeable; UNKNOWN means GitHub has not decided yet, retry)"
+
+repo=$(gh repo view --json nameWithOwner,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed)
+base=$(jq -r .baseRefName <<<"$view")
+if gh api "repos/$(jq -r .nameWithOwner <<<"$repo")/rules/branches/$base" -q '.[].type' 2>/dev/null | grep -qx merge_queue; then
+  die "$base merges through a merge queue, which merge-pr does not handle"
+fi
+if [[ -z $method ]]; then
+  allowed=$(jq -r '[if .mergeCommitAllowed then "--merge" else empty end, if .squashMergeAllowed then "--squash" else empty end,
+                    if .rebaseMergeAllowed then "--rebase" else empty end] | join(" ")' <<<"$repo")
+  [[ -n $allowed && $allowed != *" "* ]] || die "the repository allows '$allowed': pass --merge, --squash or --rebase"
+  method=$allowed
+fi
+if [[ $method != --squash ]]; then
+  commits=$(gh pr view "$pr" --json commits -q '.commits[].messageHeadline') || die "could not read the PR's commits"
+  marked=$(grep -E '^(fixup|amend|squash)! ' <<<"$commits" || true)
+  [[ -z $marked ]] || die "fold these commits first (git rebase --autosquash), then check the new head:
+$marked"
+fi
+
+err=$(mktemp)
+trap 'rm -f "$err"' EXIT
+if checks=$(gh pr checks "$pr" --json name,bucket 2>"$err") && jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
+  bad=$(jq -r '.[] | select(.bucket != "pass" and .bucket != "skipping") | "\(.bucket)\t\(.name)"' <<<"$checks")
+  [[ -z $bad ]] || die "not every check on $head passed (pending: wait and rerun):
+$bad"
+elif [[ $checks == "[]" ]] || grep -q "no checks reported" "$err"; then
+  [[ -n $allow_no_checks ]] || die "no checks ran on $head yet; wait for CI, or pass --allow-no-checks for a repository without CI"
+else
+  die "could not read the checks: $(cat "$err")"
+fi
+
+root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [[ -n $root && -x $root/.claude/merge-check ]]; then
+  "$root/.claude/merge-check" "$pr" "$head" || die "$root/.claude/merge-check refused"
+fi
+
+gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"}
+result=$(gh pr view "$pr" --json state,mergeCommit -q '"\(.state) \(.mergeCommit.oid // "" | .[0:9])"')
+echo "$result"
+[[ $result == MERGED* ]] || die "PR $pr is not merged ($result): the repository may queue merges, which merge-pr does not handle"
