@@ -350,13 +350,17 @@ class SettingsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as home:
             env = {k: v for k, v in os.environ.items() if not k.startswith("XDG_")}
             env["HOME"] = home
+            local_hook = {"matcher": "Read", "hooks": [{"type": "command", "command": "local-hook.sh"}]}
             existing = {"model": "sonnet", "localOnly": {"keep": True},
-                        "permissions": {"additionalDirectories": ["/srv/shared"]}, "hooks": {"PostToolUse": []}}
+                        "permissions": {"additionalDirectories": ["/srv/shared"]},
+                        "hooks": {"PostToolUse": [local_hook], "Notification": [local_hook]}}
             p = subprocess.run(["/bin/sh", str(SETTINGS)], input=json.dumps(existing), capture_output=True, text=True,
                                env=env, timeout=60)
         self.assertEqual(p.returncode, 0, p.stderr)
         out = json.loads(p.stdout)
         self.assert_hooks(out["hooks"])
+        # The template owns the whole hooks key: local hooks are replaced, not merged.
+        self.assertEqual(out["hooks"], managed_hooks())
         self.assertEqual((out["model"], out["localOnly"]), ("sonnet", {"keep": True}))
         self.assertEqual(out["permissions"]["additionalDirectories"], ["/srv/shared"])
         self.assertIn("Bash(git:*)", out["permissions"]["allow"])
