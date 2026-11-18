@@ -119,11 +119,26 @@ fi
 if [[ -n $patterns ]]; then
   git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q --no-tags origin "refs/pull/$pr/head" ||
     die "could not fetch the head of PR $pr"
+  # In a shallow clone, a boundary commit inside the range reads as a root, whose deletions git log leaves out.
+  shallow=$(git rev-parse --git-path shallow)
+  boundary() { [[ -s $shallow ]] && grep -qxFf "$shallow" <<<"$(git rev-list "$base_sha..$head")"; }
+  for _ in 1 2 3 4 5; do
+    boundary || break
+    git fetch -q --no-tags --deepen=100 origin "refs/pull/$pr/head" || break
+  done
+  ! boundary || unreadable "the history of PR $pr is still cut short by the shallow clone"
   # Every commit the PR adds, not the net diff, which depends on where the base is: a PR that reverts an unmerged
-  # managed change would undo it once that change lands. -m lists a merge's changes against each parent; without
-  # renames, a file moved out of a managed path is listed under its old path too.
-  git log --format= --name-only -z --no-renames --no-relative -m "$base_sha..$head" >"$changed" ||
-    die "could not list the files PR $pr's commits touch"
+  # managed change would undo it once that change lands. Merges are listed against each parent; without renames, a
+  # file moved out of a managed path is listed under its old path too.
+  git log --format= --name-only -z --no-renames --no-relative --diff-merges=separate --no-show-signature \
+    "$base_sha..$head" >"$changed" || die "could not list the files PR $pr's commits touch"
+  # The merge result too: a base-side rename can carry the PR's edit into a managed path.
+  if tree=$(git merge-tree --write-tree "$base_sha" "$head"); then
+    git diff --name-only -z --no-renames --no-relative "$base_sha" "${tree%%$'\n'*}" >>"$changed" ||
+      die "could not list the files the merge of PR $pr changes"
+  else
+    unreadable "PR $pr does not merge cleanly into origin/$base here, so GitHub cannot merge it cleanly either"
+  fi
   hits=()
   while IFS= read -r -d '' file; do
     while read -r pattern; do
@@ -162,8 +177,8 @@ if [[ -n $patterns ]]; then  # a retargeted or moved base was not the one the li
 fi
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
-# With --auto the list is the one read above: it governs requests made after it lands, and any PR commit touching a
-# managed path is owner-only, so a base that moves while auto-merge waits cannot bring in an unchecked managed change.
+# With --auto the list and the merge candidate are those of the base read above; a base change during the wait (an
+# owner-merged PR) is not rechecked.
 [[ -z $auto ]] || armed=1
 gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
 readback() { gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"' || echo "UNREAD"; }

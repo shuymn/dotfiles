@@ -32,7 +32,8 @@ esac
 
 # Only the base commit holds the list, so a script that read the PR head or the working tree would let the PR through.
 # A diff or log without --no-relative behaves as with diff.relative=true: from a subdirectory it lists only the paths
-# below it, relative to it. MOCK_CHANGED is the net diff from the merge base; MOCK_TOUCHED what every PR commit touches.
+# below it, relative to it. MOCK_CHANGED is what merging the PR changes on the base; MOCK_TOUCHED what every PR commit
+# touches; MOCK_RANGE the commits in base..head, cut short wherever one is listed in the $MOCK_SHALLOW file.
 GIT = r"""
 echo "git $*" >> "$MOCK_LOG"
 emit() {  # $1: newline-separated paths; $2: set to list them as diff.relative=true would from the current directory
@@ -58,11 +59,18 @@ case "$*" in
   "cat-file blob listoid") cat "$MOCK_BASE_LIST" ;;
   "cat-file blob linkoid") printf '../elsewhere' ;;
   "cat-file -e $MOCK_HEAD^{commit}") ;;
-  "merge-base $MOCK_BASE_SHA $MOCK_HEAD") echo base0 ;;
-  "diff --name-only --no-relative --no-renames -z base0 $MOCK_HEAD") emit "$MOCK_CHANGED" ;;
-  "diff --name-only --no-renames -z base0 $MOCK_HEAD") emit "$MOCK_CHANGED" relative ;;
-  "log --format= --name-only -z --no-renames --no-relative -m $MOCK_BASE_SHA..$MOCK_HEAD") emit "$MOCK_TOUCHED" ;;
-  "log --format= --name-only -z --no-renames -m $MOCK_BASE_SHA..$MOCK_HEAD") emit "$MOCK_TOUCHED" relative ;;
+  "rev-parse --git-path shallow") echo "$MOCK_SHALLOW" ;;
+  "rev-list $MOCK_BASE_SHA..$MOCK_HEAD") printf '%s\n' "$MOCK_RANGE" ;;
+  "fetch -q --no-tags --deepen=100 origin refs/pull/7/head") [ -z "$MOCK_DEEPEN_CLEARS" ] || : > "$MOCK_SHALLOW" ;;
+  "log --format= --name-only -z --no-renames --no-relative --diff-merges=separate --no-show-signature"*)
+    emit "$MOCK_TOUCHED" ;;
+  "log --format= --name-only -z --no-renames --diff-merges=separate --no-show-signature"*)
+    emit "$MOCK_TOUCHED" relative ;;
+  "merge-tree --write-tree $MOCK_BASE_SHA $MOCK_HEAD")
+    echo tree0
+    [ -z "$MOCK_CONFLICT" ] || { printf '100644 x 2\tdraft.md\n\nCONFLICT (content): draft.md\n'; exit 1; } ;;
+  "diff --name-only -z --no-renames --no-relative $MOCK_BASE_SHA tree0") emit "$MOCK_CHANGED" ;;
+  "diff --name-only -z --no-renames $MOCK_BASE_SHA tree0") emit "$MOCK_CHANGED" relative ;;
   *) echo "unexpected: git $*" >&2; exit 128 ;;
 esac
 """
@@ -98,6 +106,8 @@ class MergePrManagedPathTests(unittest.TestCase):
             "MOCK_BASE_LIST": str(self.base_list),
             "MOCK_MERGED": str(self.root / "merged"),
             "MOCK_CHANGED": "README.md",
+            "MOCK_RANGE": "c1\nc2",
+            "MOCK_SHALLOW": str(self.root / "shallow"),
         }
         self.mock("gh", GH)
         self.mock("git", GIT)
@@ -112,9 +122,10 @@ class MergePrManagedPathTests(unittest.TestCase):
         self.env["MOCK_SOURCE_COMMON"] = str(self.checkout / ".git")
 
     def run_merge(self, *changed, touched=None, cwd=None):
-        """`changed` is the PR's net diff; `touched` lists what each of its commits touches, by default the same."""
+        """`changed`: what the merge changes on the base; `touched`: what each PR commit touches (default: the same)."""
         self.env["MOCK_CHANGED"] = "\n".join(changed)
         self.env["MOCK_TOUCHED"] = "\n".join(changed if touched is None else touched)
+        (self.root / "merged").unlink(missing_ok=True)
         return subprocess.run([shutil.which("bash"), str(SCRIPT), "7", HEAD[:12]], env=self.env,
                               cwd=cwd or self.checkout, capture_output=True, text=True, timeout=10)
 
@@ -156,8 +167,10 @@ class MergePrManagedPathTests(unittest.TestCase):
                                        "home/dot_claude/CLAUDE.md")
 
     def test_full_paths_from_a_subdirectory(self):
-        self.assert_owner_only(self.run_merge("home/dot_claude/CLAUDE.md", cwd=self.checkout / "home"),
-                               "home/dot_claude/CLAUDE.md")
+        managed = "home/dot_claude/CLAUDE.md"
+        for source, changed, touched in (("commits", "README.md", managed), ("merge result", managed, "README.md")):
+            with self.subTest(source=source):
+                self.assert_owner_only(self.run_merge(changed, touched=(touched,), cwd=self.checkout / "home"), managed)
 
     def test_dotfiles_refuses_when_the_base_has_no_list(self):
         self.base_list.unlink()
@@ -184,7 +197,6 @@ class MergePrManagedPathTests(unittest.TestCase):
     def test_origin_must_be_the_repository_gh_merges(self):
         self.env["MOCK_ORIGIN"] = "https://github.com/someone/r.git"
         self.assert_merged(self.run_merge("README.md"))  # elsewhere, as before the list existed
-        (self.root / "merged").unlink()
         self.in_dotfiles()
         self.assert_refused(self.run_merge("README.md"), "origin is 'someone/r' but gh resolves o/r")
 
@@ -193,7 +205,6 @@ class MergePrManagedPathTests(unittest.TestCase):
         result = self.run_merge("home/dot_claude/CLAUDE.md")
         self.assert_merged(result)
         self.assertEqual(result.stderr, "")
-        (self.root / "merged").unlink()
         self.in_dotfiles()
         self.assert_refused(self.run_merge("README.md"),
                             "could not fetch origin/main: fatal: unable to access the remote, so PR 7 is not merged")
@@ -214,6 +225,46 @@ class MergePrManagedPathTests(unittest.TestCase):
                 ("merge commit", ("README.md", "home/dot_claude/CLAUDE.md", "README.md"))):
             with self.subTest(case=case):
                 self.assert_owner_only(self.run_merge("README.md", touched=touched), touched[1])
+
+    def test_log_ignores_local_merge_and_signature_settings(self):
+        self.assert_merged(self.run_merge("README.md"))
+        log = [line for line in (self.root / "log").read_text().splitlines() if line.startswith("git log ")]
+        self.assertEqual(len(log), 1)
+        self.assertIn(" --diff-merges=separate ", log[0])
+        self.assertIn(" --no-show-signature ", log[0])
+
+    def deepens(self):
+        return (self.root / "log").read_text().count("--deepen=")
+
+    def test_shallow_boundary_in_the_range_is_deepened(self):
+        self.in_dotfiles()
+        (self.root / "shallow").write_text("c2\n")
+        self.env["MOCK_DEEPEN_CLEARS"] = "1"
+        self.assert_merged(self.run_merge("README.md"))
+        self.assertEqual(self.deepens(), 1)
+
+    def test_shallow_boundary_that_stays_refuses(self):
+        self.in_dotfiles()
+        (self.root / "shallow").write_text("c2\n")
+        self.assert_refused(self.run_merge("README.md"), "still cut short by the shallow clone")
+        self.assertEqual(self.deepens(), 5)
+
+    def test_shallow_boundary_outside_the_range_is_left_alone(self):
+        self.in_dotfiles()
+        (self.root / "shallow").write_text("c0\n")
+        self.assert_merged(self.run_merge("README.md"))
+        self.assertEqual(self.deepens(), 0)
+
+    def test_refuses_a_merge_result_in_a_managed_path(self):
+        self.in_dotfiles()  # the base renamed draft.md into a managed path; the PR edits only draft.md
+        self.assert_owner_only(self.run_merge("home/dot_claude/CLAUDE.md", touched=("draft.md",)),
+                               "home/dot_claude/CLAUDE.md")
+
+    def test_conflict_refuses_only_in_dotfiles(self):
+        self.env["MOCK_CONFLICT"] = "1"
+        self.assert_merged(self.run_merge("README.md"))
+        self.in_dotfiles()
+        self.assert_refused(self.run_merge("README.md"), "GitHub cannot merge it cleanly either")
 
     def test_unmanaged_multi_commit_pr_merges(self):
         self.in_dotfiles()
