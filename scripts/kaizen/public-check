@@ -9,7 +9,8 @@ Every commit in RANGE is checked (the lines its diff adds and its message), not 
 publishes intermediate commits too.
 
 Rejected: absolute local paths, string values from the repository's git-ignored host.toml (except the generic ones
-in nix/host.default.toml and the role names in nix/roles.toml), and each line of ~/.claude/kaizen/private-terms.
+in nix/host.default.toml, the role names in nix/roles.toml and the GitHub owner in origin's URL), and each line of
+~/.claude/kaizen/private-terms.
 Not caught: private words that are in none of these (add them to private-terms), and text that is published by
 other means than RANGE and the given metadata.
 
@@ -33,8 +34,10 @@ def die(message: str) -> None:
     sys.exit(2)
 
 
-def git(*args: str) -> str:
+def git(*args: str, check: bool = True) -> str:
     result = subprocess.run(["git", *args], capture_output=True, text=True, errors="replace")
+    if result.returncode != 0 and not check:
+        return ""
     if result.returncode != 0:
         die(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout
@@ -49,12 +52,19 @@ def read_toml(path: Path) -> dict:
         die(f"cannot parse {path}: {e}")
 
 
+def owner_login() -> str:
+    """The GitHub owner in origin's URL, which every repository URL and merge commit already publishes."""
+    m = re.search(r"github\.com[:/]([A-Za-z0-9-]+)/", git("remote", "get-url", "origin", check=False))
+    return m.group(1).lower() if m else ""
+
+
 def host_values(root: Path, main: Path) -> set[str]:
     """String values of host.toml; a linked worktree has none of its own, so the main checkout's is used."""
     values = {v for d in (root, main) for v in read_toml(d / "host.toml").values() if isinstance(v, str)}
     public = {v for v in read_toml(root / "nix/host.default.toml").values() if isinstance(v, str)}
     public |= set(read_toml(root / "nix/roles.toml"))
-    return {v for v in values - public if v.strip()}
+    owner = owner_login()
+    return {v for v in values - public if v.strip() and v.lower() != owner}
 
 
 def private_terms() -> list[str]:
