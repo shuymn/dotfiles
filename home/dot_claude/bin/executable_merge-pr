@@ -24,11 +24,11 @@ root=$(git rev-parse --show-toplevel 2>/dev/null || true)
 [[ "$root/" != */.t3/worktrees/* && "$root/" != *-worktrees/agent-* ]] ||
   die "a delegated worktree does not merge: report the command to the orchestrator"
 
-method='' allow_no_checks='' auto='' flags=()
+method='' allow_no_checks='' auto='' delete_branch='' flags=()
 while (($#)); do
   case $1 in
     --merge|--squash|--rebase) [[ -z $method ]] || die "pass one merge method"; method=$1 ;;
-    --delete-branch) flags+=("$1") ;;
+    --delete-branch) delete_branch=1; flags+=("$1") ;;
     --subject|--body) (($# >= 2)) || die "$1 needs a value"; flags+=("$1" "$2"); shift ;;
     --allow-no-checks) allow_no_checks=1 ;;
     --auto) auto=1; flags+=("$1") ;;
@@ -36,7 +36,7 @@ while (($#)); do
   esac
   shift
 done
-[[ -z $auto || " ${flags[*]} " != *" --delete-branch "* ]] || die "--delete-branch is skipped by gh with --auto: delete the branch after the merge"
+[[ -z $auto || -z $delete_branch ]] || die "--delete-branch is skipped by gh with --auto: delete the branch after the merge"
 
 for _ in 1 2 3 4 5; do
   view=$(gh pr view "$pr" --json headRefOid,state,isDraft,mergeable)
@@ -69,7 +69,13 @@ if [[ -n $root && -x $root/.claude/merge-check ]]; then
 fi
 
 err=$(mktemp)
-trap 'rm -f "$err"' EXIT
+armed=''  # set while auto-merge is enabled on a head this run has not seen merged
+cleanup() {
+  rm -f "$err"
+  [[ -z $armed ]] || gh pr merge "$pr" --disable-auto >/dev/null 2>&1 || echo "merge-pr: could not disable auto-merge: check the PR" >&2
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 checks=$(gh pr checks "$pr" --json name,bucket 2>"$err" || true)  # judged by its content: valid JSON, or the no-checks error
 if jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
   bad=$(jq -r '.[] | select(.bucket != "pass" and .bucket != "skipping") | "\(.bucket)\t\(.name)"' <<<"$checks")
@@ -90,20 +96,23 @@ queue=$(gh api graphql -f o="${nwo%%/*}" -f r="${nwo#*/}" -F n="$pr" \
 
 # The checks were read last, but a rerun can still start before the merge: required checks are what GitHub enforces.
 rc=0
+[[ -z $auto ]] || armed=1
 gh pr merge "$pr" "$method" --match-head-commit "$head" ${flags[@]+"${flags[@]}"} || rc=$?
 readback() { gh pr view "$pr" --json state,headRefOid,mergeCommit -q '"\(.state) \(.headRefOid) \(.mergeCommit.oid // "" | .[0:9])"' || echo "UNREAD"; }
 result=$(readback)
 if [[ -n $auto && $rc == 0 ]]; then
   deadline=$((SECONDS + 900))
   while [[ $result == "OPEN $head "* || $result == UNREAD ]] && ((SECONDS < deadline)); do
-    sleep 20
+    sleep $((deadline - SECONDS < 20 ? deadline - SECONDS : 20))
     result=$(readback)
   done
 fi
 echo "$result"
+[[ $result != MERGED* ]] || armed=''
 [[ $rc == 0 ]] || echo "merge-pr: gh pr merge exited $rc (a cleanup step such as --delete-branch can fail after the merge)" >&2
 if [[ $result != "MERGED $head "* ]]; then
   if [[ -n $auto && $result != MERGED* ]]; then
+    armed=''
     if gh pr merge "$pr" --disable-auto >/dev/null 2>&1; then note="auto-merge disabled"; else note="could not disable auto-merge: check the PR"; fi
     die "PR $pr is not merged on $head ($result); $note"
   fi
