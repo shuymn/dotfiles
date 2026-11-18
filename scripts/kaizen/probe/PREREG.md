@@ -62,9 +62,10 @@ failure or pass text (printf, echo) is not a test run. `ERROR:` blocks (import o
 
 ## Cost
 
-One envelope of 5.00 USD for everything under the output directory: calibration (about 0.20 USD), 12 probe runs
-(pilot 3 measured 0.28 to 0.39 USD per level-2 worker run, about 3.80 USD in all) and the real-worker smoke check.
-Each eval call gets `--max-cost-usd` equal to what is left, and no run starts with less than 0.50 USD left.
+One envelope of 5.00 USD for the eval runs under the output directory: calibration (about 0.20 USD) and 12 probe
+runs (pilot 3 measured 0.28 to 0.39 USD per level-2 worker run, about 3.80 USD in all). The real-worker smoke check
+is a separate `claude -p` run with its own `--max-budget-usd 1.00`, recorded apart from the probe. Each eval call
+gets `--max-cost-usd` equal to what is left, and no run starts with less than 0.30 USD left.
 
 ## Isolation
 

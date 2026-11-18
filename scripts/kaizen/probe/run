@@ -171,7 +171,7 @@ def main(argv=None):
     p.add_argument("--arms", default="A,B")
     p.add_argument("--runs", type=int, default=6, help="runs per arm")
     p.add_argument("--budget", type=float, default=5.00, help="total USD envelope for everything under --out")
-    p.add_argument("--min-remaining", type=float, default=0.50, help="start no run with less than this left")
+    p.add_argument("--min-remaining", type=float, default=0.30, help="start no run with less than this left")
     p.add_argument("--model", default="opus")
     p.add_argument("--claude", help="claude executable (default: `mise which claude`, else PATH)")
     p.add_argument("--dry-run", action="store_true")
