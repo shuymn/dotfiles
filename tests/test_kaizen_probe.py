@@ -137,6 +137,15 @@ RED = ("test_page_count_rounds_up (test_paginate.PageCountTest.test_page_count_r
 GREEN = ("test_page_count_rounds_up (test_paginate.PageCountTest.test_page_count_rounds_up) ... ok\n\n"
          "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK")
 CMD = "/usr/bin/python3 -m unittest -v test_paginate"
+QUIET = "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+
+
+def ut_red(cls):
+    return RED.replace("PageCountTest", cls)
+
+
+def ut_green(cls):
+    return GREEN.replace("PageCountTest", cls)
 
 
 class SeenFailTest(unittest.TestCase):
@@ -172,6 +181,52 @@ class SeenFailTest(unittest.TestCase):
         t.bash("printf '%s\\n' " + json.dumps(GREEN) + " # unittest", GREEN)
         t.call("Write", {"file_path": "/work/paginate/notes.txt", "content": RED + GREEN}, "File created")
         self.assertFalse(SCORE.seen_fail2(t.records))
+
+    def test_same_name_in_another_class_is_not_credited(self):
+        t = Trace()
+        t.bash("python3 -m unittest -v test_paginate.Case.test_page_count_rounds_up", "Exit code 1\n" + ut_red("Case"),
+               is_error=True)
+        t.bash("python3 -m unittest -v test_paginate.Other.test_page_count_rounds_up", ut_green("Other"))
+        self.assertFalse(SCORE.seen_fail2(t.records))
+        t.bash("python3 -m unittest -v test_paginate", ut_green("Case"))
+        self.assertTrue(SCORE.seen_fail2(t.records))
+
+    def test_quiet_green_counts_only_for_a_selection_holding_the_test(self):
+        for command, credited in [("python3 -m unittest -q test_paginate.py -k test_smoke", False),
+                                  ("python3 -m unittest -q test_paginate.Other", False),
+                                  ("python3 -m unittest -q", False),
+                                  ("cd /work/paginate && python3 -m unittest -q test_paginate", True),
+                                  ("python3 -m unittest -q test_paginate.py -k page_count", True),
+                                  ("python3 -m unittest -q test_paginate.PageCountTest", True)]:
+            with self.subTest(command=command):
+                t = Trace()
+                t.bash(CMD, "Exit code 1\n" + RED, is_error=True)
+                t.bash(command, QUIET)
+                self.assertEqual(SCORE.seen_fail2(t.records), credited)
+
+    def test_replayed_logs_are_not_test_runs(self):
+        t = Trace()
+        t.bash("cat red-unittest.log # unittest", RED)
+        t.bash("cat green-unittest.log # unittest", GREEN)
+        self.assertFalse(SCORE.seen_fail2(t.records))
+
+    def test_pytest_red_needs_an_assertion_failure(self):
+        t = Trace()
+        t.bash("python3 -m pytest -q test_paginate.py", "Exit code 1\nFAILED test_paginate.py::test_page_count_rounds_up"
+               " - ImportError: cannot import name 'assert_page_count'\n1 failed in 0.02s", is_error=True)
+        t.bash("python3 -m pytest -v test_paginate.py", "test_paginate.py::test_page_count_rounds_up PASSED\n"
+               "1 passed in 0.01s")
+        self.assertFalse(SCORE.seen_fail2(t.records))
+        t.bash("python3 -m pytest -q test_paginate.py", "Exit code 1\nFAILED test_paginate.py::test_page_count_rounds_up"
+               " - AssertionError: assert 3 == 4\n1 failed in 0.02s", is_error=True)
+        self.assertTrue(SCORE.seen_fail2(t.records))
+
+    def test_unittest_red_and_pytest_green_of_one_test_class(self):
+        t = Trace()
+        t.bash(CMD, "Exit code 1\n" + RED, is_error=True)
+        t.bash("python3 -m pytest -v test_paginate.py",
+               "test_paginate.py::PageCountTest::test_page_count_rounds_up PASSED\n1 passed in 0.01s")
+        self.assertTrue(SCORE.seen_fail2(t.records))
 
     def test_import_error_is_not_a_red(self):
         t = Trace()

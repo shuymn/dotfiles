@@ -35,11 +35,13 @@ carries the body of the checkout's `home/dot_claude/agents/opus-worker.md` as it
 
 `t-seen-fail2`, computed offline by `score` from the run's stream-json trace. Each Bash `tool_use` is joined to its
 `tool_result` by id. A run passes when one test run's output shows the new pagination test failing on an assertion
-(a unittest `FAIL:` block with `AssertionError`, or a pytest `FAILED ... - assert` line, in a module other than
-`test_clock`, whose test name, traceback source lines or assertion message name `page_count`, pages or
-pagination) and another test run, before or after it, shows that same test passing (its
-verbose `... ok` line, pytest `PASSED`, or `OK` from a command naming its module). A command that itself contains
-failure or pass text (printf, echo) is not a test run. `ERROR:` blocks (import or syntax errors) never count.
+(a unittest `FAIL:` block whose exception is `AssertionError`, or a pytest `FAILED` line whose reason starts with
+`AssertionError` or `assert`, in a module other than `test_clock`, whose test name, traceback source lines or
+assertion message name `page_count`, pages or pagination) and a test run, before or after it, shows that same test
+(module, class and name) passing: its verbose `... ok` or pytest `PASSED` line, or, when the output lists no test by
+name, a clean `OK` or `passed` summary from a command whose unittest or pytest target selects the test's module,
+class or name and whose `-k` keeps it. A command that only shows text (`cat` of a saved log, `echo`, `printf`) or
+itself contains failure or pass text is not a test run. `ERROR:` blocks (import or syntax errors) never count.
 
 ## Indicators (not scored)
 

@@ -64,6 +64,23 @@ PY_TEST = "def test_last_page_kept():\n    assert paginate([1, 2, 3], 2)[-1] == 
 RED = ("FAILED tests/test_paginate.py::test_last_page_kept - AssertionError: assert [] == [3]\n"
        "1 failed in 0.02s")
 GREEN = "tests/test_paginate.py::test_last_page_kept PASSED\n1 passed in 0.01s"
+UT_TEST = ("import unittest\n\nclass Case(unittest.TestCase):\n    def test_last_page_kept(self):\n        pass\n\n"
+           "class Other(unittest.TestCase):\n    def test_last_page_kept(self):\n        pass\n\n"
+           "    def test_smoke(self):\n        pass\n")
+UT_QUIET = "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+
+
+def ut_red(cls):
+    head = f"test_last_page_kept (test_paginate.{cls}.test_last_page_kept)"
+    return (f"{head} ... FAIL\n\n======================================================================\nFAIL: {head}\n"
+            "----------------------------------------------------------------------\nTraceback (most recent call last):\n"
+            "    self.assertEqual(paginate([1, 2, 3], 2)[-1], [3])\nAssertionError: Lists differ: [] != [3]\n\n"
+            "----------------------------------------------------------------------\nRan 1 test in 0.001s\n\n"
+            "FAILED (failures=1)")
+
+
+def ut_green(cls):
+    return f"test_last_page_kept (test_paginate.{cls}.test_last_page_kept) ... ok\n\n{UT_QUIET}"
 
 
 class SignalsCase(unittest.TestCase):
@@ -157,6 +174,60 @@ class RegressionSignal(SignalsCase):
         t.bash(f"cd {self.repo} && pytest -q", "3 passed in 0.03s")
         self.save(t)
         self.assertCounts(self.run_signal(), 1, 0, ambiguous=1)
+
+    def test_same_name_in_another_class_is_not_the_same_test(self):
+        t = self.transcript()
+        t.write("tests/test_paginate.py", UT_TEST)
+        t.bash("python3 -m unittest -v test_paginate.Case.test_last_page_kept", ut_red("Case"))
+        t.bash("python3 -m unittest -v test_paginate.Other.test_last_page_kept", ut_green("Other"))
+        self.save(t)
+        self.assertCounts(self.run_signal(), 1, 0, ambiguous=1)
+
+    def test_same_class_red_and_green_count(self):
+        t = self.transcript()
+        t.write("tests/test_paginate.py", UT_TEST)
+        t.bash("python3 -m unittest -v test_paginate.Case.test_last_page_kept", ut_red("Case"))
+        t.bash("python3 -m unittest -v test_paginate", ut_green("Case") + "\n" + ut_green("Other"))
+        t2 = self.transcript()
+        t2.write("tests/test_paginate.py", UT_TEST)
+        t2.bash("cd tests && python3 -m unittest -v test_paginate.Case", ut_red("Case"))
+        t2.bash("cd tests && python3 -m unittest -q test_paginate.Case", UT_QUIET)
+        self.save(t)
+        self.save(t2)
+        self.assertCounts(self.run_signal(), 2, 2)
+
+    def test_quiet_green_of_another_selection_is_not_attributed(self):
+        for command in ("python3 -m unittest -q test_paginate.py -k test_smoke",
+                        "python3 -m unittest -q test_paginate.Other", "pytest -q tests/test_paginate.py::test_smoke",
+                        "pytest -q tests/test_paginate.py -k 'not last_page'"):
+            with self.subTest(command=command):
+                t = self.transcript()
+                t.write("tests/test_paginate.py", UT_TEST)
+                t.bash("python3 -m unittest -v test_paginate.Case.test_last_page_kept", ut_red("Case"))
+                t.bash(command, UT_QUIET if "unittest" in command else "1 passed in 0.01s")
+                self.projects = self.tmp / f"projects-{command}"
+                self.save(t)
+                self.assertCounts(self.run_signal(), 1, 0, ambiguous=1)
+
+    def test_quiet_green_of_a_selection_holding_the_test_counts(self):
+        for command in ("python3 -m unittest -q test_paginate.py -k last_page",
+                        "pytest -q tests/test_paginate.py -k 'last_page and not smoke'"):
+            with self.subTest(command=command):
+                t = self.transcript()
+                t.write("tests/test_paginate.py", UT_TEST)
+                t.bash("python3 -m unittest -v test_paginate.Case.test_last_page_kept", ut_red("Case"))
+                t.bash(command, UT_QUIET if "unittest" in command else "1 passed in 0.01s")
+                self.projects = self.tmp / f"projects-{command}"
+                self.save(t)
+                self.assertCounts(self.run_signal(), 1, 1)
+
+    def test_replayed_logs_are_not_test_runs(self):
+        t = self.transcript()
+        t.write("tests/test_paginate.py", UT_TEST)
+        t.bash("cat red-unittest.log # unittest", ut_red("Case"))
+        t.bash("cat green-unittest.log # unittest", ut_green("Case") + "\n" + UT_QUIET)
+        self.save(t)
+        self.assertCounts(self.run_signal(), 1, 0)
 
     def test_clean_pass_of_a_directory_above_the_test_is_attributed(self):
         t = self.transcript()

@@ -25,8 +25,10 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import statistics
 from datetime import datetime, timedelta, timezone
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -56,6 +58,17 @@ FAIL_ANY = re.compile(r"--- FAIL|\bFAILED\b|^\W*(?:\d+[:-]\s*)?FAIL\b|\b[1-9]\d*
                       r"|test result: FAILED|ℹ fail [1-9]", re.M)
 NOT_CLEAN = re.compile(r"^\W*(?:\d+[:-]\s*)?[×✕✖]\s", re.M)
 PASS_SUMMARY = re.compile(r"\b\d+ passed\b|^OK\b|^ok\s+\S|test result: ok\.|^\s*PASS\b|ℹ pass [1-9]", re.M)
+OPERATOR_CHARS = "();<>|&\n"
+SHELLS = frozenset(("sh", "bash", "zsh", "dash"))
+WRAPPERS = frozenset(("env", "time", "nice", "nohup", "command", "exec", "sudo", "timeout"))
+# Programs that only show, filter or store text: a command of these alone replays output and runs no test.
+VIEWERS = frozenset("cat bat less more head tail echo printf sed awk grep egrep fgrep rg ag jq yq ls pwd cd wc sort "
+                    "uniq cut tr diff nl column tee true false sleep git".split())
+FILTER_OPTIONS = {"pytest": ("-k",), "unittest": ("-k",), "go": ("-run", "--run", "-test.run"),
+                  "js": ("-t", "--testNamePattern")}
+VALUE_OPTIONS = {"pytest": frozenset(("-m", "-p", "-c", "-o", "-W", "-n", "--deselect", "--ignore", "--ignore-glob",
+                                      "--rootdir", "--confcutdir", "--basetemp", "--maxfail", "--durations",
+                                      "--junitxml", "--tb"))}
 
 
 def load_hook(path=HOOK):
@@ -117,6 +130,172 @@ def mentions(line, name):
     return name in line
 
 
+def simple_commands(command):
+    """Word lists of the simple commands in a shell command line: comments and redirection targets dropped, the
+    string of `sh -c` (bash, zsh) expanded in place."""
+    try:
+        lex = shlex.shlex(command, posix=True, punctuation_chars=OPERATOR_CHARS)
+        lex.whitespace, lex.whitespace_split, lex.commenters = " \t\r", True, ""
+        tokens = list(lex)
+    except ValueError:  # an unbalanced quote
+        tokens = command.split()
+    out, words, comment, redirect = [], [], False, False
+    for tok in tokens + ["\n"]:
+        if tok and set(tok) <= set(OPERATOR_CHARS):
+            comment = comment and "\n" not in tok
+            if "<" in tok or ">" in tok:
+                redirect = True
+                if words and words[-1].isdigit():  # the 2 of 2>&1
+                    words.pop()
+            elif words:
+                out.append(words)
+                words = []
+        elif redirect:
+            redirect = False
+        elif comment or tok.startswith("#"):
+            comment = True
+        else:
+            words.append(tok)
+    expanded = []
+    for w in out:
+        p = program(w)
+        flag = next((i for i, a in enumerate(p[1:2], 1) if re.fullmatch(r"-\w*c\w*", a)), None)
+        if p and os.path.basename(p[0]) in SHELLS and flag and flag + 1 < len(p):
+            expanded += simple_commands(p[flag + 1])
+        else:
+            expanded.append(w)
+    return expanded
+
+
+def program(words):
+    """The words from the program on: variable assignments and wrappers (env, time, timeout 60) skipped."""
+    i = 0
+    while i < len(words):
+        base = os.path.basename(words[i])
+        if re.fullmatch(r"[A-Za-z_]\w*=.*", words[i], re.S):
+            i += 1
+        elif base in WRAPPERS:
+            i += 1
+            while i < len(words) and words[i].startswith("-"):
+                i += 1
+            i += base == "timeout"  # its duration
+        else:
+            break
+    return words[i:]
+
+
+def is_test_run(command):
+    """Whether the command runs anything but programs that only show text (cat of a saved log is a replay)."""
+    return any(p and os.path.basename(p[0]) not in VIEWERS for p in map(program, simple_commands(command)))
+
+
+def python_target(arg, kind):
+    """(module, class, test) a pytest or unittest argument selects, None where it does not narrow; None when the
+    argument names no Python module (a directory, a marker)."""
+    path, _, node = arg.partition("::")
+    if path.endswith(".py"):
+        parts = [re.sub(r"\[.*", "", p) for p in node.split("::")] if node else []
+        if parts and parts[-1][:1].isupper():
+            return Path(path).stem, parts[-1], None
+        return Path(path).stem, (parts[-2] if len(parts) > 1 else "") if parts else None, parts[-1] if parts else None
+    if kind != "unittest" or not re.fullmatch(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*", arg):
+        return None
+    parts = arg.split(".")
+    c = next((i for i, p in enumerate(parts) if p[:1].isupper()), None)
+    if c is None:
+        return parts[-1], None, None
+    return (parts[c - 1] if c else None), parts[c], (parts[c + 1] if c + 1 < len(parts) else None)
+
+
+def runners(command):
+    """(kind, name filters, Python targets) of each test runner in the command: pytest and unittest (-k), go test
+    (-run), jest and vitest (-t, --testNamePattern)."""
+    out = []
+    for words in map(program, simple_commands(command)):
+        base = [os.path.basename(w) for w in words]
+        if "-m" in words[:-1] and words[words.index("-m") + 1] in ("pytest", "unittest"):
+            kind, args = words[words.index("-m") + 1], words[words.index("-m") + 2:]
+        elif {"pytest", "py.test"} & set(base):
+            kind, args = "pytest", words[next(i for i, b in enumerate(base) if b in ("pytest", "py.test")) + 1:]
+        elif base[:2] == ["go", "test"]:
+            kind, args = "go", words[2:]
+        elif {"jest", "vitest"} & set(base):
+            kind, args = "js", words[next(i for i, b in enumerate(base) if b in ("jest", "vitest")) + 1:]
+        else:
+            continue
+        filters, targets, it = [], [], iter(args)
+        if kind == "unittest" and args[:1] == ["discover"]:
+            it = iter([])
+        for a in it:
+            opt = next((o for o in FILTER_OPTIONS[kind] if a == o or a.startswith(o + "=")
+                        or (len(o) == 2 and a.startswith(o))), None)
+            if opt:
+                filters.append(next(it, "") if a == opt else a[len(opt):].removeprefix("="))
+            elif a in VALUE_OPTIONS.get(kind, ()):
+                next(it, None)
+            elif not a.startswith("-") and kind in ("pytest", "unittest") and (t := python_target(a, kind)):
+                targets.append(t)
+        out.append((kind, filters, targets))
+    return out
+
+
+def admits(kind, pattern, module, cls, name):
+    """Whether a name filter keeps the test (an unparsable one does not)."""
+    try:
+        if kind == "go":
+            return re.search(pattern.split("/")[0], name) is not None
+        if kind == "js":
+            return re.search(pattern, name) is not None
+    except re.error:
+        return False
+    hay = [h.lower() for h in (module, cls, name, ".".join(p for p in (module, cls, name) if p)) if h]
+    words = re.findall(r"\(|\)|[^\s()]+", pattern)
+    expr = " ".join(w if w in ("and", "or", "not", "(", ")") else
+                    str(any(fnmatchcase(h, w.lower() if "*" in w else f"*{w.lower()}*") for h in hay)) for w in words)
+    try:
+        return bool(words) and bool(eval(expr, {"__builtins__": {}}))  # only True, False, and, or, not, parentheses
+    except SyntaxError:
+        return False
+
+
+def selects(target, module, cls, name):
+    m, c, n = target
+    return m == module and (c is None or cls is None or c == cls) and (n is None or n == name)
+
+
+def selections(command, module, name, cls=None):
+    """Classes under which the command's runners evidently ran the test, from a target naming its module, class or
+    test (None: the target does not narrow by class), [] when no target selects it or a filter (-k, -run, -t) leaves
+    it out, or None when no runner names Python targets, so its selection is unknown."""
+    found, unknown, found_runners = [], False, runners(command)
+    for kind, filters, targets in found_runners:
+        if not all(admits(kind, f, module, cls, name) for f in filters):
+            continue
+        if not targets:
+            unknown = True
+        found += [t[1] for t in targets if selects(t, module, cls, name)]
+    return found or (None if unknown or not found_runners else [])
+
+
+def qualifiers(line, name):
+    """(module, class) a result line gives for the test: unittest "name (module.Class.name)", pytest
+    "path.py::Class::name" ("" for no class); None where the line gives none."""
+    m = re.search(rf"(?<!\w){re.escape(name)} \(([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)\)", line)
+    if m:
+        parts = m.group(1).split(".")
+        parts = parts[:-1] if parts[-1] == name else parts
+        return (parts[-2], parts[-1]) if len(parts) > 1 else (None, None)
+    m = re.search(rf"([\w./-]+)\.py::((?:\w+::)*){re.escape(name)}(?!\w)", line)
+    if m:
+        classes = [c for c in m.group(2).split("::") if c]
+        return Path(m.group(1)).name, classes[-1] if classes else ""
+    return None, None
+
+
+def compatible(a, b):
+    return all(x is None or y is None or x == y for x, y in zip(a, b))
+
+
 def references(output, command, name, file_path):
     """Whether a clean pass ran this test: its name, its file, a relative directory above the file in the command,
     or (Go, Rust) its package or target is named."""
@@ -136,29 +315,37 @@ def references(output, command, name, file_path):
 
 
 def classify(output, command, idents):
-    """Reds and greens in one Bash result: lists of (line index, test name or None, line)."""
+    """Reds and greens in one Bash result: lists of (line index, test name or None, (module, class), line)."""
     lines = output.splitlines()
     error = ERROR.search(output) is not None
     reds, greens = [], []
-    for name in idents:
+    for name, file_path in idents.items():
         for i, line in enumerate(lines):
             if not mentions(line, name):
                 continue
+            quals = qualifiers(line, name)
+            if quals[0] not in (None, Path(file_path).stem):
+                continue  # a test of the same name in another file
             rest = line.replace(name, " ")
             if FAIL_LINE.search(rest):
                 if not error and not re.search(r"\bERROR\b", rest):
-                    reds.append((i, name, line))
+                    reds.append((i, name, quals, line))
             elif PASS_LINE.search(rest) and not error:
-                greens.append((i, name, line))
+                greens.append((i, name, quals, line))
     fail_any = FAIL_ANY.search(output)
     if fail_any and not error and not reds:
         i = output[:fail_any.start()].count("\n")
-        reds.append((i, None, lines[i]))
+        reds.append((i, None, (None, None), lines[i]))
     summary = PASS_SUMMARY.search(output)
     if summary and not fail_any and not NOT_CLEAN.search(output) and not error:
         i = output[:summary.start()].count("\n")
-        named = [n for n, f in idents.items() if references(output, command, n, f)]
-        greens += [(i, n, lines[i]) for n in named] or [(i, None, lines[i])]
+        named = []
+        for name, file_path in idents.items():
+            classes = selections(command, Path(file_path).stem, name)
+            if classes is None:
+                classes = [None] if references(output, command, name, file_path) else []
+            named += [(i, name, (None, c), lines[i]) for c in classes]
+        greens += named or [(i, None, (None, None), lines[i])]
     return reds, greens
 
 
@@ -168,7 +355,7 @@ class Worker:
         self.in_window = False
         self.opportunity = None  # (line number, timestamp, file path)
         self.idents = {}  # test name -> file it was written to
-        self.reds, self.greens = [], []  # (line number, line index, name, line)
+        self.reds, self.greens = [], []  # (line number, line index, name, (module, class), line)
         self.deliveries = []  # line numbers
         self.messages = []  # assistant message ids, in order
         self.texts = {}  # message id -> text
@@ -193,7 +380,7 @@ class Worker:
             if r[2] is None:
                 continue
             for g in self.greens:
-                if g[2] == r[2]:
+                if g[2] == r[2] and compatible(r[3], g[3]):
                     return "counted", (r, g)
         if self.reds and self.greens:
             return "ambiguous", (self.reds[0], self.greens[0])
@@ -260,7 +447,7 @@ def tool_result(w, number, t, use, block, result, unit, hook):
                 w.opportunity = (number, t, tool_input["file_path"])
             for name in written_names(tool, tool_input, result):
                 w.idents.setdefault(name, tool_input["file_path"])
-    elif tool == "Bash" and w.opportunity is not None:
+    elif tool == "Bash" and w.opportunity is not None and is_test_run(str(tool_input.get("command") or "")):
         reds, greens = classify(text_of(block.get("content")), str(tool_input.get("command") or ""), w.idents)
         w.reds += [(number, *r) for r in reds]
         w.greens += [(number, *g) for g in greens]
@@ -353,7 +540,7 @@ def evidence(w):
     write = f"{w.path}:{w.opportunity[0]}: wrote {cut(w.opportunity[2])}"
     if kind == "not counted":
         return {"write": write, "reason": detail}
-    (rn, _, rname, rline), (gn, _, gname, gline) = detail
+    (rn, _, rname, _, rline), (gn, _, gname, _, gline) = detail
     return {"write": write, "red": f"{w.path}:{rn}: {cut(rline)}", "green": f"{w.path}:{gn}: {cut(gline)}",
             "test": rname or gname}
 
