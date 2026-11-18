@@ -308,9 +308,17 @@ class UnchangedEventsTest(HookCase):
             self.assertIn(part, joined)
 
 
+# Ineligible events end in the shell: Python starts only for input that names opus-worker.
+COMMAND = ('i=$(cat; echo .); case $i in *opus-worker*) printf %s "${i%.}" | ~/.claude/hooks/orchestration-context.py;; '
+           'esac')
+
+
+def managed_hooks():
+    return json.loads(re.search(r"\$managed := `\n(.*?)\n` \| mustFromJson", SETTINGS.read_text(), re.S).group(1))["hooks"]
+
+
 class SettingsTest(unittest.TestCase):
-    ENTRY = {"matcher": "Edit|Write|MultiEdit",
-             "hooks": [{"type": "command", "command": "~/.claude/hooks/orchestration-context.py", "timeout": 10}]}
+    ENTRY = {"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": COMMAND, "timeout": 10}]}
     BUDGET = {"matcher": "Bash", "hooks": [{"type": "command", "command": "~/.claude/hooks/attention-budget.py post"}]}
 
     def assert_hooks(self, hooks):
@@ -318,8 +326,7 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(hooks["PostToolUseFailure"], [self.BUDGET])
 
     def test_settings_registration(self):
-        literal = re.search(r"\$managed := `\n(.*?)\n` \| mustFromJson", SETTINGS.read_text(), re.S).group(1)
-        self.assert_hooks(json.loads(literal)["hooks"])
+        self.assert_hooks(managed_hooks())
 
     @unittest.skipUnless(shutil.which("chezmoi"), "chezmoi is not installed")
     def test_rendered_settings_keep_local_values(self):
@@ -336,6 +343,47 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual((out["model"], out["localOnly"]), ("sonnet", {"keep": True}))
         self.assertEqual(out["permissions"]["additionalDirectories"], ["/srv/shared"])
         self.assertIn("Bash(git:*)", out["permissions"]["allow"])
+
+
+class CommandTest(HookCase):
+    """The command string as configured, run by sh with the hook installed under HOME."""
+
+    def setUp(self):
+        super().setUp()
+        hooks = self.home / ".claude" / "hooks"
+        hooks.mkdir(parents=True)
+        (self.home / ".claude" / "attention").mkdir()
+        shutil.copyfile(UNITS, self.home / ".claude" / "attention" / "units.json")
+        self.hook = hooks / "orchestration-context.py"
+
+    def install(self, source):
+        self.hook.write_text(source)
+        self.hook.chmod(0o755)
+
+    def run_command(self, data):
+        command = managed_hooks()["PostToolUse"][1]["hooks"][0]["command"]
+        p = subprocess.run(["/bin/sh", "-c", command], input=data, capture_output=True, text=True, env=self.env,
+                           timeout=30)
+        return p.returncode, p.stdout, p.stderr
+
+    def test_parent_event_ends_in_the_shell(self):
+        self.install("#!/bin/sh\necho started >&2\nexit 3\n")
+        for kw in ({"agent_type": None, "agent_id": None}, {"agent_type": "general-purpose"}):
+            with self.subTest(**{k: repr(v) for k, v in kw.items()}):
+                self.assertEqual(self.run_command(json.dumps(self.event("pkg/a_test.go", **kw))), (0, "", ""))
+
+    def test_eligible_event_reaches_the_hook(self):
+        self.install(HOOK.read_text().replace("#!/usr/bin/python3 -I", f"#!{sys.executable} -I", 1))
+        self.assertEqual(self.run_command(json.dumps(self.event("pkg/a_test.go"))), (0, EXPECTED, ""))
+        self.assertEqual(self.run_command(json.dumps(self.event("pkg/b_test.go"))), (0, "", ""))
+
+    def test_input_reaches_the_hook_byte_identical(self):
+        copy = self.tmp / "seen"
+        self.install(f"#!/bin/sh\ncat > '{copy}'\n")
+        for data in ('{"agent_type": "opus-worker"}', '{"agent_type": "opus-worker"}\n\n', ' opus-worker \\n $x `y` %s\n.'):
+            with self.subTest(data=data):
+                self.assertEqual(self.run_command(data), (0, "", ""))
+                self.assertEqual(copy.read_bytes(), data.encode())
 
 
 if __name__ == "__main__":

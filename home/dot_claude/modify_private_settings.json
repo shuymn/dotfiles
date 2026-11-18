@@ -217,7 +217,7 @@ exec chezmoi execute-template --with-stdin '
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/orchestration-context.py",
+            "command": "i=$(cat; echo .); case $i in *opus-worker*) printf %s \"${i%.}\" | ~/.claude/hooks/orchestration-context.py;; esac",
             "timeout": 10
           }
         ]
