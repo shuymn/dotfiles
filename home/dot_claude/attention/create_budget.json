@@ -11,11 +11,11 @@
     "~/.claude/agents/opus-worker.md": 1655,
     "~/.claude/agents/steward.md": 1461,
     "~/.claude/skills/hiden/SKILL.md": 9363,
-    "~/.claude/skills/hiden/references/codex-review.md": 8425,
-    "~/.claude/skills/hiden/references/commit-pr.md": 3034,
+    "~/.claude/skills/hiden/references/codex-review.md": 8419,
+    "~/.claude/skills/hiden/references/commit-pr.md": 3000,
     "~/.claude/skills/hiden/references/debugging.md": 783,
     "~/.claude/skills/hiden/references/judgment.md": 3619,
-    "~/.claude/skills/hiden/references/orchestration.md": 8469,
+    "~/.claude/skills/hiden/references/orchestration.md": 8129,
     "~/.claude/skills/hiden/references/retro.md": 3122,
     "~/.claude/skills/hiden/references/subagent-brief.md": 4027,
     "~/.claude/skills/hiden/references/verification.md": 6133,
@@ -25,6 +25,7 @@
     "~/.claude/skills/hiden/references/scope.md": 1464,
     "~/.claude/skills/toolchain/SKILL.md": 4019,
     "~/.claude/skills/public-text/SKILL.md": 2278,
-    "~/.claude/skills/toolchain/references/github-app.md": 1616
+    "~/.claude/skills/toolchain/references/github-app.md": 1616,
+    "~/.claude/skills/wasure/SKILL.md": 10896
   }
 }

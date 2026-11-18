@@ -7,6 +7,8 @@
   command is allowed, since that is how a secret delivered as a file is used.
 - Pencil's AI generation (Generate) is never called: the owner's quota is small.
 - A gh write (PR, issue, release, API) carries no local paths in its command or its body file.
+- A PR is merged only through ~/.claude/bin/merge-pr, which merges the checked head once every check on it passed and
+  refuses to run in a delegated worktree.
 """
 
 import json
@@ -28,6 +30,8 @@ PUBLISH = re.compile(r"\b(?:npm|pnpm|yarn|bun|cargo|deno)\s+publish\b")
 GIT_PUSH = re.compile(r"\bgit\b(?:\s+-[Cc]\s+\S+|\s+--?[\w-]+(?:=\S+)?)*\s+push\b")
 CAT_SUBST = re.compile(r"\"?\$\((?:cat\s+|<\s*)[\"']?[^\"')]*" + re.escape(SECRETS) + r"[^\"')]*[\"']?\)\"?")
 LOCAL_PATH = re.compile(r"(?:/Users|/home)/[A-Za-z0-9._-]+/|\.t3/(?:scratch|worktrees|userdata)/|/tmp/claude-\d+/|/private/var/folders/")
+REPO_OPT = r"(?:(?:-R|--repo)[ =]\S+\s+)?"
+GH_PR_MERGE = re.compile(rf"^gh\s+{REPO_OPT}pr\s+{REPO_OPT}merge\b")
 PENCIL_GENERATE = re.compile(r"\bgenerate\w*\s*\(", re.IGNORECASE)
 
 
@@ -46,6 +50,13 @@ def segments(command: str):
         part = re.sub(r"^(?:command|builtin|nohup|nice|time|mise\s+exec\s+--|pnpm\s+exec|npx|bunx)\s+", "", part)
         if part:
             yield part
+
+
+def code_only(command: str) -> str:
+    """The command without heredoc bodies and quoted strings, so text that only mentions a command does not match."""
+    command = command.replace("\\\n", " ")
+    command = re.sub(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2(?=\n|$)", " ", command, flags=re.S)
+    return re.sub(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"", "''", command)
 
 
 def check_public_text(command: str, cwd: str) -> None:
@@ -76,9 +87,16 @@ def check_bash(command: str, cwd: str) -> None:
     if SECRETS in CAT_SUBST.sub("", command):
         deny(f"Commands must not show files under ~/{SECRETS}. Pass a secret file only as \"$(cat <file>)\" to the command that needs it.")
     check_public_text(command, cwd)
-    if not ((cwd + os.sep).startswith(WORKTREES) or AGENT_WORKTREE.search(cwd + os.sep)):
-        return
+    delegated = (cwd + os.sep).startswith(WORKTREES) or AGENT_WORKTREE.search(cwd + os.sep)
     reason = "External writes belong to the orchestrator: report the command you would run instead of running it."
+    if not delegated:  # a delegated worktree's `gh pr merge` falls under its gh write rule below
+        for seg in segments(code_only(command)):
+            if GH_PR_MERGE.match(seg) and not re.search(r"\s(?:--help|-h)\b", seg):
+                deny("Merge with ~/.claude/bin/merge-pr <pr> <head-sha> [--merge|--squash|--rebase]: it merges only that "
+                     "head, once every check on it passed, and reads the result back.")
+        return
+    if "merge-pr" in command:  # merge-pr checks its own checkout; this also covers a `cd` out of the worktree first
+        deny(reason)
     for seg in segments(command):
         if GIT_PUSH.search(seg) or WRANGLER_WRITE.search(seg) or PUBLISH.search(seg):
             deny(reason)
