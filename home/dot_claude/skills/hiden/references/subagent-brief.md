@@ -23,7 +23,7 @@
 
 ## 指示書に書く報告の仕様
 
-[judgment.md](judgment.md) の「ライブラリを先に検討する」「リポジトリ全体の一貫性」の判断。変更の安全を支える事実とその証拠の段。回帰テストを、修正を戻して落としたこと（[verification.md](verification.md) の「証拠の強さ」）。確かめ・測定の対象 commit と方法。
+[judgment.md](judgment.md) の「既存の実装と設計を先に調べる」「リポジトリ全体の一貫性」。変更の安全を支える事実とその証拠の段。回帰テストを、修正を戻して落としたこと（[verification.md](verification.md) の「証拠の強さ」）。確かめ・測定の対象 commit と方法。
 
 ## 報告の確認
 
