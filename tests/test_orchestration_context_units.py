@@ -96,6 +96,14 @@ class DeliveryTest(HookCase):
                 self.assertEqual(self.marker_count(), 0)
         self.assert_emits(self.event("pkg/a_test.go"))
 
+    def test_blank_or_control_ids_silent(self):
+        for kw in ({"agent_id": "  "}, {"agent_id": "\t"}, {"session_id": " \n"}, {"agent_id": "agent\n1"},
+                   {"agent_id": "a\x00"}, {"session_id": "s\x7f"}, {"agent_id": "a\x85"}, {"session_id": "s\x1b[0m"}):
+            with self.subTest(**{k: repr(v) for k, v in kw.items()}):
+                self.assert_silent(self.event("pkg/a_test.go", **kw))
+                self.assertEqual(self.marker_count(), 0)
+        self.assert_emits(self.event("pkg/a_test.go", agent_id="agent 1"))
+
     def test_non_test_paths(self):
         outside = self.tmp / "work" / "elsewhere"
         (self.repo / "link").symlink_to(outside, target_is_directory=True)
@@ -226,6 +234,15 @@ class FailureTest(HookCase):
                 self.assertEqual(self.marker_count(), 0)
         shutil.copyfile(UNITS, self.units)
         self.assert_emits(self.event("pkg/a_test.go"), self.hook)
+
+    def test_malformed_unit_is_skipped(self):
+        good = json.loads(UNITS.read_text())["units"][0]
+        for key, value in [("paths", ["*_test.go", 5]), ("paths", ["*_test.go", ""]), ("paths", ["*_test.go", None]),
+                           ("tools", ["Write", ""]), ("tools", ["Write", ["Edit"]])]:
+            with self.subTest(key=key, value=value):
+                bad = {**good, key: value, "text": "MALFORMED"}
+                self.units.write_text(json.dumps({"units": [bad, good]}))
+                self.assert_emits(self.event("pkg/a_test.go", tool="Write", agent_id=f"{key}-{value!r}"), self.hook)
 
     def test_unwritable_state_dir(self):
         shutil.copyfile(UNITS, self.units)

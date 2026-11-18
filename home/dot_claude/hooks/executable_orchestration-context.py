@@ -31,6 +31,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 from fnmatch import fnmatchcase
 from pathlib import Path
 
@@ -282,8 +283,12 @@ def path_matches(patterns, file_path, cwd):
     if not inside(path, root):
         return False
     parts = os.path.relpath(path, root).split(os.sep)
-    return any(isinstance(p, str) and (segments_match(p.split("/"), parts) if "/" in p else fnmatchcase(parts[-1], p))
-               for p in patterns)
+    return any(segments_match(p.split("/"), parts) if "/" in p else fnmatchcase(parts[-1], p) for p in patterns)
+
+
+def strings(value):
+    """A list of non-empty strings."""
+    return isinstance(value, list) and all(isinstance(v, str) and v for v in value)
 
 
 def matching_unit(units, data):
@@ -294,7 +299,7 @@ def matching_unit(units, data):
     for u in units:
         well_formed = (u.get("event") == "PostToolUse" and u.get("once") == "agent" and isinstance(u.get("id"), str)
                        and isinstance(u.get("text"), str) and isinstance(u.get("agent_type"), str)
-                       and isinstance(u.get("tools"), list) and isinstance(u.get("paths"), list))
+                       and strings(u.get("tools")) and strings(u.get("paths")))
         if (well_formed and u["agent_type"] == data.get("agent_type") and tool in u["tools"]
                 and path_matches(u["paths"], file_path, data.get("cwd") or os.getcwd())):
             return u
@@ -315,7 +320,7 @@ def claim(session_id, agent_id, unit_id):
 
 def post_tool_use(data):
     ids = (data.get("session_id"), data.get("agent_id"))
-    if not all(isinstance(i, str) and i for i in ids):
+    if not all(isinstance(i, str) and i.strip() and not any(unicodedata.category(c) == "Cc" for c in i) for i in ids):
         return
     unit = matching_unit(load_units(), data)
     if unit and claim(*ids, unit["id"]):
