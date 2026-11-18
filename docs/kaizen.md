@@ -247,7 +247,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - 一覧そのもの
 - **merge-pr:** GitHub 上の PR の base を確かめ、一覧をその base から読み（`git show <base>:...`）、一覧に触れる PR を、誰の依頼でも拒否する。dotfiles で一覧が読めないときも拒否する。管理パスに触れない PR は今までどおり通す。
 - **オーナーのマージの手順:** `main` の必須チェック `automerge-gate/all-passed` は、auto-merge が有効になるか、作者以外の承認があるときに走る。オーナーは自分の PR を承認できないので、確かめた head で GitHub の UI から auto-merge を有効にする。その後、周期はその PR に push しない。head を更新するときは、先に UI で auto-merge を解除し、新しい head を確かめてから有効にし直す。
-- **Codex:** Codex のセッションには Claude のフックが届かず、merge-pr の拒否も通らない。v1 の Codex はレビューだけを担い、マージの作業を渡さない。共有の作業指示（`home/.chezmoitemplates/agents/AGENTS.md`）に、管理パスの PR はオーナーだけがマージすることを一文で置く。
+- **Codex:** Codex のセッションには Claude のフックが届かず、merge-pr の拒否も通らない。v1 の Codex はレビューだけを担い、マージの作業を渡さない。Codex と pi の作業指示（`home/dot_codex/AGENTS.md.tmpl`、`home/dot_pi/agent/AGENTS.md.tmpl`）に、管理パスの PR はオーナーだけがマージすることを一文で置く。Claude には merge-pr の拒否が効くので、常時読む指示には置かない。
 - **公開の検査:** `scripts/kaizen/public-check` を、push と `gh pr create`/`edit` の前に走らせる。対象は、送るコミットの範囲の全コミット（差分とメッセージ）と、PR の題・本文・ブランチ名。ローカルのパス、`host.toml` の値、`~/.claude/kaizen/private-terms` を拒否する。辞書に無い私的な語はこの検査では拾えないので、それは上の段 7 の「公開の資料だけで説明できるものに限る」で防ぐ。
 - **auto-merge:** 周期の側の仕組みは持たない。
 
