@@ -10,10 +10,10 @@ count.
   - opportunity: one per worker that made a successful Edit/Write/MultiEdit (tool_use joined to its tool_result by id)
     that the hook's own matcher (matching_unit of home/dot_claude/hooks/executable_orchestration-context.py) treats as
     a chance to deliver the unit.
-  - counted: a later Bash result shows a test the worker wrote failing (a FAIL line naming it, and no import, syntax,
-    collection or compile error in the output) and a still later point (a later line of the same result, or a later
-    result) shows that same test passing.
-  - ambiguous: a red for the intended reason and a later green were seen, but not for the same written test.
+  - counted: after the write, Bash results show a test the worker wrote failing (a FAIL line naming it, and no
+    import, syntax, collection or compile error in the output) and that same test passing, in either order (green
+    with the fix, then red on a copy with it removed, shows the same thing as red first, then green).
+  - ambiguous: a red for the intended reason and a green were seen, but not for the same written test.
   - deliveries: hook_additional_context attachments holding the unit text.
   - harm: median assistant turns (API responses) and final report length (the last SubagentHandback message, else
     the last assistant text) for workers with and without an opportunity.
@@ -193,13 +193,11 @@ class Worker:
             if r[2] is None:
                 continue
             for g in self.greens:
-                if g[2] == r[2] and g[:2] > r[:2]:
+                if g[2] == r[2]:
                     return "counted", (r, g)
-        for r in self.reds:
-            for g in self.greens:
-                if g[:2] > r[:2]:
-                    return "ambiguous", (r, g)
-        reason = "red without a later green" if self.reds else "no red for an intended reason after the write"
+        if self.reds and self.greens:
+            return "ambiguous", (self.reds[0], self.greens[0])
+        reason = "red without a green" if self.reds else "no red for an intended reason after the write"
         return "not counted", reason
 
 

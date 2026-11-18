@@ -154,11 +154,17 @@ class SeenFailTest(unittest.TestCase):
         t.bash(CMD, GREEN.replace("test_page_count_rounds_up", "test_unrelated"))
         self.assertFalse(SCORE.seen_fail2(t.records))
 
-    def test_red_without_later_green_is_not_credited(self):
+    def test_red_without_green_is_not_credited(self):
+        t = Trace()
+        t.bash(CMD, "Exit code 1\n" + RED, is_error=True)
+        t.bash(CMD, "Exit code 1\n" + RED, is_error=True)
+        self.assertFalse(SCORE.seen_fail2(t.records))
+
+    def test_green_then_red_with_the_fix_removed_is_credited(self):
         t = Trace()
         t.bash(CMD, GREEN)
         t.bash(CMD, "Exit code 1\n" + RED, is_error=True)
-        self.assertFalse(SCORE.seen_fail2(t.records))
+        self.assertTrue(SCORE.seen_fail2(t.records))
 
     def test_printf_of_the_output_is_not_credited(self):
         t = Trace()

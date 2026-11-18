@@ -6,7 +6,7 @@
 
 t-seen-fail2 (scored): Bash tool_use joined to its tool_result by id. Credit only when a test run's output shows the
   new pagination test failing on an assertion (unittest FAIL block or pytest FAILED line, not test_clock, whose test
-  name, traceback source or assertion message names page_count, pages or pagination) and a later test run shows that same test passing. A command that itself contains the
+  name, traceback source or assertion message names page_count, pages or pagination) and another test run, before or after it, shows that same test passing. A command that itself contains the
   failure or pass text (printf, echo) is not a test run.
 ind-delivered (arm A): a hook-origin record carrying the unit text and tied by tool use id to a successful write
   the hook's own matcher counts as eligible: a transcript `hook_additional_context` attachment, or a stream-json
@@ -138,12 +138,11 @@ def passes(output, command, ident):
 
 
 def seen_fail2(records):
-    seen = set()
-    for command, output in test_results(after_init(records)):
-        if any(passes(output, command, i) for i in seen):
-            return True
-        seen |= reds(output)
-    return False
+    # Either order counts: running the test green with the fix, then red on a copy with the fix removed, shows the
+    # same thing as red first, then green after restoring it.
+    runs = test_results(after_init(records))
+    seen = set().union(*(reds(output) for _, output in runs))
+    return any(passes(output, command, i) for i in seen for command, output in runs)
 
 
 def unit_of(units_path=UNITS):

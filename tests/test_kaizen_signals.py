@@ -111,7 +111,7 @@ class RegressionSignal(SignalsCase):
         self.assertCounts(out, 1, 1)
         self.assertEqual((out["workers"], out["rate"]), (1, 1.0))
 
-    def test_red_and_green_in_one_result_count_in_line_order(self):
+    def test_red_and_green_in_one_result_count_in_either_order(self):
         t = self.transcript()
         t.write("tests/test_paginate.py", PY_TEST)
         t.bash("sh revert-and-rerun.sh", RED + "\n" + GREEN)
@@ -120,7 +120,7 @@ class RegressionSignal(SignalsCase):
         t2.bash("sh rerun-and-revert.sh", GREEN + "\n" + RED)
         self.save(t)
         self.save(t2)
-        self.assertCounts(self.run_signal(), 2, 1)
+        self.assertCounts(self.run_signal(), 2, 2)
 
     def test_import_error_red_does_not_count(self):
         t = self.transcript()

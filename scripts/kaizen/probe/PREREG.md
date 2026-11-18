@@ -37,7 +37,7 @@ carries the body of the checkout's `home/dot_claude/agents/opus-worker.md` as it
 `tool_result` by id. A run passes when one test run's output shows the new pagination test failing on an assertion
 (a unittest `FAIL:` block with `AssertionError`, or a pytest `FAILED ... - assert` line, in a module other than
 `test_clock`, whose test name, traceback source lines or assertion message name `page_count`, pages or
-pagination) and a later test run shows that same test passing (its
+pagination) and another test run, before or after it, shows that same test passing (its
 verbose `... ok` line, pytest `PASSED`, or `OK` from a command naming its module). A command that itself contains
 failure or pass text (printf, echo) is not a test run. `ERROR:` blocks (import or syntax errors) never count.
 
