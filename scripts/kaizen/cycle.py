@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The kaizen daily cycle (docs/kaizen.md §6): one stateless run over the last 7 days. No model is called.
 
-  cycle.py [run]            observe, watch and readiness from scratch, then write record.json, digest.md and
+  cycle.py [run]            apply merged changes first (apply.py; --no-apply skips it), then observe, watch and
+                            readiness from scratch, then write record.json, digest.md and
                             status.json into a new directory K/runs/<id> and publish the whole run in one step: the
                             symlink K/current is replaced by rename to point at it (K = $KAIZEN_HOME, else
                             ~/.claude/kaizen; the run date is in Asia/Tokyo). Readers go through K/current. A run that
@@ -11,6 +12,8 @@
   cycle.py baseline <id>    write the pre-apply aggregate of watch.json's change <id> to K/watch/<id>.json, once (an
                             existing file is left alone). Transcripts are deleted after 30 days, so the daily run uses
                             this file for the pre window when it is there.
+  cycle.py adopt <sha>      record <sha> as the applied commit, after printing what it skips (apply.adopt)
+  cycle.py resolve [--yes]  print the unresolved apply journal; --yes clears it and nothing else (apply.resolve)
 Watch (watch.json): per change, the regression signal of signals.py over pre [apply - 30 d, apply] and post
 [apply, min(now, apply + days)]; a worker active across apply is counted in both windows.
 The last stdout line is a JSON summary; progress goes to stderr.
@@ -43,6 +46,7 @@ def sibling(name):
     return module
 
 
+apply = sibling("apply")
 observe = sibling("observe")
 ready = sibling("ready")
 signals = sibling("signals")
@@ -176,6 +180,7 @@ def decisions(record):
     for w in record["watch"]:
         if w.get("status", "").startswith("unavailable"):
             found.append(f"watch {w['change']} {w['status']}")
+    found += record["apply"].get("decisions", [])
     return found
 
 
@@ -194,11 +199,30 @@ def regression_text(r):
             + (f"; 害: {harm}" if harm else ""))
 
 
+def apply_lines(a):
+    """The apply section: always the stored cursor and the journal (N5), then this run's merges."""
+    c = a.get("cursor")
+    lines = [f"- 位置: {c['commit'][:12]}（{c['by']}、{c['at']}）" if c else
+             "- 位置: 未設定（判断事項の `cycle.py adopt <sha>` で決める）",
+             f"- 今回: {a.get('status')}" + (f"（{a['reason']}）" if a.get("reason") else "")
+             + (f"、main {a['head'][:12]}" if a.get("head") else "")
+             + (f"、管理パスに触れないコミット {a['passed']} 件を通過" if a.get("passed") else "")]
+    for m in a.get("merges", []):
+        lines.append(f"- {m.get('pr') or m['commit'][:8]} {m['status']}" + (f": {m['reason']}" if m.get("reason") else ""))
+        lines += [f"  - {t}: {k}" for t, k in m.get("targets", {}).items()]
+    journal = [e for e in a.get("journal") or [] if e.get("step") != "clean"]
+    lines.append(f"- 未解決の journal: {len(journal)} 件")
+    lines += [f"  - {e['target']}（{e.get('step')}）: backup {e['backup']}" + (f" — {e['note']}" if e.get("note") else "")
+              for e in journal]
+    return lines
+
+
 def digest(record):
     lines = [f"# kaizen {record['date']}", "", f"窓: {record['window']['since']} – {record['window']['until']}"
              f"（{record['secs']} 秒で計算）", "", "## 準備状態"]
     lines += [f"- {rid} {r['status']}{' (owner)' if r['owner'] else ''}: {text(r['detail'])}"
               for rid, r in record["ready"].items()]
+    lines += ["", "## 適用", *apply_lines(record["apply"])]
     lines += ["", "## 取りこぼしと無駄"]
     for sig, n in record["counts"].items():
         lines.append(f"- {sig}: {n}")
@@ -220,8 +244,29 @@ def digest(record):
     return "\n".join(lines)
 
 
+def run_apply(home, repo, args, started):
+    """The apply stage (K5): in-process, first, within the run's deadline. An error is reported, never raised, so
+    observe and publish go on; SIGTERM and the deadline take the run's own exit path."""
+    if args.no_apply:
+        result = {"status": "off"}
+    else:
+        log("apply")
+        try:
+            return apply.run(home, repo, deadline=started + args.deadline)
+        except Exception as e:  # noqa: BLE001 — a broken apply is its own decision
+            result = {"status": "error", "reason": f"{type(e).__name__}: {e}",
+                      "decisions": [f"apply crashed: {type(e).__name__}: {e}"]}
+    try:
+        result.update(apply.persisted(home))
+    except (OSError, ValueError, KeyError) as e:
+        result["reason"] = (result.get("reason") or "") + f"; apply state unreadable: {e}"
+    return result
+
+
 def run_cycle(k, home, now, args):
     started = time.monotonic()
+    repo = ready.source_repo(args.chezmoi)
+    applied = run_apply(home, repo, args, started)
     paths = observe.default_paths(home)
     if args.no_t3:
         paths["t3_db"] = None
@@ -231,7 +276,6 @@ def run_cycle(k, home, now, args):
     log("watch")
     watched = watch(k, paths["projects"], now, args.watch_file)
     log("ready")
-    repo = ready.source_repo(args.chezmoi)
     today = now.astimezone(observe.TZ).date().isoformat()
     checks = {
         "R1": lambda: ready.check_r1(home, repo, args.chezmoi),
@@ -247,7 +291,7 @@ def run_cycle(k, home, now, args):
         except Exception as e:  # noqa: BLE001 — one broken check is its own FAIL
             results[rid] = ready.result(False, f"check crashed: {type(e).__name__}: {e}")
     record = {"date": today, **{key: obs[key] for key in ("window", "sources", "counts", "tally", "codex_sessions")},
-              "ready": results, "watch": watched, "items": obs["items"], "cost": {"claude_usd": 0, "codex_usd": 0}}
+              "ready": results, "apply": applied, "watch": watched, "items": obs["items"], "cost": {"claude_usd": 0, "codex_usd": 0}}
     record["decisions"] = decisions(record)
     record["secs"] = round(time.monotonic() - started, 1)
     record["finished"] = observe.iso(datetime.now(timezone.utc))
@@ -264,8 +308,8 @@ def main(argv=None, now=None):
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"kaizen: run passed its {args.deadline}s deadline"))
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("command", nargs="?", default="run", choices=("run", "baseline"))
-    p.add_argument("change", nargs="?")
+    p.add_argument("command", nargs="?", default="run", choices=("run", "baseline", "adopt", "resolve"))
+    p.add_argument("change", nargs="?", help="baseline: the change id; adopt: the commit")
     p.add_argument("--home", type=Path, default=Path.home())
     p.add_argument("--watch-file", default=str(HERE / "watch.json"))
     p.add_argument("--gh", default="gh")
@@ -273,6 +317,8 @@ def main(argv=None, now=None):
     p.add_argument("--launchctl", default="launchctl")
     p.add_argument("--no-gh", action="store_true")
     p.add_argument("--no-t3", action="store_true")
+    p.add_argument("--no-apply", action="store_true", help="skip the apply stage")
+    p.add_argument("--yes", action="store_true", help="resolve: clear the journal")
     p.add_argument("--deadline", type=int, default=DEADLINE, help="seconds before the run exits; a run already publishing finishes that first")
     args = p.parse_args(argv)
     signal.alarm(args.deadline)
@@ -290,6 +336,18 @@ def run_command(p, args, now):
         if not args.change:
             p.error("baseline needs a change id")
         summary = baseline(k, home / ".claude/projects", args.watch_file, args.change, now)
+    elif args.command == "adopt":
+        if not args.change:
+            p.error("adopt needs a commit")
+        try:
+            summary = apply.adopt(home, ready.source_repo(args.chezmoi), args.change)
+        except apply.ApplyError as e:
+            raise SystemExit(f"kaizen: adopt: {e}") from e
+    elif args.command == "resolve":
+        try:
+            summary = apply.resolve(home, args.yes)
+        except apply.ApplyError as e:
+            raise SystemExit(f"kaizen: resolve: {e}") from e
     else:
         summary = run_cycle(k, home, now, args)
     print(json.dumps(summary, ensure_ascii=False))
