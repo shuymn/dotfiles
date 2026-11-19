@@ -584,7 +584,7 @@ class Cycle(Temp):
         (state / "applied.json").write_text(json.dumps({"commit": "c" * 40, "by": "owner", "at": "t", "run": None}))
         (state / "journal.json").write_text(json.dumps({"entries": [
             {"merge": "d" * 40, "target": ".claude/agents/w.md", "backup": "backup/r/m/.claude/agents/w.md",
-             "step": "unresolved", "note": "swapped back"}]}))
+             "step": "unresolved", "note": "swapped back", "expected_old_sha": "0" * 64, "new_sha": "1" * 64}]}))
         with mock.patch.object(cycle.apply, "run", side_effect=RuntimeError("boom")):
             self.main()
         record = self.published("record.json")
@@ -595,6 +595,37 @@ class Cycle(Temp):
         self.assertIn("未解決の journal: 1 件", digest)
         self.assertIn(".claude/agents/w.md（unresolved）", digest)
         self.assertIn("## 取りこぼしと無駄", digest)
+
+    def test_invalid_apply_state_is_a_decision_and_the_run_publishes(self):
+        state = self.home / ".local/state/kaizen-apply"
+        state.mkdir(parents=True)
+        (state / "applied.json").write_text('{"commit": "bad"}')
+        self.main()
+        record = self.published("record.json")
+        self.assertEqual(record["apply"]["status"], "error")
+        self.assertTrue(any("state invalid" in d for d in record["decisions"]))
+        self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
+        (state / "applied.json").unlink()
+        (state / "journal.json").write_text("{")
+        with mock.patch.object(cycle.apply, "run", side_effect=RuntimeError("boom")):
+            self.main(now=NOW + timedelta(days=1))
+        self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
+
+    def test_a_slow_clone_leaves_time_to_observe_and_publish(self):
+        checkout = self.dir / "checkout"
+        checkout.mkdir()
+        fake(self.bin, "git", 'case " $* " in\n  *" remote get-url "*) echo https://github.com/o/r.git ;;\n'
+                              '  *" clone "*) exec sleep 60 ;;\nesac\n')
+        started = time.monotonic()
+        with mock.patch.object(cycle.ready, "source_repo", return_value=checkout), \
+                mock.patch.object(cycle, "APPLY_RESERVE", 25), \
+                mock.patch.dict(os.environ, {"PATH": f"{self.bin}:{os.environ['PATH']}"}):
+            self.main("--deadline", "30")
+        self.assertLess(time.monotonic() - started, 20)
+        record = self.published("record.json")
+        self.assertIn("timed out", record["apply"]["reason"])
+        self.assertIn("transcripts", record["sources"])
+        self.assertIn("R1", record["ready"])
 
     def test_no_apply_skips_the_stage(self):
         with mock.patch.object(cycle.apply, "run") as run:

@@ -57,6 +57,9 @@ CHANGE_ID = re.compile(r"[A-Za-z0-9#._-]+")
 REGRESSION_KEYS = ("window", "workers", "opportunities", "counted", "ambiguous", "not_counted", "rate", "harm")
 EXAMPLES = 3
 DEADLINE = 1200  # seconds a whole run may take; a normal one takes under 2 minutes
+# The apply stage ends this long before the run's deadline (and after apply.BUDGET at most), so a slow fetch still
+# leaves time to observe, check and publish: those take about a minute, and 240 s is over three times that.
+APPLY_RESERVE = 240
 RUN_NAME = re.compile(r"\d{8}T\d{6}-[a-z0-9_]{8}")  # the names publish_run gives (mkdtemp's random suffix)
 
 
@@ -202,7 +205,8 @@ def regression_text(r):
 def apply_lines(a):
     """The apply section: always the stored cursor and the journal (N5), then this run's merges."""
     c = a.get("cursor")
-    lines = [f"- 位置: {c['commit'][:12]}（{c['by']}、{c['at']}）" if c else
+    lines = [f"- 適用の状態が読めない: {a['state_error']}"] if a.get("state_error") else []
+    lines += [f"- 位置: {c['commit'][:12]}（{c['by']}、{c['at']}）" if c else
              "- 位置: 未設定（判断事項の `cycle.py adopt <sha>` で決める）",
              f"- 今回: {a.get('status')}" + (f"（{a['reason']}）" if a.get("reason") else "")
              + (f"、main {a['head'][:12]}" if a.get("head") else "")
@@ -252,7 +256,7 @@ def run_apply(home, repo, args, started):
     else:
         log("apply")
         try:
-            return apply.run(home, repo, deadline=started + args.deadline)
+            return apply.run(home, repo, deadline=started + args.deadline - APPLY_RESERVE)
         except Exception as e:  # noqa: BLE001 — a broken apply is its own decision
             result = {"status": "error", "reason": f"{type(e).__name__}: {e}",
                       "decisions": [f"apply crashed: {type(e).__name__}: {e}"]}
