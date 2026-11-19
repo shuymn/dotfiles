@@ -832,6 +832,10 @@ def _run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=Non
         except (ApplyError, OSError) as e:
             res.update(status="error", reason=f"{type(e).__name__}: {e}" if isinstance(e, OSError) else str(e))
             res["decisions"].append(f"apply: {res['reason']}")
+            try:  # the cursor may have advanced before the error (the journal write after it failing, say)
+                res["cursor"] = state.applied()
+            except InvalidState as e:
+                res["decisions"].append(f"apply: state invalid: {e}")
         try:
             res["journal"] = state.journal()
         except InvalidState as e:

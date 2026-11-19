@@ -440,6 +440,21 @@ class Chain(Base):
         self.assertIn(f"~/{T_AGENT}", res["decisions"][0])
         self.assertIn(str(self.state.dir / "backup/r"), res["decisions"][0])
 
+    def test_the_cursor_reported_after_a_failed_journal_write_is_the_one_on_disk(self):
+        self.setup()
+        make_home(self.repo, self.M, self.home)  # every target done: the cursor advances, then the journal is saved
+        real = apply.State.save_journal
+
+        def full(state, entries):
+            if (state.applied() or {}).get("commit") == self.M:
+                raise OSError(28, "No space left on device")
+            return real(state, entries)
+        with mock.patch.object(apply.State, "save_journal", full):
+            res = self.run_apply()
+        self.assertEqual(res["status"], "error")
+        self.assertIn("No space left", res["reason"])
+        self.assertEqual((res["cursor"]["commit"], self.cursor()), (self.M, self.M))
+
     def test_lock_held_skips(self):
         self.setup()
         held = self.state.lock()
