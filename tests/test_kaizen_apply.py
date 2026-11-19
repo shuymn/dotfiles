@@ -132,6 +132,12 @@ def make_home(repo, commit, home):
             target.chmod(0o644)
 
 
+def entry(merge, target, step, **extra):
+    """A journal entry of the shape apply writes."""
+    return {"run": "r", "merge": merge, "target": target, "backup": f"backup/r/{merge[:12]}/{target}",
+            "expected_old_sha": "0" * 64, "new_sha": "1" * 64, "parent": None, "step": step, **extra}
+
+
 def scenario():
     """Cursor L at the root, then a merge M changing two v1 targets (deterministic, so a child process rebuilds it)."""
     repo = Repo()
@@ -255,6 +261,26 @@ class Eligibility(unittest.TestCase):
             with self.subTest(other):
                 self.assertIn("collides", self.assess({SKILL: b"new\n"}, {**BASE, other: b"x\n"})[1])
 
+    def test_every_rule_file_spelling_is_read(self):
+        for rules in (".chezmoiignore.tmpl", ".chezmoiremove.tmpl"):
+            with self.subTest(rules):
+                reason = self.assess({SKILL: b"new\n"}, {**BASE, f"home/{rules}": b".claude/skills/**\n"})[1]
+                self.assertIn(f"home/{rules}", reason)
+                nested = {**BASE, f"home/dot_claude/skills/{rules}": b"x\n"}
+                self.assertIn("own ignore", self.assess({SKILL: b"new\n"}, nested)[1])
+
+    def test_a_template_action_after_a_comment_mark_refuses(self):
+        for line in (b'.config/x # {{ "\\n.claude/**" }}\n', b'# {{ .extra }}\n'):
+            with self.subTest(line=line):
+                reason = self.assess({SKILL: b"new\n"}, {**BASE, "home/.chezmoiignore": line})[1]
+                self.assertIn("template line", reason)
+
+    def test_pattern_syntax_the_matcher_lacks_refuses(self):
+        for line in (b".claude/{skills,agents}/**", b".claude/[sa]*/**", b".claude/sk\\ills/**", b".config/{x}"):
+            with self.subTest(line=line):
+                reason = self.assess({SKILL: b"new\n"}, {**BASE, "home/.chezmoiremove": line + b"\n"})[1]
+                self.assertIn("unsupported pattern syntax", reason)
+
     def test_nested_ignore_file_or_external_refuses(self):
         self.assertIn("own ignore", self.assess({SKILL: b"new\n"},
                                                 {**BASE, "home/dot_claude/skills/.chezmoiignore": b"x\n"})[1])
@@ -351,6 +377,32 @@ class Chain(Base):
         res = self.run_apply(budget=-1)
         self.assertEqual((res["status"], res["merges"][0]["status"]), ("partial", "pending"))
         self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+
+    def test_invalid_state_writes_nothing_and_is_one_decision(self):
+        for name, text in (("applied.json", '{"commit": "bad"}'), ("journal.json", "not json"),
+                           ("journal.json", json.dumps({"entries": [{"merge": "x"}]}))):
+            with self.subTest(name=name, text=text):
+                self.setup()
+                (self.state.dir / name).write_text(text)
+                res = self.run_apply()
+                self.assertEqual(res["status"], "error")
+                self.assertEqual(len(res["decisions"]), 1)
+                self.assertIn("state invalid", res["decisions"][0])
+                self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+                self.assertIn("state_error", apply.persisted(self.home))
+                (self.state.dir / name).unlink()
+
+    def test_lock_held_still_reports_the_cursor_and_the_journal(self):
+        self.setup()
+        self.state.save_journal([entry(self.M, T_AGENT, "unresolved", note="swapped back")])
+        held = self.state.lock()
+        self.addCleanup(held.close)
+        res = self.run_apply()
+        self.assertEqual(res["status"], "skipped")
+        self.assertEqual((res["cursor"]["commit"], [e["target"] for e in res["journal"]]), (self.L, [T_AGENT]))
+        self.assertEqual(len(res["decisions"]), 1)
+        self.assertIn(f"~/{T_AGENT}", res["decisions"][0])
+        self.assertIn(str(self.state.dir / "backup/r"), res["decisions"][0])
 
     def test_lock_held_skips(self):
         self.setup()
@@ -592,9 +644,84 @@ class Swap(Base):
             self.run_apply()
         self.move_and_recreate(T_AGENT, b"agent v1\n")  # same bytes, another directory
         res = self.run_apply()
-        self.assertEqual(res["merges"][0]["status"], "changed after apply")
+        self.assertEqual((res["status"], res["merges"]), ("blocked", []))
         self.assertEqual(self.cursor(), self.L)
-        self.assertIn(("unresolved"), [e["step"] for e in self.state.journal()])
+        self.assertEqual([(e["target"], e["step"]) for e in self.state.journal()], [(T_AGENT, "unresolved")])
+        self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+
+    def partial(self):
+        """Run until the agent target is written and the skill step refuses (its parent changed before the swap)."""
+        real, n = apply.stage_backup, []
+
+        def stage(*a):
+            ino = real(*a)
+            n.append(1)
+            if len(n) == 2:
+                self.move_and_recreate(T_SKILL, b"skill v0\n")
+            return ino
+        with mock.patch.object(apply, "stage_backup", side_effect=stage):
+            self.run_apply()
+        self.assertEqual([(e["target"], e["step"]) for e in self.state.journal()], [(T_AGENT, "clean")])
+
+    def test_an_owner_edit_after_a_partial_write_is_not_overwritten(self):
+        self.setup()
+        self.partial()
+        (self.home / T_AGENT).write_bytes(b"agent v0\n")  # the owner puts the old version back
+        ino = self.inode(T_AGENT)
+        res = self.run_apply()
+        self.assertEqual(res["status"], "blocked")
+        self.assertEqual((self.live(T_AGENT), self.inode(T_AGENT)), (b"agent v0\n", ino))
+        self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+        [e] = self.state.journal()
+        self.assertEqual(e["step"], "unresolved")
+        self.assertEqual(self.cursor(), self.L)
+        self.assertIn(T_AGENT, res["decisions"][0])
+
+    def test_a_third_version_makes_the_clean_entry_unresolved(self):
+        self.setup()
+        self.partial()
+        (self.home / T_AGENT).write_bytes(b"a third version\n")
+        res = self.run_apply()
+        self.assertEqual(res["status"], "blocked")
+        self.assertEqual([e["step"] for e in self.state.journal()], ["unresolved"])
+        self.assertEqual(self.live(T_AGENT), b"a third version\n")
+        self.assertEqual(self.cursor(), self.L)
+
+    def test_the_stage_deadline_stops_between_target_steps(self):
+        self.setup()
+        patch, calls = self.patch_exchange(after=lambda n: time.sleep(1.2) if n == 1 else None)
+        with patch:
+            res = apply.run(self.home, reader=self.repo, head=self.repo.head, deadline=time.monotonic() + 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual((res["status"], res["merges"][0]["status"]), ("partial", "partial"))
+        self.assertEqual([(e["target"], e["step"]) for e in self.state.journal()], [(T_AGENT, "clean")])
+        self.assertEqual((self.live(T_AGENT), self.live(T_SKILL)), (b"agent v1\n", b"skill v0\n"))
+        self.assertEqual(self.cursor(), self.L)
+        self.assertEqual(res["decisions"], [])
+        res = self.run_apply()  # the next run finishes it
+        self.assertEqual((res["merges"][0]["status"], self.cursor()), ("applied", self.M))
+
+    def test_a_parent_moved_after_the_final_walk_is_swapped_into_the_moved_dir_and_held(self):
+        self.setup()
+        moved = {}
+        parent = (self.home / T_AGENT).parent
+
+        def exchange_after_move(n):
+            if n == 1:  # after the final walk and its identity check, before the syscall
+                moved["dir"] = self.move_and_recreate(T_AGENT, b"agent v0\n")
+        patch, calls = self.patch_exchange(before=exchange_after_move)
+        with patch:
+            res = self.run_apply()
+        self.assertTrue(moved)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual((moved["dir"] / "w.md").read_bytes(), b"agent v1\n")  # the swap landed in the moved dir
+        self.assertEqual((parent / "w.md").read_bytes(), b"agent v0\n")  # the recreated one is untouched
+        [backup] = self.backups(T_AGENT)
+        self.assertEqual(backup.read_bytes(), b"agent v0\n")  # the displaced inode, named
+        [e] = self.state.journal()
+        self.assertEqual((e["step"], e["note"]), ("unresolved", "parent changed after the swap"))
+        self.assertEqual(self.cursor(), self.L)
+        self.assertIn(str(backup), res["decisions"][0])
 
     def test_sigterm_during_a_step_completes_the_step(self):
         self.setup()
@@ -646,6 +773,9 @@ t.apply.run({str(self.home)!r}, reader=repo, head=repo.head)
         self.assertEqual(apply.resolve(self.home, out=out.append)["cleared"], False)
         self.assertEqual(len(self.state.journal()), 1)
         self.assertIn(T_AGENT, "\n".join(out))
+        lines = {l.split()[0]: l for l in out if l.startswith("  ")}  # full SHA-256 of both paths
+        self.assertTrue(lines["live"].endswith(hashlib.sha256(b"agent v1\n").hexdigest()), lines["live"])
+        self.assertTrue(lines["backup"].endswith(hashlib.sha256(b"agent v0\n").hexdigest()), lines["backup"])
         self.assertEqual(apply.resolve(self.home, yes=True, out=out.append)["cleared"], True)
         self.assertEqual((self.state.journal(), files(), self.state.applied()), ([], before, applied))
 
@@ -663,7 +793,7 @@ class Adopt(Base):
 
     def test_refuses_with_an_unresolved_journal(self):
         self.setup()
-        self.state.save_journal([{"merge": self.M, "target": T_SKILL, "backup": "b", "step": "staged"}])
+        self.state.save_journal([entry(self.M, T_SKILL, "staged")])
         with self.assertRaisesRegex(apply.ApplyError, "unresolved"):
             self.adopt(self.M)
         self.assertEqual(self.cursor(), self.L)
@@ -679,14 +809,39 @@ class Adopt(Base):
     def test_prints_what_it_skips_and_records_the_owner(self):
         repo = Repo()
         L = repo.head
-        m1 = repo.main({SKILL: b"skill v1\n", "home/dot_claude/hooks/x.py": b"print(3)\n"}, "Merge pull request #1")
+        m1 = repo.main({AGENT: b"agent v1\n", "docs/kaizen.md": b"d\n"}, "Merge pull request #1")
+        m2 = repo.main({SKILL: b"skill v1\n", "home/dot_claude/hooks/x.py": b"print(3)\n"}, "Merge pull request #2")
         self.setup(repo, L)
-        result, out = self.adopt(m1[:10])
+        result, out = self.adopt(m2[:10])
         text = "\n".join(out)
-        self.assertIn(f"{T_SKILL}: write", text)
-        self.assertIn("home/dot_claude/hooks/x.py", text)
+        self.assertIn(f"skips {m1[:8]}", text)
+        self.assertIn(f"{T_AGENT}: write", text)
+        self.assertIn("other paths: docs/kaizen.md", text)
+        self.assertIn("refused: outside v1: home/dot_claude/hooks/x.py", text)
         self.assertIn(T_SKILL, result["differing"])
-        self.assertEqual((self.cursor(), self.state.applied()["by"]), (m1, "owner"))
+        self.assertEqual((self.cursor(), self.state.applied()["by"]), (m2, "owner"))
+
+    def test_preview_uses_the_same_assessment_as_apply(self):
+        repo = Repo()
+        L = repo.head
+        m1 = repo.main({SKILL: ("100755", b"skill v0\n")}, "Merge pull request #1")
+        self.setup(repo, L)
+        _, out = self.adopt(m1)
+        text = "\n".join(out)
+        self.assertIn("refused: not a 100644 blob", text)
+        self.assertNotIn(f"{T_SKILL}: write", text)
+
+    def test_keeps_journal_entries_of_later_candidates(self):
+        repo = Repo()
+        L = repo.head
+        m1 = repo.main({AGENT: b"agent v1\n"}, "Merge pull request #1")
+        m2 = repo.main({SKILL: b"skill v1\n"}, "Merge pull request #2")
+        self.setup(repo, L)
+        self.state.save_journal([entry(m1, T_AGENT, "clean"), entry(m2, T_SKILL, "clean")])
+        self.adopt(m1)
+        self.assertEqual([e["merge"] for e in self.state.journal()], [m2])
+        self.adopt(m2)
+        self.assertEqual(self.state.journal(), [])
 
     def test_without_a_cursor_any_commit_on_the_chain(self):
         self.setup(cursor=False)
@@ -846,6 +1001,47 @@ class Mirror(Base):
         self.git(origin="https://gitlab.com/o/r.git")
         with self.assertRaisesRegex(apply.ApplyError, "not a GitHub"):
             apply.public_url(self.dir / "checkout")
+
+    def test_an_unresolved_journal_is_reported_before_any_fetch(self):
+        self.git(fetch="echo 'could not resolve host' >&2; exit 128")
+        self.state.write("applied.json", {"commit": "a" * 40, "at": "t", "by": "owner", "run": None})
+        self.state.save_journal([entry("b" * 40, T_AGENT, "unresolved", note="swapped back")])
+        res = apply.run(self.home, self.checkout())
+        self.assertEqual(res["status"], "blocked")
+        self.assertEqual(self.calls(), [])
+        [decision] = res["decisions"]
+        self.assertIn(f"~/{T_AGENT}", decision)
+        self.assertIn(str(self.state.dir / "backup/r"), decision)
+
+    def check(self, repo):
+        with mock.patch.object(apply, "sync_mirror", return_value=(repo, repo.head)), \
+                mock.patch.object(apply, "public_url", return_value="u"), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            code = apply.main(["--check", "--home", str(self.home), "--repo", str(self.dir)])
+        return code, out.getvalue()
+
+    def test_check_predicts_only_the_next_candidate(self):
+        repo = Repo()
+        L = repo.head
+        m1 = repo.main({SKILL: b"skill v1\n"}, "Merge pull request #1")
+        m2 = repo.main({SKILL: b"skill v2\n"}, "Merge pull request #2")
+        make_home(repo, L, self.home)
+        self.state.write("applied.json", {"commit": L, "at": "t", "by": "owner", "run": None})
+        code, out = self.check(repo)
+        self.assertEqual(code, 0)  # v0 -> v1 -> v2 applies cleanly; the second is not compared with a live at v1
+        self.assertIn(f"{m1[:8]} #1 applicable", out)
+        self.assertIn(f"{m2[:8]} #2 conflict", out)
+        self.assertIn("(not a prediction)", out)
+        self.assertNotIn("decision:", out)
+
+    def test_the_cli_is_check_only(self):
+        self.state.save_journal([entry("b" * 40, T_AGENT, "unresolved")])
+        for argv in (["resolve", "--yes"], ["--check", "resolve", "--yes"], ["adopt", "b" * 40], []):
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()), \
+                    self.assertRaises(SystemExit) as stop:
+                apply.main([*argv, "--home", str(self.home)])
+            self.assertEqual(stop.exception.code, 2)
+        self.assertEqual(len(self.state.journal()), 1)
 
     def test_check_cli_exit_codes(self):
         repo, L, M = scenario()

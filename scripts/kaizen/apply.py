@@ -3,12 +3,11 @@
 writes (renameatx_np). No chezmoi: v1 applies only modifications of plain files under home/dot_claude/skills/** and
 home/dot_claude/agents/**, whose target is ~/.claude/<rest>, content the git blob, mode 0644.
 
-  apply.py --check            fetch the mirror, then print the cursor, the journal and every pending merge with its
-                              classification; writes nothing but the mirror. Exit 0 when nothing would be refused,
-                              1 when something would be, 2 on error (for humans only).
-  apply.py adopt <sha>        record <sha> as the applied commit (by the owner) after printing what it skips
-  apply.py resolve [--yes]    print the unresolved journal entries; --yes clears the journal and nothing else
-The cycle calls run() in-process (cycle.py run). State lives in A = <home>/.local/state/kaizen-apply: .apply.lock,
+  apply.py --check   fetch the mirror, then print the cursor, the journal and the pending merges; writes nothing but
+                     the mirror. Only the next candidate is predicted (applied or where it stops); later ones are
+                     compared with the live snapshot as it is now. Exit 0 when the next step would not stop, 1 when it
+                     would, 2 on error (for humans only).
+The cycle calls run() in-process (cycle.py run); the owner commands adopt and resolve are cycle.py commands. State lives in A = <home>/.local/state/kaizen-apply: .apply.lock,
 applied.json (the cursor L), journal.json, backup/<run>/, mirror.git (a bare clone of main fetched from the public
 HTTPS URL of the checkout's GitHub origin). The owner's checkout is read only for that URL.
 """
@@ -32,7 +31,20 @@ import tempfile
 import time
 from datetime import datetime, timezone
 from fnmatch import fnmatchcase
+from importlib import util as importlib_util
 from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+
+def _sibling(name):
+    spec = importlib_util.spec_from_file_location(f"kaizen_{name}", HERE / f"{name}.py")
+    module = importlib_util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+ready = _sibling("ready")
 
 STATE = ".local/state/kaizen-apply"
 ROOTS = ("home/dot_claude/skills/", "home/dot_claude/agents/")
@@ -45,7 +57,7 @@ ATTRIBUTES = ("after_", "before_", "create_", "dot_", "empty_", "encrypted_", "e
               "literal_", "modify_", "once_", "onchange_", "private_", "readonly_", "remove_", "run_", "symlink_")
 SUFFIXES = (".tmpl", ".age", ".asc", ".literal")
 MODE = 0o644
-BUDGET = 300  # seconds after which no new merge starts
+BUDGET = 300  # seconds the apply stage may take; past them it stops between target steps and the next run goes on
 TIMEOUTS = {"clone": 300, "fetch": 60, "read": 30}
 STANDALONE_DEADLINE = 600
 RENAME_SWAP = 0x2
@@ -53,6 +65,11 @@ CONTROL = re.compile(r"\{\{-?\s*(?:/\*.*?\*/|(?:if|else|else\s+if|end|range|with
 GITHUB = re.compile(r"^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)"
                     r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 PR = re.compile(r"Merge pull request #(\d+)|\(#(\d+)\)\s*$")
+# every spelling chezmoi reads as an ignore or remove file, in any source directory
+RULE_FILES = (".chezmoiignore", ".chezmoiignore.tmpl", ".chezmoiremove", ".chezmoiremove.tmpl")
+UNSUPPORTED = re.compile(r"[{}\[\]\\]")  # pattern syntax pattern_match does not implement: refuse instead
+HEX40, HEX64 = re.compile(r"[0-9a-f]{40}"), re.compile(r"[0-9a-f]{64}")
+STEPS = ("staged", "swapped", "clean", "unresolved")
 
 
 class ApplyError(Exception):
@@ -61,6 +78,10 @@ class ApplyError(Exception):
 
 class WalkError(OSError):
     pass
+
+
+class InvalidState(ApplyError):
+    """applied.json or journal.json is not what apply writes."""
 
 
 def sha(data):
@@ -249,17 +270,20 @@ def target_name(name):
 
 
 def rule_patterns(text):
-    """(patterns, None) of a .chezmoiignore/.chezmoiremove, every pattern line regardless of conditionals; or
-    (None, line) for a template line that could emit a pattern."""
+    """(patterns, None) of an ignore or remove file, every pattern line regardless of conditionals; or (None, reason)
+    for a template action that could emit a pattern (looked for before comments are cut, since an action after "#"
+    can emit a line) or a pattern using syntax pattern_match does not implement."""
     patterns = []
     for line in text.splitlines():
+        if "{{" in line:
+            if CONTROL.fullmatch(line.strip()):
+                continue
+            return None, f"template line {line.strip()!r}"
         s = line.split("#", 1)[0].strip()
         if not s:
             continue
-        if "{{" in s:
-            if CONTROL.fullmatch(s):
-                continue
-            return None, s
+        if UNSUPPORTED.search(s):
+            return None, f"unsupported pattern syntax {s!r}"
         patterns.append(s.lstrip("!").strip())
     return patterns, None
 
@@ -277,13 +301,13 @@ def guards(reader, commit, targets):
     config = reader.blob(commit, ".chezmoi.toml.tmpl")
     if config and b"umask" in config[1]:
         return ".chezmoi.toml.tmpl sets umask"
-    for rules in (".chezmoiignore", ".chezmoiremove"):
+    for rules in RULE_FILES:
         b = reader.blob(commit, f"home/{rules}")
         if b is None:
             continue
         patterns, bad = rule_patterns(b[1].decode("utf-8", "replace"))
         if bad:
-            return f"template line in home/{rules}: {bad}"
+            return f"home/{rules}: {bad}"
         for _, rel in targets:
             for path in ancestors(rel):
                 hit = next((p for p in patterns if pattern_match(p, path)), None)
@@ -294,7 +318,7 @@ def guards(reader, commit, targets):
         for depth in range(1, len(parts)):
             directory, own = "/".join(parts[:depth]), parts[depth]
             names = reader.names(commit, directory)
-            if depth > 1 and any(n in (".chezmoiignore", ".chezmoiremove") for n in names):
+            if depth > 1 and any(n in RULE_FILES for n in names):
                 return f"{directory} has its own ignore or remove file"
             if any(n.startswith(".chezmoiexternal") for n in names):
                 return f"{directory} has a .chezmoiexternal file"
@@ -340,7 +364,8 @@ def is_candidate(reader, parent, commit):
     if parent is None:
         return False
     pats = set(managed_patterns(reader, commit)) | set(managed_patterns(reader, parent)) or {"home/**"}
-    return any(p.startswith("home/") and any(pattern_match(m, p) for m in pats) for _, p in reader.changes(parent, commit))
+    return any(p.startswith("home/") and any(ready.pattern_match(m, p) for m in pats)
+               for _, p in reader.changes(parent, commit))
 
 
 def pr_of(subject):
@@ -467,12 +492,23 @@ class State:
             return json.loads((self.dir / name).read_text())
         except FileNotFoundError:
             return default
+        except (OSError, ValueError) as e:
+            raise InvalidState(f"{self.dir / name} is unreadable: {e}") from e
 
     def applied(self):
-        return self.read("applied.json", None)
+        value = self.read("applied.json", None)
+        if value is not None and not (isinstance(value, dict) and isinstance(value.get("commit"), str)
+                                      and HEX40.fullmatch(value["commit"]) and isinstance(value.get("at"), str)
+                                      and value.get("by") in ("cycle", "observed", "owner")):
+            raise InvalidState(f"{self.dir / 'applied.json'} is not a cursor: {json.dumps(value)[:200]}")
+        return value
 
     def journal(self):
-        return self.read("journal.json", {"entries": []})["entries"]
+        value = self.read("journal.json", {"entries": []})
+        entries = value.get("entries") if isinstance(value, dict) else None
+        if not isinstance(entries, list) or not all(valid_entry(e) for e in entries):
+            raise InvalidState(f"{self.dir / 'journal.json'} is not a journal: {json.dumps(value)[:200]}")
+        return entries
 
     def write(self, name, value):
         """Atomic and durable: temp file, fsync, rename, fsync of the directory; the temp file goes on failure."""
@@ -508,10 +544,26 @@ class State:
         return f
 
 
+def relative(path):
+    parts = path.split("/") if isinstance(path, str) else [""]
+    return not path.startswith("/") and all(p not in ("", ".", "..") for p in parts)
+
+
+def valid_entry(e):
+    return (isinstance(e, dict) and isinstance(e.get("merge"), str) and bool(HEX40.fullmatch(e["merge"]))
+            and relative(e.get("target")) and relative(e.get("backup")) and e.get("step") in STEPS
+            and all(isinstance(e.get(k), str) and HEX64.fullmatch(e[k]) for k in ("expected_old_sha", "new_sha"))
+            and (e.get("parent") is None or (isinstance(e["parent"], list) and len(e["parent"]) == 2
+                                             and all(isinstance(i, int) for i in e["parent"]))))
+
+
 def persisted(home):
-    """The cursor and the journal as stored, for the digest (N5)."""
+    """The cursor and the journal as stored, for the digest (N5); invalid state is reported, not raised."""
     s = State(home)
-    return {"cursor": s.applied(), "journal": s.journal(), "state": str(s.dir)}
+    try:
+        return {"cursor": s.applied(), "journal": s.journal(), "state": str(s.dir)}
+    except InvalidState as e:
+        return {"cursor": None, "journal": [], "state": str(s.dir), "state_error": str(e)}
 
 
 def unresolved(entries):
@@ -555,8 +607,7 @@ class Run:
         try:
             b_ino = stage_backup(bfd, name, new)
             entry = {"run": self.run_id, "merge": commit, "target": rel, "backup": "/".join([*backup_parts, name]),
-                     "expected_old_sha": sha(old), "new_sha": sha(new), "parent": pid, "live_ino": live.get("ino"),
-                     "staged_ino": b_ino, "step": "staged"}
+                     "expected_old_sha": sha(old), "new_sha": sha(new), "parent": pid, "step": "staged"}
             self.journal.append(entry)
             self.save()
 
@@ -633,6 +684,20 @@ class Run:
         finally:
             os.close(fd)
 
+    def revalidate(self):
+        """Before any write: every clean entry kept from an earlier run must still see its parent and the new blob
+        at mode 0644; an entry that does not is unresolved. Returns those entries."""
+        bad = []
+        for e in self.journal:
+            if e["step"] != "clean":
+                continue
+            live, pid = snapshot(self.home, e["target"])
+            if not (pid == e["parent"] and live.get("type") == "file" and live.get("mode") == MODE
+                    and sha(live["bytes"]) == e["new_sha"]):
+                e.update(step="unresolved", note=f"changed since an earlier run wrote it ({describe(live)})")
+                bad.append(e)
+        return bad
+
     def recheck(self, commit, cls):
         """Before L advances: every target of the merge equals its new blob, and every journal entry of the merge
         still sees the same parent. Returns the targets that fail."""
@@ -651,42 +716,53 @@ class Run:
 
 
 def new_result():
-    return {"status": None, "reason": None, "cursor_before": None, "cursor": None, "head": None, "merges": [],
-            "passed": 0, "journal": [], "decisions": [], "state": None}
+    return {"status": None, "reason": None, "cursor": None, "head": None, "merges": [], "passed": 0, "journal": [],
+            "decisions": [], "state": None}
 
 
 def run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=None, head=None, url=None, check=False):
     """Apply pending merges along main's first parent after the cursor L (with check, only classify them and write
-    nothing but the mirror). Returns a structured result; refusals and stage errors are in it, not raised."""
+    nothing but the mirror). The stage ends at min(start + budget, deadline): every git call is bounded by it, and
+    past it no further target step starts. Returns a structured result; refusals and stage errors are in it."""
     started = time.monotonic()
+    stage_deadline = min(started + budget, deadline if deadline is not None else started + STANDALONE_DEADLINE)
     home = Path(home)
     state = State(home)
     res = new_result()
     res["state"] = str(state.dir)
-    deadline = deadline or started + STANDALONE_DEADLINE
-    lock = None
-    if not check:
-        lock = state.lock()
-        if lock is None:
-            res.update(status="skipped", reason="another apply holds .apply.lock")
-            return res
+    lock = None if check else state.lock()
     umask = os.umask(0o022)
     try:
-        cursor = state.applied()
-        res["cursor_before"] = res["cursor"] = cursor
-        entries = state.journal()
-        res["journal"] = entries
+        try:
+            cursor, entries = state.applied(), state.journal()
+        except InvalidState as e:
+            res.update(status="error", reason=str(e), state_error=str(e))
+            res["decisions"].append(f"apply: state invalid: {e} — fix or move the file aside; nothing was written")
+            return res
+        res.update(cursor=cursor, journal=entries)
+        held = unresolved(entries)
+        if held:  # reported before any fetch, so a fetch failure cannot hide it
+            res["decisions"].append(journal_decision(held, state))
+        if not check and lock is None:
+            res.update(status="skipped", reason="another apply holds .apply.lock")
+            return res
+        if held:
+            res.update(status="blocked", reason="unresolved journal entries")
+            return res
         try:
             if reader is None:
-                reader, head = sync_mirror(state.dir, url or public_url(repo, git, git_env(state.dir), deadline),
-                                           git, deadline)
+                reader, head = sync_mirror(state.dir, url or public_url(repo, git, git_env(state.dir), stage_deadline),
+                                           git, stage_deadline)
             head = head or reader.resolve("refs/heads/main")
             res["head"] = head
-            _apply(home, state, reader, head, cursor, entries, res, started + budget, check)
+            _apply(home, state, reader, head, cursor, entries, res, stage_deadline, check)
         except (ApplyError, OSError) as e:
             res.update(status="error", reason=f"{type(e).__name__}: {e}" if isinstance(e, OSError) else str(e))
             res["decisions"].append(f"apply: {res['reason']}")
-        res["journal"] = state.journal()
+        try:
+            res["journal"] = state.journal()
+        except InvalidState as e:
+            res["decisions"].append(f"apply: state invalid: {e}")
         return res
     finally:
         os.umask(umask)
@@ -727,11 +803,7 @@ def differing(reader, commit, home):
     return out
 
 
-def _apply(home, state, reader, head, cursor, entries, res, no_new_merge_after, check):
-    if unresolved(entries):
-        res.update(status="blocked", reason="unresolved journal entries")
-        res["decisions"].append(journal_decision(unresolved(entries), state))
-        return
+def _apply(home, state, reader, head, cursor, entries, res, stage_deadline, check):
     if cursor is None:
         diff = differing(reader, head, home)
         res.update(status="baseline-missing", reason="no applied.json", differing=diff)
@@ -754,9 +826,15 @@ def _apply(home, state, reader, head, cursor, entries, res, no_new_merge_after, 
             res["decisions"].append(journal_decision(stray, state))
             return
     r = Run(home, state, reader, f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{os.urandom(3).hex()}", entries)
-    if not check and entries != state.journal():
+    stale = r.revalidate()  # H1: nothing is written over a version an earlier run did not leave there
+    if not check and (stale or entries != state.journal()):
         r.save()
+    if stale:
+        res.update(status="blocked", reason="a target written by an earlier run changed")
+        res["decisions"].append(journal_decision(stale, state))
+        return
     res["status"] = "would apply" if check else "ok"
+    predicted = False  # check: only the next candidate is a prediction
     position = reached = cursor["commit"]
     wrote = False
 
@@ -781,14 +859,19 @@ def _apply(home, state, reader, head, cursor, entries, res, no_new_merge_after, 
             m = {"commit": commit, "pr": pr_of(subject), "subject": subject, "status": None, "targets": {}}
             res["merges"].append(m)
             label = f"{m['pr'] or ''} ({commit[:8]})".strip()
-            if not check and time.monotonic() > no_new_merge_after:
-                m.update(status="pending", reason="stage budget used; the next run continues")
+            if not check and time.monotonic() > stage_deadline:
+                m.update(status="pending", reason="stage deadline passed; the next run continues")
                 res["status"] = "partial"
                 break
+            later = check and predicted
+            predicted = True
+            if later:
+                m["note"] = "compared with the current live snapshot (not a prediction)"
             targets, reason = assess(reader, parent, commit)
             if reason:
                 m.update(status="refused", reason=reason)
-                res["decisions"].append(f"apply: {label} refused as a whole: {reason} — {owner_options(commit)}")
+                if not later:
+                    res["decisions"].append(f"apply: {label} refused as a whole: {reason} — {owner_options(commit)}")
                 if check:
                     continue
                 res["status"] = "stopped"
@@ -799,10 +882,11 @@ def _apply(home, state, reader, head, cursor, entries, res, no_new_merge_after, 
             conflicts = [rel for rel, c in cls.items() if c[0] == "conflict"]
             if conflicts:
                 m.update(status="conflict", reason="live differs from both sides")
-                res["decisions"].append(
-                    f"apply: {label} not applied: live differs from both sides on "
-                    + ", ".join(f"{t} ({describe(cls[t][1])})" for t in conflicts)
-                    + f" — put the live edit into a PR, or {owner_options(commit)}")
+                if not later:
+                    res["decisions"].append(
+                        f"apply: {label} not applied: live differs from both sides on "
+                        + ", ".join(f"{t} ({describe(cls[t][1])})" for t in conflicts)
+                        + f" — put the live edit into a PR, or {owner_options(commit)}")
                 if check:
                     continue
                 res["status"] = "stopped"
@@ -810,16 +894,23 @@ def _apply(home, state, reader, head, cursor, entries, res, no_new_merge_after, 
             if check:
                 m["status"] = "applicable"
                 continue
-            failed = None
+            failed = expired = None
             for rel, (k, live, pid, old, new) in cls.items():
                 if k != "write":
                     continue
+                if time.monotonic() > stage_deadline:
+                    expired = rel
+                    break
                 ok, note = r.write_target(commit, rel, live, pid, old, new)
                 m["targets"][rel] = "written" if ok else f"failed: {note}"
                 wrote = wrote or ok
                 if not ok:
                     failed = (rel, note)
                     break
+            if expired:
+                m.update(status="partial", reason=f"stage deadline passed before {expired}; the next run continues")
+                res["status"] = "partial"
+                break
             if failed:
                 written = any(v == "written" for v in m["targets"].values())
                 m.update(status="partial" if written else "conflict", reason=f"{failed[0]}: {failed[1]}")
@@ -842,7 +933,7 @@ def _apply(home, state, reader, head, cursor, entries, res, no_new_merge_after, 
     finally:
         if not check:
             advance()
-    if check and any(m["status"] in ("refused", "conflict") for m in res["merges"]):
+    if check and res["merges"] and res["merges"][0]["status"] in ("refused", "conflict"):
         res["status"] = "would stop"
 
 
@@ -879,22 +970,23 @@ def adopt(home, repo, commit, *, git="git", reader=None, head=None, url=None, de
         for c, p in skipped:
             if not is_candidate(reader, p, c):
                 continue
-            changes = reader.changes(p, c)
-            v1 = [(path, plain_target(path)) for s, path in changes if s == "M" and plain_target(path)]
-            other = [path for s, path in changes if not (s == "M" and plain_target(path))]
-            kinds = []
-            for path, rel in v1:
-                old, new = reader.blob(p, path), reader.blob(c, path)
-                live, _ = snapshot(str(home), rel)
-                kinds.append(f"{rel}: {kind(live, old and old[1], new and new[1])}")
             out(f"{'acknowledges' if c == commit else 'skips'} {c[:8]} {reader.subject(c)}")
-            out(f"  v1 targets: {'; '.join(kinds) or 'none'}")
-            out(f"  other paths: {', '.join(other) or 'none'}")
+            targets, reason = assess(reader, p, c)
+            if reason:
+                out(f"  refused: {reason}")
+            for source, rel in targets or []:
+                live, _ = snapshot(str(home), rel)
+                out(f"  {rel}: {kind(live, reader.blob(p, source)[1], reader.blob(c, source)[1])}")
+            sources = {source for source, _ in targets or []}
+            out(f"  other paths: {', '.join(path for _, path in reader.changes(p, c) if path not in sources) or 'none'}")
         diff = differing(reader, commit, home)
         out(f"live differs from {commit[:8]} on: {', '.join(diff) or 'nothing'}")
         state.write("applied.json", {"commit": commit, "at": utc_now(), "by": "owner", "run": None})
-        if entries:
-            state.save_journal([])  # clean entries of a merge the owner has now acknowledged
+        # entries of merges at or before the adopted commit are acknowledged with it; later ones stay
+        order = {s: i for i, s in enumerate(shas)}  # newest first
+        kept = [e for e in entries if order.get(e["merge"], -1) < order[commit]]
+        if kept != entries:
+            state.save_journal(kept)
         return {"adopted": commit, "differing": diff}
     finally:
         lock.close()
@@ -904,7 +996,7 @@ def describe_path(root, rel):
     live, _ = snapshot(root, rel)
     if live.get("type") != "file":
         return describe(live)
-    return f"file {live['mode']:04o} sha256 {sha(live['bytes'])[:16]}"
+    return f"file {live['mode']:04o} sha256 {sha(live['bytes'])}"
 
 
 def resolve(home, yes=False, out=print):
@@ -919,7 +1011,8 @@ def resolve(home, yes=False, out=print):
             out(f"{e['merge'][:8]} {e['target']} [{e.get('step')}] {e.get('note') or ''}".rstrip())
             out(f"  live   ~/{e['target']}: {describe_path(str(home), e['target'])}")
             out(f"  backup {state.dir / e['backup']}: {describe_path(str(state.dir), e['backup'])}")
-            out(f"  expected old {e['expected_old_sha'][:16]}, new {e['new_sha'][:16]}")
+            out(f"  expected old sha256 {e['expected_old_sha']}")
+            out(f"  new sha256          {e['new_sha']}")
         if not entries:
             out("journal: empty")
         elif yes:
@@ -934,15 +1027,6 @@ def resolve(home, yes=False, out=print):
 
 # ---------------------------------------------------------------- CLI
 
-def source_repo(chezmoi="chezmoi"):
-    try:
-        p = subprocess.run([chezmoi, "source-path"], capture_output=True, text=True, timeout=30,
-                           stdin=subprocess.DEVNULL)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return Path(p.stdout.strip()).parent if p.returncode == 0 and p.stdout.strip() else None
-
-
 def report(res, out=print):
     c = res.get("cursor")
     out(f"head: {res.get('head') or 'unknown'}")
@@ -953,15 +1037,19 @@ def report(res, out=print):
         out(f"live differs from head on: {', '.join(res['differing']) or 'nothing'}")
     out(f"non-candidate commits passed: {res['passed']}")
     for m in res["merges"]:
-        out(f"{m['commit'][:8]} {m['pr'] or ''} {m['status']}" + (f": {m['reason']}" if m.get("reason") else ""))
+        out(f"{m['commit'][:8]} {m['pr'] or ''} {m['status']}" + (f": {m['reason']}" if m.get("reason") else "")
+            + (f" [{m['note']}]" if m.get("note") else ""))
         for t, k in m["targets"].items():
             out(f"  {t}: {k}")
     for d in res["decisions"]:
         out(f"decision: {d}")
 
 
-def recent(reader, head, home, count, out=print):
-    """With no cursor: the last count candidates, each classified as if it were next (informational)."""
+RECENT = 10
+
+
+def recent(reader, head, home, count=RECENT, out=print):
+    """With no cursor: the last count candidates, each compared with the live snapshot (informational)."""
     shown = 0
     for commit, parent in reader.first_parents(head):
         if shown >= count:
@@ -983,35 +1071,20 @@ def recent(reader, head, home, count, out=print):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("command", nargs="?", choices=("adopt", "resolve"))
-    p.add_argument("commit", nargs="?")
-    p.add_argument("--check", action="store_true")
-    p.add_argument("--yes", action="store_true")
+    p.add_argument("--check", action="store_true", required=True)
     p.add_argument("--home", type=Path, default=Path.home())
     p.add_argument("--repo", type=Path, help="the checkout whose origin URL is fetched (default: chezmoi's)")
-    p.add_argument("--recent", type=int, default=10, help="with --check and no cursor: candidates to classify")
     args = p.parse_args(argv)
     home = args.home.expanduser()
     try:
-        if args.command == "resolve":
-            resolve(home, args.yes)
-            return 0
-        repo = args.repo or source_repo()
-        if args.command == "adopt":
-            if not args.commit:
-                p.error("adopt needs a commit")
-            adopt(home, repo, args.commit)
-            return 0
-        if not args.check:
-            p.error("use --check, adopt or resolve; the cycle applies (cycle.py run)")
         started = time.monotonic()
         state = State(home)
-        reader, head = sync_mirror(state.dir, public_url(repo, env=git_env(state.dir)))
+        reader, head = sync_mirror(state.dir, public_url(args.repo or ready.source_repo(), env=git_env(state.dir)))
         res = run(home, check=True, reader=reader, head=head)
         report(res)
         if res.get("cursor") is None and res["status"] == "baseline-missing":
-            print(f"recent candidates (last {args.recent}, each as if it were next):")
-            recent(reader, head, home, args.recent)
+            print(f"recent candidates (last {RECENT}, compared with the current live snapshot, not a prediction):")
+            recent(reader, head, home)
         print(f"secs: {time.monotonic() - started:.1f}")
         return 2 if res["status"] == "error" else 1 if res["decisions"] else 0
     except ApplyError as e:
