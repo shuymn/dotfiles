@@ -894,6 +894,7 @@ class Adopt(Base):
         self.assertIn(f"{T_AGENT}: write", text)
         self.assertIn("other paths: docs/kaizen.md", text)
         self.assertIn("refused: outside v1: home/dot_claude/hooks/x.py", text)
+        self.assertIn(f"{T_SKILL}: write", text)  # the eligible path of a mixed merge is still classified
         self.assertIn(T_SKILL, result["differing"])
         self.assertEqual((self.cursor(), self.state.applied()["by"]), (m2, "owner"))
 

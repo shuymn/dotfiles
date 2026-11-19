@@ -340,24 +340,39 @@ def guards(reader, commit, targets):
     return None
 
 
-def assess(reader, parent, commit):
-    """(targets, None) when commit is applicable in v1, targets = [(source, target rel)]; else (None, reason)."""
-    targets = []
+def eligibility(reader, parent, commit):
+    """[(path, target rel or None, reason or None)] for every changed path that is not repo-only: a v1 target has
+    its rel, any other path the reason it refuses the merge."""
+    rows = []
     for status, path in reader.changes(parent, commit):
         if any(path == p or (p.endswith("/") and path.startswith(p)) for p in REPO_ONLY):
             continue
-        if status != "M":
-            return None, f"{ {'A': 'added', 'D': 'deleted', 'T': 'type change'}.get(status, status)} {path}"
-        rel = plain_target(path)
-        if rel is None:
-            return None, f"outside v1: {path}"
-        for c in (parent, commit):
-            b = reader.blob(c, path)
-            if b is None or b[0] != "100644":
-                return None, f"not a 100644 blob at {c[:8]}: {path}"
-            if not b[1].strip():
-                return None, f"empty at {c[:8]}: {path}"
-        targets.append((path, rel))
+        rows.append((path, *path_eligibility(reader, parent, commit, status, path)))
+    return rows
+
+
+def path_eligibility(reader, parent, commit, status, path):
+    if status != "M":
+        return None, f"{ {'A': 'added', 'D': 'deleted', 'T': 'type change'}.get(status, status)} {path}"
+    rel = plain_target(path)
+    if rel is None:
+        return None, f"outside v1: {path}"
+    for c in (parent, commit):
+        b = reader.blob(c, path)
+        if b is None or b[0] != "100644":
+            return None, f"not a 100644 blob at {c[:8]}: {path}"
+        if not b[1].strip():
+            return None, f"empty at {c[:8]}: {path}"
+    return rel, None
+
+
+def assess(reader, parent, commit):
+    """(targets, None) when commit is applicable in v1, targets = [(source, target rel)]; else (None, reason)."""
+    rows = eligibility(reader, parent, commit)
+    reason = next((r for _, _, r in rows if r), None)
+    if reason:
+        return None, reason
+    targets = [(path, rel) for path, rel, _ in rows]
     if not targets:
         return None, "no change"
     reason = guards(reader, commit, targets)
@@ -1041,14 +1056,16 @@ def adopt(home, repo, commit, *, git="git", reader=None, head=None, url=None, de
             if not is_candidate(reader, p, c):
                 continue
             out(f"{'acknowledges' if c == commit else 'skips'} {c[:8]} {reader.subject(c)}")
-            targets, reason = assess(reader, p, c)
+            rows = eligibility(reader, p, c)
+            for source, rel, _ in rows:
+                if rel:
+                    live, _ = snapshot(str(home), rel)
+                    out(f"  {rel}: {kind(live, reader.blob(p, source)[1], reader.blob(c, source)[1])}")
+            reason = assess(reader, p, c)[1]
             if reason:
-                out(f"  refused: {reason}")
-            for source, rel in targets or []:
-                live, _ = snapshot(str(home), rel)
-                out(f"  {rel}: {kind(live, reader.blob(p, source)[1], reader.blob(c, source)[1])}")
-            sources = {source for source, _ in targets or []}
-            out(f"  other paths: {', '.join(path for _, path in reader.changes(p, c) if path not in sources) or 'none'}")
+                out(f"  refused: {'; '.join(r for _, _, r in rows if r) or reason}")
+            listed = {source for source, _, _ in rows}
+            out(f"  other paths: {', '.join(path for _, path in reader.changes(p, c) if path not in listed) or 'none'}")
         diff = differing(reader, commit, home)
         out(f"live differs from {commit[:8]} on: {', '.join(diff) or 'nothing'}")
         state.write("applied.json", {"commit": commit, "at": utc_now(), "by": "owner", "run": None})
