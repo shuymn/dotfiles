@@ -446,6 +446,33 @@ class Cycle(Temp):
         self.assertEqual(sorted(p.name for p in (self.k / "runs").iterdir()),
                          sorted([Path(targets[-1]).name, Path(targets[-2]).name, "notes"]))
 
+    def test_a_stop_right_after_the_rename_keeps_the_publish(self):
+        real = os.replace
+
+        def then_stop(src, dst):
+            real(src, dst)
+            if Path(dst).name == "current":
+                os.kill(os.getpid(), signal.SIGTERM)
+
+        with mock.patch.object(cycle.os, "replace", side_effect=then_stop), self.assertRaises(SystemExit):
+            self.main()
+        self.assertTrue((self.k / "current/status.json").is_file())
+
+    def test_a_run_published_meanwhile_is_not_pruned(self):
+        self.main()
+        real, nested = os.replace, []
+
+        def other_run_publishes(src, dst):
+            real(src, dst)
+            if Path(dst).name == "current" and not nested:
+                nested.append(None)
+                nested[0] = cycle.publish_run(self.k, {}, {"status.json": "{}"}).name
+
+        with mock.patch.object(cycle.os, "replace", side_effect=other_run_publishes):
+            self.main(now=NOW + timedelta(days=1))
+        self.assertEqual(Path(os.readlink(self.k / "current")).name, nested[0])
+        self.assertTrue((self.k / "current/status.json").is_file())
+
     def test_failed_run_leaves_previous_outputs(self):
         self.main()
         before = self.outputs()

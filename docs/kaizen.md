@@ -189,13 +189,13 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - Home Manager の `launchd.agents.kaizen-cycle`（`nix/home/profiles/dev.nix`）が、毎日 6 時に `scripts/kaizen/cycle.py` を store の写しから走らせる。スクリプトの変更は次の switch で効く。ログは `~/Library/Logs/kaizen-cycle.log`。
 - 眠っていて逃した時刻の分は、起きたときに 1 回走る（launchd.plist(5) の StartCalendarInterval）。launchd は同じ label のジョブを同時に 2 つ走らせない。
 - 1 回の run は状態を持たない。毎回、直近 7 日の窓 [今 − 7 日, 今) を入力から計算し直し、どの入力も窓の中の観測だけを数える。前回の位置（watermark）は持たず、書きかけの最後の行はその回は読まない。run の日付は Asia/Tokyo で数える。
-- run 全体に 20 分の期限がある。期限を超えた run は何も公開せずに 0 以外で終わるので、次の日の起動は止まらない。
+- run 全体に 20 分の期限がある。期限を超えた run は何も公開せずに 0 以外で終わるので、次の日の起動は止まらない。launchd はジョブの終わりに同じプロセスグループの残りを止める。公開の rename と整理の間に来た停止や期限は、それが終わってから効く。手で動かした run が launchd の run と重なっても、整理はその時点で `current` が指す run を消さない。
 
 **毎日の段（費用 0。モデルを呼ばない）:**
 
 1. `scripts/kaizen/observe.py` が、窓の中の取りこぼしと無駄の候補を集める。入力が 1 つ失敗しても、ほかの入力は読む。開くのは通常のファイルだけで、FIFO やシンボリックリンクは読めない入力として数える。
    - 入力: transcript（`~/.claude/projects/` の下の親と子の `*.jsonl`。文字列の user レコードにも合成の入力があるので、オーナーの発言は起源を確かめられたものだけを数える）、T3 Code の DB（T3 が走らせたセッションのオーナーの発言はここからだけ数える）、`~/.codex/sessions`、既存の台帳（読むだけ。行の日付は Asia/Tokyo の日で、その日の始まりが窓に入る行を数える）、`gh`（revert、PR を名指す修正 PR、CI の失敗）。
-   - T3 の DB は `mode=ro` で開く。SQLite はそれでも DB の横に `-wal` と `-shm` を作ることがあるが、これは T3 自身も含むどの読み手も作る SQLite の共有の索引で、オーナーのデータは入らないので受け入れる。`immutable=1` はそれを避けるが、WAL にまだ残る行を読み落とすので使わない。
+   - T3 の DB は `mode=ro` で開く。SQLite はそれでも DB の横に `-wal` と `-shm` を作ることがあるが、T3 が閉じているときに読み手が作るこれらは空で（`-shm` は共有の索引、`-wal` に行を書くのは書き手だけ）、こちらからは何も入らないので受け入れる。`immutable=1` はそれを避けるが、WAL にまだ残る行を読み落とすので使わない。
    - オーナーの短い返答は、ラベルを付けない候補として数と元の行を出す。
 2. 監視中の変更（`scripts/kaizen/watch.json`）について、§5 の観測を足す。
    - 前の窓は [適用 − 30 日, 適用]、後の窓は [適用, 今]。transcript は既定で 30 日後に消えるので、`cycle.py baseline <id>` が適用の直後に前の窓の集計を `~/.claude/kaizen/watch/<id>.json` に 1 度だけ書き、毎日の run はそれがあれば使う。無ければ窓から計算し、一部が消えていると示す。
