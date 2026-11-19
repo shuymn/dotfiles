@@ -7,7 +7,9 @@ file (paths whose change means the state file is stale). The hook finds the kit 
   - ~/.claude/projects/<dir, non-alphanumerics as ->/*-orchestration/
   - an "orchestrators" entry of ~/.claude/worker-signals.json for that dir: {"/dir": "/signals"} (the dir holds
     the state) or {"/dir": {"state": "/kit", "signals": "/signals"}}
-A worker listed under "workers" in that file gets only the worker items. Other sessions get nothing.
+A worker listed under "workers" ({"/worktree": "/signals/name"}) gets only the worker items, with the register of the kit
+whose "signals" path holds its entry. These paths only pair a worker with its kit; no hook writes files there.
+Other sessions get nothing.
 
 SessionStart (startup, resume, clear, compact): orchestrator -> state files, orchestrator items (global register +
   kit register), the budget line, the macro questions, then the board output (the only part that is cut to fit).
@@ -107,7 +109,7 @@ def find_kits(cwd):
 
 
 def worker_kit(cwd):
-    """(is a listed worker, kit of the orchestrator whose signals directory holds its signal files)."""
+    """(is a listed worker, kit of the orchestrator whose "signals" path holds the worker's entry)."""
     workers = load_map().get("workers", {})
     for worktree, stem in (workers.items() if isinstance(workers, dict) else []):
         if inside(real(cwd), worktree):

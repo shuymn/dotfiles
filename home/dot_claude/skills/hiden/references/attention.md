@@ -13,6 +13,6 @@
 要約では目的、決定、進行中のものが落ちる。本質はキットに置き、フックが文脈へ戻す。委任の前にキットを作る。
 
 - キットは `~/.claude/projects/<cwd の英数字以外を - にしたもの>/<名前>-orchestration/`、または `worker-signals.json` の `orchestrators` に載せた作業場所。cwd かその親から探す。`/tmp` やセッションの scratchpad には置かない。
-- `state.md`（`NORTH.md` でもよい。先頭に本質: 目的、完了条件、経路、オーナーの指示と決定、制約。続けて進行中、次の一手、未決。現在の状態だけを 3000 バイト以内で書き、委任・完了・マージ・オーナーの決定のたびに直す）、`attention/items.json`、`watch`（状態を古くする更新のパスを 1 行ずつ: 台帳、`signals/seen`）。worker が複数なら `units.json` と、状態を出す `bin/board` も置く。
+- `state.md`（`NORTH.md` でもよい。先頭に本質: 目的、完了条件、経路、オーナーの指示と決定、制約。続けて進行中、次の一手、未決。現在の状態だけを 3000 バイト以内で書き、委任・完了・マージ・オーナーの決定のたびに直す）、`attention/items.json`、`watch`（状態を古くする更新のパスを 1 行ずつ。例: 台帳）。worker が複数なら `units.json` と、状態を出す `bin/board` も置く。
 - `orchestration-context.py` が、開始・再開・clear・compaction の後に、状態、項目、予算の使用量、マクロの問い、board を文脈へ入れる（要約より正）。`watch` の印が状態より新しければ、フックがターンの終わりを 1 度止める（状態を直す。変化が無ければ touch）。
 - 引き継ぎ（非常に長いセッションで、尋ねずに）: `delegate_task` の子は立てたスレッドに紐づき通知もそこへ届くので、移せない。委任中の子も続きを送る子も無い段の終わりまで進めてから、state.md を直し、PR の watch を外し、`t3_thread_launch` で T3 プロジェクトの根（worktree なし）に「state.md を読んで続ける」で立て、リンクを報告し、自分を `t3_thread_organize` の settle で片付ける。新スレッドは `<orchestration-state>` を確かめ（無ければ止まる）、PR を watch し直す。

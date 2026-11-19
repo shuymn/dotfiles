@@ -222,12 +222,11 @@ def managed_hooks():
 
 
 class SettingsTest(unittest.TestCase):
-    BUDGET = {"matcher": "Bash", "hooks": [{"type": "command", "command": "~/.claude/hooks/attention-budget.py post"}]}
+    BUDGET = {"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": "~/.claude/hooks/attention-budget.py pre"}]}
     START = {"hooks": [{"type": "command", "command": "~/.claude/hooks/orchestration-context.py", "timeout": 60}]}
 
     def assert_hooks(self, hooks):
-        self.assertEqual(hooks["PostToolUse"], [self.BUDGET])
-        self.assertEqual(hooks["PostToolUseFailure"], [self.BUDGET])
+        self.assertIn(self.BUDGET, hooks["PreToolUse"])
         self.assertEqual(hooks["SessionStart"], [self.START])
 
     def test_settings_registration(self):
