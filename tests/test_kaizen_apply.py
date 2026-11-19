@@ -1096,6 +1096,49 @@ class Mirror(Base):
             code = apply.main(["--check", "--home", str(self.home), "--repo", str(self.dir)])
         return code, out.getvalue()
 
+    def check_offline(self):
+        """--check against a fake git whose fetch fails: (exit code, stdout)."""
+        self.git(fetch="echo 'could not resolve host' >&2; exit 128")
+        with contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()):
+            code = apply.main(["--check", "--home", str(self.home), "--repo", str(self.checkout())])
+        return code, out.getvalue()
+
+    def test_check_reports_an_unresolved_journal_before_any_fetch(self):
+        self.state.write("applied.json", {"commit": "a" * 40, "at": "t", "by": "owner", "run": None})
+        self.state.save_journal([entry("b" * 40, T_AGENT, "staged")])
+        code, out = self.check_offline()
+        self.assertEqual(code, 1)
+        self.assertIn("status: blocked", out)
+        self.assertIn(f"~/{T_AGENT}", out)
+        self.assertEqual(self.calls(), [])
+
+    def test_check_reports_invalid_state_before_any_fetch(self):
+        self.state.dir.mkdir(parents=True)
+        (self.state.dir / "applied.json").write_text('{"commit": "bad"}')
+        code, out = self.check_offline()
+        self.assertEqual(code, 2)
+        self.assertIn("state invalid", out)
+        self.assertEqual(self.calls(), [])
+
+    def test_a_failed_preview_does_not_change_the_prediction(self):
+        repo = Repo()
+        L = repo.head
+        m1 = repo.main({SKILL: b"skill v1\n"}, "Merge pull request #1")
+        m2 = repo.main({SKILL: b"skill v2\n"}, "Merge pull request #2")
+        real = repo.subject
+
+        def subject(commit):
+            if commit == m2:
+                raise apply.ApplyError("git log: exit 128: object not found")
+            return real(commit)
+        repo.subject = subject
+        make_home(repo, L, self.home)
+        self.state.write("applied.json", {"commit": L, "at": "t", "by": "owner", "run": None})
+        code, out = self.check(repo)
+        self.assertEqual(code, 0)
+        self.assertIn(f"{m1[:8]} #1 applicable", out)
+        self.assertIn(f"preview stopped (not a prediction; the exit code ignores it): {m2[:8]}", out)
+
     def test_check_predicts_only_the_next_candidate(self):
         repo = Repo()
         L = repo.head

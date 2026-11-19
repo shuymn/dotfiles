@@ -759,10 +759,16 @@ def new_result():
             "decisions": [], "state": None}
 
 
-def run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=None, head=None, url=None, check=False):
+def run(home, repo=None, **kw):
     """Apply pending merges along main's first parent after the cursor L (with check, only classify them and write
     nothing but the mirror). The stage ends at min(start + budget, deadline): every git call is bounded by it, and
-    past it no further target step starts. Returns a structured result; refusals and stage errors are in it."""
+    past it no further target step starts. Invalid state and an unresolved journal are reported before any git call.
+    Returns a structured result; refusals and stage errors are in it."""
+    return _run(home, repo, **kw)[0]
+
+
+def _run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=None, head=None, url=None, check=False):
+    """run(), returning (result, reader, head) so --check can preview more with the same pinned head."""
     started = time.monotonic()
     stage_deadline = min(started + budget, deadline if deadline is not None else started + STANDALONE_DEADLINE)
     home = Path(home)
@@ -778,16 +784,16 @@ def run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=None
             error = "; ".join(errors)
             res.update(status="error", reason=error, state_error=error)
             res["decisions"].append(f"apply: state invalid: {error} — fix or move the file aside; nothing was written")
-            return res
+            return res, None, None
         held = unresolved(entries)
         if held:  # reported before any fetch, so a fetch failure cannot hide it
             res["decisions"].append(journal_decision(held, state))
         if not check and lock is None:
             res.update(status="skipped", reason="another apply holds .apply.lock")
-            return res
+            return res, None, None
         if held:
             res.update(status="blocked", reason="unresolved journal entries")
-            return res
+            return res, None, None
         try:
             if reader is None:
                 reader, head = sync_mirror(state.dir, url or public_url(repo, git, git_env(state.dir), stage_deadline),
@@ -802,7 +808,7 @@ def run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=None
             res["journal"] = state.journal()
         except InvalidState as e:
             res["decisions"].append(f"apply: state invalid: {e}")
-        return res
+        return res, reader, head
     finally:
         os.umask(umask)
         if lock:
@@ -884,97 +890,103 @@ def _apply(home, state, reader, head, cursor, entries, res, stage_deadline, chec
 
     try:
         for commit, parent in chain:
-            if not is_candidate(reader, parent, commit):
-                res["passed"] += 1
-                if not check:
-                    reached = commit
-                continue
-            subject = reader.subject(commit)
-            m = {"commit": commit, "pr": pr_of(subject), "subject": subject, "status": None, "targets": {}}
-            res["merges"].append(m)
-            label = f"{m['pr'] or ''} ({commit[:8]})".strip()
-            if not check and time.monotonic() > stage_deadline:
-                m.update(status="pending", reason="stage deadline passed; the next run continues")
-                res["status"] = "partial"
-                break
             later = check and predicted
-            predicted = True
-            if later:
-                m["note"] = "compared with the current live snapshot (not a prediction)"
-            targets, reason = assess(reader, parent, commit)
-            if reason:
-                m.update(status="refused", reason=reason)
-                if not later:
-                    res["decisions"].append(f"apply: {label} refused as a whole: {reason} — {owner_options(commit)}")
-                if check:
+            try:
+                if not is_candidate(reader, parent, commit):
+                    res["passed"] += 1
+                    if not check:
+                        reached = commit
                     continue
-                res["status"] = "stopped"
-                break
-            cls = r.classify(parent, commit, targets)
-            m["targets"] = {rel: c[0] if c[0] not in ("conflict", "journal") else f"{c[0]}: {describe(c[1])}"
-                            for rel, c in cls.items()}
-            changed = [rel for rel, c in cls.items() if c[0] == "journal"]
-            if changed:  # a target an earlier run wrote is not what it left: nothing is written over it
-                if not check:
-                    r.save()
-                m.update(status="blocked", reason="a target an earlier run wrote changed")
-                res["decisions"].append(journal_decision([e for e in r.journal if e["target"] in changed
-                                                          and e["merge"] == commit], state))
-                res["status"] = "blocked"
-                if check:
-                    continue
-                break
-            conflicts = [rel for rel, c in cls.items() if c[0] == "conflict"]
-            if conflicts:
-                m.update(status="conflict", reason="live differs from both sides")
-                if not later:
-                    res["decisions"].append(
-                        f"apply: {label} not applied: live differs from both sides on "
-                        + ", ".join(f"{t} ({describe(cls[t][1])})" for t in conflicts)
-                        + f" — put the live edit into a PR, or {owner_options(commit)}")
-                if check:
-                    continue
-                res["status"] = "stopped"
-                break
-            if check:
-                m["status"] = "applicable"
-                continue
-            failed = expired = None
-            for rel, (k, live, pid, old, new) in cls.items():
-                if k != "write":
-                    continue
-                if time.monotonic() > stage_deadline:
-                    expired = rel
+                subject = reader.subject(commit)
+                m = {"commit": commit, "pr": pr_of(subject), "subject": subject, "status": None, "targets": {}}
+                res["merges"].append(m)
+                label = f"{m['pr'] or ''} ({commit[:8]})".strip()
+                if not check and time.monotonic() > stage_deadline:
+                    m.update(status="pending", reason="stage deadline passed; the next run continues")
+                    res["status"] = "partial"
                     break
-                ok, note = r.write_target(commit, rel, live, pid, old, new)
-                m["targets"][rel] = "written" if ok else f"failed: {note}"
-                wrote = wrote or ok
-                if not ok:
-                    failed = (rel, note)
+                predicted = True
+                if later:
+                    m["note"] = "compared with the current live snapshot (not a prediction)"
+                targets, reason = assess(reader, parent, commit)
+                if reason:
+                    m.update(status="refused", reason=reason)
+                    if not later:
+                        res["decisions"].append(f"apply: {label} refused as a whole: {reason} — {owner_options(commit)}")
+                    if check:
+                        continue
+                    res["status"] = "stopped"
                     break
-            if expired:
-                m.update(status="partial", reason=f"stage deadline passed before {expired}; the next run continues")
-                res["status"] = "partial"
+                cls = r.classify(parent, commit, targets)
+                m["targets"] = {rel: c[0] if c[0] not in ("conflict", "journal") else f"{c[0]}: {describe(c[1])}"
+                                for rel, c in cls.items()}
+                changed = [rel for rel, c in cls.items() if c[0] == "journal"]
+                if changed:  # a target an earlier run wrote is not what it left: nothing is written over it
+                    if not check:
+                        r.save()
+                    m.update(status="blocked", reason="a target an earlier run wrote changed")
+                    res["decisions"].append(journal_decision([e for e in r.journal if e["target"] in changed
+                                                              and e["merge"] == commit], state))
+                    res["status"] = "blocked"
+                    if check:
+                        continue
+                    break
+                conflicts = [rel for rel, c in cls.items() if c[0] == "conflict"]
+                if conflicts:
+                    m.update(status="conflict", reason="live differs from both sides")
+                    if not later:
+                        res["decisions"].append(
+                            f"apply: {label} not applied: live differs from both sides on "
+                            + ", ".join(f"{t} ({describe(cls[t][1])})" for t in conflicts)
+                            + f" — put the live edit into a PR, or {owner_options(commit)}")
+                    if check:
+                        continue
+                    res["status"] = "stopped"
+                    break
+                if check:
+                    m["status"] = "applicable"
+                    continue
+                failed = expired = None
+                for rel, (k, live, pid, old, new) in cls.items():
+                    if k != "write":
+                        continue
+                    if time.monotonic() > stage_deadline:
+                        expired = rel
+                        break
+                    ok, note = r.write_target(commit, rel, live, pid, old, new)
+                    m["targets"][rel] = "written" if ok else f"failed: {note}"
+                    wrote = wrote or ok
+                    if not ok:
+                        failed = (rel, note)
+                        break
+                if expired:
+                    m.update(status="partial", reason=f"stage deadline passed before {expired}; the next run continues")
+                    res["status"] = "partial"
+                    break
+                if failed:
+                    written = any(v == "written" for v in m["targets"].values())
+                    m.update(status="partial" if written else "conflict", reason=f"{failed[0]}: {failed[1]}")
+                    held = unresolved(r.journal)
+                    res["decisions"].append(f"apply: {label} stopped at {failed[0]}: {failed[1]} — "
+                                            + (journal_decision(held, state) if held else "the next run retries it"))
+                    res["status"] = "stopped"
+                    break
+                bad = r.recheck(commit, cls)
+                if bad:
+                    m.update(status="changed after apply", reason=", ".join(bad))
+                    held = unresolved(r.journal)
+                    res["decisions"].append(f"apply: {label} changed after apply on {', '.join(bad)}; cursor held — "
+                                            + (journal_decision(held, state) if held else owner_options(commit)))
+                    res["status"] = "stopped"
+                    break
+                m["status"] = "applied" if any(v == "written" for v in m["targets"].values()) else "done"
+                reached = commit
+                advance()
+            except (ApplyError, OSError) as e:
+                if not later:
+                    raise
+                res["preview_error"] = f"{commit[:8]}: {e}"  # the preview ends; the prediction stands
                 break
-            if failed:
-                written = any(v == "written" for v in m["targets"].values())
-                m.update(status="partial" if written else "conflict", reason=f"{failed[0]}: {failed[1]}")
-                held = unresolved(r.journal)
-                res["decisions"].append(f"apply: {label} stopped at {failed[0]}: {failed[1]} — "
-                                        + (journal_decision(held, state) if held else "the next run retries it"))
-                res["status"] = "stopped"
-                break
-            bad = r.recheck(commit, cls)
-            if bad:
-                m.update(status="changed after apply", reason=", ".join(bad))
-                held = unresolved(r.journal)
-                res["decisions"].append(f"apply: {label} changed after apply on {', '.join(bad)}; cursor held — "
-                                        + (journal_decision(held, state) if held else owner_options(commit)))
-                res["status"] = "stopped"
-                break
-            m["status"] = "applied" if any(v == "written" for v in m["targets"].values()) else "done"
-            reached = commit
-            advance()
     finally:
         if not check:
             advance()
@@ -1088,6 +1100,8 @@ def report(res, out=print):
             out(f"  {t}: {k}")
     for d in res["decisions"]:
         out(f"decision: {d}")
+    if res.get("preview_error"):
+        out(f"preview stopped (not a prediction; the exit code ignores it): {res['preview_error']}")
 
 
 RECENT = 10
@@ -1123,13 +1137,14 @@ def main(argv=None):
     home = args.home.expanduser()
     try:
         started = time.monotonic()
-        state = State(home)
-        reader, head = sync_mirror(state.dir, public_url(args.repo or ready.source_repo(), env=git_env(state.dir)))
-        res = run(home, check=True, reader=reader, head=head)
+        res, reader, head = _run(home, args.repo or ready.source_repo(), check=True)
         report(res)
         if res.get("cursor") is None and res["status"] == "baseline-missing":
             print(f"recent candidates (last {RECENT}, compared with the current live snapshot, not a prediction):")
-            recent(reader, head, home)
+            try:
+                recent(reader, head, home)
+            except (ApplyError, OSError) as e:
+                print(f"preview stopped (not a prediction; the exit code ignores it): {e}")
         print(f"secs: {time.monotonic() - started:.1f}")
         return 2 if res["status"] == "error" else 1 if res["decisions"] else 0
     except ApplyError as e:
