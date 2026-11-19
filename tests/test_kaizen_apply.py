@@ -1041,6 +1041,37 @@ class Mirror(Base):
             os.kill(pid, 0)
         self.assertEqual(sorted(p.name for p in self.state.dir.iterdir()), [])
 
+    def test_a_timeout_kills_git_helpers_too(self):
+        pidfile = self.dir / "helper.pid"
+        self.git(clone=f'sleep 60 & echo $! > "{pidfile}"; wait')  # a helper like git-remote-https stalls
+
+        def reap():
+            try:
+                os.kill(int(pidfile.read_text()), signal.SIGKILL)
+            except (OSError, ValueError):
+                pass
+        self.addCleanup(reap)
+        with mock.patch.dict(apply.TIMEOUTS, {"clone": 1}), self.assertRaisesRegex(apply.ApplyError, "timed out"):
+            apply.sync_mirror(self.state.dir, "https://github.com/o/r.git")
+        helper = int(pidfile.read_text())
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            try:
+                os.kill(helper, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(helper, 0)
+
+    def test_the_reader_walks_the_first_parent_chain(self):
+        self.git()
+        reader = apply.GitReader(self.dir / "m.git", "git", apply.git_env(self.state.dir), time.monotonic() + 30)
+        self.assertEqual(reader.first_parents("HEADSHA"), [(self.HEAD, None)])
+        [(argv, _)] = self.calls()
+        self.assertEqual(argv, ["--git-dir", str(self.dir / "m.git"), "rev-list", "--first-parent", "--parents",
+                                "HEADSHA"])
+
     def test_failed_clone_leaves_no_mirror(self):
         self.git(clone='for a; do last=$a; done; mkdir -p "$last"; exit 128')
         with self.assertRaisesRegex(apply.ApplyError, "exit 128"):

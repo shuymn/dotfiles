@@ -103,21 +103,34 @@ def git_env(state):
 
 
 def run_git(git, args, env, timeout, deadline):
-    """stdout bytes. The timeout is bounded by the deadline (monotonic); subprocess.run kills git on a timeout or on
-    any exception (a SystemExit from the cycle's signal handlers included) and waits for it."""
+    """stdout bytes. The timeout is bounded by the deadline (monotonic). git runs in its own process group, which is
+    killed on a timeout or any exception (a SystemExit from the cycle's signal handlers included), so its helpers
+    (git-remote-https) go with it; then git is reaped."""
     left = min(timeout, deadline - time.monotonic())
     if left <= 0:
         raise ApplyError(f"git {args[0]}: no time left before the deadline")
     try:
-        p = subprocess.run([git, *args], env=env, stdin=subprocess.DEVNULL, capture_output=True, timeout=left)
+        p = subprocess.Popen([git, *args], env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, start_new_session=True)
     except FileNotFoundError as e:
         raise ApplyError(f"git not found: {e}") from e
-    except subprocess.TimeoutExpired as e:
-        raise ApplyError(f"git {' '.join(map(str, args[:4]))} timed out after {left:.0f}s") from e
+    try:
+        out, err = p.communicate(timeout=left)
+    except BaseException as e:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        p.wait()
+        p.stdout.close()
+        p.stderr.close()
+        if isinstance(e, subprocess.TimeoutExpired):
+            raise ApplyError(f"git {' '.join(map(str, args[:4]))} timed out after {left:.0f}s") from e
+        raise
     if p.returncode != 0:
         raise ApplyError(f"git {' '.join(map(str, args[:4]))}: exit {p.returncode}: "
-                         f"{p.stderr.decode(errors='replace').strip()[-300:]}")
-    return p.stdout
+                         f"{err.decode(errors='replace').strip()[-300:]}")
+    return out
 
 
 def public_url(repo, git="git", env=None, deadline=None):
