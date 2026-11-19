@@ -8,14 +8,14 @@ regression: the regression-test unit. Worker sessions are subagents/**/*.meta.js
 the projects root; the transcript is the agent-<id>.jsonl beside each. Only records whose timestamp lies in the window
 count.
   - opportunity: one per worker that made a successful Edit/Write/MultiEdit (tool_use joined to its tool_result by id)
-    that the hook's own matcher (matching_unit of home/dot_claude/hooks/executable_orchestration-context.py) treats as
-    a chance to deliver the unit.
+    of a test file: an absolute path inside the repo root of the record's cwd (nearest ancestor holding .git; cwd
+    without one) that matches UNIT's paths. A pattern without "/" matches the basename; one with "/" matches the path
+    below the root segment by segment, "**" standing for any number of directories.
   - counted: after the write, Bash results show a test the worker wrote failing (a FAIL line naming it, and no
     import, syntax, collection or compile error in the output) and that same test (module, class and name) passing,
     in a run that selected it, in either order (green
     with the fix, then red on a copy with it removed, shows the same thing as red first, then green).
   - ambiguous: a red for the intended reason and a green were seen, but not for the same written test.
-  - deliveries: hook_additional_context attachments holding the unit text.
   - harm: median assistant turns (API responses) and final report length (the last SubagentHandback message, else
     the last assistant text) for workers with and without an opportunity.
 The patterns are coarse (regex over tool output): modules with the same last name in different packages count as
@@ -24,7 +24,6 @@ fallback after a display command). --examples prints source lines to read by han
 only and writes nothing.
 """
 import argparse
-import importlib.util
 import json
 import os
 import re
@@ -35,8 +34,13 @@ from fnmatch import fnmatchcase
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-HOOK = REPO / "home/dot_claude/hooks/executable_orchestration-context.py"
 UNIT_ID = "regression-seen-fail"
+# The unit's text sits in the opus-worker body; the probe reads it from here.
+UNIT = {"id": UNIT_ID, "agent_type": "opus-worker", "tools": ["Edit", "Write", "MultiEdit"],
+        "paths": ["*_test.go", "*.test.ts", "*.test.tsx", "*.test.js", "*.spec.ts", "*.spec.js", "test_*.py", "*_test.py",
+                  "**/tests/*.rs"],
+        "text": "A test counts as a regression test only after it has been seen failing with the fix removed and passing "
+                "with it restored."}
 WRITE_TOOLS = ("Edit", "Write", "MultiEdit")
 TRUNCATE = 160
 
@@ -74,12 +78,39 @@ VALUE_OPTIONS = {"pytest": frozenset(("-m", "-p", "-c", "-o", "-W", "-n", "--des
                                       "--junitxml", "--tb"))}
 
 
-def load_hook(path=HOOK):
-    """The hook module, loaded from the checkout so a chance to deliver means what the hook means."""
-    spec = importlib.util.spec_from_file_location("orchestration_context", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def real(path):
+    return os.path.realpath(os.path.expanduser(str(path)))
+
+
+def inside(path, root):
+    root = real(root)
+    return path == root or path.startswith(root + os.sep)
+
+
+def segments_match(pattern, parts):
+    if not pattern:
+        return not parts
+    if pattern[0] == "**":
+        return any(segments_match(pattern[1:], parts[i:]) for i in range(len(parts) + 1))
+    return bool(parts) and fnmatchcase(parts[0], pattern[0]) and segments_match(pattern[1:], parts[1:])
+
+
+def path_matches(patterns, file_path, cwd):
+    """True when file_path lies inside the root of cwd and matches one of patterns."""
+    cwd = real(cwd)
+    root = next((a for a in [cwd, *map(str, Path(cwd).parents)] if os.path.lexists(os.path.join(a, ".git"))), cwd)
+    path = real(file_path)
+    if not inside(path, root):
+        return False
+    parts = os.path.relpath(path, root).split(os.sep)
+    return any(segments_match(p.split("/"), parts) if "/" in p else fnmatchcase(parts[-1], p) for p in patterns)
+
+
+def is_opportunity(unit, tool, tool_input, cwd):
+    """A successful write of tool_input's file by tool is a write of a test file for unit."""
+    file_path = tool_input.get("file_path")
+    return (tool in unit["tools"] and isinstance(file_path, str) and os.path.isabs(file_path)
+            and path_matches(unit["paths"], file_path, cwd))
 
 
 def timestamp(record):
@@ -359,7 +390,6 @@ class Worker:
         self.opportunity = None  # (line number, timestamp, file path)
         self.idents = {}  # test name -> file it was written to
         self.reds, self.greens = [], []  # (line number, line index, name, (module, class), line)
-        self.deliveries = []  # line numbers
         self.messages = []  # assistant message ids, in order
         self.texts = {}  # message id -> text
         self.handback = None  # the last SubagentHandback message, the report of a background worker
@@ -391,7 +421,7 @@ class Worker:
         return "not counted", reason
 
 
-def scan(path, unit, hook, since, until):
+def scan(path, unit, since, until):
     w = Worker(path)
     uses = {}
     with open(path, encoding="utf-8") as f:
@@ -428,24 +458,16 @@ def scan(path, unit, hook, since, until):
             elif kind == "user" and isinstance(content, list):
                 for b in content:
                     if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id") in uses:
-                        tool_result(w, number, t, uses[b["tool_use_id"]], b, d.get("toolUseResult"), unit, hook)
-            elif kind == "attachment":
-                a = d.get("attachment") if isinstance(d.get("attachment"), dict) else {}
-                body = a.get("content")
-                body = body if isinstance(body, list) else [body]
-                if a.get("type") == "hook_additional_context" and any(
-                        isinstance(c, str) and unit["text"] in c for c in body):
-                    w.deliveries.append(number)
+                        tool_result(w, number, t, uses[b["tool_use_id"]], b, d.get("toolUseResult"), unit)
     return w
 
 
-def tool_result(w, number, t, use, block, result, unit, hook):
+def tool_result(w, number, t, use, block, result, unit):
     tool, tool_input, cwd = use
     if block.get("is_error"):
         return
     if tool in WRITE_TOOLS:
-        data = {"tool_name": tool, "tool_input": tool_input, "agent_type": unit["agent_type"], "cwd": cwd}
-        if cwd and hook.matching_unit([unit], data):
+        if cwd and is_opportunity(unit, tool, tool_input, cwd):
             if w.opportunity is None:
                 w.opportunity = (number, t, tool_input["file_path"])
             for name in written_names(tool, tool_input, result):
@@ -469,9 +491,8 @@ def cut(line):
     return line if len(line) <= TRUNCATE else line[:TRUNCATE - 1] + "…"
 
 
-def regression(projects, days=30, now=None, hook_path=HOOK, unit_id=UNIT_ID, examples=0):
-    hook = load_hook(hook_path)
-    unit = next(u for u in hook.load_units() if u.get("id") == unit_id)
+def regression(projects, days=30, now=None, unit_id=UNIT_ID, examples=0):
+    unit = next(u for u in [UNIT] if u["id"] == unit_id)
     until = now or datetime.now(timezone.utc)
     since = until - timedelta(days=days)
     traces = {"missing": 0, "unreadable": 0, "unreadable_meta": 0, "bad_lines": 0}
@@ -493,7 +514,7 @@ def regression(projects, days=30, now=None, hook_path=HOOK, unit_id=UNIT_ID, exa
             traces["missing"] += recent
             continue
         try:
-            w = scan(transcript, unit, hook, since, until)
+            w = scan(transcript, unit, since, until)
         except (OSError, UnicodeDecodeError):
             traces["unreadable"] += recent
             continue
@@ -507,7 +528,6 @@ def regression(projects, days=30, now=None, hook_path=HOOK, unit_id=UNIT_ID, exa
         w.result = w.outcome()
         by_kind[w.result[0]].append(w)
     counted, ambiguous = by_kind["counted"], by_kind["ambiguous"]
-    delivered = [w for w in with_opp if w.deliveries]
     group = lambda ws: {"workers": len(ws), "median_turns": median([w.turns for w in ws]),
                         "median_report_chars": median([w.report_chars for w in ws])}
     out = {
@@ -520,14 +540,6 @@ def regression(projects, days=30, now=None, hook_path=HOOK, unit_id=UNIT_ID, exa
         "ambiguous": len(ambiguous),
         "not_counted": len(by_kind["not counted"]),
         "rate": rate(len(counted), len(with_opp)),
-        "deliveries": {
-            "attachments": sum(len(w.deliveries) for w in workers),
-            "workers": sum(1 for w in workers if w.deliveries),
-            "opportunities_delivered": len(delivered),
-            "opportunities_missed": len(with_opp) - len(delivered),
-            "duplicated": sum(1 for w in workers if len(w.deliveries) > 1),
-            "rate": rate(len(delivered), len(with_opp)),
-        },
         "harm": {"with_opportunity": group(with_opp),
                  "without_opportunity": group([w for w in workers if not w.opportunity])},
         "traces": traces,
@@ -552,10 +564,6 @@ def render(out):
     lines = [f"regression ({out['window']['days']} days to {out['window']['until']}): {out['workers']} workers, "
              f"{out['opportunities']} opportunities, {out['counted']} counted, {out['ambiguous']} ambiguous, "
              f"{out['not_counted']} not counted; rate {'n/a (no opportunities)' if out['rate'] is None else out['rate']}"]
-    d = out["deliveries"]
-    lines.append(f"deliveries: {d['attachments']} attachments in {d['workers']} workers; "
-                 f"{d['opportunities_delivered']} of {out['opportunities']} opportunities delivered, "
-                 f"{d['duplicated']} workers with more than one")
     for k, g in out["harm"].items():
         lines.append(f"{k}: {g['workers']} workers, median turns {g['median_turns']}, "
                      f"median report chars {g['median_report_chars']}")
@@ -575,10 +583,9 @@ def main(argv=None):
     p.add_argument("--json", action="store_true")
     p.add_argument("--examples", type=int, default=0, help="cases of each kind to print with transcript file:line")
     p.add_argument("--projects", default=os.path.expanduser("~/.claude/projects"), help="Claude Code projects root")
-    p.add_argument("--hook", default=str(HOOK), help="the orchestration-context hook whose matcher defines a chance")
     p.add_argument("--unit", default=UNIT_ID)
     args = parser.parse_args(argv)
-    out = regression(args.projects, args.days, hook_path=args.hook, unit_id=args.unit, examples=args.examples)
+    out = regression(args.projects, args.days, unit_id=args.unit, examples=args.examples)
     print(json.dumps(out, indent=2, ensure_ascii=False) if args.json else render(out))
 
 
