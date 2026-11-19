@@ -2,12 +2,13 @@
 has its own timeout, and a command that fails, times out or is missing fails its check.
 
 R1  `chezmoi diff` is empty for the live targets whose source path matches .claude/kaizen-managed of the checkout
-    chezmoi is configured with (`chezmoi source-path`, its parent). Owner.
+    chezmoi is configured with (`chezmoi source-path`, its parent), pending removals of .chezmoiremove included (their
+    source is that file). Owner.
 R2  the cycle's launchd job is loaded (`launchctl print gui/<uid>/<label>`) and every absolute path in its program
     and arguments (words of a `sh -c` string included) exists. Owner.
 R3  `<home>/.claude/hooks/attention-budget.py status` shows no OVER line. An improver candidate.
 R4  every observation source read without failure (gh may be off) and `gh auth status` passes (owner when not).
-R5  the last run recorded before today (K/runs/<date>.json, its finished time) completed at most 3 days ago, and every
+R5  the published run (K/current/record.json, read before this run publishes) finished at most 3 days ago, and every
     open PR of the dotfiles repository whose head branch starts with kaizen/ is at most 14 days old.
 Each result: {"status": "PASS"|"FAIL", "detail": str or list, "owner": bool}.
 """
@@ -65,12 +66,19 @@ def check_r1(home, repo, chezmoi="chezmoi"):
     except OSError as e:
         return result(False, f"managed list unreadable: {e}", True)
     base = [chezmoi, "--destination", str(home)]
-    code, out, err = run(base + ["managed", "--include=files,symlinks", "--path-style=all", "--format=json"], 60)
+    code, out, err = run(base + ["managed", "--include=files,symlinks,remove", "--path-style=all", "--format=json"],
+                         60)
     if code != 0:
         return result(False, f"chezmoi managed failed: {err}", True)
-    targets = sorted(e["absolute"] for e in json.loads(out).values()
-                     if e.get("sourceAbsolute") and any(pattern_match(p, os.path.relpath(e["sourceAbsolute"], repo))
-                                                        for p in patterns))
+    targets = []
+    for e in json.loads(out).values():
+        # a pending removal from .chezmoiremove comes with an empty sourceRelative and the source directory as its
+        # sourceAbsolute; it belongs to that file, and `chezmoi diff` shows it as a deleted file
+        source = e["sourceAbsolute"]
+        source = source if e.get("sourceRelative") else os.path.join(source, ".chezmoiremove")
+        if any(pattern_match(p, os.path.relpath(source, repo)) for p in patterns):
+            targets.append(e["absolute"])
+    targets.sort()
     if not targets:
         return result(False, "no managed target matches the managed list", True)
     code, out, err = run(base + ["diff", "--no-pager", "--exclude=scripts", *targets], 120)
@@ -118,24 +126,19 @@ def check_r4(sources, gh="gh"):
     return result(not bad, bad or "sources ok; gh authenticated", code != 0)
 
 
-def check_r5(k, today, now, repo_slug, gh="gh"):
+def check_r5(k, now, repo_slug, gh="gh"):
     bad, notes = [], []
-    finished = []
-    for f in sorted((k / "runs").glob("*.json")):
-        if f.stem >= today:
-            continue
-        try:
-            done = datetime.fromisoformat(json.loads(f.read_text())["finished"].replace("Z", "+00:00"))
-            if done.tzinfo and done <= now:
-                finished.append(done)
-        except (OSError, ValueError, KeyError, TypeError, AttributeError):
-            notes.append(f"runs/{f.name} has no finished time")
-    if finished:
-        age = now - max(finished)
-        if age > timedelta(days=RUN_DAYS):
-            bad.append(f"last run finished {age.days} days ago")
-    else:
+    try:
+        done = datetime.fromisoformat(json.loads((k / "current/record.json").read_text())["finished"]
+                                      .replace("Z", "+00:00"))
+        if not done.tzinfo or done > now:
+            raise ValueError(done)
+        if now - done > timedelta(days=RUN_DAYS):
+            bad.append(f"last run finished {(now - done).days} days ago")
+    except FileNotFoundError:
         notes.append("first run")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        bad.append(f"last run unreadable: {e}")
     if repo_slug is None:
         bad.append("open kaizen PRs unknown: no GitHub origin for the dotfiles checkout")
     else:

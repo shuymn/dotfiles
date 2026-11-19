@@ -68,6 +68,20 @@ class Temp(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.dir)
 
 
+@contextlib.contextmanager
+def no_hang(seconds=10):
+    """Fail the test instead of hanging it."""
+    def stop(*_):
+        raise AssertionError(f"still blocked after {seconds}s")
+    old = signal.signal(signal.SIGALRM, stop)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
+
+
 class Transcripts(Temp):
     def session(self, records, name="s1", subagent=False, tail=b""):
         folder = self.dir / "projects" / "-p" / (f"{name}/subagents" if subagent else "")
@@ -112,10 +126,21 @@ class Transcripts(Temp):
         self.assertEqual(out["sources"]["transcripts"]["bad_lines"], 0)
         self.assertEqual(out["sources"]["transcripts"]["status"], "ok")
 
-    def test_records_outside_the_window_do_not_count(self):
-        old = SINCE - timedelta(hours=1)
-        self.session([self.user("task", old), self.assistant(old), self.user("old reply", old)])
-        self.assertEqual(self.run_observe()["counts"]["owner-reply"], 0)
+    def test_window_is_half_open(self):
+        t = SINCE + timedelta(hours=1)
+        self.session([self.user("task", t), self.assistant(t), self.user("at since", SINCE),
+                      self.user("at until", NOW), self.user("before since", SINCE - timedelta(seconds=1))])
+        self.assertEqual([i["excerpt"] for i in self.run_observe()["items"] if i["signal"] == "owner-reply"],
+                         ["at since"])
+
+    def test_a_fifo_is_not_opened(self):
+        self.session([self.user("task", NOW - timedelta(hours=1))])
+        os.mkfifo(self.dir / "projects/-p/stuck.jsonl")
+        with no_hang():
+            out = self.run_observe()
+        self.assertEqual(out["sources"]["transcripts"]["status"], "fail")
+        self.assertIn("not a regular file", out["sources"]["transcripts"]["error"])
+        self.assertEqual(out["sources"]["transcripts"]["files"], 1)
 
     def test_t3_session_utterances_come_only_from_the_database(self):
         t = NOW - timedelta(hours=1)
@@ -155,11 +180,13 @@ class Transcripts(Temp):
         (codex / "rollout-a.jsonl").write_text(json.dumps({"payload": {"timestamp": ts(NOW - timedelta(hours=2)),
                                                                        "cwd": "/repo"}}) + "\n")
         (self.dir / "ledgers").mkdir()
-        (self.dir / "ledgers/x.md").write_text("- 2026-11-18 r1: 見逃し 1 something\n- 2026-11-18 r2: 見逃し 0\n"
-                                               "- 2026-10-01 r0: 見逃し 1 old\n")
+        # the window is 12:00 Nov 12 to 12:00 Nov 19 in Asia/Tokyo; a ledger day counts when its start lies in it
+        (self.dir / "ledgers/x.md").write_text("".join(f"- 2026-11-{d} r: 見逃し 1 day {d}\n" for d in (12, 13, 19, 20))
+                                               + "- 2026-11-18 r2: 見逃し 0\n")
         out = self.run_observe()
         self.assertEqual(out["codex_sessions"], {"/repo": 1})
-        self.assertEqual(out["counts"]["ledger-miss"], 1)
+        self.assertEqual(sorted(i["excerpt"][-6:] for i in out["items"] if i["signal"] == "ledger-miss"),
+                         ["day 13", "day 19"])
 
 
 class T3(Temp):
@@ -178,7 +205,8 @@ class T3(Temp):
                 ("root", "user", t(30), {"createdBy": "user", "creationSource": "web", "text": "not that", "id": "2"}),
                 ("root", "user", t(20), {"createdBy": "user", "creationSource": "server", "text": "q?", "id": "3"}),
                 ("root", "user", t(15), {"createdBy": "user", "creationSource": "web", "text": "/compact", "id": "4"}),
-                ("child", "user", t(10), {"createdBy": "user", "creationSource": "web", "text": "hi", "id": "5"})]
+                ("child", "user", t(10), {"createdBy": "user", "creationSource": "web", "text": "hi", "id": "5"}),
+                ("root", "user", t(0), {"createdBy": "user", "creationSource": "web", "text": "at until", "id": "6"})]
         conn.executemany("insert into orchestration_v2_projection_messages values (?, ?, ?, ?)",
                          [(a, b, c, json.dumps(d)) for a, b, c, d in rows])
         conn.commit()
@@ -187,7 +215,7 @@ class T3(Temp):
 
     def test_owner_rows_of_root_threads_after_an_assistant_turn(self):
         path = self.db()
-        before = path.read_bytes()
+        before = path.read_bytes()  # SQLite may add -wal and -shm beside it (accepted); the database stays as it was
         out = {"items": [], "tally": {"owner": 0, "unknown": 0, "synthetic": 0}}
         observe.observe_t3(path, SINCE, NOW, out, observe.Source("t3"))
         self.assertEqual([i["excerpt"] for i in out["items"]], ["not that"])
@@ -198,8 +226,10 @@ class T3(Temp):
 GH = """case "$1 $2" in
   "repo view") echo '{"visibility":"PUBLIC","defaultBranchRef":{"name":"main"}}' ;;
   "pr list") echo '[{"number":5,"title":"Revert x","body":"","mergedAt":"%(t)s","url":"u5"},
-             {"number":6,"title":"fix y","body":"fixes #5 and #99","mergedAt":"%(t)s","url":"u6"}]' ;;
-  "run list") echo '[{"displayTitle":"t","createdAt":"%(t)s","url":"r1","workflowName":"CI"}]' ;;
+             {"number":6,"title":"fix y","body":"fixes #5 and #99","mergedAt":"%(t)s","url":"u6"},
+             {"number":7,"title":"Revert late","body":"fixes #5","mergedAt":"%(late)s","url":"u7"}]' ;;
+  "run list") echo '[{"displayTitle":"t","createdAt":"%(t)s","url":"r1","workflowName":"CI"},
+             {"displayTitle":"late","createdAt":"%(late)s","url":"r2","workflowName":"CI"}]' ;;
   "auth status") exit 0 ;;
   *) exit 1 ;;
 esac
@@ -208,12 +238,12 @@ esac
 
 class Gh(Temp):
     def test_reverts_fix_prs_and_main_failures(self):
-        gh = fake(self.dir, "gh", GH % {"t": ts(NOW - timedelta(hours=1))})
+        gh = fake(self.dir, "gh", GH % {"t": ts(NOW - timedelta(hours=1)), "late": ts(NOW)})
         out = {"items": [], "cwds": {"/repo": 1}}
         with mock.patch.object(observe, "origin_repo", return_value="o/r"):
-            observe.observe_gh(gh, SINCE, out, observe.Source("gh"))
+            observe.observe_gh(gh, SINCE, NOW, out, observe.Source("gh"))
         found = {i["signal"]: i for i in out["items"]}
-        self.assertEqual(sorted(found), ["ci-fail-main", "fix-pr", "revert"])
+        self.assertEqual(sorted(i["signal"] for i in out["items"]), ["ci-fail-main", "fix-pr", "revert"])  # not at NOW
         self.assertIn("fixes #5)", found["fix-pr"]["excerpt"])  # #99 is no merged PR in the window
         self.assertEqual(found["revert"]["provenance"], "public")
 
@@ -233,7 +263,7 @@ class Gh(Temp):
 
 LAUNCHCTL_PRINT = """gui/501/org.nix-community.home.kaizen-cycle = {
 \tactive count = 0
-\tpath = /Users/u/Library/LaunchAgents/org.nix-community.home.kaizen-cycle.plist
+\tpath = ~/Library/LaunchAgents/org.nix-community.home.kaizen-cycle.plist
 \tstate = not running
 
 \tprogram = /bin/sh
@@ -243,7 +273,7 @@ LAUNCHCTL_PRINT = """gui/501/org.nix-community.home.kaizen-cycle = {
 \t\t%(wait)s && exec %(program)s %(script)s
 \t}
 
-\tstdout path = /Users/u/Library/Logs/kaizen-cycle.log
+\tstdout path = ~/Library/Logs/kaizen-cycle.log
 }
 """
 
@@ -279,21 +309,36 @@ class Ready(Temp):
         self.assertEqual(r["status"], "FAIL")
         self.assertIn("not loaded", r["detail"])
 
-    def test_r1_lists_differing_managed_targets(self):
+    def r1(self, managed, diff):
+        """check_r1 against a fake chezmoi whose `managed` prints the shape chezmoi 2.70 prints for
+        --include=files,symlinks,remove --path-style=all --format=json, and whose `diff` prints `diff`."""
         repo = self.dir / "repo"
         (repo / ".claude").mkdir(parents=True)
-        (repo / ".claude/kaizen-managed").write_text("# list\nhome/dot_claude/**\n")
-        managed = {".claude/a": {"absolute": "/h/.claude/a", "sourceAbsolute": f"{repo}/home/dot_claude/a"},
-                   ".zshrc": {"absolute": "/h/.zshrc", "sourceAbsolute": f"{repo}/home/dot_zshrc"}}
-        (self.dir / "managed.json").write_text(json.dumps(managed))
+        (repo / ".claude/kaizen-managed").write_text("# list\nhome/dot_claude/**\nhome/.chezmoiremove\n")
+        source = repo / "home"
+        entries = {rel: {"absolute": str(self.dir / "h" / rel), "sourceAbsolute": str(source / src),
+                         "sourceRelative": src} for rel, src in managed.items()}
+        (self.dir / "managed.json").write_text(json.dumps(entries))
+        (self.dir / "diff.txt").write_text(diff)
         chezmoi = fake(self.dir, "chezmoi", f"""case "$3" in
   managed) cat "{self.dir}/managed.json" ;;
-  diff) echo "$@" > "{self.dir}/diff-args"; printf 'diff --git a/.claude/a b/.claude/a\\n-x\\n+y\\n' ;;
+  diff) echo "$@" > "{self.dir}/diff-args"; cat "{self.dir}/diff.txt" ;;
 esac
 """)
-        r = ready.check_r1(Path("/h"), repo, chezmoi)
+        return ready.check_r1(self.dir / "h", repo, chezmoi), (self.dir / "diff-args").read_text()
+
+    def test_r1_lists_differing_managed_targets(self):
+        r, args = self.r1({".claude/a": "dot_claude/a", ".zshrc": "dot_zshrc"},
+                          "diff --git a/.claude/a b/.claude/a\n-x\n+y\n")
         self.assertEqual((r["status"], r["detail"]), ("FAIL", [".claude/a"]))
-        self.assertNotIn(".zshrc", (self.dir / "diff-args").read_text())
+        self.assertNotIn(".zshrc", args)
+
+    def test_r1_sees_a_pending_removal(self):
+        # a .chezmoiremove entry: empty sourceRelative, the source directory as sourceAbsolute; diff shows it deleted
+        r, args = self.r1({".claude/a": "dot_claude/a", ".claude/gone": ""},
+                          "diff --git a/.claude/gone b/.claude/gone\ndeleted file mode 100644\n")
+        self.assertIn(".claude/gone", args)
+        self.assertEqual((r["status"], r["detail"]), ("FAIL", [".claude/gone"]))
 
     def test_r3_fails_on_over(self):
         hooks = self.dir / ".claude/hooks"
@@ -309,17 +354,17 @@ esac
         self.assertEqual((r["status"], r["owner"]), ("FAIL", False))
 
     def test_r5_old_run_and_old_kaizen_pr(self):
-        (self.dir / "runs").mkdir()
-        (self.dir / "runs/2026-11-14.json").write_text(json.dumps({"finished": ts(NOW - timedelta(days=5))}))
+        empty = fake(self.dir, "gh3", "echo '[]'\n")
+        self.assertEqual(ready.check_r5(self.dir, NOW, "o/r", empty), ready.result(True, "first run"))
+        (self.dir / "current").mkdir()
+        (self.dir / "current/record.json").write_text(json.dumps({"finished": ts(NOW - timedelta(days=5))}))
         prs = [{"number": 1, "headRefName": "kaizen/x", "createdAt": ts(NOW - timedelta(days=20))},
                {"number": 2, "headRefName": "other", "createdAt": ts(NOW - timedelta(days=20))}]
-        gh = fake(self.dir, "gh", f"echo '{json.dumps(prs)}'\n")
-        r = ready.check_r5(self.dir, "2026-11-19", NOW, "o/r", gh)
+        r = ready.check_r5(self.dir, NOW, "o/r", fake(self.dir, "gh", f"echo '{json.dumps(prs)}'\n"))
         self.assertEqual(r["status"], "FAIL")
         self.assertEqual(len(r["detail"]), 2)
-        (self.dir / "runs/2026-11-18.json").write_text(json.dumps({"finished": ts(NOW - timedelta(days=1))}))
-        self.assertEqual(ready.check_r5(self.dir, "2026-11-19", NOW, "o/r", fake(self.dir, "gh3", "echo '[]'\n"))
-                         ["status"], "PASS")
+        (self.dir / "current/record.json").write_text(json.dumps({"finished": ts(NOW - timedelta(days=1))}))
+        self.assertEqual(ready.check_r5(self.dir, NOW, "o/r", empty)["status"], "PASS")
 
 
 class Cycle(Temp):
@@ -350,20 +395,56 @@ class Cycle(Temp):
         return json.loads(out.getvalue().splitlines()[-1])
 
     def outputs(self):
-        return {p.relative_to(self.k).as_posix(): p.read_bytes() for p in sorted(self.k.rglob("*")) if p.is_file()}
+        """What a reader can see: where K/current points, and every file under K."""
+        current = self.k / "current"
+        files = {p.relative_to(self.k).as_posix(): p.read_bytes() for p in sorted(self.k.rglob("*"))
+                 if p.is_file() and not p.is_symlink()}
+        return (os.readlink(current) if current.is_symlink() else None), files
 
-    def test_run_writes_record_digest_and_status(self):
+    def published(self, name):
+        return json.loads((self.k / "current" / name).read_text())
+
+    def test_run_publishes_one_directory(self):
         summary = self.main()
-        self.assertEqual(sorted(self.outputs()), ["digest.md", "runs/2026-11-19.json", "status.json"])
-        status = json.loads((self.k / "status.json").read_text())
+        target, files = self.outputs()
+        self.assertEqual(sorted(files), [f"{target}/{n}" for n in ("digest.md", "record.json", "status.json")])
+        self.assertEqual(sorted(p.name for p in self.k.iterdir()), ["current", "runs"])
+        status = self.published("status.json")
         self.assertEqual((status["fail"], status["decisions"]), (summary["fail"], summary["decisions"]))
         self.assertGreaterEqual(status["fail"], 2)  # R1 (no chezmoi source) and R2 (job not loaded)
-        record = json.loads((self.k / "runs/2026-11-19.json").read_text())
-        self.assertEqual(record["cost"], {"claude_usd": 0, "codex_usd": 0})
+        record = self.published("record.json")
+        self.assertEqual((record["date"], record["cost"]), ("2026-11-19", {"claude_usd": 0, "codex_usd": 0}))
         self.assertEqual(record["watch"][0]["pre_source"], "live, partial: older transcripts deleted")
-        digest = (self.k / "digest.md").read_text()
+        digest = (self.k / "current/digest.md").read_text()
         for section in ("## 準備状態", "## 取りこぼしと無駄", "## 監視中の変更", "## 判断事項", "## 費用"):
             self.assertIn(section, digest)
+
+    def test_a_failed_publish_step_leaves_the_previous_run(self):
+        self.main()
+        before = self.outputs()
+        real = os.replace
+
+        def full(src, dst):
+            if Path(dst).name in ("current", "status.json"):
+                raise OSError(28, "No space left on device")
+            return real(src, dst)
+
+        with mock.patch.object(cycle.os, "replace", side_effect=full), self.assertRaises(OSError):
+            self.main(now=NOW + timedelta(days=1))
+        self.assertEqual(self.outputs(), before)
+        self.assertEqual(len(list((self.k / "runs").iterdir())), 1)
+        self.assertEqual(sorted(p.name for p in self.k.iterdir()), ["current", "runs"])
+
+    def test_publish_keeps_the_published_and_the_previous_run(self):
+        targets = []
+        for day in range(3):
+            self.main(now=NOW + timedelta(days=day))
+            targets.append(os.readlink(self.k / "current"))
+        (self.k / "runs/notes").mkdir()  # not a run directory: left alone
+        self.main(now=NOW + timedelta(days=3))
+        targets.append(os.readlink(self.k / "current"))
+        self.assertEqual(sorted(p.name for p in (self.k / "runs").iterdir()),
+                         sorted([Path(targets[-1]).name, Path(targets[-2]).name, "notes"]))
 
     def test_failed_run_leaves_previous_outputs(self):
         self.main()
@@ -381,26 +462,39 @@ class Cycle(Temp):
         self.assertEqual(sorted(p.name for p in self.k.iterdir()), ["status.json"])
         self.assertEqual((self.k / "status.json").read_text(), "old")
 
-    def test_sigterm_mid_run_keeps_previous_outputs(self):
+    def stopped_run(self, stop, *extra):
+        """Run cycle.py in a child whose R2 hangs and call stop(proc) once it hangs; (exit code, stderr). The
+        previous run stays published and no other run directory is left."""
         self.main()
         before = self.outputs()
         started = self.dir / "started"
         slow = fake(self.bin, "slow-launchctl", f'touch "{started}"; exec sleep 30\n')
         args = [a if a != self.args[-1] else slow for a in self.args]
-        proc = subprocess.Popen([sys.executable, str(KAIZEN / "cycle.py"), *args], stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL, env={**os.environ, "KAIZEN_HOME": str(self.k)})
+        proc = subprocess.Popen([sys.executable, str(KAIZEN / "cycle.py"), *args, *extra], stdout=subprocess.DEVNULL,
+                                stderr=subprocess.PIPE, text=True, env={**os.environ, "KAIZEN_HOME": str(self.k)})
         try:
             deadline = time.monotonic() + 60
             while not started.exists() and time.monotonic() < deadline:
                 time.sleep(0.05)
             self.assertTrue(started.exists(), "the run did not reach R2")
-            proc.send_signal(signal.SIGTERM)
-            self.assertEqual(proc.wait(timeout=30), 143)
+            stop(proc)
+            _, err = proc.communicate(timeout=30)
         finally:
             if proc.poll() is None:
                 proc.kill()
                 proc.wait()
         self.assertEqual(self.outputs(), before)
+        self.assertEqual(len(list((self.k / "runs").iterdir())), 1)
+        return proc.returncode, err
+
+    def test_sigterm_mid_run_keeps_previous_outputs(self):
+        code, _ = self.stopped_run(lambda proc: proc.send_signal(signal.SIGTERM))
+        self.assertEqual(code, 143)
+
+    def test_a_run_past_its_deadline_exits_unpublished(self):
+        code, err = self.stopped_run(lambda proc: None, "--deadline", "3")
+        self.assertEqual(code, 1)
+        self.assertIn("passed its 3s deadline", err)
 
     def test_baseline_is_written_once_and_used_by_the_run(self):
         first = self.main("baseline", "#1")
@@ -409,8 +503,7 @@ class Cycle(Temp):
         self.assertFalse(self.main("baseline", "#1")["written"])
         self.assertEqual((self.k / "watch/#1.json").read_bytes(), saved)
         self.main()
-        record = json.loads((self.k / "runs/2026-11-19.json").read_text())
-        self.assertEqual(record["watch"][0]["pre_source"], "snapshot")
+        self.assertEqual(self.published("record.json")["watch"][0]["pre_source"], "snapshot")
 
     def test_invalid_change_id_is_rejected(self):
         self.watch.write_text(json.dumps([{"change": "../x", "signal": "regression", "apply": ts(NOW)}]))
@@ -436,7 +529,8 @@ class Statusline(Temp):
 
     def line(self, status=None):
         if status is not None:
-            (self.dir / "status.json").write_text(status if isinstance(status, str) else json.dumps(status))
+            (self.dir / "current").mkdir(exist_ok=True)
+            (self.dir / "current/status.json").write_text(status if isinstance(status, str) else json.dumps(status))
         out = subprocess.run([str(self.script)], input=STDIN, capture_output=True, text=True, cwd=self.dir,
                              env={**os.environ, "KAIZEN_HOME": str(self.dir)}, check=True, timeout=30).stdout
         return re.sub(r"\x1b\[[0-9;]*m", "", out)

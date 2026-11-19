@@ -1,7 +1,8 @@
 """Observation of the kaizen daily cycle (docs/kaizen.md §6): evidence from a fixed window, recomputed every run.
 
-Nothing here writes. observe() reads each source over [since, until] and returns one result; a source that fails is
-marked "fail" with its error and the others still run.
+Nothing here writes. observe() counts each source's observations in [since, until) and returns one result; a source
+that fails is marked "fail" with its error and the others still run. Only regular files are opened (lstat, so a symlink,
+FIFO or device is listed as unreadable rather than read).
   transcripts  parent and subagent *.jsonl under the projects root whose mtime is in the window; only complete lines
                are read (an unterminated last line is still being written and is skipped). Owner utterances of a
                session that T3 Code did not run are typed user records with origin.kind "human"; those of a T3 session
@@ -9,7 +10,8 @@ marked "fail" with its error and the others still run.
   t3           the T3 Code state database opened read-only. Owner = role user, createdBy user, creationSource web or
                mobile, in a root thread; compaction and agent rows are synthetic; other user rows are unknown.
   codex        rollout-*.jsonl under the Codex sessions root: sessions started in the window, per cwd.
-  ledgers      dated lines in the window that record a miss (見逃し) in the review ledgers.
+  ledgers      lines that record a miss (見逃し) in the review ledgers, dated by a day in Asia/Tokyo whose start lies in
+               the window.
   gh           for the repositories most worked in (by the cwd of transcripts and Codex sessions): merged reverts, merged
                PRs that fix another merged PR of the same repository, failed runs on the default branch.
 Signals: owner-reply (an owner utterance of at most 300 characters after an assistant turn, not the first of its
@@ -21,10 +23,12 @@ import json
 import os
 import re
 import sqlite3
+import stat
 import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 EXCERPT = 160
 SHORT_REPLY = 300
@@ -42,6 +46,7 @@ FIX_REF = re.compile(r"(?:\b([\w.-]+/[\w.-]+))?#(\d+)")
 LEDGER_LINE = re.compile(r"^\s*-\s*(\d{4}-\d{2}-\d{2})\b")
 NO_MISS = re.compile(r"見逃し\s*(?:0|なし|無し)")
 OWNER_SOURCES = ("web", "mobile")
+TZ = ZoneInfo("Asia/Tokyo")  # the owner's day: ledger dates and the run date
 # byte patterns that decide whether a transcript line is parsed at all
 T3_ENTRY = re.compile(rb'"entrypoint":\s*"t3-code"')
 USER, ASSISTANT = re.compile(rb'"type":\s*"user"'), re.compile(rb'"type":\s*"assistant"')
@@ -74,6 +79,15 @@ def item(signal, where, excerpt, ts, provenance="synthetic", repo=None):
 def run(argv, timeout, **kw):
     """subprocess.run with its own timeout (the child is killed when it passes)."""
     return subprocess.run(argv, timeout=timeout, capture_output=True, text=True, **kw)
+
+
+def regular(path):
+    """os.lstat of path; OSError unless it is a regular file. A FIFO, device or symlink is never opened (opening a
+    FIFO blocks until a writer appears)."""
+    st = os.lstat(path)
+    if not stat.S_ISREG(st.st_mode):
+        raise OSError(f"{path}: not a regular file")
+    return st
 
 
 def complete_lines(path):
@@ -131,7 +145,7 @@ def scan_transcript(path, subagent, since, until, out, src):
             continue
         src.records += 1
         t = parse_time(d.get("timestamp") or "")
-        in_window = t is not None and since <= t <= until
+        in_window = t is not None and since <= t < until
         cwd = cwd or d.get("cwd")
         message = d.get("message") if isinstance(d.get("message"), dict) else {}
         if d.get("type") == "user" and typed(d):
@@ -179,12 +193,12 @@ def observe_transcripts(projects, since, until, out, src):
             if not name.endswith(".jsonl") or not (len(rel) == 2 or "subagents" in rel):
                 continue
             try:
-                if path.stat().st_mtime < floor:
+                if regular(path).st_mtime < floor:
                     continue
                 src.files += 1
                 scan_transcript(path, "subagents" in rel, since, until, out, src)
             except OSError as e:
-                src.unreadable.append(f"{path}: {e.strerror}")
+                src.unreadable.append(f"{path}: {e.strerror or e}")
 
 
 def reference_items(hiden, refs, now):
@@ -207,10 +221,11 @@ def root_thread(payload):
 
 
 def observe_t3(db, since, until, out, src):
-    if not Path(db).is_file():
-        raise OSError(f"no database at {db}")
+    regular(db)
     src.files = 1
-    # as_uri percent-encodes "#" and "?", which SQLite would read as fragment and query
+    # mode=ro still lets SQLite create the -wal and -shm files beside the database: they are its shared index that
+    # every reader (the T3 app too) creates, holding no owner data. immutable=1 would avoid them but skip rows still
+    # in the WAL. as_uri percent-encodes "#" and "?", which SQLite would read as fragment and query.
     conn = sqlite3.connect(Path(db).absolute().as_uri() + "?mode=ro", uri=True, timeout=5)
     try:
         roots = {tid for tid, payload in conn.execute(
@@ -218,7 +233,7 @@ def observe_t3(db, since, until, out, src):
             if root_thread(json.loads(payload))}
         rows = conn.execute(
             "select thread_id, created_at, payload_json from orchestration_v2_projection_messages "
-            "where role = 'user' and created_at >= ? and created_at <= ?", (db_time(since), db_time(until)))
+            "where role = 'user' and created_at >= ? and created_at < ?", (db_time(since), db_time(until)))
         for thread, created, payload in rows.fetchall():
             src.records += 1
             try:
@@ -259,12 +274,12 @@ def observe_codex(root, since, until, out, src):
             if not (name.startswith("rollout-") and name.endswith(".jsonl")):
                 continue
             try:
-                if path.stat().st_mtime < floor:
+                if regular(path).st_mtime < floor:
                     continue
                 with open(path, "rb") as f:
                     first = f.readline()
             except OSError as e:
-                src.unreadable.append(f"{path}: {e.strerror}")
+                src.unreadable.append(f"{path}: {e.strerror or e}")
                 continue
             src.files += 1
             try:
@@ -275,7 +290,7 @@ def observe_codex(root, since, until, out, src):
                 src.bad_lines += 1
                 continue
             src.records += 1
-            if started and since <= started <= until:
+            if started and since <= started < until:
                 cwd = payload.get("cwd") or "?"
                 counts[cwd] = counts.get(cwd, 0) + 1
                 out["cwds"][cwd] = out["cwds"].get(cwd, 0) + 1
@@ -285,13 +300,13 @@ def observe_codex(root, since, until, out, src):
 def observe_ledgers(root, since, until, out, src):
     if not Path(root).is_dir():
         return
-    first, last = since.date(), until.date()
     for path in sorted(Path(root).glob("*.md")):
         src.files += 1
         try:
+            regular(path)
             text = path.read_bytes().decode("utf-8", errors="replace")
         except OSError as e:
-            src.unreadable.append(f"{path}: {e.strerror}")
+            src.unreadable.append(f"{path}: {e.strerror or e}")
             continue
         for number, line in enumerate(text.splitlines(), 1):
             src.records += 1
@@ -299,10 +314,10 @@ def observe_ledgers(root, since, until, out, src):
             if not m or "見逃し" not in line or NO_MISS.search(line):
                 continue
             try:
-                day = datetime.strptime(m.group(1), "%Y-%m-%d").date()
+                day = datetime.strptime(m.group(1), "%Y-%m-%d").replace(tzinfo=TZ)  # the start of that day
             except ValueError:
                 continue
-            if first <= day <= last:
+            if since <= day < until:
                 out["items"].append(item("ledger-miss", f"{path}:{number}", line, m.group(1)))
 
 
@@ -324,7 +339,7 @@ def gh_json(gh, args):
     return json.loads(p.stdout or "null")
 
 
-def observe_gh(gh, since, out, src):
+def observe_gh(gh, since, until, out, src):
     weights = {}
     for cwd, n in out["cwds"].items():
         repo = origin_repo(cwd)
@@ -339,12 +354,11 @@ def observe_gh(gh, since, out, src):
         branch = (view.get("defaultBranchRef") or {}).get("name") or "main"
         prs = gh_json(gh, ["pr", "list", "-R", repo, "--state", "merged", "--search", f"merged:>={day}", "--limit",
                            "200", "--json", "number,title,body,mergedAt,url"]) or []
+        src.records += len(prs)
+        prs = [p for p in prs if since <= (parse_time(p.get("mergedAt") or "") or until) < until]
         numbers = {p.get("number") for p in prs}
         for pr in prs:
-            src.records += 1
-            merged = parse_time(pr.get("mergedAt") or "")
-            if merged is None or merged < since:
-                continue
+            merged = parse_time(pr["mergedAt"])
             title, where = pr.get("title") or "", pr.get("url") or f"{repo}#{pr.get('number')}"
             if re.search(r"\brevert", title, re.I):
                 out["items"].append(item("revert", where, title, merged, prov, repo))
@@ -359,7 +373,7 @@ def observe_gh(gh, since, out, src):
         for r in runs:
             src.records += 1
             created = parse_time(r.get("createdAt") or "")
-            if created and created >= since:
+            if created and since <= created < until:
                 out["items"].append(item("ci-fail-main", r.get("url") or repo,
                                          f"{r.get('workflowName')}: {r.get('displayTitle')}", created, prov, repo))
 
@@ -368,7 +382,7 @@ def observe_gh(gh, since, out, src):
 
 
 def observe(paths, since, until, gh="gh"):
-    """{window, sources, items, counts, tally, codex_sessions} over [since, until]. paths: projects, t3_db, codex,
+    """{window, sources, items, counts, tally, codex_sessions} in [since, until). paths: projects, t3_db, codex,
     ledgers, hiden (None turns t3 or gh off)."""
     out = {"items": [], "cwds": {}, "refs": {}, "tally": {"owner": 0, "unknown": 0, "synthetic": 0},
            "t3_sessions": set(), "codex_sessions": {}}
@@ -377,7 +391,7 @@ def observe(paths, since, until, gh="gh"):
              ("t3", paths.get("t3_db") and (lambda s: observe_t3(paths["t3_db"], since, until, out, s))),
              ("codex", lambda s: observe_codex(paths["codex"], since, until, out, s)),
              ("ledgers", lambda s: observe_ledgers(paths["ledgers"], since, until, out, s)),
-             ("gh", gh and (lambda s: observe_gh(gh, since, out, s)))]
+             ("gh", gh and (lambda s: observe_gh(gh, since, until, out, s)))]
     for name, step in steps:
         src = Source(name)
         if not step:
@@ -403,6 +417,6 @@ def observe(paths, since, until, gh="gh"):
 
 
 def default_paths(home):
-    return {"projects": home / ".claude/projects", "t3_db": home / ".t3/userdata/statev2.sqlite",
+    return {"projects": home / ".claude/projects", "t3_db": home / ".t3" / "userdata" / "statev2.sqlite",
             "codex": home / ".codex/sessions", "ledgers": home / ".claude/review-ledgers",
             "hiden": home / ".claude/skills/hiden"}

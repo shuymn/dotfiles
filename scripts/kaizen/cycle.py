@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """The kaizen daily cycle (docs/kaizen.md §6): one stateless run over the last 7 days. No model is called.
 
-  cycle.py [run]            observe, watch and readiness from scratch, then write K/runs/<date>.json, K/digest.md and
-                            K/status.json (K = $KAIZEN_HOME, else ~/.claude/kaizen; date in local time). Each output is
-                            written to a temp file beside it and published by rename, status.json last; a run that
-                            fails or is killed leaves the previous outputs, which status shows stale by their time.
+  cycle.py [run]            observe, watch and readiness from scratch, then write record.json, digest.md and
+                            status.json into a new directory K/runs/<id> and publish the whole run in one step: the
+                            symlink K/current is replaced by rename to point at it (K = $KAIZEN_HOME, else
+                            ~/.claude/kaizen; the run date is in Asia/Tokyo). Readers go through K/current. A run that
+                            fails, is killed or passes --deadline publishes nothing and leaves K/current as it was,
+                            which the statusline shows stale by its time. After a publish, run directories other than
+                            the published one and the one it replaced are deleted.
   cycle.py baseline <id>    write the pre-apply aggregate of watch.json's change <id> to K/watch/<id>.json, once (an
                             existing file is left alone). Transcripts are deleted after 30 days, so the daily run uses
                             this file for the pre window when it is there.
@@ -21,7 +24,9 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import signal
+import stat
 import tempfile
 import time
 from datetime import datetime, timedelta, timezone
@@ -46,6 +51,8 @@ PRE_DAYS = 30
 CHANGE_ID = re.compile(r"[A-Za-z0-9#._-]+")
 REGRESSION_KEYS = ("window", "workers", "opportunities", "counted", "ambiguous", "not_counted", "rate", "harm")
 EXAMPLES = 3
+DEADLINE = 1200  # seconds a whole run may take; a normal one takes under 2 minutes
+RUN_NAME = re.compile(r"\d{8}T\d{6}-[a-z0-9_]{8}")  # the names publish_run gives (mkdtemp's random suffix)
 
 
 def log(msg):
@@ -63,6 +70,36 @@ def publish(path, text):
     except BaseException:
         os.unlink(tmp)
         raise
+
+
+def publish_run(k, record, files):
+    """Write files into a new K/runs/<id>, point K/current at it by one rename, then delete older run directories but
+    the one K/current pointed to before. Returns the run directory."""
+    runs = k / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(tempfile.mkdtemp(dir=runs, prefix=f"{datetime.now(observe.TZ):%Y%m%dT%H%M%S}-"))
+    name = run_dir.name
+    try:
+        for file, text in files.items():
+            (run_dir / file).write_text(text, encoding="utf-8")
+        current = k / "current"
+        previous = os.readlink(current) if current.is_symlink() else None
+        link = k / f".current.{name}"
+        os.symlink(f"runs/{name}", link)
+        try:
+            os.replace(link, current)  # the publish: one rename
+        except BaseException:
+            link.unlink()
+            raise
+    except BaseException:
+        shutil.rmtree(run_dir)
+        raise
+    keep = {name, Path(previous).name if previous else None}
+    for entry in runs.iterdir():
+        # only directories this script names, checked without following a symlink
+        if entry.name not in keep and RUN_NAME.fullmatch(entry.name) and stat.S_ISDIR(entry.lstat().st_mode):
+            shutil.rmtree(entry)
+    return run_dir
 
 
 def regression(projects, since, until):
@@ -170,7 +207,7 @@ def digest(record):
     if not record["watch"]:
         lines.append("- なし")
     lines += ["", "## 判断事項", *([f"{i}. {d}" for i, d in enumerate(record["decisions"], 1)] or ["- なし"])]
-    lines += ["", "## 費用", "- Claude $0、Codex $0（モデルを呼ばない）", f"- 元の行: runs/{record['date']}.json", ""]
+    lines += ["", "## 費用", "- Claude $0、Codex $0（モデルを呼ばない）", "- 元の行: 同じディレクトリの record.json", ""]
     return "\n".join(lines)
 
 
@@ -186,13 +223,13 @@ def run_cycle(k, home, now, args):
     watched = watch(k, paths["projects"], now, args.watch_file)
     log("ready")
     repo = ready.source_repo(args.chezmoi)
-    today = now.astimezone().date().isoformat()
+    today = now.astimezone(observe.TZ).date().isoformat()
     checks = {
         "R1": lambda: ready.check_r1(home, repo, args.chezmoi),
         "R2": lambda: ready.check_r2(args.launchctl),
         "R3": lambda: ready.check_r3(home),
         "R4": lambda: ready.check_r4(obs["sources"], args.gh),
-        "R5": lambda: ready.check_r5(k, today, now, repo and observe.origin_repo(str(repo)), args.gh),
+        "R5": lambda: ready.check_r5(k, now, repo and observe.origin_repo(str(repo)), args.gh),
     }
     results = {}
     for rid, check in checks.items():
@@ -207,15 +244,16 @@ def run_cycle(k, home, now, args):
     record["finished"] = observe.iso(datetime.now(timezone.utc))
     status = {"date": today, "fail": sum(r["status"] == "FAIL" for r in results.values()),
               "decisions": len(record["decisions"]), "last_completed_epoch": int(time.time())}
-    publish(k / "runs" / f"{today}.json", json.dumps(record, indent=1, ensure_ascii=False) + "\n")
-    publish(k / "digest.md", digest(record))
-    publish(k / "status.json", json.dumps(status) + "\n")  # last: its time marks a completed run
-    return {**status, "secs": record["secs"], "counts": record["counts"],
+    run_dir = publish_run(k, record, {"record.json": json.dumps(record, indent=1, ensure_ascii=False) + "\n",
+                                      "digest.md": digest(record), "status.json": json.dumps(status) + "\n"})
+    return {**status, "run": str(run_dir), "secs": record["secs"], "counts": record["counts"],
             "sources": {n: s["status"] for n, s in obs["sources"].items()}}
 
 
 def main(argv=None, now=None):
-    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))  # unwind, so a temp file being written is removed
+    # unwind on SIGTERM and at the deadline, so an unpublished run directory or temp file is removed
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"kaizen: run passed its {args.deadline}s deadline"))
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("command", nargs="?", default="run", choices=("run", "baseline"))
     p.add_argument("change", nargs="?")
@@ -226,7 +264,16 @@ def main(argv=None, now=None):
     p.add_argument("--launchctl", default="launchctl")
     p.add_argument("--no-gh", action="store_true")
     p.add_argument("--no-t3", action="store_true")
+    p.add_argument("--deadline", type=int, default=DEADLINE, help="seconds before the run exits unpublished")
     args = p.parse_args(argv)
+    signal.alarm(args.deadline)
+    try:
+        run_command(p, args, now)
+    finally:
+        signal.alarm(0)
+
+
+def run_command(p, args, now):
     home = args.home.expanduser()
     k = Path(os.environ.get("KAIZEN_HOME") or home / ".claude/kaizen").expanduser()
     now = now or datetime.now(timezone.utc)

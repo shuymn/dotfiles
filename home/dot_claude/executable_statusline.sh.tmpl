@@ -148,10 +148,10 @@ comp_pending() {
   fi
 }
 
-# Show the kaizen cycle (scripts/kaizen/cycle.py writes status.json) only when it needs the owner: failed checks,
-# decisions, or no completed run for over 36 h
+# Show the kaizen cycle (scripts/kaizen/cycle.py publishes current/status.json) only when it needs the owner: failed
+# checks, decisions, or no completed run for over 36 h
 comp_kaizen() {
-  local status=${KAIZEN_HOME:-$HOME/.claude/kaizen}/status.json
+  local status=${KAIZEN_HOME:-$HOME/.claude/kaizen}/current/status.json
   [ -e "$status" ] || return 0
   local fail decisions last parts=()
   read -r fail decisions last < <(jq -r '[.fail // 0, .decisions // 0, .last_completed_epoch // 0] | @tsv' "$status" 2>/dev/null) ||
