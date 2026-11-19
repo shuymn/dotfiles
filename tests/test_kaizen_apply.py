@@ -229,7 +229,8 @@ class Eligibility(unittest.TestCase):
 
     def test_repo_only_paths_ride_along(self):
         changes = {SKILL: b"new\n", "docs/kaizen.md": b"doc 2\n", "tests/test_x.py": b"t\n",
-                   "scripts/kaizen/apply.py": b"a\n", ".github/workflows/x.yml": b"w\n", "README.md": b"r\n"}
+                   "scripts/kaizen/apply.py": b"a\n", ".github/workflows/x.yml": b"w\n", "README.md": b"r\n",
+                   "AGENTS.md": b"a\n", "CLAUDE.md": b"c\n"}
         targets, reason = self.assess(changes)
         self.assertIsNone(reason)
         self.assertEqual(targets, [(SKILL, T_SKILL)])
