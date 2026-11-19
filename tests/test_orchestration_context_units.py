@@ -268,7 +268,9 @@ class UnchangedEventsTest(HookCase):
             self.skipTest("the reference commit is not in this clone")
         self.before = self.tmp / "before" / "hooks" / "orchestration-context.py"
         self.before.parent.mkdir(parents=True)
-        self.before.write_text(p.stdout)
+        # The reminder is wording revised on its own; the reference takes the current text so only the logic is compared.
+        current = re.search(r"QUESTIONS = \(\n.*?\n\)", HOOK.read_text(), re.S).group(0)
+        self.before.write_text(re.sub(r"QUESTIONS = \(\n.*?\n\)", lambda _: current, p.stdout, count=1, flags=re.S))
         claude = self.home / ".claude"
         (claude / "hooks").mkdir(parents=True)
         (claude / "hooks" / "attention-budget.py").write_text(
