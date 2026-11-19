@@ -4,7 +4,9 @@
 - A session running in a delegated worktree (~/.t3/worktrees/..., or a subagent's <repo>-worktrees/agent-*) never writes outside it: no git push, no gh writes,
   no wrangler deploys or secrets, no package publishing. The orchestrator does those.
 - No command or file read shows a secret file under ~/.t3/userdata/secrets; passing one as "$(cat <file>)" to a
-  command is allowed, since that is how a secret delivered as a file is used.
+  command is allowed, since that is how a secret delivered as a file is used. A wrangler `.dev.vars` (any repository)
+  is a secret file too. Any other mention is refused, since a "harmless" listing (`cut -d= -f1`) still prints a
+  multi-line value.
 - Pencil's AI generation (Generate) is never called: the owner's quota is small.
 - A gh write (PR, issue, release, API) carries no local paths in its command or its body file.
 - A PR is merged only through ~/.claude/bin/merge-pr, which merges the checked head once every check on it passed and
@@ -28,7 +30,12 @@ GH_API_WRITE = re.compile(r"(?:^|\s)(?:-X|--method)\s*(?!GET\b)[A-Z]+|(?:^|\s)(?
 WRANGLER_WRITE = re.compile(r"\bwrangler\s+(?:deploy|publish|secret|versions\s+(?:deploy|upload)|rollback|delete|r2|kv|d1|queues)\b")
 PUBLISH = re.compile(r"\b(?:npm|pnpm|yarn|bun|cargo|deno)\s+publish\b")
 GIT_PUSH = re.compile(r"\bgit\b(?:\s+-[Cc]\s+\S+|\s+--?[\w-]+(?:=\S+)?)*\s+push\b")
-CAT_SUBST = re.compile(r"\"?\$\((?:cat\s+|<\s*)[\"']?[^\"')]*" + re.escape(SECRETS) + r"[^\"')]*[\"']?\)\"?")
+SECRET_FILE = re.compile(re.escape(SECRETS) + r"|\.dev\.vars(?![\w.])")
+CAT_SUBST = re.compile(r"\"?\$\((?:cat\s+|<\s*)[\"']?[^\"')]*(?:" + SECRET_FILE.pattern + r")[^\"')]*[\"']?\)\"?")
+SECRET_REASON = (
+    f"Commands and reads must not show a secret file (~/{SECRETS}, a .dev.vars). Pass a secret file only as "
+    "\"$(cat <file>)\" to the command that needs it."
+)
 LOCAL_PATH = re.compile(r"(?:/Users|/home)/[A-Za-z0-9._-]+/|\.t3/(?:scratch|worktrees|userdata)/|/tmp/claude-\d+/|/private/var/folders/")
 REPO_OPT = r"(?:(?:-R|--repo)[ =]\S+\s+)?"
 GH_PR_MERGE = re.compile(rf"^gh\s+{REPO_OPT}pr\s+{REPO_OPT}merge\b")
@@ -84,8 +91,8 @@ def check_public_text(command: str, cwd: str) -> None:
 
 
 def check_bash(command: str, cwd: str) -> None:
-    if SECRETS in CAT_SUBST.sub("", command):
-        deny(f"Commands must not show files under ~/{SECRETS}. Pass a secret file only as \"$(cat <file>)\" to the command that needs it.")
+    if SECRET_FILE.search(CAT_SUBST.sub("", command)):
+        deny(SECRET_REASON)
     check_public_text(command, cwd)
     delegated = (cwd + os.sep).startswith(WORKTREES) or AGENT_WORKTREE.search(cwd + os.sep)
     reason = "External writes belong to the orchestrator: report the command you would run instead of running it."
@@ -116,8 +123,8 @@ def main() -> None:
         check_bash(tin.get("command", ""), data.get("cwd", ""))
     elif tool in ("Read", "Grep", "Glob", "NotebookRead"):
         target = " ".join(str(tin.get(k, "")) for k in ("file_path", "path", "pattern"))
-        if SECRETS in target:
-            deny(f"Files under ~/{SECRETS} must not be read into the conversation.")
+        if SECRETS in target or SECRET_FILE.search(" ".join(str(tin.get(k, "")) for k in ("file_path", "path"))):
+            deny(SECRET_REASON)
     elif tool.startswith("mcp__pencil__"):
         text = json.dumps(tin)
         if PENCIL_GENERATE.search(text):
