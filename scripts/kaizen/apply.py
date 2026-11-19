@@ -37,6 +37,9 @@ from pathlib import Path
 STATE = ".local/state/kaizen-apply"
 ROOTS = ("home/dot_claude/skills/", "home/dot_claude/agents/")
 SOURCE_DIR, TARGET_DIR = "home/dot_claude/", ".claude/"
+# Paths no chezmoi apply reads, so a merge may change them next to its v1 targets. scripts/kaizen/ reaches the
+# daily job only through the owner's switch; other scripts/ feed the chezmoi config and are not listed.
+REPO_ONLY = ("docs/", "tests/", ".github/", "scripts/kaizen/", "README.md", "AGENTS.md", "CLAUDE.md")
 # chezmoi source attributes; a component starting with one (or with ".") is not a plain name
 ATTRIBUTES = ("after_", "before_", "create_", "dot_", "empty_", "encrypted_", "exact_", "executable_", "external_",
               "literal_", "modify_", "once_", "onchange_", "private_", "readonly_", "remove_", "run_", "symlink_")
@@ -305,6 +308,8 @@ def assess(reader, parent, commit):
     """(targets, None) when commit is applicable in v1, targets = [(source, target rel)]; else (None, reason)."""
     targets = []
     for status, path in reader.changes(parent, commit):
+        if any(path == p or (p.endswith("/") and path.startswith(p)) for p in REPO_ONLY):
+            continue
         if status != "M":
             return None, f"{ {'A': 'added', 'D': 'deleted', 'T': 'type change'}.get(status, status)} {path}"
         rel = plain_target(path)

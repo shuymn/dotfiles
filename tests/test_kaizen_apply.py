@@ -194,7 +194,9 @@ class Eligibility(unittest.TestCase):
         cases = {
             "added": {SKILL: b"new\n", "home/dot_claude/skills/hiden/new.md": b"x\n"},
             "deleted": {SKILL: b"new\n", REF: None},
-            "other managed": {SKILL: b"new\n", "docs/kaizen.md": b"doc 2\n"},
+            "managed list": {SKILL: b"new\n", ".claude/kaizen-managed": b"home/dot_claude/**\n"},
+            "chezmoi helper": {SKILL: b"new\n", "scripts/host-data.sh": b"echo 2\n"},
+            "repo-only lookalike": {SKILL: b"new\n", "docsx/a.md": b"x\n"},
             "hook": {SKILL: b"new\n", "home/dot_claude/hooks/x.py": b"print(2)\n"},
             "unmanaged": {SKILL: b"new\n", "home/dot_zshenv": b"export A=2\n"},
             "ignore file": {SKILL: b"new\n", "home/.chezmoiignore": b".config/age/**\n.x\n"},
@@ -204,6 +206,14 @@ class Eligibility(unittest.TestCase):
                 self.assertIsNone(self.assess(changes)[0])
         targets, reason = self.assess(cases["hook"])
         self.assertIn("home/dot_claude/hooks/x.py", reason)
+
+    def test_repo_only_paths_ride_along(self):
+        changes = {SKILL: b"new\n", "docs/kaizen.md": b"doc 2\n", "tests/test_x.py": b"t\n",
+                   "scripts/kaizen/apply.py": b"a\n", ".github/workflows/x.yml": b"w\n", "README.md": b"r\n"}
+        targets, reason = self.assess(changes)
+        self.assertIsNone(reason)
+        self.assertEqual(targets, [(SKILL, T_SKILL)])
+        self.assertEqual(self.assess({"docs/kaizen.md": b"doc 2\n"}), (None, "no change"))
 
     def test_attribute_names_and_templates_are_outside_v1(self):
         for path in ("home/dot_claude/skills/hiden/executable_x.sh", "home/dot_claude/skills/hiden/x.md.tmpl",
