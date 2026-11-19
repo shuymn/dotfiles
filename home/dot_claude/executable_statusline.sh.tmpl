@@ -148,6 +148,23 @@ comp_pending() {
   fi
 }
 
+# Show the kaizen cycle (scripts/kaizen/cycle.py publishes current/status.json) only when it needs the owner: failed
+# checks, decisions, or no completed run for over 36 h
+comp_kaizen() {
+  local status=${KAIZEN_HOME:-$HOME/.claude/kaizen}/current/status.json
+  [ -e "$status" ] || return 0
+  local fail decisions last parts=()
+  read -r fail decisions last < <(jq -r '[.fail // 0, .decisions // 0, .last_completed_epoch // 0] | @tsv' "$status" 2>/dev/null) ||
+    { PARTS+="${SEP}${RED}kaizen ?${R}"; return 0; }
+  [ "$fail" -gt 0 ] && parts+=("✗${fail}")
+  [ "$decisions" -gt 0 ] && parts+=("判断 ${decisions}")
+  local age=$(($(date +%s) - last))
+  [ "$age" -gt $((36 * 3600)) ] && parts+=("stale $((age / 86400))d")
+  [ ${#parts[@]} -gt 0 ] || return 0
+  local IFS="・"
+  PARTS+="${SEP}${RED}kaizen ${parts[*]}${R}"
+}
+
 # ── Main ─────────────────────────────────────────────────────────
 
 INPUT=$(cat)
@@ -155,6 +172,7 @@ PARTS="$(comp_location)"
 # Worktrees share the main checkout's memory, so resolve the root from the common git dir
 common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
 comp_pending "${common:+${common%/.git}}"
+comp_kaizen
 
 append_dot "ctx" ".context_window.used_percentage" 80 30
 append_rate "5h" ".rate_limits.five_hour"
