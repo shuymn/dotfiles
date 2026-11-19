@@ -237,7 +237,7 @@ class GitReader:
                                                               *[p.rstrip("/") for p in prefixes])) if r[1] == "blob"]
 
     def subject(self, commit):
-        return self._git("log", "-1", "--format=%s", commit).decode().strip()
+        return self._git("log", "-1", "--format=%s", commit).decode("utf-8", "replace").strip()
 
 
 # ---------------------------------------------------------------- eligibility (K1, L3, N2) and candidates (N6)
@@ -529,12 +529,14 @@ class State:
                 raise InvalidState(f"{path} is not a regular file")
             with open(fd, "rb", closefd=False) as f:
                 data = f.read()
+        except OSError as e:
+            raise InvalidState(f"{path} is unreadable: {e}") from e
         finally:
             os.close(fd)
         try:
             return json.loads(data.decode("utf-8"))
-        except ValueError as e:
-            raise InvalidState(f"{path} is not JSON: {e}") from e
+        except (ValueError, RecursionError) as e:
+            raise InvalidState(f"{path} is not JSON: {type(e).__name__}") from e
 
     def applied(self):
         value = self.read("applied.json", None)
@@ -598,7 +600,7 @@ def text(value):
 
 
 def relative(path):
-    return (text(path) and not path.startswith("/")
+    return (text(path) and "\0" not in path and not path.startswith("/")
             and all(p not in ("", ".", "..") for p in path.split("/")))
 
 

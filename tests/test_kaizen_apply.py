@@ -402,6 +402,7 @@ class Chain(Base):
                            ("journal.json", json.dumps({"entries": [{**entry("b" * 40, T_AGENT, "clean"), "target": None}]})),
                            ("journal.json", json.dumps({"entries": [entry("b" * 40, T_AGENT, "clean", note="\ud800")]})),
                            ("journal.json", json.dumps({"entries": [entry("b" * 40, "../x", "clean")]})),
+                           ("journal.json", json.dumps({"entries": [entry("b" * 40, "a\0b", "clean")]})),
                            ("journal.json", json.dumps({"entries": [entry("b" * 40, T_AGENT, "clean", parent=[True, 1])]})),
                            ("applied.json", json.dumps({"commit": "a" * 40, "at": 1, "by": "owner"}))):
             with self.subTest(name=name, text=text):
@@ -428,6 +429,21 @@ class Chain(Base):
         (self.dir / "elsewhere.json").write_text('{"entries": []}')
         self.assertIn("unreadable", self.run_apply()["decisions"][0])
         self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+
+    def test_a_cursor_that_cannot_be_decoded_does_not_hide_the_journal(self):
+        self.setup()
+        self.state.save_journal([entry(self.M, T_AGENT, "unresolved", note="swapped back")])
+        (self.state.dir / "applied.json").write_text("[" * 100000 + "]" * 100000)
+        res = self.run_apply()
+        self.assertEqual(res["status"], "error")
+        self.assertEqual([e["target"] for e in res["journal"]], [T_AGENT])
+        self.assertTrue(any("not JSON" in d for d in res["decisions"]))
+        self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+
+    def test_a_subject_that_is_not_utf8_is_still_read(self):
+        reader = apply.GitReader("/nonexistent", "git", {}, 0)
+        reader._git = lambda *args: b"Merge pull request #2 \xff\n"
+        self.assertEqual(reader.subject("c" * 40), "Merge pull request #2 \ufffd")
 
     def test_lock_held_still_reports_the_cursor_and_the_journal(self):
         self.setup()
