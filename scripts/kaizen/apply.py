@@ -583,12 +583,22 @@ class Run:
         self.state.save_journal(self.journal)
 
     def classify(self, parent, commit, targets):
-        """{rel: (kind, live, parent identity, old, new)}"""
+        """{rel: (kind, live, parent identity, old, new)}, one snapshot per target. A target with a journal entry of
+        this merge (an earlier run wrote it) never enters the write set: it is done when that snapshot still shows the
+        new blob at mode 0644 under the recorded parent; anything else (the old blob included) makes its entry
+        unresolved and its kind "journal"."""
         out = {}
         for source, rel in targets:
             old, new = self.reader.blob(parent, source)[1], self.reader.blob(commit, source)[1]
             live, pid = snapshot(self.home, rel)
-            out[rel] = (kind(live, old, new), live, pid, old, new)
+            k = kind(live, old, new)
+            mine = [e for e in self.journal if e["merge"] == commit and e["target"] == rel]
+            if mine and not (k == "done" and all(e["step"] == "clean" and e["parent"] == pid for e in mine)):
+                k = "journal"
+                note = "parent changed" if kind(live, old, new) == "done" else describe(live)
+                for e in mine:
+                    e.update(step="unresolved", note=f"changed since an earlier run wrote it ({note})")
+            out[rel] = (k, live, pid, old, new)
         return out
 
     def write_target(self, commit, rel, live, pid, old, new):
@@ -685,20 +695,6 @@ class Run:
             return "swap-back unverified: the backup name no longer holds the staged file"
         finally:
             os.close(fd)
-
-    def revalidate(self):
-        """Before any write: every clean entry kept from an earlier run must still see its parent and the new blob
-        at mode 0644; an entry that does not is unresolved. Returns those entries."""
-        bad = []
-        for e in self.journal:
-            if e["step"] != "clean":
-                continue
-            live, pid = snapshot(self.home, e["target"])
-            if not (pid == e["parent"] and live.get("type") == "file" and live.get("mode") == MODE
-                    and sha(live["bytes"]) == e["new_sha"]):
-                e.update(step="unresolved", note=f"changed since an earlier run wrote it ({describe(live)})")
-                bad.append(e)
-        return bad
 
     def recheck(self, commit, cls):
         """Before L advances: every target of the merge equals its new blob, and every journal entry of the merge
@@ -828,13 +824,8 @@ def _apply(home, state, reader, head, cursor, entries, res, stage_deadline, chec
             res["decisions"].append(journal_decision(stray, state))
             return
     r = Run(home, state, reader, f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{os.urandom(3).hex()}", entries)
-    stale = r.revalidate()  # H1: nothing is written over a version an earlier run did not leave there
-    if not check and (stale or entries != state.journal()):
+    if not check and entries != state.journal():
         r.save()
-    if stale:
-        res.update(status="blocked", reason="a target written by an earlier run changed")
-        res["decisions"].append(journal_decision(stale, state))
-        return
     res["status"] = "would apply" if check else "ok"
     predicted = False  # check: only the next candidate is a prediction
     position = reached = cursor["commit"]
@@ -879,8 +870,19 @@ def _apply(home, state, reader, head, cursor, entries, res, stage_deadline, chec
                 res["status"] = "stopped"
                 break
             cls = r.classify(parent, commit, targets)
-            m["targets"] = {rel: c[0] if c[0] != "conflict" else f"conflict: {describe(c[1])}"
+            m["targets"] = {rel: c[0] if c[0] not in ("conflict", "journal") else f"{c[0]}: {describe(c[1])}"
                             for rel, c in cls.items()}
+            changed = [rel for rel, c in cls.items() if c[0] == "journal"]
+            if changed:  # a target an earlier run wrote is not what it left: nothing is written over it
+                if not check:
+                    r.save()
+                m.update(status="blocked", reason="a target an earlier run wrote changed")
+                res["decisions"].append(journal_decision([e for e in r.journal if e["target"] in changed
+                                                          and e["merge"] == commit], state))
+                res["status"] = "blocked"
+                if check:
+                    continue
+                break
             conflicts = [rel for rel, c in cls.items() if c[0] == "conflict"]
             if conflicts:
                 m.update(status="conflict", reason="live differs from both sides")
@@ -935,7 +937,7 @@ def _apply(home, state, reader, head, cursor, entries, res, stage_deadline, chec
     finally:
         if not check:
             advance()
-    if check and res["merges"] and res["merges"][0]["status"] in ("refused", "conflict"):
+    if check and res["merges"] and res["merges"][0]["status"] in ("refused", "conflict", "blocked"):
         res["status"] = "would stop"
 
 

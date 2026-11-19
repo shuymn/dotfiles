@@ -645,7 +645,7 @@ class Swap(Base):
             self.run_apply()
         self.move_and_recreate(T_AGENT, b"agent v1\n")  # same bytes, another directory
         res = self.run_apply()
-        self.assertEqual((res["status"], res["merges"]), ("blocked", []))
+        self.assertEqual((res["status"], res["merges"][0]["status"]), ("blocked", "blocked"))
         self.assertEqual(self.cursor(), self.L)
         self.assertEqual([(e["target"], e["step"]) for e in self.state.journal()], [(T_AGENT, "unresolved")])
         self.assertEqual(self.live(T_SKILL), b"skill v0\n")
@@ -677,6 +677,46 @@ class Swap(Base):
         self.assertEqual(e["step"], "unresolved")
         self.assertEqual(self.cursor(), self.L)
         self.assertIn(T_AGENT, res["decisions"][0])
+
+    def test_a_written_target_restored_just_before_classification_is_not_rewritten(self):
+        self.setup()
+        self.partial()
+        real = apply.Run.classify
+
+        def restore_then_classify(run, *a):  # the window right before the snapshot that builds the write set
+            (self.home / T_AGENT).write_bytes(b"agent v0\n")
+            return real(run, *a)
+        ino = self.inode(T_AGENT)  # restored in place below, so the inode stays unless something swaps it
+        with mock.patch.object(apply.Run, "classify", restore_then_classify):
+            res = self.run_apply()
+        self.assertEqual(res["status"], "blocked")
+        self.assertEqual(res["merges"][0]["targets"][T_AGENT], "journal: edited")
+        self.assertEqual((self.live(T_AGENT), self.inode(T_AGENT)), (b"agent v0\n", ino))
+        self.assertEqual(self.live(T_SKILL), b"skill v0\n")
+        self.assertEqual([e["step"] for e in self.state.journal()], ["unresolved"])
+        self.assertEqual(self.cursor(), self.L)
+
+    def test_a_clean_entry_of_the_cursor_is_dropped_and_the_run_goes_on(self):
+        self.setup()
+        make_home(self.repo, self.M, self.home)  # the cursor advanced to M; the run died before clearing the journal
+        self.state.write("applied.json", {"commit": self.M, "at": "t", "by": "cycle", "run": "r"})
+        self.state.save_journal([entry(self.M, T_AGENT, "clean")])
+        nxt = self.repo.main({REF: b"ref v1\n"}, "Merge pull request #11")
+        res = self.run_apply()
+        self.assertEqual((res["status"], res["merges"][0]["status"]), ("ok", "applied"))
+        self.assertEqual((self.state.journal(), self.cursor()), ([], nxt))
+
+    def test_a_displaced_inode_with_another_mode_is_not_accepted(self):
+        self.setup()
+        patch, calls = self.patch_exchange(before=lambda n: os.chmod(self.home / T_AGENT, 0o600) if n == 1 else None)
+        with patch:
+            self.run_apply()
+        self.assertEqual(len(calls), 2)  # swapped and swapped back
+        [e] = self.state.journal()
+        self.assertEqual(e["step"], "unresolved")
+        self.assertEqual(os.stat(self.home / T_AGENT).st_mode & 0o777, 0o600)
+        self.assertEqual(self.live(T_AGENT), b"agent v0\n")
+        self.assertEqual(self.cursor(), self.L)
 
     def test_a_third_version_makes_the_clean_entry_unresolved(self):
         self.setup()
