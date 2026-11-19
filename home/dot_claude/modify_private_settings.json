@@ -50,12 +50,15 @@ exec chezmoi execute-template --with-stdin '
       "Bash(whoami)",
       "Bash(export:*)",
       "Bash(history)",
-      "Bash(alias:*)"
+      "Bash(alias:*)",
+      "mcp__pencil"
     ],
     "deny": [
       "Bash(git reset --hard:*)",
       "Bash(git checkout:*)",
       "Bash(git *--no-verify*)",
+      "Bash(*core.hooksPath*)",
+      "Bash(*commit.gpgsign=false*)",
       "Bash(git stash)",
       "Bash(git stash push*)",
       "Bash(git stash save*)",
@@ -146,6 +149,16 @@ exec chezmoi execute-template --with-stdin '
             "command": "~/.claude/hooks/attention-budget.py pre"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal hook claude pre-tool-use",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "Stop": [
@@ -185,6 +198,28 @@ exec chezmoi execute-template --with-stdin '
           {
             "command": "~/.claude/hooks/worktree-remove.sh",
             "type": "command"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal hook claude subagent-stop",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal hook claude session-end",
+            "timeout": 2
           }
         ]
       }
