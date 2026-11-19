@@ -32,3 +32,4 @@
 .config/zed/keymap.json
 .claude/skills/hiden/references/toolchain.md
 .claude/attention/units.json
+.claude/hooks/worker-signal.py

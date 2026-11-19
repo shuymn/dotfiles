@@ -146,24 +146,11 @@ exec chezmoi execute-template --with-stdin '
             "command": "~/.claude/hooks/attention-budget.py pre"
           }
         ]
-      },
-      {
-        "matcher": "AskUserQuestion",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/worker-signal.py"
-          }
-        ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/worker-signal.py"
-          },
           {
             "type": "command",
             "command": "~/.claude/hooks/orchestration-context.py"
