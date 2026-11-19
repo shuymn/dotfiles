@@ -5,7 +5,7 @@
                             status.json into a new directory K/runs/<id> and publish the whole run in one step: the
                             symlink K/current is replaced by rename to point at it (K = $KAIZEN_HOME, else
                             ~/.claude/kaizen; the run date is in Asia/Tokyo). Readers go through K/current. A run that
-                            fails, is killed or passes --deadline publishes nothing and leaves K/current as it was,
+                            fails, is killed or passes --deadline before publishing leaves K/current as it was,
                             which the statusline shows stale by its time. After a publish, run directories other than
                             the published one and the one it replaced are deleted.
   cycle.py baseline <id>    write the pre-apply aggregate of watch.json's change <id> to K/watch/<id>.json, once (an
@@ -20,6 +20,7 @@ import sys
 sys.dont_write_bytecode = True  # the siblings must not leave .pyc files in the checkout
 
 import argparse
+import fcntl
 import importlib.util
 import json
 import os
@@ -74,36 +75,33 @@ def publish(path, text):
 
 def publish_run(k, record, files):
     """Write files into a new K/runs/<id>, point K/current at it by one rename, then delete older run directories but
-    the previous one and whatever K/current names at that moment (another run may have published since). SIGTERM and
-    SIGALRM wait until the rename and the prune are done, so a stop never undoes a publish. Returns the run directory."""
+    this one and the previous one. Publishers take turns on K/.publish.lock (a run started by hand may overlap the
+    launchd run), and SIGTERM and SIGALRM wait until the publish is done, so a stop never undoes or half-does it; a
+    prune that fails is logged, not raised, because the run is already published. Returns the run directory."""
     runs = k / "runs"
     runs.mkdir(parents=True, exist_ok=True)
-    run_dir = Path(tempfile.mkdtemp(dir=runs, prefix=f"{datetime.now(observe.TZ):%Y%m%dT%H%M%S}-"))
-    name = run_dir.name
-    current = k / "current"
-    try:
-        for file, text in files.items():
-            (run_dir / file).write_text(text, encoding="utf-8")
-    except BaseException:
-        shutil.rmtree(run_dir)
-        raise
     held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGALRM})
     try:
-        previous = os.readlink(current) if current.is_symlink() else None
-        link = k / f".current.{name}"
-        try:
-            os.symlink(f"runs/{name}", link)
-            os.replace(link, current)  # the publish: one rename
-        except BaseException:
-            link.unlink(missing_ok=True)
-            shutil.rmtree(run_dir)
-            raise
-        keep = {name, Path(previous).name if previous else None,
-                Path(os.readlink(current)).name if current.is_symlink() else None}
-        for entry in runs.iterdir():
-            # only directories this script names, checked without following a symlink
-            if entry.name not in keep and RUN_NAME.fullmatch(entry.name) and stat.S_ISDIR(entry.lstat().st_mode):
-                shutil.rmtree(entry, ignore_errors=True)
+        with open(k / ".publish.lock", "a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # released when the file closes or the process dies
+            run_dir = Path(tempfile.mkdtemp(dir=runs, prefix=f"{datetime.now(observe.TZ):%Y%m%dT%H%M%S}-"))
+            name, current = run_dir.name, k / "current"
+            link = k / f".current.{name}"
+            try:
+                for file, text in files.items():
+                    (run_dir / file).write_text(text, encoding="utf-8")
+                previous = os.readlink(current) if current.is_symlink() else None
+                os.symlink(f"runs/{name}", link)
+                os.replace(link, current)  # the publish: one rename
+            except BaseException:
+                link.unlink(missing_ok=True)
+                shutil.rmtree(run_dir)
+                raise
+            keep = {name, Path(previous).name if previous else None}
+            for entry in runs.iterdir():
+                # only directories this script names, checked without following a symlink
+                if entry.name not in keep and RUN_NAME.fullmatch(entry.name) and stat.S_ISDIR(entry.lstat().st_mode):
+                    shutil.rmtree(entry, onexc=lambda _f, path, e: log(f"prune: {path}: {e}"))
     finally:
         signal.pthread_sigmask(signal.SIG_SETMASK, held)
     return run_dir

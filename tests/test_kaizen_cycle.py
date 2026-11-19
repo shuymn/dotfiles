@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import contextlib
+import fcntl
 import importlib.util
 import io
 import json
@@ -12,6 +13,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest import mock
@@ -398,7 +400,7 @@ class Cycle(Temp):
         """What a reader can see: where K/current points, and every file under K."""
         current = self.k / "current"
         files = {p.relative_to(self.k).as_posix(): p.read_bytes() for p in sorted(self.k.rglob("*"))
-                 if p.is_file() and not p.is_symlink()}
+                 if p.is_file() and not p.is_symlink() and p.name != ".publish.lock"}
         return (os.readlink(current) if current.is_symlink() else None), files
 
     def published(self, name):
@@ -408,7 +410,7 @@ class Cycle(Temp):
         summary = self.main()
         target, files = self.outputs()
         self.assertEqual(sorted(files), [f"{target}/{n}" for n in ("digest.md", "record.json", "status.json")])
-        self.assertEqual(sorted(p.name for p in self.k.iterdir()), ["current", "runs"])
+        self.assertEqual(sorted(p.name for p in self.k.iterdir()), [".publish.lock", "current", "runs"])
         status = self.published("status.json")
         self.assertEqual((status["fail"], status["decisions"]), (summary["fail"], summary["decisions"]))
         self.assertGreaterEqual(status["fail"], 2)  # R1 (no chezmoi source) and R2 (job not loaded)
@@ -433,7 +435,7 @@ class Cycle(Temp):
             self.main(now=NOW + timedelta(days=1))
         self.assertEqual(self.outputs(), before)
         self.assertEqual(len(list((self.k / "runs").iterdir())), 1)
-        self.assertEqual(sorted(p.name for p in self.k.iterdir()), ["current", "runs"])
+        self.assertEqual(sorted(p.name for p in self.k.iterdir()), [".publish.lock", "current", "runs"])
 
     def test_publish_keeps_the_published_and_the_previous_run(self):
         targets = []
@@ -458,20 +460,29 @@ class Cycle(Temp):
             self.main()
         self.assertTrue((self.k / "current/status.json").is_file())
 
-    def test_a_run_published_meanwhile_is_not_pruned(self):
+    def test_publishers_take_turns(self):
         self.main()
-        real, nested = os.replace, []
+        before = os.readlink(self.k / "current")
+        done = []
+        with open(self.k / ".publish.lock", "a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # another publisher is mid-publish
+            t = threading.Thread(target=lambda: done.append(cycle.publish_run(self.k, {}, {"status.json": "{}"}).name))
+            t.start()
+            t.join(0.5)
+            self.assertEqual((os.readlink(self.k / "current"), done), (before, []))
+        t.join(10)
+        self.assertEqual(Path(os.readlink(self.k / "current")).name, done[0])
+        self.assertEqual(sorted(p.name for p in (self.k / "runs").iterdir()), sorted([Path(before).name, done[0]]))
 
-        def other_run_publishes(src, dst):
-            real(src, dst)
-            if Path(dst).name == "current" and not nested:
-                nested.append(None)
-                nested[0] = cycle.publish_run(self.k, {}, {"status.json": "{}"}).name
-
-        with mock.patch.object(cycle.os, "replace", side_effect=other_run_publishes):
-            self.main(now=NOW + timedelta(days=1))
-        self.assertEqual(Path(os.readlink(self.k / "current")).name, nested[0])
+    def test_a_failed_prune_keeps_the_publish(self):
+        for day in range(2):
+            self.main(now=NOW + timedelta(days=day))
+        oldest = sorted((self.k / "runs").iterdir())[0]
+        oldest.chmod(0o500)
+        self.addCleanup(oldest.chmod, 0o700)
+        self.main(now=NOW + timedelta(days=2))
         self.assertTrue((self.k / "current/status.json").is_file())
+        self.assertTrue(oldest.is_dir())
 
     def test_failed_run_leaves_previous_outputs(self):
         self.main()

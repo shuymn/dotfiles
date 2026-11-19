@@ -224,7 +224,7 @@ def observe_t3(db, since, until, out, src):
     regular(db)
     src.files = 1
     # mode=ro still lets SQLite create the -wal and -shm files beside the database when the T3 app is closed: a reader
-    # creates them empty (-shm is the shared index; only a writer puts rows in -wal), so nothing of ours lands there.
+    # creates -wal empty and -shm holding only the WAL index, so no rows of ours land there.
     # immutable=1 would avoid them but skip rows still in the WAL. as_uri percent-encodes "#" and "?", which SQLite would read as fragment and query.
     conn = sqlite3.connect(Path(db).absolute().as_uri() + "?mode=ro", uri=True, timeout=5)
     try:
