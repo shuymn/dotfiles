@@ -61,7 +61,6 @@ BUDGET = 300  # seconds the apply stage may take; past them it stops between tar
 TIMEOUTS = {"clone": 300, "fetch": 60, "read": 30}
 STANDALONE_DEADLINE = 600
 RENAME_SWAP = 0x2
-CONTROL = re.compile(r"\{\{-?\s*(?:/\*.*?\*/|(?:if|else|else\s+if|end|range|with)\b[^{}]*?)\s*-?\}\}")
 GITHUB = re.compile(r"^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)"
                     r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 PR = re.compile(r"Merge pull request #(\d+)|\(#(\d+)\)\s*$")
@@ -270,14 +269,12 @@ def target_name(name):
 
 
 def rule_patterns(text):
-    """(patterns, None) of an ignore or remove file, every pattern line regardless of conditionals; or (None, reason)
-    for a template action that could emit a pattern (looked for before comments are cut, since an action after "#"
-    can emit a line) or a pattern using syntax pattern_match does not implement."""
+    """(patterns, None) of an ignore or remove file; or (None, reason) when it holds any template action (even a
+    control or comment action can join or emit lines, and one after "#" still runs) or a pattern using syntax
+    pattern_match does not implement."""
     patterns = []
     for line in text.splitlines():
         if "{{" in line:
-            if CONTROL.fullmatch(line.strip()):
-                continue
             return None, f"template line {line.strip()!r}"
         if re.search(r"\S#", line):  # chezmoi starts a comment only at a "#" after whitespace; a mid-word "#" is literal
             return None, f"unsupported pattern syntax {line.strip()!r}"

@@ -247,13 +247,15 @@ class Eligibility(unittest.TestCase):
                 reason = self.assess({SKILL: b"new\n"}, base)[1]
                 self.assertIn(line.decode(), reason)
 
-    def test_template_lines(self):
-        control = b'{{- if eq .chezmoi.os "darwin" }}\n.config/x\n{{- else }}\n.config/y\n{{ end }}\n'
-        self.assertIsNone(self.assess({SKILL: b"new\n"}, {**BASE, "home/.chezmoiignore": control})[1])
-        body = b"{{ if false }}\n.claude/agents/w.md\n{{ end }}\n"
-        self.assertIn(".claude/agents/w.md", self.assess({AGENT: b"new\n"}, {**BASE, "home/.chezmoiignore": body})[1])
-        emitting = b'{{ .extra }}\n'
-        self.assertIn("template line", self.assess({SKILL: b"new\n"}, {**BASE, "home/.chezmoiremove": emitting})[1])
+    def test_any_template_action_in_a_rule_file_refuses(self):
+        for rules, text in (
+                ("home/.chezmoiignore", b'{{- if eq .chezmoi.os "darwin" }}\n.config/x\n{{- else }}\n.config/y\n{{ end }}\n'),
+                ("home/.chezmoiignore", b".claude/ag\n{{- /* join */ -}}\nents/w.md\n"),  # joins two lines into one rule
+                ("home/.chezmoiignore.tmpl", b"{{- if true -}}\n.claude/ag\n{{ end }}ents/w.md\n"),
+                ("home/.chezmoiremove", b"{{ .extra }}\n")):
+            with self.subTest(rules=rules, text=text):
+                reason = self.assess({AGENT: b"new\n"}, {**BASE, rules: text})[1]
+                self.assertIn("template line", reason)
 
     def test_another_source_for_the_same_target_refuses(self):
         for other in ("home/dot_claude/skills/hiden/literal_SKILL.md", "home/dot_claude/skills/hiden/SKILL.md.tmpl",
