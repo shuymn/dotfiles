@@ -219,7 +219,7 @@ def main(argv=None):
     p.add_argument("--json", action="store_true")
     a = p.parse_args(argv)
     out, arms = a.out.expanduser().resolve(), a.arms.split(",")
-    rows = [score_run(d) for d in collect(out, a.case)]
+    rows = [r for r in (score_run(d) for d in collect(out, a.case)) if r["arm"] in arms]
     wins, outcome = verdict(rows, arms, a.runs)
     table = {}
     for arm in arms:

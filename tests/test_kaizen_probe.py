@@ -1,3 +1,6 @@
+from contextlib import redirect_stdout
+from unittest import mock
+import io
 from pathlib import Path
 import importlib.machinery
 import importlib.util
@@ -188,6 +191,15 @@ class VerdictTest(unittest.TestCase):
     def test_incomplete_arm_is_inconclusive(self):
         outcome = SCORE.verdict(self.rows("A", 5, complete=5) + self.rows("B", 0), ["A", "B"], 6)[1]
         self.assertTrue(outcome.startswith("inconclusive"), outcome)
+
+    def test_report_holds_only_the_scored_arms(self):
+        run = {"complete": True, "t-seen-fail": True, "t-seen-fail2": True, "turns": 1, "final_len": 1, "cost": 0,
+               "error": None, "model": "m"}
+        saved = {"A": dict(run, arm="A", run="a1", claudeVersion="1"), "B": dict(run, arm="B", run="b1", claudeVersion="2")}
+        with mock.patch.object(SCORE, "collect", return_value=["A", "B"]), \
+                mock.patch.object(SCORE, "score_run", side_effect=saved.get), redirect_stdout(io.StringIO()):
+            report = SCORE.main(["--json"])
+        self.assertEqual(([r["arm"] for r in report["runs"]], report["claudeVersion"]), (["B"], ["2"]))
 
 
 class BuildTest(TempCase):
