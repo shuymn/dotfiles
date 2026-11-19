@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
   lspPackages = with pkgs; [
@@ -72,6 +72,31 @@ in
       git_protocol = "https";
       prompt = "enabled";
       pager = "delta";
+    };
+  };
+
+  # The kaizen daily cycle (docs/kaizen.md §6): a stateless run over the last
+  # 7 days that calls no model. launchd starts a calendar job missed while
+  # asleep on wake and runs one instance of a label at a time. The scripts run
+  # from their store copy, so a change takes effect at the next switch.
+  launchd.agents.kaizen-cycle = {
+    enable = true;
+    config = {
+      ProgramArguments = [
+        "${pkgs.python3}/bin/python3"
+        "${../../../scripts/kaizen}/cycle.py"
+      ];
+      StartCalendarInterval = [
+        {
+          Hour = 6;
+          Minute = 0;
+        }
+      ];
+      EnvironmentVariables.PATH = "${config.home.profileDirectory}/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+      ProcessType = "Background";
+      LowPriorityIO = true;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/kaizen-cycle.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/kaizen-cycle.log";
     };
   };
 }
