@@ -189,7 +189,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - Home Manager の `launchd.agents.kaizen-cycle`（`nix/home/profiles/dev.nix`）が、毎日 6 時に `scripts/kaizen/cycle.py` を store の写しから走らせる。スクリプトの変更は次の switch で効く。ログは `~/Library/Logs/kaizen-cycle.log`。
 - 眠っていて逃した時刻の分は、起きたときに 1 回走る（launchd.plist(5) の StartCalendarInterval）。launchd は同じ label のジョブを同時に 2 つ走らせない。
 - 1 回の run は状態を持たない。毎回、直近 7 日の窓 [今 − 7 日, 今) を入力から計算し直し、どの入力も窓の中の観測だけを数える。前回の位置（watermark）は持たず、書きかけの最後の行はその回は読まない。run の日付は Asia/Tokyo で数える。
-- run 全体に 20 分の期限がある。期限を超えた run は 0 以外で終わるので、次の日の起動は止まらない。launchd はジョブの終わりに同じプロセスグループの残りを止める。公開（書き込み、rename、整理）の間に来た停止や期限は公開が済んでから効くので、そのときだけは公開してから 0 以外で終わる。手で動かした run が launchd の run と重なっても、公開は `~/.claude/kaizen/.publish.lock` で順番に行う。
+- run 全体に 20 分の期限がある。期限を超えた run は 0 以外で終わるので、次の日の起動は止まらない。launchd はジョブの終わりに同じプロセスグループの残りを止める。手で動かした run が launchd の run と重なっても、公開（書き込み、rename、整理）は `~/.claude/kaizen/.publish.lock` で順番に行う。ロックを待つ間の停止や期限は何も公開せずに終わり、ロックを取った後に来たものは公開が済んでから効く（そのときだけは公開してから 0 以外で終わる）。
 
 **毎日の段（費用 0。モデルを呼ばない）:**
 
@@ -265,7 +265,7 @@ PR はすべてオーナーが UI でマージする。
 | PR0（オーナーの作業） | live と source のずれを、`/wasure` の hiden の差分の判定だけを使って解消する | オーナーが採った差分が source に入り、hiden、agents、items の承認済みの対象で live と source が一致する |
 | PR1 | 守り: 管理パスの一覧、merge-pr の拒否、公開の検査、AGENTS.md の一文 | merge-pr が拒否する: 一覧の各種のパス（`home/.chezmoiremove`、`home/.chezmoiignore` を含む）に触れる試験 PR、一覧そのものを直す PR、一覧が読めない場合。管理パスに触れない PR は通る。公開の検査が拒否する: 途中のコミットだけにあるローカルのパス、PR 本文だけにあるローカルのパス。オーナーが UI で auto-merge を有効にして必須チェックが走ることを、この PR 自身で確かめる |
 | PR2 | 回帰テストの単位: `scripts/kaizen/probe/`、`attention/units.json`、`orchestration-context.py` の PostToolUse の分岐、settings の PostToolUse の登録、items の `report`・`carry-through` の削除と `scope` の畳み込み、items を通常の管理ファイルにする。指示書の句は、実際の配達を確かめた worker と作業の形についてだけ外す | (1) probe で PostToolUse と開始時の注入を比べ、結果を記録した。(2) fixture のテスト: ネイティブの `opus-worker` で `agent_id` ごとに 1 回だけ出て、親、他の役割、同じ worker の 2 回目では出ない。(3) 実際の worker の子 1 件で配達を確かめた（probe とは別に記録する）。(4) 基準値を記録した。(5) budget に OVER が無く、上限を下げた |
-| PR3a | 毎日の周期: `scripts/kaizen/{cycle.py,observe.py,ready.py,watch.json}`、launchd のジョブ、ステータスライン | 入力が読めない run は、その入力を fail として公開し R4 が FAIL になる。公開の途中で失敗した run、止められた run、期限を超えた run は前回の公開を残し、次の run は通る。読み込まれていないジョブと消えた program で R2 が FAIL になる。digest が毎日出る。observe が実際のログを一度読み切る。費用が 0 |
+| PR3a | 毎日の周期: `scripts/kaizen/{cycle.py,observe.py,ready.py,watch.json}`、launchd のジョブ、ステータスライン | 入力が読めない run は、その入力を fail として公開し R4 が FAIL になる。公開の途中で失敗した run と、公開を始める前に止められたか期限を超えた run は前回の公開を残し、次の run は通る。読み込まれていないジョブと消えた program で R2 が FAIL になる。digest が毎日出る。observe が実際のログを一度読み切る。費用が 0 |
 | PR3b | §6 の条件付きの apply | apply は、条件を満たす fixture で適用し、live の編集・汚れたチェックアウト・描画の差分の不一致の各 fixture で拒否して判断事項にする |
 | PR3c | 週 1 回の improver と公開の経路（`scripts/kaizen/writing.md` を含む） | 公開の証拠だけで作った変更だけが PR になり、それ以外は提案に残る。Claude の費用の記録が 50 ドル以下 |
 | PR4 | orchestrator から取る分（§4 の 2、3、5 と、4 のうち PR2 で済ませた items 以外）。AGENTS.md の Upkeep を「セッションは live の hiden を書き換えない」に直す | PR3a の observe が実際のログを読めた後に出す。fixture のテストが通る。量が §4 の目安に収まり、上限を下げた。Codex のレビューで失った判断が無い。リンクが解決する |

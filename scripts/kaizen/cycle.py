@@ -5,7 +5,7 @@
                             status.json into a new directory K/runs/<id> and publish the whole run in one step: the
                             symlink K/current is replaced by rename to point at it (K = $KAIZEN_HOME, else
                             ~/.claude/kaizen; the run date is in Asia/Tokyo). Readers go through K/current. A run that
-                            fails, is killed or passes --deadline before publishing leaves K/current as it was,
+                            fails, is killed or passes --deadline before it starts publishing leaves K/current as it was,
                             which the statusline shows stale by its time. After a publish, run directories other than
                             the published one and the one it replaced are deleted.
   cycle.py baseline <id>    write the pre-apply aggregate of watch.json's change <id> to K/watch/<id>.json, once (an
@@ -76,14 +76,15 @@ def publish(path, text):
 def publish_run(k, record, files):
     """Write files into a new K/runs/<id>, point K/current at it by one rename, then delete older run directories but
     this one and the previous one. Publishers take turns on K/.publish.lock (a run started by hand may overlap the
-    launchd run), and SIGTERM and SIGALRM wait until the publish is done, so a stop never undoes or half-does it; a
-    prune that fails is logged, not raised, because the run is already published. Returns the run directory."""
+    launchd run). A stop or the deadline while waiting for the lock ends the run unpublished; once the lock is held,
+    SIGTERM and SIGALRM wait until the publish is done, so a stop never undoes or half-does it. A prune that fails is
+    logged, not raised, because the run is already published. Returns the run directory."""
     runs = k / "runs"
     runs.mkdir(parents=True, exist_ok=True)
-    held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGALRM})
-    try:
-        with open(k / ".publish.lock", "a") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)  # released when the file closes or the process dies
+    with open(k / ".publish.lock", "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)  # released when the file closes or the process dies
+        held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGALRM})
+        try:
             run_dir = Path(tempfile.mkdtemp(dir=runs, prefix=f"{datetime.now(observe.TZ):%Y%m%dT%H%M%S}-"))
             name, current = run_dir.name, k / "current"
             link = k / f".current.{name}"
@@ -101,9 +102,12 @@ def publish_run(k, record, files):
             for entry in runs.iterdir():
                 # only directories this script names, checked without following a symlink
                 if entry.name not in keep and RUN_NAME.fullmatch(entry.name) and stat.S_ISDIR(entry.lstat().st_mode):
-                    shutil.rmtree(entry, onexc=lambda _f, path, e: log(f"prune: {path}: {e}"))
-    finally:
-        signal.pthread_sigmask(signal.SIG_SETMASK, held)
+                    try:
+                        shutil.rmtree(entry)
+                    except OSError as e:
+                        log(f"prune: {entry}: {e}")
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, held)
     return run_dir
 
 
@@ -269,7 +273,7 @@ def main(argv=None, now=None):
     p.add_argument("--launchctl", default="launchctl")
     p.add_argument("--no-gh", action="store_true")
     p.add_argument("--no-t3", action="store_true")
-    p.add_argument("--deadline", type=int, default=DEADLINE, help="seconds before the run exits unpublished")
+    p.add_argument("--deadline", type=int, default=DEADLINE, help="seconds before the run exits; a run already publishing finishes that first")
     args = p.parse_args(argv)
     signal.alarm(args.deadline)
     try:

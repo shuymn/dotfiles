@@ -475,9 +475,9 @@ class Cycle(Temp):
         self.assertEqual(sorted(p.name for p in (self.k / "runs").iterdir()), sorted([Path(before).name, done[0]]))
 
     def test_a_failed_prune_keeps_the_publish(self):
-        for day in range(2):
-            self.main(now=NOW + timedelta(days=day))
-        oldest = sorted((self.k / "runs").iterdir())[0]
+        self.main()
+        oldest = (self.k / "current").resolve()  # neither the next run's previous nor its own: pruned by the third
+        self.main(now=NOW + timedelta(days=1))
         oldest.chmod(0o500)
         self.addCleanup(oldest.chmod, 0o700)
         self.main(now=NOW + timedelta(days=2))
@@ -524,6 +524,17 @@ class Cycle(Temp):
         self.assertEqual(self.outputs(), before)
         self.assertEqual(len(list((self.k / "runs").iterdir())), 1)
         return proc.returncode, err
+
+    def test_a_run_waiting_for_the_lock_stops_unpublished(self):
+        self.main()
+        before = self.outputs()
+        with open(self.k / ".publish.lock", "a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # another publisher holds the lock past this run's deadline
+            p = subprocess.run([sys.executable, str(KAIZEN / "cycle.py"), *self.args, "--deadline", "3"],
+                               capture_output=True, text=True, timeout=120, env={**os.environ, "KAIZEN_HOME": str(self.k)})
+        self.assertEqual(p.returncode, 1, p.stderr)
+        self.assertIn("passed its 3s deadline", p.stderr)
+        self.assertEqual(self.outputs(), before)
 
     def test_sigterm_mid_run_keeps_previous_outputs(self):
         code, _ = self.stopped_run(lambda proc: proc.send_signal(signal.SIGTERM))
