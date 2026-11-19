@@ -97,7 +97,7 @@ def publish_run(k, record, files):
             link = k / f".current.{name}"
             try:
                 for file, text in files.items():
-                    (run_dir / file).write_text(text, encoding="utf-8")
+                    (run_dir / file).write_text(text, encoding="utf-8", errors="replace")  # never fails on text
                 previous = os.readlink(current) if current.is_symlink() else None
                 os.symlink(f"runs/{name}", link)
                 os.replace(link, current)  # the publish: one rename
@@ -262,7 +262,7 @@ def run_apply(home, repo, args, started):
                       "decisions": [f"apply crashed: {type(e).__name__}: {e}"]}
     try:
         result.update(apply.persisted(home))
-    except (OSError, ValueError, KeyError) as e:
+    except Exception as e:  # noqa: BLE001 — persisted reports invalid state itself; anything else must not stop the run
         result["reason"] = (result.get("reason") or "") + f"; apply state unreadable: {e}"
     return result
 

@@ -487,18 +487,33 @@ class State:
         self.dir = self.home / STATE
 
     def read(self, name, default):
+        """The JSON in a regular file, opened without following a symlink and without blocking (a FIFO or a symlink
+        is invalid state, not a hang)."""
+        path = self.dir / name
         try:
-            return json.loads((self.dir / name).read_text())
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         except FileNotFoundError:
             return default
-        except (OSError, ValueError) as e:
-            raise InvalidState(f"{self.dir / name} is unreadable: {e}") from e
+        except OSError as e:
+            raise InvalidState(f"{path} is unreadable: {e}") from e
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise InvalidState(f"{path} is not a regular file")
+            with open(fd, "rb", closefd=False) as f:
+                data = f.read()
+        finally:
+            os.close(fd)
+        try:
+            return json.loads(data.decode("utf-8"))
+        except ValueError as e:
+            raise InvalidState(f"{path} is not JSON: {e}") from e
 
     def applied(self):
         value = self.read("applied.json", None)
         if value is not None and not (isinstance(value, dict) and isinstance(value.get("commit"), str)
-                                      and HEX40.fullmatch(value["commit"]) and isinstance(value.get("at"), str)
-                                      and value.get("by") in ("cycle", "observed", "owner")):
+                                      and HEX40.fullmatch(value["commit"]) and text(value.get("at"))
+                                      and value.get("by") in ("cycle", "observed", "owner")
+                                      and (value.get("run") is None or text(value["run"]))):
             raise InvalidState(f"{self.dir / 'applied.json'} is not a cursor: {json.dumps(value)[:200]}")
         return value
 
@@ -543,9 +558,20 @@ class State:
         return f
 
 
+def text(value):
+    """A string that UTF-8 can carry (JSON may hold a lone surrogate, which no record or digest can be written with)."""
+    if not isinstance(value, str):
+        return False
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
 def relative(path):
-    parts = path.split("/") if isinstance(path, str) else [""]
-    return not path.startswith("/") and all(p not in ("", ".", "..") for p in parts)
+    return (text(path) and not path.startswith("/")
+            and all(p not in ("", ".", "..") for p in path.split("/")))
 
 
 def valid_entry(e):
@@ -553,16 +579,34 @@ def valid_entry(e):
             and relative(e.get("target")) and relative(e.get("backup")) and e.get("step") in STEPS
             and all(isinstance(e.get(k), str) and HEX64.fullmatch(e[k]) for k in ("expected_old_sha", "new_sha"))
             and (e.get("parent") is None or (isinstance(e["parent"], list) and len(e["parent"]) == 2
-                                             and all(isinstance(i, int) for i in e["parent"]))))
+                                             and all(type(i) is int for i in e["parent"])))
+            and all(e.get(k) is None or text(e[k]) for k in ("note", "run")))
+
+
+def load(state):
+    """(cursor, journal, errors): each file read on its own, so one bad file does not hide the other."""
+    cursor, journal, errors = None, [], []
+    for name, read in (("cursor", state.applied), ("journal", state.journal)):
+        try:
+            value = read()
+        except InvalidState as e:
+            errors.append(str(e))
+            continue
+        if name == "cursor":
+            cursor = value
+        else:
+            journal = value
+    return cursor, journal, errors
 
 
 def persisted(home):
     """The cursor and the journal as stored, for the digest (N5); invalid state is reported, not raised."""
     s = State(home)
-    try:
-        return {"cursor": s.applied(), "journal": s.journal(), "state": str(s.dir)}
-    except InvalidState as e:
-        return {"cursor": None, "journal": [], "state": str(s.dir), "state_error": str(e)}
+    cursor, journal, errors = load(s)
+    out = {"cursor": cursor, "journal": journal, "state": str(s.dir)}
+    if errors:
+        out["state_error"] = "; ".join(errors)
+    return out
 
 
 def unresolved(entries):
@@ -728,13 +772,13 @@ def run(home, repo=None, *, deadline=None, budget=BUDGET, git="git", reader=None
     lock = None if check else state.lock()
     umask = os.umask(0o022)
     try:
-        try:
-            cursor, entries = state.applied(), state.journal()
-        except InvalidState as e:
-            res.update(status="error", reason=str(e), state_error=str(e))
-            res["decisions"].append(f"apply: state invalid: {e} — fix or move the file aside; nothing was written")
-            return res
+        cursor, entries, errors = load(state)
         res.update(cursor=cursor, journal=entries)
+        if errors:
+            error = "; ".join(errors)
+            res.update(status="error", reason=error, state_error=error)
+            res["decisions"].append(f"apply: state invalid: {error} — fix or move the file aside; nothing was written")
+            return res
         held = unresolved(entries)
         if held:  # reported before any fetch, so a fetch failure cannot hide it
             res["decisions"].append(journal_decision(held, state))

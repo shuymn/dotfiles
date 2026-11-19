@@ -146,6 +146,20 @@ def scenario():
     return repo, L, M
 
 
+@contextlib.contextmanager
+def no_hang(seconds=10):
+    """Fail the test instead of hanging it."""
+    def stop(*_):
+        raise AssertionError(f"still blocked after {seconds}s")
+    old = signal.signal(signal.SIGALRM, stop)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
+
+
 class Base(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp())
@@ -383,7 +397,12 @@ class Chain(Base):
 
     def test_invalid_state_writes_nothing_and_is_one_decision(self):
         for name, text in (("applied.json", '{"commit": "bad"}'), ("journal.json", "not json"),
-                           ("journal.json", json.dumps({"entries": [{"merge": "x"}]}))):
+                           ("journal.json", json.dumps({"entries": [{"merge": "x"}]})),
+                           ("journal.json", json.dumps({"entries": [{**entry("b" * 40, T_AGENT, "clean"), "target": None}]})),
+                           ("journal.json", json.dumps({"entries": [entry("b" * 40, T_AGENT, "clean", note="\ud800")]})),
+                           ("journal.json", json.dumps({"entries": [entry("b" * 40, "../x", "clean")]})),
+                           ("journal.json", json.dumps({"entries": [entry("b" * 40, T_AGENT, "clean", parent=[True, 1])]})),
+                           ("applied.json", json.dumps({"commit": "a" * 40, "at": 1, "by": "owner"}))):
             with self.subTest(name=name, text=text):
                 self.setup()
                 (self.state.dir / name).write_text(text)
@@ -394,6 +413,20 @@ class Chain(Base):
                 self.assertEqual(self.live(T_SKILL), b"skill v0\n")
                 self.assertIn("state_error", apply.persisted(self.home))
                 (self.state.dir / name).unlink()
+
+    def test_a_fifo_or_symlink_is_invalid_state_and_one_bad_file_does_not_hide_the_other(self):
+        self.setup()
+        os.mkfifo(self.state.dir / "journal.json")
+        with no_hang():
+            res = self.run_apply()
+        self.assertEqual(res["status"], "error")
+        self.assertIn("not a regular file", res["decisions"][0])
+        self.assertEqual(res["cursor"]["commit"], self.L)  # the cursor still reads
+        (self.state.dir / "journal.json").unlink()
+        (self.state.dir / "journal.json").symlink_to(self.dir / "elsewhere.json")
+        (self.dir / "elsewhere.json").write_text('{"entries": []}')
+        self.assertIn("unreadable", self.run_apply()["decisions"][0])
+        self.assertEqual(self.live(T_SKILL), b"skill v0\n")
 
     def test_lock_held_still_reports_the_cursor_and_the_journal(self):
         self.setup()

@@ -611,6 +611,36 @@ class Cycle(Temp):
             self.main(now=NOW + timedelta(days=1))
         self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
 
+    def test_malformed_apply_state_never_stops_publication(self):
+        state = self.home / ".local/state/kaizen-apply"
+        state.mkdir(parents=True)
+        good = {"merge": "d" * 40, "target": ".claude/agents/w.md", "backup": "backup/r/m/.claude/agents/w.md",
+                "step": "unresolved", "expected_old_sha": "0" * 64, "new_sha": "1" * 64}
+        cases = {"target null": json.dumps({"entries": [{**good, "target": None}]}),
+                 "lone surrogate": json.dumps({"entries": [{**good, "note": "\ud800"}]}),
+                 "fifo": None}
+        day = 0
+        for name, content in cases.items():
+            for extra in ((), ("--no-apply",)):
+                with self.subTest(name=name, extra=extra):
+                    journal = state / "journal.json"
+                    journal.unlink(missing_ok=True)
+                    if content is None:
+                        os.mkfifo(journal)
+                    else:
+                        journal.write_text(content)
+                    day += 1
+                    # main() installs its own SIGALRM, so its deadline is what ends a blocked read here
+                    self.main(*extra, "--deadline", "20", now=NOW + timedelta(days=day))
+                    record = self.published("record.json")
+                    self.assertEqual(record["date"], (NOW + timedelta(days=day)).astimezone(observe.TZ).date().isoformat())
+                    self.assertIn("journal.json", record["apply"]["state_error"])
+                    self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
+
+    def test_text_that_utf8_cannot_carry_is_still_published(self):
+        run_dir = cycle.publish_run(self.k, {}, {"digest.md": "note \ud800", "status.json": "{}"})
+        self.assertEqual((run_dir / "digest.md").read_text(), "note ?")
+
     def test_a_slow_clone_leaves_time_to_observe_and_publish(self):
         checkout = self.dir / "checkout"
         checkout.mkdir()
