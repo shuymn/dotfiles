@@ -12,8 +12,8 @@ A worker listed under "workers" in that file gets only the worker items. Other s
 SessionStart (startup, resume, clear, compact): orchestrator -> state files, orchestrator items (global register +
   kit register), the budget line, the macro questions, then the board output (the only part that is cut to fit).
   This text, not the compaction summary, is the source of truth after a compaction.
-SessionStart (compact) of a worker, any cwd: when the first non-meta user message of the transcript holds WORKER_LINE
-  (the fixed line of a worker brief, anywhere in the message), the body of ../agents/opus-worker.md (next to this
+SessionStart (compact) of a worker, any cwd: when the first non-meta, non-sidechain user message of the transcript has a
+  line starting with WORKER_LINE (the fixed line of a worker brief), the body of ../agents/opus-worker.md (next to this
   hook's directory, frontmatter stripped) and that message verbatim go first, ahead of any text above, all cut to fit.
 Stop: blocks once when a path in `watch` is newer than the state file (state.md, else units.json). A touch
   acknowledges "nothing changed".
@@ -233,7 +233,7 @@ def first_prompt(transcript):
     with open(transcript, encoding="utf-8") as f:
         for line in f:
             d = json.loads(line)
-            if d.get("type") != "user" or d.get("isMeta") or d.get("isCompactSummary"):
+            if d.get("type") != "user" or d.get("isMeta") or d.get("isCompactSummary") or d.get("isSidechain"):
                 continue
             content = d["message"]["content"]
             if isinstance(content, str):
@@ -249,7 +249,7 @@ def first_prompt(transcript):
 def worker_brief(data):
     """After a compaction, the worker body and the original brief verbatim, for a session briefed by WORKER_LINE."""
     prompt = first_prompt(data["transcript_path"]) if data.get("transcript_path") else None
-    if not prompt or WORKER_LINE not in prompt:
+    if not prompt or not re.search("^" + re.escape(WORKER_LINE), prompt, re.M):  # quoted mentions do not count
         return None
     body = read_text(WORKER_BODY)
     body = re.sub(r"\A---\n.*?\n---\n", "", body, count=1, flags=re.S).strip()
@@ -261,7 +261,10 @@ def worker_brief(data):
 def session_start(data):
     if data.get("source") not in ("compact", "resume", "startup", "clear"):
         return
-    text = kit_context(data)
+    try:
+        text = kit_context(data)
+    except Exception:  # an unreadable kit must not cost a worker its rules
+        text = None
     try:
         brief = worker_brief(data) if data.get("source") == "compact" else None
     except Exception:  # a broken transcript must not cost the orchestrator its context

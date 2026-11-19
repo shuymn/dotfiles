@@ -91,9 +91,24 @@ class WorkerBriefTest(HookCase):
     def test_no_fixed_line_no_output(self):
         for records in ([self.user("Fix the pager. Read the opus-worker body."), self.user(f"later: {LINE}")],
                         [self.user(f"meta: {LINE}", isMeta=True), self.user("Fix the pager.")],
-                        [self.user(f"summary: {LINE}", isCompactSummary=True), self.user("Fix the pager.")]):
+                        [self.user(f"summary: {LINE}", isCompactSummary=True), self.user("Fix the pager.")],
+                        [self.user(f'In worker briefs, include "{LINE}"'), self.user(self.BRIEF)],
+                        [self.user(self.BRIEF, isSidechain=True), self.user("Orchestrate the work.")]):
             with self.subTest(records=records):
                 self.assertEqual(self.run_hook(self.start(self.transcript(*records))), "")
+
+    def test_sidechain_before_the_brief_is_skipped(self):
+        path = self.transcript(self.user("Orchestrate the work.", isSidechain=True), self.user(self.BRIEF))
+        self.assertIn(f"<original-brief>\n{self.BRIEF}\n</original-brief>", self.context(self.run_hook(self.start(path))))
+
+    def test_unreadable_kit_keeps_the_worker_rules(self):
+        kit = self.home / ".claude/projects" / re.sub(r"[^A-Za-z0-9]", "-", str(self.repo)) / "x-orchestration"
+        kit.mkdir(parents=True)
+        (kit / "state.md").write_text("# state\n")
+        (kit / "state.md").chmod(0)
+        self.addCleanup((kit / "state.md").chmod, 0o600)
+        text = self.context(self.run_hook(self.start(self.transcript(self.user(self.BRIEF)))))
+        self.assertIn(RULE, text)
 
     def test_only_compaction_injects(self):
         path = self.transcript(self.user(self.BRIEF))
