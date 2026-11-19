@@ -536,7 +536,7 @@ class State:
         try:
             return json.loads(data.decode("utf-8"))
         except (ValueError, RecursionError) as e:
-            raise InvalidState(f"{path} is not JSON: {type(e).__name__}") from e
+            raise InvalidState(f"{path} is not JSON: {str(e)[:200] if isinstance(e, ValueError) else 'too deep'}") from e
 
     def applied(self):
         value = self.read("applied.json", None)
