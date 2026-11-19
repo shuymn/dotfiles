@@ -279,6 +279,8 @@ def rule_patterns(text):
             if CONTROL.fullmatch(line.strip()):
                 continue
             return None, f"template line {line.strip()!r}"
+        if re.search(r"\S#", line):  # chezmoi starts a comment only at a "#" after whitespace; a mid-word "#" is literal
+            return None, f"unsupported pattern syntax {line.strip()!r}"
         s = line.split("#", 1)[0].strip()
         if not s:
             continue

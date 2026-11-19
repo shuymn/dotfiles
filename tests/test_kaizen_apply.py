@@ -276,7 +276,8 @@ class Eligibility(unittest.TestCase):
                 self.assertIn("template line", reason)
 
     def test_pattern_syntax_the_matcher_lacks_refuses(self):
-        for line in (b".claude/{skills,agents}/**", b".claude/[sa]*/**", b".claude/sk\\ills/**", b".config/{x}"):
+        for line in (b".claude/{skills,agents}/**", b".claude/[sa]*/**", b".claude/sk\\ills/**", b".config/{x}",
+                     b".config/zz#.claude/skills/**"):
             with self.subTest(line=line):
                 reason = self.assess({SKILL: b"new\n"}, {**BASE, "home/.chezmoiremove": line + b"\n"})[1]
                 self.assertIn("unsupported pattern syntax", reason)
