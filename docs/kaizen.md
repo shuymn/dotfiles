@@ -48,11 +48,13 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - PreToolUse、PostToolUse、PostToolUseFailure、PostToolBatch: ツールの結果の隣。
   - Stop、SubagentStop: ターンの終わり。
 - PostCompact では入れられない。10,000 字を超える値はファイルとプレビューに置き換わる。
-- subagent の中でも同じフックが走り、入力に `agent_id` と `agent_type` が付く（親と子で `session_id` は同じ）。ネイティブの worker は `agent_type` が `opus-worker` であることで見分け、1 回だけの配達は `agent_id` ごとに数える。
+- subagent の中でも同じフックが走り、入力に `agent_id` と `agent_type` が付く（親と子で `session_id` は同じ）。
+- ネイティブの subagent では `agents/*.md` の本文が system prompt になり、compaction の要約の対象にならない。
+- SessionStart の入力には `source`（`startup`、`resume`、`clear`、`compact`）と `transcript_path` が付く。compaction の後も transcript の先頭には元の最初のプロンプトが残る。
 - SubagentStart の文は subagent の文脈に入り、compaction で失われた後は次の発火で入れ直される。
 - PreToolUse の文も「結果の隣」に届くので、その呼び出し自体は変えられない（変えられるのは deny、ask、`updatedInput`）。そのため、判断点への配達は直前のツールの結果、つまり PostToolUse に置く。
 - docs の勧めに従い、配る文は命令ではなく事実の形で書く。
-- T3 の `delegate_task` の子は別のセッションで、`agent_type` は無く、cwd は専用の worktree のことも共有のチェックアウトのこともある。v1 で T3 の子に配るのは、委任の記録から Claude の実装の委任と確かめられたものだけにする。それ以外の T3 の子には配らない。
+- T3 の `delegate_task` の子は別のセッションで、`agent_type` は無く、cwd は専用の worktree のことも共有のチェックアウトのこともある。worker の子は、最初のプロンプトの固定の 1 行（`Follow the body of ~/.claude/agents/opus-worker.md`）で見分ける。cwd では見分けない。
 - Codex（reviewer）には Claude のフックが届かない。配達点は依頼文だけになる。
 
 ## 3. 役割と段ごとの配分
@@ -86,20 +88,20 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 ### 3.2 worker
 
 **常駐:**
-- `opus-worker.md`。subagent では system prompt になり、T3 では固定の 1 行で読ませる。
+- `opus-worker.md`。回帰テストの一文（"A test counts as a regression test only after it has been seen failing with the fix removed and passing with it restored."）を含む。
+  - ネイティブの subagent: system prompt になり、compaction の後も残る。
+  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`orchestration-context.py` の SessionStart(compact) が本文（frontmatter を除く）とそのプロンプトをそのまま文脈へ戻す（フックの上限の長さで切る）。
 - CLAUDE.md。
 - items の `evidence`。
 
 | 段 | 出来事で渡す | 取る | 証拠 |
 |---|---|---|---|
 | 開始 | 指示書（作業、当たる束、完了条件）。SessionStart か SubagentStart で worker の items | items の `report`（opus-worker.md と重複）、`carry-through`（CLAUDE.md の Completion と重複）。`scope` は、公開の契約を決める前に尋ねる点を opus-worker.md の範囲の一文に畳んでから消す | 静的な事実 |
-| テストのファイルを書いた | PostToolUse（Edit、Write、MultiEdit で、repo 相対のパスがテストのファイル名の形に当たるとき: `*_test.go`、`*.test.{ts,tsx,js}`、`*.spec.{ts,js}`、`test_*.py`、`*_test.py`、`tests/` の下の `*.rs`）。worker ごとに 1 回、次の 1 文: "A test counts as a regression test only after it has been seen failing with the fix removed and passing with it restored." | 指示書の報告の仕様にある同じ句 | P3（5/6 対 0/6） |
 | 報告 | opus-worker.md の報告の形 | — | — |
 
-- **照合の漏れ:** ソースの中のテスト（Rust の `#[cfg(test)]` など）、Bash による編集、既存のテストを動かすだけの作業は拾わない。回帰の証明が要る依頼で、配達の対象と確かめられていない worker や作業（`*.spec.tsx` などの形の外のファイルを含む）には、指示書に同じ一文を置く。
 - **見せないもの:** hiden の全体。P3 で、全体を常駐させると作法が消えた。
 - **観測:** worker のセッションで hiden が読み込まれた回数を数える。出ていたら、description を orchestrator 専用に絞る（仮説）。
-- **配達の位置について:** P3 の just-in-time は、作業の指示の直前のツールの結果に付けたもので、テストを書く時点ではなかった。実際のセッションでは、指示とテストを書く時点の間に何ターンも入る。PostToolUse での配達が P3 に最も近いと考えるが未検証なので、PR の前に probe で確かめる（§7 の PR2）。
+- **届かない形:** 指示書をファイルに置き、プロンプトでは「読んで従え」とだけ書いた T3 の子は、最初のプロンプトに固定の 1 行が無いので、compaction の後に本文が戻らない。
 
 ### 3.3 reviewer（Codex）
 
@@ -118,7 +120,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 ## 4. 最初の変更（証拠の強い順）
 
-1. **worker の回帰テストの単位**（P3。基準を満たした唯一の差）: §3.2 のとおり、PostToolUse で届ける。指示書の句は、§3.2 と PR2 のとおり、配達を確かめた worker と作業の形についてだけ消す。
+1. **worker の回帰テストの単位**（P3。基準を満たした唯一の差）: §3.2 のとおり、opus-worker.md の本文に置き、T3 の子には compaction の後にフックが本文を戻す。指示書の報告の仕様にある同じ句は、本文が届くと確かめた worker についてだけ消す。
 2. **作業するセッションから meta の務めを取る**（原則 4）。P3 で全体の常駐が作法を消したことは、間接の裏付けにとどまる。meta の話が混ざる率は増えなかったので、強い証拠ではない。
    - SKILL.md の「手法を直すとき」を消す。
    - retro.md を消す。
@@ -144,7 +146,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - retro.md: 3.1 KB を削除。
 - hiden 全体: 56.6 KB から約 49 KB。
 - items: 6 件から 3 件。
-- 足すのは units の定義（約 1 KB）だけ。これは常駐せず、出来事のときに 1 文ずつ届く。
+- 足すのは opus-worker.md の 1 文だけ。本文の既存の文を同じだけ削り、上限を上げない。
 - 上限は、新しい大きさまで下げる。
 
 ## 5. 変更の確かめ方
@@ -174,7 +176,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - 取る変更の場合:
   - 消した振る舞いに触れるオーナーの訂正を見る。
   - meta の手間が 0 に近づくかを見る。手間は、台帳、retro、予算への 1 セッションあたりのツール呼び出しで数える。
-- 無駄を見る: 単位ごとに、配る機会（各 worker で照合に当たる最初の出来事を 1 機会とする）の数を分母にして、配られた数を transcript の注入の記録から数える。機会があったのに配られていなければ照合を直し、機会が 0 なら「未観測」とする。専用の配達ログは、要ると分かってから足す。
+- 無駄を見る: 出来事で配る単位ごとに、配る機会（各 worker で照合に当たる最初の出来事を 1 機会とする）の数を分母にして、配られた数を transcript の注入の記録から数える。機会があったのに配られていなければ照合を直し、機会が 0 なら「未観測」とする。専用の配達ログは、要ると分かってから足す。
 
 **正直な限界**
 
@@ -232,7 +234,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 | ID | 準備状態（モデルが最善を出せる注意の環境か。それを確かめられるか） | 検査 | FAIL のとき |
 |---|---|---|---|
-| R1 | 適用の対象（上の「対象」）の live が source と一致する | 対象に絞った `chezmoi diff`（chezmoi に設定されたチェックアウトの一覧で絞る。`.chezmoiremove` の消し待ちも含む） | 判断事項（PR3b からは、条件を満たせば apply する） |
+| R1 | 適用の対象（上の「対象」）の live が source と一致する | 対象に絞った `chezmoi diff`（chezmoi に設定されたチェックアウトの一覧で絞る。`.chezmoiremove` の消し待ちも含む。worker の規則を運ぶ opus-worker.md の本文と settings のフック登録も対象なので、配達の準備もここで見る） | 判断事項（PR3b からは、条件を満たせば apply する） |
 | R2 | 周期が起動される | `launchctl print gui/<uid>/<label>` でジョブが読み込まれており、その program と引数の絶対パスが在る | owner |
 | R3 | 常駐の量が上限内にある | `attention-budget.py status` に OVER が無い | improver の候補 |
 | R4 | 観測できる | その run の observe で各入力が読めた（gh は切ってもよい）。`gh auth status` が通る | 認証は owner |
@@ -264,7 +266,7 @@ PR はすべてオーナーが UI でマージする。
 |---|---|---|
 | PR0（オーナーの作業） | live と source のずれを、`/wasure` の hiden の差分の判定だけを使って解消する | オーナーが採った差分が source に入り、hiden、agents、items の承認済みの対象で live と source が一致する |
 | PR1 | 守り: 管理パスの一覧、merge-pr の拒否、公開の検査、AGENTS.md の一文 | merge-pr が拒否する: 一覧の各種のパス（`home/.chezmoiremove`、`home/.chezmoiignore` を含む）に触れる試験 PR、一覧そのものを直す PR、一覧が読めない場合。管理パスに触れない PR は通る。公開の検査が拒否する: 途中のコミットだけにあるローカルのパス、PR 本文だけにあるローカルのパス。オーナーが UI で auto-merge を有効にして必須チェックが走ることを、この PR 自身で確かめる |
-| PR2 | 回帰テストの単位: `scripts/kaizen/probe/`、`attention/units.json`、`orchestration-context.py` の PostToolUse の分岐、settings の PostToolUse の登録、items の `report`・`carry-through` の削除と `scope` の畳み込み、items を通常の管理ファイルにする。指示書の句は、実際の配達を確かめた worker と作業の形についてだけ外す | (1) probe で PostToolUse と開始時の注入を比べ、結果を記録した。(2) fixture のテスト: ネイティブの `opus-worker` で `agent_id` ごとに 1 回だけ出て、親、他の役割、同じ worker の 2 回目では出ない。(3) 実際の worker の子 1 件で配達を確かめた（probe とは別に記録する）。(4) 基準値を記録した。(5) budget に OVER が無く、上限を下げた |
+| PR2 | 回帰テストの単位: opus-worker.md の本文の一文、`orchestration-context.py` の SessionStart(compact) で本文と元の指示書を戻す分岐、`scripts/kaizen/probe/`（開始時の注入の腕）と `signals.py` の回帰の信号（照合は `signals.py` が持つ）、items の `report`・`carry-through` の削除と `scope` の畳み込み、items を通常の管理ファイルにする。指示書の句は、本文が届くと確かめた worker についてだけ外す | (1) fixture のテスト: 最初のプロンプトのどこかに固定の 1 行があれば compaction の後に本文と指示書が出て、無いとき、`startup`・`resume` のとき、transcript が壊れているときは出ない。(2) 実際の `claude` のセッションで compaction の後に注入が transcript に残ることを確かめた。(3) 基準値を記録した。(4) budget に OVER が無く、上限を上げていない |
 | PR3a | 毎日の周期: `scripts/kaizen/{cycle.py,observe.py,ready.py,watch.json}`、launchd のジョブ、ステータスライン | 入力が読めない run は、その入力を fail として公開し R4 が FAIL になる。公開の途中で失敗した run と、公開を始める前に止められたか期限を超えた run は前回の公開を残し、次の run は通る。読み込まれていないジョブと消えた program で R2 が FAIL になる。digest が毎日出る。observe が実際のログを一度読み切る。費用が 0 |
 | PR3b | §6 の条件付きの apply | apply は、条件を満たす fixture で適用し、live の編集・汚れたチェックアウト・描画の差分の不一致の各 fixture で拒否して判断事項にする |
 | PR3c | 週 1 回の improver と公開の経路（`scripts/kaizen/writing.md` を含む） | 公開の証拠だけで作った変更だけが PR になり、それ以外は提案に残る。Claude の費用の記録が 50 ドル以下 |
@@ -278,6 +280,7 @@ PR はすべてオーナーが UI でマージする。
 - worker に hiden の全体か worker 用の抜粋を常駐させる: P3 で just-in-time に負けた（抜粋との比較は 3 run だけ）。
 - 床の単位を description や必要時だけに置く: §2 の P3 の結果。
 - PreToolUse で判断点に配る: 文が結果の隣に届くので、その呼び出しを変えられない。
+- 回帰テストの一文を、テストのファイルを書いたときに PostToolUse で配る: T3 の `delegate_task` の子に届かず、配った後の compaction で失われる。本文に置けば、ネイティブの subagent では system prompt として残り、T3 の子にはフックが compaction の後に戻せる。
 - Stop を止めて、回帰テストを確かめさせる: 1 ターンを使い、届くのが遅い。
 - 作業するセッションに観測を書かせる、台帳を残す: 注意を管理するための注意になる。
 - 規則ごとの署名の telemetry、版の精密な帰属、一致の統計、役割 × 種類の上限の仕組み: どの原則も必要としない。

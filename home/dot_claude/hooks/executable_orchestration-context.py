@@ -12,27 +12,20 @@ A worker listed under "workers" in that file gets only the worker items. Other s
 SessionStart (startup, resume, clear, compact): orchestrator -> state files, orchestrator items (global register +
   kit register), the budget line, the macro questions, then the board output (the only part that is cut to fit).
   This text, not the compaction summary, is the source of truth after a compaction.
+SessionStart (compact) of a worker, any cwd: when the first non-meta, non-sidechain user message of the transcript has a
+  line starting with WORKER_LINE (the fixed line of a worker brief), the body of ../agents/opus-worker.md (next to this
+  hook's directory, frontmatter stripped) and that message verbatim go first, ahead of any text above, all cut to fit.
 Stop: blocks once when a path in `watch` is newer than the state file (state.md, else units.json). A touch
   acknowledges "nothing changed".
-PostToolUse: a unit of ../attention/units.json (next to this hook's directory) goes to a native subagent of the
-  unit's agent_type, after a successful tool of the unit's list wrote a file whose path matches the unit, at most once
-  per (session_id, agent_id, unit id) while the OS temp dir keeps the marker (a compaction after delivery loses it).
-  Only files inside the repo root of cwd (nearest ancestor holding .git), or inside cwd without one, match. A pattern
-  without "/" matches the basename; one with "/" matches the path below the root segment by segment, "**" standing
-  for any number of directories.
 Never fails a session: any error means no output and exit 0.
 """
-import hashlib
 import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
-import tempfile
 import time
-import unicodedata
-from fnmatch import fnmatchcase
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # importing the budget hook must not leave __pycache__ in hooks/
@@ -40,7 +33,8 @@ CLAUDE = Path.home() / ".claude"
 SIGNALS_MAP = CLAUDE / "worker-signals.json"
 BUDGET_HOOK = CLAUDE / "hooks" / "attention-budget.py"
 GLOBAL_REGISTER = CLAUDE / "attention" / "items.json"
-UNITS = Path(__file__).resolve().parent.parent / "attention" / "units.json"
+WORKER_BODY = Path(__file__).resolve().parent.parent / "agents" / "opus-worker.md"
+WORKER_LINE = "Follow the body of ~/.claude/agents/opus-worker.md"
 STATE_FILES = ("NORTH.md", "state.md")  # injected, in this order
 FRESH_FILES = ("state.md", "units.json")  # the volatile state a Stop check compares against `watch`
 MAX_CHARS = 9_500  # the harness may cap hook context near 10,000 characters
@@ -191,13 +185,12 @@ def board_text(kit, bodies, deadline):
     return board, out
 
 
-def emit(text, event="SessionStart"):
-    json.dump({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, sys.stdout)
+def emit(text):
+    json.dump({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}, sys.stdout)
 
 
-def session_start(data):
-    if data.get("source") not in ("compact", "resume", "startup", "clear"):
-        return
+def kit_context(data):
+    """The orchestrator's or a listed worker's context for this cwd, or None."""
     cwd = data.get("cwd") or os.getcwd()
     items = read_items(GLOBAL_REGISTER)
     is_worker, kit = worker_kit(cwd)
@@ -205,12 +198,10 @@ def session_start(data):
         if kit:
             items += read_items(kit / "attention" / "items.json")
         text = rules(items, ("worker", "all"))
-        if text:
-            emit("You are a worker in an orchestration. Always-on rules (the packet has the rest):\n" + text)
-        return
+        return "You are a worker in an orchestration. Always-on rules (the packet has the rest):\n" + text if text else None
     kits = find_kits(cwd)
     if not kits:
-        return
+        return None
     parts, bodies = [], []
     for kit in kits:
         p, b = state_blocks(kit)
@@ -234,7 +225,54 @@ def session_start(data):
             text += "\n\n[board omitted: context limit]"
             break
         text += open_tag + cut(got[1], room) + close_tag
-    emit(text)
+    return text
+
+
+def first_prompt(transcript):
+    """The text of the first user message that is not meta, a compaction summary or a tool result."""
+    with open(transcript, encoding="utf-8") as f:
+        for line in f:
+            d = json.loads(line)
+            if d.get("type") != "user" or d.get("isMeta") or d.get("isCompactSummary") or d.get("isSidechain"):
+                continue
+            content = d["message"]["content"]
+            if isinstance(content, str):
+                return content
+            texts = [b["text"] for b in content if b.get("type") == "text"]
+            if texts:
+                return "\n\n".join(texts)
+            if not any(b.get("type") == "tool_result" for b in content):
+                return ""
+    return None
+
+
+def worker_brief(data):
+    """After a compaction, the worker body and the original brief verbatim, for a session briefed by WORKER_LINE."""
+    prompt = first_prompt(data["transcript_path"]) if data.get("transcript_path") else None
+    if not prompt or not re.search("^" + re.escape(WORKER_LINE), prompt, re.M):  # quoted mentions do not count
+        return None
+    body = read_text(WORKER_BODY)
+    body = re.sub(r"\A---\n.*?\n---\n", "", body, count=1, flags=re.S).strip()
+    return ("A compaction summarized this conversation; the verbatim worker rules and your original brief follow.\n\n"
+            f"<worker-rules path=\"{WORKER_BODY}\">\n{body}\n</worker-rules>\n\n"
+            f"<original-brief>\n{prompt}\n</original-brief>")
+
+
+def session_start(data):
+    if data.get("source") not in ("compact", "resume", "startup", "clear"):
+        return
+    try:
+        text = kit_context(data)
+    except Exception:  # an unreadable kit must not cost a worker its rules
+        text = None
+    try:
+        brief = worker_brief(data) if data.get("source") == "compact" else None
+    except Exception:  # a broken transcript must not cost the orchestrator its context
+        brief = None
+    if brief:
+        text = cut(brief + ("\n\n" + text if text else ""), MAX_CHARS - len("\n[...cut]"))
+    if text:
+        emit(text)
 
 
 def newest(path):
@@ -264,70 +302,6 @@ def stop(data):
             return
 
 
-def load_units(path=UNITS):
-    return [u for u in json.loads(read_text(path))["units"] if isinstance(u, dict)]
-
-
-def segments_match(pattern, parts):
-    if not pattern:
-        return not parts
-    if pattern[0] == "**":
-        return any(segments_match(pattern[1:], parts[i:]) for i in range(len(parts) + 1))
-    return bool(parts) and fnmatchcase(parts[0], pattern[0]) and segments_match(pattern[1:], parts[1:])
-
-
-def path_matches(patterns, file_path, cwd):
-    """True when file_path lies inside the root of cwd and matches one of patterns."""
-    cwd = real(cwd)
-    root = next((a for a in [cwd, *map(str, Path(cwd).parents)] if os.path.lexists(os.path.join(a, ".git"))), cwd)
-    path = real(file_path)
-    if not inside(path, root):
-        return False
-    parts = os.path.relpath(path, root).split(os.sep)
-    return any(segments_match(p.split("/"), parts) if "/" in p else fnmatchcase(parts[-1], p) for p in patterns)
-
-
-def strings(value):
-    """A list of non-empty strings."""
-    return isinstance(value, list) and all(isinstance(v, str) and v for v in value)
-
-
-def matching_unit(units, data):
-    """The first PostToolUse unit this hook input is a chance to deliver, or None."""
-    tool, file_path = data.get("tool_name"), (data.get("tool_input") or {}).get("file_path")
-    if not isinstance(file_path, str) or not os.path.isabs(file_path):
-        return None
-    for u in units:
-        well_formed = (u.get("event") == "PostToolUse" and u.get("once") == "agent" and isinstance(u.get("id"), str)
-                       and isinstance(u.get("text"), str) and isinstance(u.get("agent_type"), str)
-                       and strings(u.get("tools")) and strings(u.get("paths")))
-        if (well_formed and u["agent_type"] == data.get("agent_type") and tool in u["tools"]
-                and path_matches(u["paths"], file_path, data.get("cwd") or os.getcwd())):
-            return u
-    return None
-
-
-def claim(session_id, agent_id, unit_id):
-    """True for the one caller that creates this marker; any failure counts as already delivered."""
-    name = hashlib.sha256(json.dumps([session_id, agent_id, unit_id]).encode()).hexdigest()
-    try:
-        d = os.path.join(tempfile.gettempdir(), "claude-units")
-        os.makedirs(d, mode=0o700, exist_ok=True)
-        os.close(os.open(os.path.join(d, name), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
-    except OSError:
-        return False
-    return True
-
-
-def post_tool_use(data):
-    ids = (data.get("session_id"), data.get("agent_id"))
-    if not all(isinstance(i, str) and i.strip() and not any(unicodedata.category(c) == "Cc" for c in i) for i in ids):
-        return
-    unit = matching_unit(load_units(), data)
-    if unit and claim(*ids, unit["id"]):
-        emit(unit["text"], "PostToolUse")
-
-
 def main():
     try:
         data = json.load(sys.stdin)
@@ -336,8 +310,6 @@ def main():
             stop(data)
         elif event in (None, "SessionStart"):
             session_start(data)
-        elif event == "PostToolUse":
-            post_tool_use(data)
     except Exception:  # a hook must never fail a session
         return
 

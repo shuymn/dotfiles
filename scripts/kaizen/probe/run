@@ -4,14 +4,14 @@
 # ///
 """Run built probe arms through `claude plugin eval`, one eval call per run, under a cost envelope (PREREG.md).
 
-Each run gets its own directory <out>/runs/<case>-<arm>-<slot>/ holding a fresh HOME and TMPDIR (also exported as
-EVAL_KAIZEN_PROBE_TMPDIR for the shim), so live hooks and settings never load and unit markers never cross runs.
+Each run gets its own directory <out>/runs/<case>-<arm>-<slot>/ holding a fresh HOME and TMPDIR, so live hooks and
+settings never load and no state crosses runs.
 The real `claude` executable is resolved before HOME changes. Every call passes --no-publish, --scaffold (the
 fixture is pre-staged), the case's tool grants and --max-cost-usd = the envelope minus all spend recorded under
 <out>; no run starts once less than --min-remaining is left. Jobs run in shuffled order; a slot whose directory
 exists is skipped, so an interrupted round resumes. Calls run one at a time, so the envelope is exact up
 to the one run in flight. An errored run with no turns is rerun once (<dir>-r1).
-After each run the trace, the session transcripts and shim.log are copied into the run directory, then the
+After each run the trace and the session transcripts are copied into the run directory, then the
 eval's kept temp directory named by this run's tracePath (only if it appeared after launch) and the run's HOME and
 TMPDIR are deleted. Nothing else is removed.
 --dry-run prints the commands without running or creating anything.
@@ -65,8 +65,7 @@ def spent(out):
 
 def run_env(rundir, base=None):
     home, tmp = rundir / "home", rundir / "tmp"
-    return {**(os.environ if base is None else base), "HOME": str(home), "TMPDIR": str(tmp),
-            "EVAL_KAIZEN_PROBE_TMPDIR": str(tmp)}
+    return {**(os.environ if base is None else base), "HOME": str(home), "TMPDIR": str(tmp)}
 
 
 def command(claude, armdir, case, rundir, max_cost, model):
@@ -101,7 +100,7 @@ def runs_of(result):
 
 
 def harvest(rundir, before):
-    """Copy the trace, transcripts and shim log; delete the run's own temp directories. Returns the eval result."""
+    """Copy the trace and transcripts; delete the run's own temp directories. Returns the eval result."""
     res = rundir / RESULT
     result = json.loads(res.read_text()) if res.exists() else {}
     for run in runs_of(result):
@@ -123,9 +122,6 @@ def harvest(rundir, before):
             wipe(e)
         else:
             print(f"run: left {e} (not created by this run)", file=sys.stderr)
-    log = rundir / "tmp" / "shim.log"
-    if log.is_file():
-        shutil.copy(log, rundir / "shim.log")
     for d in (rundir / "home", rundir / "tmp"):
         if d.exists():
             wipe(d)
@@ -168,7 +164,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--out", type=Path, default=DEFAULT_OUT, help="output root holding build/ (default: %(default)s)")
     p.add_argument("--case", default="worker-L2", help="case name: worker-L2 (probe) or worker-L0 (calibration)")
-    p.add_argument("--arms", default="A,B")
+    p.add_argument("--arms", default="B")
     p.add_argument("--runs", type=int, default=6, help="runs per arm")
     p.add_argument("--budget", type=float, default=5.00, help="total USD envelope for everything under --out")
     p.add_argument("--min-remaining", type=float, default=0.30, help="start no run with less than this left")

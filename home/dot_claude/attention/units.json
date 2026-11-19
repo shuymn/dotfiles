@@ -1,5 +1,0 @@
-{"units":[{"id":"regression-seen-fail","event":"PostToolUse","agent_type":"opus-worker",
- "tools":["Edit","Write","MultiEdit"],"once":"agent",
- "paths":["*_test.go","*.test.ts","*.test.tsx","*.test.js","*.spec.ts","*.spec.js","test_*.py","*_test.py","**/tests/*.rs"],
- "text":"A test counts as a regression test only after it has been seen failing with the fix removed and passing with it restored.",
- "source":"docs/kaizen.md 3.2; pilot 3 worker 5/6 vs 0/6"}]}
