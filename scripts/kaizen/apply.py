@@ -544,14 +544,14 @@ class State:
                                       and HEX40.fullmatch(value["commit"]) and text(value.get("at"))
                                       and value.get("by") in ("cycle", "observed", "owner")
                                       and (value.get("run") is None or text(value["run"]))):
-            raise InvalidState(f"{self.dir / 'applied.json'} is not a cursor: {json.dumps(value)[:200]}")
+            raise InvalidState(f"{self.dir / 'applied.json'} is not a cursor ({type(value).__name__})")
         return value
 
     def journal(self):
         value = self.read("journal.json", {"entries": []})
         entries = value.get("entries") if isinstance(value, dict) else None
         if not isinstance(entries, list) or not all(valid_entry(e) for e in entries):
-            raise InvalidState(f"{self.dir / 'journal.json'} is not a journal: {json.dumps(value)[:200]}")
+            raise InvalidState(f"{self.dir / 'journal.json'} is not a journal ({type(value).__name__})")
         return entries
 
     def write(self, name, value):

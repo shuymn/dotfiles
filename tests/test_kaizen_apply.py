@@ -437,7 +437,8 @@ class Chain(Base):
         res = self.run_apply()
         self.assertEqual(res["status"], "error")
         self.assertEqual([e["target"] for e in res["journal"]], [T_AGENT])
-        self.assertTrue(any("not JSON" in d for d in res["decisions"]))
+        self.assertTrue(any("applied.json" in d for d in res["decisions"]))  # "not JSON", or "not a cursor" where
+        # the interpreter decodes this depth
         self.assertEqual(self.live(T_SKILL), b"skill v0\n")
 
     def test_a_subject_that_is_not_utf8_is_still_read(self):
