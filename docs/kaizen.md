@@ -190,10 +190,12 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 **起動:**
 - Home Manager の `launchd.agents.kaizen-cycle`（`nix/home/profiles/dev.nix`）が、毎日 6 時に `scripts/kaizen/cycle.py` を store の写しから走らせる。スクリプトの変更は次の switch で効く。ログは `~/Library/Logs/kaizen-cycle.log`。
 - 眠っていて逃した時刻の分は、起きたときに 1 回走る（launchd.plist(5) の StartCalendarInterval）。launchd は同じ label のジョブを同時に 2 つ走らせない。
-- 1 回の run は状態を持たない。毎回、直近 7 日の窓 [今 − 7 日, 今) を入力から計算し直し、どの入力も窓の中の観測だけを数える。前回の位置（watermark）は持たず、書きかけの最後の行はその回は読まない。run の日付は Asia/Tokyo で数える。
+- 1 回の run は状態を持たない。毎回、直近 7 日の窓 [今 − 7 日, 今) を入力から計算し直し、どの入力も窓の中の観測だけを数える。前回の位置（watermark）は持たず、書きかけの最後の行はその回は読まない。run の日付は Asia/Tokyo で数える。ただし、適用の位置（下の「マージの後」の L）だけは `~/.local/state/kaizen-apply/applied.json` に持つ。これは観測の位置ではなく、live がどのコミットまで適用されたかの記録である。
 - run 全体に 20 分の期限がある。期限を超えた run は 0 以外で終わるので、次の日の起動は止まらない。launchd はジョブの終わりに同じプロセスグループの残りを止める。手で動かした run が launchd の run と重なっても、公開（書き込み、rename、整理）は `~/.claude/kaizen/.publish.lock` で順番に行う。ロックを待つ間の停止や期限は何も公開せずに終わり、ロックを取った後に来たものは公開が済んでから効く（そのときだけは公開してから 0 以外で終わる）。
 
 **毎日の段（費用 0。モデルを呼ばない）:**
+
+最初に、下の「マージの後」の適用を行う（`cycle.py run --no-apply` で飛ばせる）。適用が失敗しても、次の段と公開は続ける。
 
 1. `scripts/kaizen/observe.py` が、窓の中の取りこぼしと無駄の候補を集める。入力が 1 つ失敗しても、ほかの入力は読む。開くのは通常のファイルだけで、FIFO やシンボリックリンクは読めない入力として数える。
    - 入力: transcript（`~/.claude/projects/` の下の親と子の `*.jsonl`。文字列の user レコードにも合成の入力があるので、オーナーの発言は起源を確かめられたものだけを数える）、T3 Code の DB（T3 が走らせたセッションのオーナーの発言はここからだけ数える）、`~/.codex/sessions`、既存の台帳（読むだけ。行の日付は Asia/Tokyo の日で、その日の始まりが窓に入る行を数える）、`gh`（revert、PR を名指す修正 PR、CI の失敗）。
@@ -214,6 +216,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 7. 自動で公開するのは、差分も、コミットのメッセージも、PR の題・本文・ブランチ名も、公開の資料だけで説明できるものに限る。非公開の証拠（オーナーの発言、非公開のリポジトリの事故）を読んで作ったか、由来がはっきりしないものは、`~/.claude/kaizen/proposals/` に置くだけにする。公開するものは、送るコミットの範囲とメタデータを固定してから公開の検査を通し、親が push して PR を作る。観測の元の行と非公開の結果は digest に残す。
 8. digest（`~/.claude/kaizen/current/digest.md`）を、現状だけを書く形で上書きする。毎日の段でも書く（上の 4）。中身は次のとおり。
    - 準備状態。
+   - 適用（L とその由来と時刻、未解決の journal、候補ごとの結果）。待っている候補が無くても L と journal は出す。
    - 取りこぼしと無駄（数と元の行）。
    - 監視中の変更の経過。
    - 判断事項（証拠、推奨、費用）。権限の外にある欠けは、ここで提案にする。
@@ -221,24 +224,30 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
    - ステータスラインに `kaizen ✗N・判断 N・stale Nd` を出す。stale は、最後に完了した run が 36 時間より古いとき。
 
 **記録と費用:**
-- `record.json` に、run の日付、窓、入力ごとの読んだ数と結果、候補の全件、準備状態、監視、判断事項、費用を書く。
+- `record.json` に、run の日付、窓、入力ごとの読んだ数と結果、候補の全件、準備状態、適用の結果、監視、判断事項、費用を書く。
 - 費用: Claude の子は残りを上限として渡せる経路だけで走らせる（improver は `claude -p --max-budget-usd`、probe は `claude plugin eval --max-cost-usd`）。上限を渡せない段は走らせず判断事項にする。Codex のレビューは Claude の予算の外で数え、digest に回数を出す。
 
-**マージの後（適用。PR3b で入れる）:**
-- 対象は、管理パスの一覧に入る chezmoi のソースが生成・削除するホーム側のターゲット（`docs/kaizen.md` や `scripts/kaizen/**` は含まない）。次の周期が、次の全部を満たすときだけ、そのマージのコミットから対象を `chezmoi apply` する。退避は `chezmoi-backup.sh` が行う。
-  - 適用に使うチェックアウトが、main のそのマージのコミットにあり、作業ツリーが清潔。
-  - 適用の前の live が、前回に適用したソースと一致する（オーナーや別のセッションの編集が無い）。
-  - 第一親とマージのコミットのソースを同じ入力（`host.toml` と live の settings など）で描画した対象の差分が、live に対する `chezmoi diff` と一致する（`modify_` で生成する settings.json も描画の結果で比べる）。
-- どれかを満たせないとき、途中で失敗したときは、apply せず判断事項にする。自動で戻すことはしない。
+**マージの後（適用）:**
+- **対象（v1）:** `home/dot_claude/skills/**` と `home/dot_claude/agents/**` の、既にある通常のファイルの変更だけ。パスのどの部分も chezmoi の接頭辞（`dot_`、`executable_`、`private_`、`create_`、`modify_`、`symlink_`、`exact_`、`literal_` など）を持たず、`.` で始まらず、`.tmpl` や `.age` で終わらない。ターゲットは `~/.claude/<残りのパス>`、中身は git の blob、モードは 0644 になる。chezmoi は呼ばない。この形のファイルでは、描画の結果が blob そのものだからである。
+- **適用の元:** オーナーのチェックアウトは使わない。周期が持つ bare の写し `~/.local/state/kaizen-apply/mirror.git` に、チェックアウトの GitHub の origin から作った公開の HTTPS の URL で main を fetch する。git の環境は空から組み（`PATH`、`HOME`、`LANG`、`GIT_CONFIG_GLOBAL=/dev/null`、`GIT_CONFIG_NOSYSTEM=1`、`GIT_TERMINAL_PROMPT=0`）、資格情報は使わない。fetch した main をその run の間は固定する。チェックアウトから読むのは origin の URL だけなので、チェックアウトが汚れていても遅れていても結果は変わらない。
+- **順番:** 適用の位置 L から main の第一親をたどる。管理パスの一覧のうち `home/` の下のパスに触れるコミットを候補とし、触れないコミット（文書だけ、`scripts/` だけ、依存の更新など）は通す。候補は古い順に 1 つずつ扱い、適用できない候補で止まる。後の候補は、その前の候補を含むので、飛ばして書くと誰もレビューしていない組み合わせになるからである。300 秒を過ぎたら新しい候補を始めない。
+- **候補を丸ごと断る条件:** 第一親との差分（`git diff -z --no-renames --name-status`）に、上の対象の変更以外のパスが 1 つでもある（追加、削除、テンプレート、属性、settings、seed、`.chezmoiignore` や `.chezmoiremove`、共有テンプレート、文書や `scripts/` を含むほかのパス）。第一親か候補で、そのパスが `100644` の blob でないか、空白だけの中身である。候補の時点で `.chezmoiroot` が `home` でない、`.chezmoi.toml.tmpl` が `umask` に触れる、`home/.chezmoiignore` か `home/.chezmoiremove` の行（テンプレートの条件にかかわらず全行。条件だけの行は飛ばし、ほかに `{{` を含む行があれば断る）がターゲットかその上のディレクトリに当たる、同じターゲットになる別のソース（`literal_X`、`X.tmpl` など）がある。これらの条件の下でだけ、chezmoi と同じ結果だと言える。
+- **ターゲットごとの判定:** live が 0644 の通常のファイルで、中身が候補の blob と同じなら済み、第一親の blob と同じなら書く。ほか（オーナーやセッションの編集、無い、シンボリックリンク、別のモード、シンボリックリンクを通る親）は衝突で、候補のどのターゲットも書かない。候補が変えないターゲットの編集は、止める理由にならない。
+- **書き方:** 新しい中身 B を `~/.local/state/kaizen-apply/backup/<run>/<候補>/<ターゲット>` に書いて fsync し、journal（`journal.json`）に記録してから、`$HOME` から親ディレクトリを 1 段ずつシンボリックリンクを辿らずに開き直し、親が判定のときと同じ（dev, ino）であることを確かめる。そのうえで `renameatx_np(RENAME_SWAP)` で B と live を入れ替える。入れ替えで外れた元の inode は、そのまま backup の名前に残る。その中身が第一親の blob と同じ 0644 の通常のファイルで、親も変わっていなければ、その記録は済みになる。違えば、live がまだ B のときだけ入れ替えを戻し、どちらの版も名前を持ったまま残して止める。live の inode を消すことはしない。適用した後にもう一度 `$HOME` から辿り、候補の全ターゲットが候補の blob と同じで、journal の親が変わっていないときだけ L を進める。1 つのターゲットの書き込みの間は SIGTERM と SIGALRM を待たせる。
+- **自動では戻さない:** 途中で止まった候補は、書いたターゲットをそのまま残し、次の run がそれを済みとして続きを書く。戻すのは、入れ替えの直後に元の中身が違うと分かった 1 つのファイルだけである。入れ替えの前から fd を開いたままの書き手が後で書く分は、backup の inode に入る。これは受け入れ、確かめない。
+- **journal と resolve、adopt:** 済みでない journal の記録があると、run は何も書かず L も進めず、各記録の live と backup のパスを判断事項にする。`cycle.py resolve` は記録ごとに両方のパスの種類、モード、sha256 を示し、`--yes` のときだけ journal を消す（ファイルには触れない）。その後はターゲットごとの判定で決まり、backup に残った編集を自動で戻すことはない。`cycle.py adopt <commit>` は、journal が片付いていて、そのコミットが固定した main の第一親の上で L より後（L が無いときは第一親の上のどこでも）にあるときだけ、飛ばす候補ごとのターゲットの判定とほかのパス、L との違いを示して、そのコミットを `by: owner` で L にする。断られた候補は、オーナーが pull と `make apply` をしてから `adopt` で越える。
+- **最初の L:** `applied.json` が無いときは何も書かず、live が main と違うターゲットを並べて `cycle.py adopt <main>` を判断事項にする。
+- `.apply.lock` を持つ run、`adopt`、`resolve` だけが書く。backup は v1 では消さない。`scripts/kaizen/apply.py --check` は、写しの fetch のほかは何も書かずに、L、journal、待っている候補ごとの判定を示す。
+- R1 とステータスラインの差分の表示はチェックアウトを元に比べるので、正しく適用した後でも、オーナーのチェックアウトが遅れている間は差分を示すことがある。
 - items.json は通常の管理ファイルにする（`create_` の seed をやめる）。これで書き手は source の 1 か所になる。
 
 | ID | 準備状態（モデルが最善を出せる注意の環境か。それを確かめられるか） | 検査 | FAIL のとき |
 |---|---|---|---|
-| R1 | 適用の対象（上の「対象」）の live が source と一致する | 対象に絞った `chezmoi diff`（chezmoi に設定されたチェックアウトの一覧で絞る。`.chezmoiremove` の消し待ちも含む。worker の規則を運ぶ opus-worker.md の本文と settings のフック登録も対象なので、配達の準備もここで見る） | 判断事項（PR3b からは、条件を満たせば apply する） |
+| R1 | 適用の対象（上の「対象」）の live が source と一致する | 対象に絞った `chezmoi diff`（chezmoi に設定されたチェックアウトの一覧で絞る。`.chezmoiremove` の消し待ちも含む。worker の規則を運ぶ opus-worker.md の本文と settings のフック登録も対象なので、配達の準備もここで見る） | 判断事項（apply はこの検査を使わない） |
 | R2 | 周期が起動される | `launchctl print gui/<uid>/<label>` でジョブが読み込まれており、その program と引数の絶対パスが在る | owner |
 | R3 | 常駐の量が上限内にある | `attention-budget.py status` に OVER が無い | improver の候補 |
 | R4 | 観測できる | その run の observe で各入力が読めた（gh は切ってもよい）。`gh auth status` が通る | 認証は owner |
-| R5 | 周期が生きている | 公開中の run（今の run が公開する前の `current`）が 3 日以内に完了した。開いている kaizen PR が 14 日以内（未適用のマージは PR3b で足す） | digest |
+| R5 | 周期が生きている | 公開中の run（今の run が公開する前の `current`）が 3 日以内に完了した。開いている kaizen PR が 14 日以内 | digest |
 
 検査が呼ぶコマンドには、それぞれ時間の上限がある。上限を超えたか、見つからないか、失敗したコマンドは、その検査の FAIL にする。
 
@@ -268,7 +277,7 @@ PR はすべてオーナーが UI でマージする。
 | PR1 | 守り: 管理パスの一覧、merge-pr の拒否、公開の検査、AGENTS.md の一文 | merge-pr が拒否する: 一覧の各種のパス（`home/.chezmoiremove`、`home/.chezmoiignore` を含む）に触れる試験 PR、一覧そのものを直す PR、一覧が読めない場合。管理パスに触れない PR は通る。公開の検査が拒否する: 途中のコミットだけにあるローカルのパス、PR 本文だけにあるローカルのパス。オーナーが UI で auto-merge を有効にして必須チェックが走ることを、この PR 自身で確かめる |
 | PR2 | 回帰テストの単位: opus-worker.md の本文の一文、`orchestration-context.py` の SessionStart(compact) で本文と元の指示書を戻す分岐、`scripts/kaizen/probe/`（開始時の注入の腕）と `signals.py` の回帰の信号（照合は `signals.py` が持つ）、items の `report`・`carry-through` の削除と `scope` の畳み込み、items を通常の管理ファイルにする。指示書の句は、本文が届くと確かめた worker についてだけ外す | (1) fixture のテスト: 最初のプロンプトのどこかに固定の 1 行があれば compaction の後に本文と指示書が出て、無いとき、`startup`・`resume` のとき、transcript が壊れているときは出ない。(2) 実際の `claude` のセッションで compaction の後に注入が transcript に残ることを確かめた。(3) 基準値を記録した。(4) budget に OVER が無く、上限を上げていない |
 | PR3a | 毎日の周期: `scripts/kaizen/{cycle.py,observe.py,ready.py,watch.json}`、launchd のジョブ、ステータスライン | 入力が読めない run は、その入力を fail として公開し R4 が FAIL になる。公開の途中で失敗した run と、公開を始める前に止められたか期限を超えた run は前回の公開を残し、次の run は通る。読み込まれていないジョブと消えた program で R2 が FAIL になる。digest が毎日出る。observe が実際のログを一度読み切る。費用が 0 |
-| PR3b | §6 の条件付きの apply | apply は、条件を満たす fixture で適用し、live の編集・汚れたチェックアウト・描画の差分の不一致の各 fixture で拒否して判断事項にする |
+| PR3b | §6 の条件付きの apply（v1: skills と agents の通常のファイルの変更） | fixture: 第一親の状態のターゲットだけを書いて L を進め、元の inode が backup に残る。候補のターゲットの live の編集、対象外のパスも変える候補、guard に当たる候補は、何も書かずに判断事項にする。候補が変えないターゲットの編集では止まらない。入れ替えの前に保存した編集は入れ替えを戻して両方を残し、親を動かされたら入れ替えない。入れ替えの後に止まった run は次の run を journal で止める。チェックアウトが汚れていても遅れていても結果は変わらず、チェックアウトは origin の URL のほかは読まない。実際のホームで `apply.py --check` が待っている候補を判定し、チェックアウトに触れない |
 | PR3c | 週 1 回の improver と公開の経路（`scripts/kaizen/writing.md` を含む） | 公開の証拠だけで作った変更だけが PR になり、それ以外は提案に残る。Claude の費用の記録が 50 ドル以下 |
 | PR4 | orchestrator から取る分（§4 の 2、3、5 と、4 のうち PR2 で済ませた items 以外）。AGENTS.md の Upkeep を「セッションは live の hiden を書き換えない」に直す | PR3a の observe が実際のログを読めた後に出す。fixture のテストが通る。量が §4 の目安に収まり、上限を下げた。Codex のレビューで失った判断が無い。リンクが解決する |
 
@@ -285,4 +294,7 @@ PR はすべてオーナーが UI でマージする。
 - 作業するセッションに観測を書かせる、台帳を残す: 注意を管理するための注意になる。
 - 規則ごとの署名の telemetry、版の精密な帰属、一致の統計、役割 × 種類の上限の仕組み: どの原則も必要としない。
 - apply のトランザクションと自動の巻き戻し、レートの段階づけ、金額の予約: 適用の前提の確認、上限を渡せる実行経路、1 日 1 回、週 1 回の PR で足りる。
+- `chezmoi apply` で適用する、適用のためにチェックアウトを進める: 書く直前の中身を確かめられず、オーナーのチェックアウトを動かしてしまう。
+- 1 回の run で候補を 1 つだけ適用する: 1 日に管理パスのマージが何本もあると、待ちが減らない。L から main の先頭までをまとめて適用する: 1 つのターゲットの編集が無関係なマージまで止め、失敗をどの PR のものか示せない。
+- v1 で settings、seed、削除、テンプレート、新しいファイルも適用する: 描画と入れ替えの回復の約束が増える。オーナーの `make apply` に任せる。
 - GitHub Actions で検証する: CI に、資格情報と非公開の証拠が要る。
