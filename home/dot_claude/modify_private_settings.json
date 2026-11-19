@@ -139,7 +139,7 @@ exec chezmoi execute-template --with-stdin '
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit|Bash",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -198,28 +198,6 @@ exec chezmoi execute-template --with-stdin '
           {
             "command": "~/.claude/hooks/worktree-remove.sh",
             "type": "command"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/attention-budget.py post"
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/attention-budget.py post"
           }
         ]
       }

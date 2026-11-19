@@ -15,31 +15,22 @@ The budget file (~/.claude/attention/budget.json) holds:
 Usage:
   attention-budget.py status          print usage against the caps
   attention-budget.py ratchet         lower each prose cap to the file's current size
-  attention-budget.py pre             PreToolUse hook (Edit/Write/MultiEdit/Bash)
-  attention-budget.py post            PostToolUse and PostToolUseFailure hook (Bash)
+  attention-budget.py pre             PreToolUse hook (Edit/Write/MultiEdit)
 
 pre denies an Edit/Write/MultiEdit that would raise or remove a cap, drop a register or prose
 entry whose file still exists, put a role over its cap, grow a prose file past its cap, edit
-this script, or remove this hook from settings.json; and a shell command that names this
-script as a write target. For Bash it also records the tracked files; post compares them
-after the command, and if the command left the budget invalid it restores what the command
-changed and reports it. Shell writes need no pattern list: the result is checked, not the
-command text. Raising a cap is never allowed from a session.
+this script, or remove this hook from settings.json. Shell commands are not checked: the
+budget guards against drift in the files agents edit, not a session set on bypassing it.
+Raising a cap is never allowed from a session.
 """
-import hashlib
 import json
 import os
-import re
 import sys
-import tempfile
-import time
 
 BUDGET = os.path.expanduser("~/.claude/attention/budget.json")
 GLOBAL_REGISTER = os.path.expanduser("~/.claude/attention/items.json")
 SETTINGS = os.path.expanduser("~/.claude/settings.json")
 HOOK_MARK = "attention-budget.py"
-STATE_DIR = os.path.join(tempfile.gettempdir(), "attention-budget")
-SELF_NAME = os.path.basename(__file__)
 # Every instruction file in these directories needs a prose cap, so splitting a file cannot move text out of the budget.
 CAPPED_DIRS = ["~/.claude/skills/hiden", "~/.claude/skills/toolchain", "~/.claude/skills/public-text", "~/.claude/skills/wasure"]
 
@@ -61,11 +52,7 @@ def read(path):
 
 
 def write(path, text):
-    if text is None:
-        if os.path.exists(path):
-            os.remove(path)
-        return
-    tmp = path + ".attention-restore"
+    tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(text)
     os.replace(tmp, path)
@@ -246,89 +233,20 @@ def edit_errors(budget, path, text):
         return [f"{path} would not parse ({e})"]
 
 
-def state_file(event):
-    key = event.get("tool_use_id") or hashlib.sha256(
-        (event.get("session_id", "") + json.dumps(event.get("tool_input", {}), sort_keys=True)).encode()
-    ).hexdigest()
-    return os.path.join(STATE_DIR, re.sub(r"[^A-Za-z0-9_.-]", "_", key) + ".json")
-
-
-def watched(budget):
-    regs, prose = tracked(budget)
-    return sorted({expand(BUDGET), expand(SETTINGS), *regs, *prose})
-
-
-# A shell command that names this script as the target of a write. Reads of it pass.
-SELF_WRITE = re.compile(
-    r"(>>?|\btee\b(\s+-a)?|\bsed\s+-i\S*|\bperl\s+-\S*i\S*|\b(mv|cp|ln|install|rsync|trash|rm|truncate|chmod)\b"
-    r"[^|;&]*?)\s*\S*" + re.escape(SELF_NAME))
-
-
 def pre():
     event = json.load(sys.stdin)
     tool = event.get("tool_name", "")
     inp = event.get("tool_input", {}) or {}
-    if read(BUDGET) is None:
+    if tool not in ("Edit", "Write", "MultiEdit") or read(BUDGET) is None:
         return 0
     budget = load_budget()
-    if tool == "Bash":
-        if SELF_WRITE.search(inp.get("command", "")):
-            return deny("shell writes to the hook script are not allowed; only the owner edits it.")
-        os.makedirs(STATE_DIR, exist_ok=True)
-        # A Bash call denied by a later hook never reaches post; drop its record after a day.
-        for name in os.listdir(STATE_DIR):
-            p = os.path.join(STATE_DIR, name)
-            if time.time() - os.path.getmtime(p) > 86400:
-                os.remove(p)
-        with open(state_file(event), "w", encoding="utf-8") as f:
-            json.dump({p: read(p) for p in watched(budget)}, f)
-        return 0
-    if tool not in ("Edit", "Write", "MultiEdit"):
-        return 0
     path = expand(inp.get("file_path", ""))
     errors = edit_errors(budget, path, new_text(tool, inp, path))
     return deny("; ".join(errors) + ".") if errors else 0
-
-
-def post():
-    event = json.load(sys.stdin)
-    if event.get("tool_name") != "Bash":
-        return 0
-    sf = state_file(event)
-    try:
-        with open(sf, encoding="utf-8") as f:
-            before = json.load(f)
-    except FileNotFoundError:
-        return 0
-    os.remove(sf)
-    changed = {p: old for p, old in before.items() if read(p) != old}
-    if not changed:
-        return 0
-    old_budget = load_budget(before.get(expand(BUDGET)) or read(BUDGET))
-    errors = []
-    try:
-        new_budget = load_budget()
-        errors += budget_change_errors(old_budget, new_budget)
-        errors += violations(new_budget)
-    except (ValueError, KeyError, TypeError) as e:
-        errors.append(f"a tracked file no longer parses ({e})")
-    if expand(SETTINGS) in changed and HOOK_MARK not in (read(SETTINGS) or ""):
-        errors.append("settings.json lost the attention-budget hooks")
-    if not errors:
-        return 0
-    for path, old in changed.items():
-        write(path, old)
-    json.dump({
-        "decision": "block",
-        "reason": "Attention budget: the command left the budget invalid ("
-        + "; ".join(errors) + "), so these files were restored to their state before it: "
-        + ", ".join(short(p) for p in changed) + "." + ADVICE,
-    }, sys.stdout)
-    return 0
 
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "status"
     if mode == "hook":
         mode = "pre"
-    sys.exit({"status": status, "ratchet": ratchet, "pre": pre, "post": post}[mode]())
+    sys.exit({"status": status, "ratchet": ratchet, "pre": pre}[mode]())
