@@ -12,8 +12,6 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts/kaizen/signals.py"
-TEXT = ("A test counts as a regression test only after it has been seen failing with the fix removed and passing with "
-        "it restored.")
 
 spec = importlib.util.spec_from_file_location("kaizen_signals", SCRIPT)
 signals = importlib.util.module_from_spec(spec)
@@ -54,10 +52,6 @@ class Transcript:
 
     def bash(self, command, output):
         return self.tool("Bash", {"command": command}, output)
-
-    def attach(self, text):
-        return self.record("attachment", attachment={"type": "hook_additional_context", "content": [text],
-                                                     "hookEvent": "PostToolUse"})
 
 
 PY_TEST = "def test_last_page_kept():\n    assert paginate([1, 2, 3], 2)[-1] == [3]\n"
@@ -270,7 +264,7 @@ class RegressionSignal(SignalsCase):
         self.save(t)
         out = self.run_signal()
         self.assertCounts(out, 0, 0)
-        self.assertEqual((out["workers"], out["rate"], out["deliveries"]["rate"]), (1, None, None))
+        self.assertEqual((out["workers"], out["rate"]), (1, None))
 
     def test_non_test_file_is_no_opportunity(self):
         t = self.transcript()
@@ -306,13 +300,10 @@ class RegressionSignal(SignalsCase):
         self.assertEqual(out["workers"], 1)
         self.assertCounts(out, 0, 0)
 
-    def test_deliveries_count_attachments_with_the_unit_text(self):
+    def test_one_opportunity_per_worker(self):
         a = self.transcript()
         a.write("tests/test_paginate.py", PY_TEST)
-        a.attach(TEXT)
-        a.attach("Some other hook context.")
         a.write("tests/test_more.py", PY_TEST)
-        a.attach(TEXT)
         b = self.transcript()
         b.write("tests/test_paginate.py", PY_TEST)
         c = self.transcript()
@@ -321,8 +312,7 @@ class RegressionSignal(SignalsCase):
         self.save(b)
         self.save(c)
         out = self.run_signal()
-        self.assertEqual(out["deliveries"], {"attachments": 2, "workers": 1, "opportunities_delivered": 1,
-                                             "opportunities_missed": 1, "duplicated": 1, "rate": 0.5})
+        self.assertNotIn("deliveries", out)
         self.assertEqual((out["workers"], out["opportunities"]), (3, 2))
 
     def test_missing_and_unreadable_traces(self):
@@ -348,6 +338,54 @@ class RegressionSignal(SignalsCase):
         harm = self.run_signal()["harm"]
         self.assertEqual(harm["with_opportunity"], {"workers": 1, "median_turns": 3, "median_report_chars": 10})
         self.assertEqual(harm["without_opportunity"], {"workers": 1, "median_turns": 1, "median_report_chars": 7})
+
+
+class Matcher(unittest.TestCase):
+    """A test-file write is an opportunity by path below the root of cwd, by write tool only."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="signals-matcher-")
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(os.path.realpath(tmp.name))
+        self.repo = self.tmp / "work" / "repo"
+        (self.repo / ".git").mkdir(parents=True)
+
+    def hit(self, path, cwd=None, tool="Write"):
+        path = Path(path) if os.path.isabs(path) else self.repo / path
+        return signals.is_opportunity(signals.UNIT, tool, {"file_path": str(path)}, str(cwd or self.repo))
+
+    def test_test_file_names(self):
+        for f in ["pkg/a_test.go", "web/a.test.ts", "web/a.test.tsx", "web/a.test.js", "web/a.spec.ts", "web/a.spec.js",
+                  "py/test_a.py", "py/a_test.py", "tests/a.rs", "crates/x/tests/a.rs"]:
+            for tool in ("Edit", "Write", "MultiEdit"):
+                with self.subTest(file=f, tool=tool):
+                    self.assertTrue(self.hit(f, tool=tool))
+        self.assertFalse(self.hit("pkg/a_test.go", tool="Bash"))
+        self.assertFalse(signals.is_opportunity(signals.UNIT, "Write", {"file_path": "pkg/a_test.go"}, str(self.repo)))
+
+    def test_other_paths(self):
+        outside = self.tmp / "work" / "elsewhere"
+        outside.mkdir()
+        (self.repo / "link").symlink_to(outside, target_is_directory=True)
+        for f in ["pkg/foo.go", "web/x.spec.tsx", "web/a.test.jsx", "tests/common/mod.rs", "src/a.rs", "tests/a.rs.bak",
+                  "pkg/A_TEST.GO", str(outside / "a_test.go"), str(outside / "tests" / "a.rs"),
+                  str(self.repo / "link" / "test_a.py")]:
+            with self.subTest(file=f):
+                self.assertFalse(self.hit(f))
+
+    def test_root_is_the_nearest_git_ancestor_else_cwd(self):
+        repo = self.tmp / "tests" / "repo"
+        (repo / ".git").mkdir(parents=True)
+        self.assertFalse(self.hit(str(repo / "a.rs"), cwd=repo))
+        self.assertTrue(self.hit(str(repo / "tests" / "a.rs"), cwd=repo))
+        wt = self.tmp / "tests" / "wt"
+        (wt / "sub").mkdir(parents=True)
+        (wt / ".git").write_text("gitdir: elsewhere\n")
+        self.assertFalse(self.hit(str(self.tmp / "tests" / "a_test.go"), cwd=wt / "sub"))
+        self.assertTrue(self.hit(str(wt / "tests" / "a.rs"), cwd=wt / "sub"))
+        plain = self.tmp / "plain"
+        self.assertFalse(self.hit(str(self.tmp / "other" / "test_a.py"), cwd=plain))
+        self.assertTrue(self.hit(str(plain / "test_a.py"), cwd=plain))
 
 
 class Cli(SignalsCase):

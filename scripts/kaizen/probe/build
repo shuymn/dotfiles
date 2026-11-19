@@ -2,18 +2,16 @@
 # /// script
 # requires-python = ">=3.11"
 # ///
-"""Build the two arms of the regression-unit probe (docs/kaizen.md section 5; PREREG.md).
+"""Build arm B of the regression-unit probe (docs/kaizen.md section 5; PREREG.md).
 
-Each arm is a plugin named kaizen-probe whose evals/ holds the worker case at level 0 (clean prompt, for
+The arm is a plugin named kaizen-probe whose evals/ holds the worker case at level 0 (clean prompt, for
 calibration) and level 2 (a deterministic pseudo history of about 25k tokens, mostly agent-to-agent traffic):
-  A  hooks/hooks.json sends PostToolUse Edit|Write|MultiEdit to shim.py, which runs this checkout's
-     orchestration-context hook with an explicit interpreter. No reminder in the history.
-  B  no hook; the unit's text from units.json as a system-reminder at the head of the history (L2) or prompt (L0).
-Both arms share the history, the packet and scaffold.sh, which pre-stages the fixture files in the working
-directory so no setup write can use up the unit.
+  B  no hook; the unit's text (UNIT in signals.py) as a system-reminder at the head of the history (L2) or
+     prompt (L0).
+scaffold.sh pre-stages the fixture files in the working directory, so the session writes only its own files.
 Filler packets come from merge commits of --repo at the pinned --rev; material that public-check's rules reject
 (local paths, host.toml values, private terms) is skipped, and the built cases are checked again as a whole.
-Output: <out>/build/{A,B}/ and <out>/build/build.json. A rebuild replaces only a directory this script built.
+Output: <out>/build/B/ and <out>/build/build.json. A rebuild replaces only a directory this script built.
 """
 import argparse
 import importlib.machinery
@@ -36,8 +34,7 @@ import case_worker as W  # noqa: E402
 
 DEFAULT_OUT = Path.home() / ".claude/kaizen/probe"
 DEFAULT_REV = "83034fe07f89843d6c99d10e4e80141dc85ee9e2"  # public merge history the filler comes from
-HOOK = REPO / "home/dot_claude/hooks/executable_orchestration-context.py"
-UNITS = REPO / "home/dot_claude/attention/units.json"
+SIGNALS = REPO / "scripts/kaizen/signals.py"
 WORKER_DOC = REPO / "home/dot_claude/agents/opus-worker.md"
 UNIT_ID = "regression-seen-fail"
 SESSION_ID = "00000000-0000-4000-8000-000000000301"
@@ -46,10 +43,9 @@ N_FILL = 10
 MARKER = "build.json"
 
 
-def load_public_check():
-    path = REPO / "scripts/kaizen/public-check"
-    loader = importlib.machinery.SourceFileLoader("public_check", str(path))
-    spec = importlib.util.spec_from_loader("public_check", loader)
+def load(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
     module = importlib.util.module_from_spec(spec)
     loader.exec_module(module)
     return module
@@ -59,9 +55,8 @@ def reminder(text):
     return f"<system-reminder>\n{text}\n</system-reminder>"
 
 
-def unit_text(units_path):
-    units = json.loads(Path(units_path).read_text())["units"]
-    return next(u["text"] for u in units if u.get("id") == UNIT_ID)
+def unit_text():
+    return load("kaizen_signals", SIGNALS).UNIT["text"]
 
 
 def worker_body():
@@ -168,7 +163,7 @@ def history(material, pre, version):
 
 
 def scaffold():
-    """Bash that writes the fixture files into the empty workspace, the same bytes in both arms."""
+    """Bash that writes the fixture files into the empty workspace."""
     parts = ["#!/bin/bash", "set -euo pipefail"]
     for f in sorted(W.FIXTURE.iterdir()):
         body = f.read_text()
@@ -202,19 +197,12 @@ def make_case(cd, level, pre, material, version):
         (cd / "graders" / f"{g['name']}.md").write_text(frontmatter({k: v for k, v in g.items() if k != "name"}))
 
 
-def make_arm(d, arm, levels, text, material, version, python, hook):
+def make_arm(d, arm, levels, text, material, version):
     (d / ".claude-plugin").mkdir(parents=True)
     (d / ".claude-plugin/plugin.json").write_text(json.dumps(
         {"name": "kaizen-probe", "version": "0.0.0", "description": f"regression-unit probe, arm {arm}"}) + "\n")
-    if arm == "A":
-        (d / "hooks").mkdir()
-        shutil.copy(HERE / "shim.py", d / "shim.py")
-        command = f"{shlex.quote(python)} \"${{CLAUDE_PLUGIN_ROOT}}/shim.py\" {shlex.quote(str(hook))}"
-        (d / "hooks/hooks.json").write_text(json.dumps({"hooks": {"PostToolUse": [
-            {"matcher": "Edit|Write|MultiEdit", "hooks": [{"type": "command", "command": command, "timeout": 10}]}]}},
-            indent=1) + "\n")
     for level in levels:
-        make_case(d / "evals" / f"worker-L{level}", level, text if arm == "B" else None, material, version)
+        make_case(d / "evals" / f"worker-L{level}", level, text, material, version)
 
 
 def fresh(path):
@@ -234,16 +222,13 @@ def main(argv=None):
     p.add_argument("--rev", default=DEFAULT_REV, help="pinned revision of --repo (default: %(default)s)")
     p.add_argument("--filler", type=Path, help="JSON list of {sha, title, body, diff} to use instead of merges")
     p.add_argument("--levels", default="0,2", help="comma-separated levels, from 0 and 2")
-    p.add_argument("--python", default="/usr/bin/python3", help="interpreter for the shim and the hook")
-    p.add_argument("--hook", type=Path, default=HOOK)
-    p.add_argument("--units", type=Path, default=UNITS)
     p.add_argument("--history-version", default="2.1.325", help="CLI version written into the history records")
     a = p.parse_args(argv)
     levels = [int(x) for x in a.levels.split(",")]
     if not set(levels) <= {0, 2}:
         p.error("--levels takes 0 and/or 2")
 
-    pc = load_public_check()
+    pc = load("public_check", REPO / "scripts/kaizen/public-check")
     repo = Path(git(a.repo, "rev-parse", "--show-toplevel").strip())
     rev = git(repo, "rev-parse", "--verify", f"{'HEAD' if a.filler else a.rev}^{{commit}}").strip()
     cwd = os.getcwd()
@@ -257,7 +242,7 @@ def main(argv=None):
     def clean(text):
         return not pc.scan("filler", text, hosts, terms)
 
-    text = unit_text(a.units)
+    text = unit_text()
     if 2 not in levels:
         material = []
     elif a.filler:
@@ -268,17 +253,15 @@ def main(argv=None):
         material = filler_material(repo, rev, clean, N_FILL)
     root = a.out.expanduser().resolve() / "build"
     fresh(root)
-    for arm in ("A", "B"):
-        make_arm(root / arm, arm, levels, text, material, a.history_version, a.python, a.hook.resolve())
-    hits = [h for f in sorted(root.rglob("*")) if f.is_file() and f.parent.name != "hooks"
-            and f.name != "shim.py" for h in pc.scan(str(f.relative_to(root)), f.read_text(), hosts, terms)]
+    make_arm(root / "B", "B", levels, text, material, a.history_version)
+    hits = [h for f in sorted(root.rglob("*")) if f.is_file()
+            for h in pc.scan(str(f.relative_to(root)), f.read_text(), hosts, terms)]
     if hits:
         shutil.rmtree(root)
         sys.exit("build: private strings in the built cases:\n" + "\n".join(hits))
     (root / MARKER).write_text(json.dumps({"repo": str(repo), "rev": None if a.filler else rev, "merges": [m["sha"] for m in material],
-                                           "levels": levels, "unit": UNIT_ID, "python": a.python,
-                                           "hook": str(a.hook.resolve())}, indent=1) + "\n")
-    print(f"built {root}: arms A, B; levels {levels}; {len(material)} filler merges from {rev[:10]}")
+                                           "levels": levels, "unit": UNIT_ID}, indent=1) + "\n")
+    print(f"built {root}: arm B; levels {levels}; {len(material)} filler merges from {rev[:10]}")
     return root
 
 

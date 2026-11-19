@@ -8,7 +8,6 @@
     "~/.claude/attention/items.json"
   ],
   "prose": {
-    "~/.claude/attention/units.json": 462,
     "~/.claude/agents/opus-worker.md": 1618,
     "~/.claude/agents/steward.md": 1461,
     "~/.claude/skills/hiden/SKILL.md": 9363,
