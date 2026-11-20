@@ -210,6 +210,53 @@ class PublicCheckTests(unittest.TestCase):
         self.commit("c1", "chore: defaults\n", patch("nix/host.default.toml", 'hostName = "alice-mbp"'))
         self.assert_hit(self.check(), "commit c1 diff: a host.toml value ('alice-mbp')")
 
+    def explicit(self, *args):
+        """Explicit-input mode in a bare repository: worktree discovery fails, ~/.claude/kaizen is empty."""
+        self.env["MOCK_ROOT"] = ""
+        (self.bin / "git").write_text("#!/bin/sh\n" + GIT.replace(
+            '"rev-parse --show-toplevel") echo "$MOCK_ROOT" ;;',
+            '"rev-parse --show-toplevel") echo "fatal: this operation must be run in a work tree" >&2; exit 128 ;;'))
+        terms = self.root / "terms"
+        if not terms.exists():
+            terms.write_text("# synthetic\nProject Zebra\n")
+        return self.check("--host-toml", str(self.checkout / "host.toml"), "--private-terms", str(terms), *args)
+
+    def test_explicit_inputs_need_no_work_tree(self):
+        self.commit("c1", "docs: describe the role\n", CLEAN_DIFF)
+        body = self.root / "body.md"
+        body.write_text("Edits home/dot_claude/CLAUDE.md.\n")
+        result = self.explicit("--title", "docs: role", "--body-file", str(body), "--branch", "kaizen/role")
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
+        self.assertNotIn("--show-toplevel", (self.root / "git.log").read_text())
+
+    def test_explicit_inputs_reject_values_everywhere(self):
+        body = self.root / "body.md"
+        body.write_text("Body about project zebra.\n")
+        self.commit("c1", "docs: alice-mbp notes\n", patch("a.md", "zebra project zebra"))
+        self.commit("c2", "docs: project zebra\n", patch("b.md", "on alice-mbp"))
+        result = self.explicit("--title", "Project Zebra", "--body-file", str(body), "--branch", "kaizen/alice-mbp")
+        self.assert_hit(result, "commit c1 message: a host.toml value ('alice-mbp')",
+                        "commit c1 diff: private term 'Project Zebra'",
+                        "commit c2 message: private term 'Project Zebra'",
+                        "commit c2 diff: a host.toml value ('alice-mbp')",
+                        "--title: private term 'Project Zebra'", "--body-file: private term 'Project Zebra'",
+                        "--branch: a host.toml value ('alice-mbp')")
+        # the default private-terms of the home is not read in this mode
+        self.assertFalse((self.home / ".claude/kaizen/private-terms").exists())
+
+    def test_explicit_inputs_must_exist_and_go_together(self):
+        self.commit("c1", "docs: x\n", CLEAN_DIFF)
+        terms = self.root / "terms"
+        terms.write_text("x\n")
+        for args in (("--host-toml", str(self.root / "missing.toml"), "--private-terms", str(terms)),
+                     ("--host-toml", str(self.checkout / "host.toml"), "--private-terms", str(self.root / "none")),
+                     ("--host-toml", str(self.checkout / "host.toml"), "--private-terms", str(self.root)),
+                     ("--host-toml", str(self.checkout / "host.toml"))):
+            with self.subTest(args=args):
+                result = self.check(*args)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_own_source_has_no_hits(self):
         loader = importlib.machinery.SourceFileLoader("public_check", str(SCRIPT))
         module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
