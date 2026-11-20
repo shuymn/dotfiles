@@ -102,33 +102,52 @@ def git_env(state):
     return env
 
 
-def run_git(git, args, env, timeout, deadline):
-    """stdout bytes. The timeout is bounded by the deadline (monotonic). git runs in its own process group, which is
-    killed on a timeout or any exception (a SystemExit from the cycle's signal handlers included), so its helpers
-    (git-remote-https) go with it; then git is reaped."""
-    left = min(timeout, deadline - time.monotonic())
+class Timeout(ApplyError):
+    """A child that passed its timeout or the deadline; at_deadline says the deadline was the nearer limit."""
+
+    def __init__(self, message, at_deadline):
+        super().__init__(message)
+        self.at_deadline = at_deadline
+
+
+def bounded(argv, env, deadline, timeout=None, cwd=None, input=None):
+    """(returncode, stdout bytes, stderr bytes) of argv, which runs in its own process group with its stdin fed from
+    input (empty when None). The timeout is bounded by the deadline (monotonic); communicate drains both pipes. The
+    group is killed on a timeout or any exception (a SystemExit from the cycle's signal handlers included), so helpers
+    and grandchildren go with it; then the child is reaped."""
+    remaining = deadline - time.monotonic()
+    left = remaining if timeout is None else min(timeout, remaining)
+    name = os.path.basename(str(argv[0]))
     if left <= 0:
-        raise ApplyError(f"git {args[0]}: no time left before the deadline")
+        raise Timeout(f"{name}: no time left before the deadline", True)
     try:
-        p = subprocess.Popen([git, *args], env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, start_new_session=True)
+        p = subprocess.Popen(argv, env=env, cwd=cwd, stdin=subprocess.DEVNULL if input is None else subprocess.PIPE,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     except FileNotFoundError as e:
-        raise ApplyError(f"git not found: {e}") from e
+        raise ApplyError(f"{name} not found: {e}") from e
     try:
-        out, err = p.communicate(timeout=left)
+        out, err = p.communicate(input=input, timeout=left)
     except BaseException as e:
         try:
             os.killpg(p.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
         p.wait()
-        p.stdout.close()
-        p.stderr.close()
+        for f in (p.stdin, p.stdout, p.stderr):
+            if f:
+                f.close()
         if isinstance(e, subprocess.TimeoutExpired):
-            raise ApplyError(f"git {' '.join(map(str, args[:4]))} timed out after {left:.0f}s") from e
+            raise Timeout(f"{name} {' '.join(map(str, argv[1:5]))} timed out after {left:.0f}s",
+                          timeout is None or remaining <= timeout) from e
         raise
-    if p.returncode != 0:
-        raise ApplyError(f"git {' '.join(map(str, args[:4]))}: exit {p.returncode}: "
+    return p.returncode, out, err
+
+
+def run_git(git, args, env, timeout, deadline):
+    """stdout bytes of git args, run through bounded."""
+    code, out, err = bounded([git, *args], env, deadline, timeout)
+    if code != 0:
+        raise ApplyError(f"git {' '.join(map(str, args[:4]))}: exit {code}: "
                          f"{err.decode(errors='replace').strip()[-300:]}")
     return out
 
