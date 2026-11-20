@@ -120,11 +120,6 @@ exec chezmoi execute-template --with-stdin '
             "type": "command"
           },
           {
-            "command": "~/.claude/hooks/deny-rm.sh",
-            "if": "Bash(rm *)",
-            "type": "command"
-          },
-          {
             "command": "~/.claude/hooks/ask-git-push-protected.py",
             "if": "Bash(git *)",
             "type": "command"
@@ -133,20 +128,14 @@ exec chezmoi execute-template --with-stdin '
         "matcher": "Bash"
       },
       {
-        "matcher": "Bash|Read|Grep|Glob|mcp__pencil__.*",
+        "matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/guard-agent-actions.py"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/attention-budget.py pre"
+            "command": "stack",
+            "args": ["hook", "claude", "pre-tool-use"],
+            "timeout": 5,
+            "onFailure": "continue"
           }
         ]
       },
@@ -161,23 +150,15 @@ exec chezmoi execute-template --with-stdin '
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/orchestration-context.py"
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/orchestration-context.py",
-            "timeout": 60
+            "command": "stack",
+            "args": ["hook", "claude", "session-start"],
+            "timeout": 60,
+            "onFailure": "continue"
           }
         ]
       }
