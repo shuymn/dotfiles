@@ -623,17 +623,19 @@ class Weekly(Fakes):
                 self.assertIn(needle, (self.k / improve.PROPOSALS / self.attempts()[0] / "diff.patch").read_text())
 
     def test_c2_the_lock_is_held_until_the_result_is_saved(self):
-        started = self.fdir / "create.pid"
-        self.scenario(create={"stdout": "https://github.com/o/r/pull/9\n", "sleep": 2, "pidfile": str(started)})
-        t = threading.Thread(target=self.weekly)
-        t.start()
-        deadline = time.monotonic() + 30
-        while not started.exists() and time.monotonic() < deadline:
-            time.sleep(0.05)
-        self.assertTrue(started.exists())
-        self.assertIsNone(improve.take_lock(self.k))  # held during the last remote write
-        t.join(60)
+        real, probes = improve.save, []
+
+        def probe(path, value):  # at the save of the final outcome, another taker must still be refused
+            if str(value.get("outcome", "")).startswith("pr "):
+                other = improve.take_lock(self.k)
+                probes.append(other is None)
+                if other:
+                    other.close()
+            real(path, value)
+        with mock.patch.object(improve, "save", side_effect=probe):
+            self.weekly()
         self.assertTrue(self.result()["outcome"].startswith("pr "))
+        self.assertEqual(probes, [True])
         lock = improve.take_lock(self.k)
         self.assertIsNotNone(lock)
         lock.close()
