@@ -6,7 +6,7 @@
 
 - **続きの送り先:** 同じ領域の続き（例: ターン上限からの再開、レビューと simplify の修正、次の作業）は、キャッシュが温かいうちか、そのワークツリーや未コミットの変更が要るときだけ自分が立てた同じエージェントに名指しで送る。それ以外は指示書・前の報告・ブランチを渡して新しく立てる。相談にはすぐ答える（待つとキャッシュが切れる）。
 - **起動と待ち:** 実装エージェントは 1 体ごとに専用のワークツリーで起動し、依頼文の固定の 1 行で `~/.claude/agents/opus-worker.md` の本文に従わせる。仮のブランチ名（例: `Agent` の `subagent_type: "opus-worker"`、`isolation: "worktree"` の `agent-<id>`）で始まったら、PR の前に `git branch -m` で作業名に付け替える。子は終わりの通知で起こすので、見回りや待つコマンドで待たない。委任と引き継ぎの前に、シェルの cwd だけでなくセッション自体が対象リポジトリに属することを確かめる。モデルと労力は成果を最大にする向きで選ぶ。
-- **長いセッションと compaction:** 本質と状態はキット（`state.md` か `NORTH.md`、`units.json`、`bin/board`）に置き、フックが開始と compaction の後に文脈へ戻す（[attention.md](attention.md)）。
+- **長いセッションと compaction:** 本質と状態はキット（`state.md` か `NORTH.md`、`units.json`、`bin/board`）に置き、`stack kit open` で開いたキットを、フックが compaction の後だけ文脈へ戻す（[attention.md](attention.md)）。
 
 ## 1 PR の段
 

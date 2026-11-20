@@ -1,0 +1,56 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# ///
+"""Write ~/.config/stack/private-terms (mode 0600), the terms `stack check public` rejects.
+
+The terms are those scripts/kaizen/public-check rejects, read through its own functions: the private string values
+of the git-ignored host.toml (this checkout's, else the main checkout's), each line of ~/.claude/kaizen/private-terms,
+and the T3 data directory fragments its local-path pattern matched. Run by chezmoi on every apply, so this file holds
+no value and chezmoi never shows one in a diff or plan.
+
+Exit status: 0 written, 1 no host.toml in this checkout or the main one (no file is written).
+"""
+
+import importlib.machinery
+import importlib.util
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+TARGET = Path.home() / ".config/stack/private-terms"
+
+
+def public_check():
+    loader = importlib.machinery.SourceFileLoader("public_check", str(REPO / "scripts/kaizen/public-check"))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(module)
+    return module
+
+
+def main() -> int:
+    os.chdir(REPO)  # public-check's git calls read this checkout
+    pc = public_check()
+    main_checkout = Path(pc.git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()).parent
+    candidates = list(dict.fromkeys((REPO / "host.toml", main_checkout / "host.toml")))
+    hosts = [p for p in candidates if p.is_file()]
+    if not hosts:
+        print(f"stack-private-terms: {' or '.join(map(str, candidates))} not found; run 'make host' first",
+              file=sys.stderr)
+        return 1
+    terms = sorted(pc.host_values(None, None, "HEAD", hosts)) + pc.private_terms()
+    terms += [f".t3/{name}/" for name in ("scratch", "worktrees", "userdata")]
+    text = "# Generated on chezmoi apply by scripts/stack-private-terms; edit host.toml or ~/.claude/kaizen/private-terms.\n"
+    text += "".join(f"{t}\n" for t in dict.fromkeys(terms))
+    TARGET.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=TARGET.parent, prefix=".private-terms.")  # created 0600
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, TARGET)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -61,7 +61,7 @@ flowchart TD
    - 同じ役割の中でも、段ごとに要る集合が変わり、複数の関心を釣り合わせる。
    - モデル自身に思い出させる文（自己スケジュール）には頼らない。
 3. **取り去るのも配分のうちである。**
-   - 仕組みにできるものは仕組みに渡す（例: マージは merge-pr）。
+   - 仕組みにできるものは仕組みに渡す（例: マージは `stack pr merge`）。
    - モデルが既にしている振る舞いの文は消す。
    - 役割が知る必要の無いものは見せない。
    - 問題でないものは直さない。例: 何度もやり取りした後に英語へ流れることは、意図して直さない。
@@ -72,7 +72,7 @@ flowchart TD
    - 成果のベンチマークはゲートにしない。モデルが強くなるほど、現実的なベンチマークは長く高くなるからである。
    - 安い注意の分布の probe（§5）は、配るか取るかの判断材料にする。マージのゲートにはしない。
 6. **オーナーが握る。**
-   - 守りを緩めるのはオーナーだけ。守りとは、許可・破壊・外部・公開の線、フック、merge-pr、hiden の本質を指す。
+   - 守りを緩めるのはオーナーだけ。守りとは、許可・破壊・外部・公開の線、フック、`stack pr merge`、hiden の本質を指す。
    - kaizen の PR は、オーナーが GitHub の UI でマージする。
    - オーナーの決定は、週 1 回ほどにまとめる。開いている kaizen の PR は 1 本まで。
    - 1 周期の Claude の費用は 50 ドル相当まで（Codex は別に数える）。周期は 1 日 1 回まで。
@@ -128,7 +128,7 @@ flowchart TD
 | 環境で検証が止まった | — | debugging.md（recall の行を移す） | SKILL の常駐の行 | 仮説 |
 | 段の区切り | — | steward（目的と経路の監査が要るときに呼ぶ） | 台帳の記録、振り返り、文書整理、`/wasure` を勧める文、「手法を直すとき」は周期へ移す。steward を呼ぶ定例の時期は消す | 原則 4 |
 
-引き継ぎの文は、今は SessionStart と Stop の両方が同じ `QUESTIONS` から出している。動かすのは両方の出力を一緒に直して確かめるときだけにし、v1 では触らない。
+引き継ぎの文は、`~/.config/stack/handover/` の環境ごとのファイルにあり、`stack kit open` と compaction の後の SessionStart だけが出す。Stop のフックは無い。
 
 **兆しだけの候補（probe するまで変えない）:**
 - format の場面でオーナーに尋ねる率: 全体を常駐 1/3、plain 2/3、just-in-time 3/3。
@@ -139,7 +139,7 @@ flowchart TD
 **常駐:**
 - `opus-worker.md`。回帰テストの一文（"A test counts as a regression test only after it has been seen failing with the fix removed and passing with it restored."）を含む。
   - ネイティブの subagent: system prompt になり、compaction の後も残る。
-  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`orchestration-context.py` の SessionStart(compact) が本文（frontmatter を除く）とそのプロンプトをそのまま文脈へ戻す（フックの上限の長さで切る）。
+  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`stack hook claude session-start` の compact が本文（frontmatter を除く）とそのプロンプトをそのまま文脈へ戻す（フックの上限の長さで切る）。
 - CLAUDE.md。
 - items の `evidence`。
 
@@ -317,9 +317,9 @@ flowchart TD
   - `home/.chezmoiignore`、`home/.chezmoiremove`、`home/.chezmoitemplates/agents/**`
   - `scripts/kaizen/**`、`docs/kaizen.md`
   - 一覧そのもの
-- **merge-pr:** GitHub 上の PR の base を確かめ、一覧をその base から読み（`git show <base>:...`）、一覧に触れる PR を、誰の依頼でも拒否する。dotfiles で一覧が読めないときも拒否する。管理パスに触れない PR は今までどおり通す。
+- **マージの拒否:** 一覧に触れる PR を拒否する仕組みは今は無い。`stack pr merge` は確かめた head とチェックだけを見て、一覧は読まない（v10 で所有者限定の一覧を外した）。
 - **オーナーのマージの手順:** `main` の必須チェック `automerge-gate/all-passed` は、auto-merge が有効になるか、作者以外の承認があるときに走る。オーナーは自分の PR を承認できないので、確かめた head で GitHub の UI から auto-merge を有効にする。その後、周期はその PR に push しない。head を更新するときは、先に UI で auto-merge を解除し、新しい head を確かめてから有効にし直す。
-- **Codex:** Codex のセッションには Claude のフックが届かず、merge-pr の拒否も通らない。v1 の Codex はレビューだけを担い、マージの作業を渡さない。Codex と pi の作業指示（`home/dot_codex/AGENTS.md.tmpl`、`home/dot_pi/agent/AGENTS.md.tmpl`）に、管理パスの PR はオーナーだけがマージすることを一文で置く。Claude には merge-pr の拒否が効くので、常時読む指示には置かない。
+- **Codex:** Codex のセッションには Claude のフックが届かない。v1 の Codex はレビューだけを担い、マージの作業を渡さない。Codex と pi の作業指示（`home/dot_codex/AGENTS.md.tmpl`、`home/dot_pi/agent/AGENTS.md.tmpl`）に、管理パスの PR はオーナーだけがマージすることを一文で置く。
 - **公開の検査:** `scripts/kaizen/public-check` を、push と `gh pr create`/`edit` の前に走らせる。対象は、送るコミットの範囲の全コミット（差分とメッセージ）と、PR の題・本文・ブランチ名。ローカルのパス、`host.toml` の値、`~/.claude/kaizen/private-terms` を拒否する。辞書に無い私的な語はこの検査では拾えないので、それは上の段 7 の「公開の資料だけで説明できるものに限る」で防ぐ。
 - **auto-merge:** 周期の側の仕組みは持たない。
 

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Write ~/.config/stack/private-terms from host.toml and ~/.claude/kaizen/private-terms. Only hashes of the inputs are
+# rendered here, so the script reruns when one changes and no private value appears in `chezmoi diff` or the plan.
+{{- $tree := .chezmoi.workingTree }}
+{{- $main := output "git" "-C" $tree "rev-parse" "--path-format=absolute" "--git-common-dir" | trim | dir }}
+{{- range $path := list (joinPath $tree "host.toml") (joinPath $main "host.toml") (joinPath .chezmoi.homeDir ".claude/kaizen/private-terms") (joinPath $tree "scripts/stack-private-terms") (joinPath $tree "scripts/kaizen/public-check") }}
+# input: {{ if stat $path }}{{ include $path | sha256sum }}{{ else }}absent{{ end }}
+{{- end }}
+set -eu
+{{- if not (lookPath "uv") }}
+
+# The first converge runs chezmoi before mise installs uv. The script renders differently once uv exists, so a later
+# apply reruns it.
+echo "write-stack-private-terms: uv not found; ~/.config/stack/private-terms not written" >&2
+exit 0
+{{- end }}
+
+exec uv run --script "$CHEZMOI_WORKING_TREE/scripts/stack-private-terms"
