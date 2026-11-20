@@ -63,6 +63,7 @@ PUBLIC_CHECK = HERE / "public-check"
 PUBLIC_WHERE = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/(?:pull|actions/runs)/\d+")
 ATTEMPT = re.compile(r"\d{8}-[0-9a-f]{6}")
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+FENCE_CLOSE = re.compile(r" {0,3}(`{3,}|~{3,})[ \t]*")
 CODE_SPAN = re.compile(r"(`+)(?!`).*?(?<!`)\1(?!`)", re.S)
 INLINE_LINK = re.compile(r"\]\(\s*(<[^>\n]*>|[^)\s]+)")
 REFERENCE = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^>\n]*>|\S+)", re.M)
@@ -156,11 +157,12 @@ def markdown_links(text):
         m = FENCE.match(line)
         if fence is None and m:
             fence = m.group(1)[0] * len(m.group(1))
-        elif fence is not None and m and m.group(1).startswith(fence):
+        elif fence is not None and (c := FENCE_CLOSE.fullmatch(line)) and c.group(1).startswith(fence):
             fence = None
         elif fence is None:
             kept.append(line)
-    prose = CODE_SPAN.sub("", "\n".join(kept))
+    # a code span never crosses a blank line (a block boundary)
+    prose = "\n\n".join(CODE_SPAN.sub("", b) for b in re.split(r"\n[ \t]*\n", "\n".join(kept)))
     found = INLINE_LINK.findall(prose) + REFERENCE.findall(prose)
     return {t[1:-1] if t.startswith("<") and t.endswith(">") else t for t in found}
 
@@ -289,8 +291,8 @@ def remove_tree(state, path):
     try:
         if stat.S_ISDIR(os.lstat(p).st_mode):
             shutil.rmtree(p)
-    except FileNotFoundError:
-        pass
+    except OSError:
+        pass  # a leftover tree is harmless; recovery must still reach its decision
 
 
 def clear(k, attempt):

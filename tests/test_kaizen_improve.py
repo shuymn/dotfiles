@@ -593,7 +593,9 @@ class Weekly(Fakes):
                  "inline code": ("skill v1 `[x](references/none.md)`\n", "pr "),
                  "fenced code": ("skill v1\n```\n[x](references/none.md)\n```\n", "pr "),
                  "angle brackets": ("skill v1 [a](<references/a.md>)\n", "pr "),
-                 "broken reference": ("skill v1 [x][r]\n\n[r]: references/none.md\n", "proposal:links")}
+                 "broken reference": ("skill v1 [x][r]\n\n[r]: references/none.md\n", "proposal:links"),
+                 "backticks in other blocks": ("skill v1 `\n\n[x](references/none.md)\n\n`\n", "proposal:links"),
+                 "info string is no closer": ("skill v1\n```md\n```yaml\n[x](references/none.md)\n```\n", "pr ")}
         for name, (text, outcome) in cases.items():
             with self.subTest(name):
                 shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
@@ -764,6 +766,17 @@ class Weekly(Fakes):
         self.assertIn("checkout", after["reason"])
         self.assertTrue(any(r["branch"] in d and "cycle.py clear" in d for d in res["decisions"]), res["decisions"])
         self.assertEqual(self.jsonl("created.jsonl"), [])
+
+    def test_c18_a_tree_that_cannot_be_removed_does_not_stop_recovery(self):
+        a, r = self.publishing()
+        tree = self.home / improve.STATE / "tree-left"
+        tree.mkdir()
+        a.update(tree=str(tree))
+        self.scenario(open=["fail"])
+        with mock.patch.object(improve.shutil, "rmtree", side_effect=PermissionError("denied")) as rmtree:
+            self.weekly()
+        rmtree.assert_called_once()
+        self.assertEqual(self.result(a.data["id"])["outcome"], "pr https://github.com/o/r/pull/9")
 
     def test_c18_an_unexpected_recovery_error_is_a_decision(self):
         a, r = self.publishing()
