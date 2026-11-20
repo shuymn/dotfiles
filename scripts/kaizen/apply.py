@@ -674,8 +674,9 @@ class Run:
 
     def classify(self, parent, commit, targets, head=None):
         """{rel: (kind, live, parent identity, old, new)}, one snapshot per target. A target whose live file already
-        is main's newest version (head) is done: a later merge was applied another way, and writing this merge's
-        blob would move it back. A target with a journal entry of
+        is main's newest version (head, a 100644 blob of the same source) is done, ahead of write: a later merge was
+        applied another way, and writing this merge's blob would move it back. This does not apply to a target
+        with a journal entry. A target with a journal entry of
         this merge (an earlier run wrote it) never enters the write set: it is done when that snapshot still shows the
         new blob at mode 0644 under the recorded parent; anything else (the old blob included) makes its entry
         unresolved and its kind "journal"."""
@@ -684,11 +685,11 @@ class Run:
             old, new = self.reader.blob(parent, source)[1], self.reader.blob(commit, source)[1]
             live, pid = snapshot(self.home, rel)
             k = kind(live, old, new)
-            if k == "conflict" and head:
-                latest = self.reader.blob(head, source)[1]
-                if kind(live, None, latest) == "done":
-                    k, new = "done", latest  # the recheck before L advances then expects main's version
             mine = [e for e in self.journal if e["merge"] == commit and e["target"] == rel]
+            if k != "done" and head and not mine:
+                tip = self.reader.blob(head, source)  # main's newest version of the same source, if a plain file
+                if tip and tip[0] == "100644" and kind(live, None, tip[1]) == "done":
+                    k, new = "done", tip[1]  # the recheck before L advances then expects main's version
             if mine and not (k == "done" and all(e["step"] == "clean" and e["parent"] == pid for e in mine)):
                 k = "journal"
                 note = "parent changed" if kind(live, old, new) == "done" else describe(live)

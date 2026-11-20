@@ -357,6 +357,28 @@ class Weekly(Fakes):
                 self.assertEqual([c for c in self.calls("claude") if c["argv"][:1] == ["-p"]], [])
                 self.assertEqual(self.attempts(), [])
 
+    def test_claude_gets_the_owners_endpoint_and_nothing_else_from_settings(self):
+        settings = self.home / ".claude/settings.json"
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        cases = {"proxy": ({"env": {"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317", "ANTHROPIC_AUTH_TOKEN": "tok-x",
+                                    "OTHER": "y"}}, {"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317",
+                                                     "ANTHROPIC_AUTH_TOKEN": "tok-x"}),
+                 "no proxy": ({"env": {}}, {}),
+                 "no file": (None, {})}
+        for name, (content, expected) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                (self.fdir / "log.jsonl").unlink(missing_ok=True)
+                if content is None:
+                    settings.unlink(missing_ok=True)
+                else:
+                    settings.write_text(json.dumps(content))
+                self.weekly()
+                [call] = [c for c in self.calls("claude") if c["argv"][:1] == ["-p"]]
+                self.assertEqual({k: v for k, v in call["env"].items() if k.startswith("ANTHROPIC")}, expected)
+                self.assertNotIn("OTHER", call["env"])
+                self.assertNotIn("tok-x", json.dumps(call["argv"]) + call.get("stdin", ""))
+
     # ---------------------------------------------------------------- C7, C8, C17: what claude gets
     def test_c7_c8_c17_claude_inputs(self):
         self.weekly()
@@ -371,7 +393,7 @@ class Weekly(Fakes):
             self.assertIn(flag, argv)
         self.assertEqual(json.loads(argv[argv.index("--json-schema") + 1]), improve.SCHEMA)
         self.assertLessEqual(set(call["env"]) - {"__CF_USER_TEXT_ENCODING", "PWD", "SHLVL", "_", "OLDPWD"},
-                             set(improve.CLAUDE_ENV))
+                             set(improve.CLAUDE_ENV) | set(improve.ENDPOINT_ENV))
         self.assertEqual(call["env"]["HOME"], str(self.home))
         state = self.home / improve.STATE
         self.assertEqual(Path(call["cwd"]).parent.resolve(), state.resolve())
@@ -451,6 +473,26 @@ class Weekly(Fakes):
         self.assertEqual(len(outcomes), 2)
         self.assertEqual(outcomes[0], improve.UNAVAILABLE)
         self.assertTrue(outcomes[1].startswith("pr "), outcomes)
+
+    def test_c3_zero_cost_with_tokens_still_uses_up_the_week(self):
+        worked = {"result": "error", "total_cost_usd": 0, "is_error": True, "usage": {"output_tokens": 12}}
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"}, "result": worked, "code": 1})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], "failed:model-result")
+        self.weekly()
+        self.assertEqual(len(self.attempts()), 1)  # not due
+
+    def test_c3_an_unavailable_attempt_does_not_hide_a_counting_one(self):
+        self.scenario(claude={"result": {"result": "x", "total_cost_usd": 2.0, "is_error": True}, "code": 1})
+        self.weekly()
+        counting = self.attempts()[0]
+        later = self.k / improve.PROPOSALS / (counting[:9] + "ffffff")  # same start, a name that sorts after
+        shutil.copytree(self.k / improve.PROPOSALS / counting, later)
+        data = json.loads((later / "result.json").read_text())
+        data.update(outcome=improve.UNAVAILABLE, id=later.name)
+        (later / "result.json").write_text(json.dumps(data))
+        self.weekly()
+        self.assertEqual(len(self.attempts()), 2)  # still not due: the $2 attempt counts
 
     def test_c9_a_cost_too_large_for_a_float_is_unknown(self):
         result = {"type": "result", "subtype": "success", "is_error": False, "structured_output": OUTPUT}

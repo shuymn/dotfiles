@@ -254,9 +254,32 @@ def save(path, value):
         os.close(dfd)
 
 
-def newest(k):
-    """The newest attempt (by its start, then its name), or None. An attempt whose result.json is unreadable is
-    returned as one that blocks the gate."""
+ENDPOINT_ENV = ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN")
+
+
+def endpoint_env(home):
+    """The API endpoint the owner's Claude Code uses on this machine (e.g. a local proxy that spreads requests over
+    several accounts), from the `env` of ~/.claude/settings.json; --restricted ignores that file, so the stage passes
+    these two keys itself. Empty on a machine that sets neither."""
+    try:
+        env = json.loads((home / ".claude/settings.json").read_text()).get("env") or {}
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return {k: env[k] for k in ENDPOINT_ENV if isinstance(env.get(k), str) and env[k]}
+
+
+def no_tokens(usage):
+    """True when usage reports no tokens at all (missing counts as none)."""
+    if usage is None:
+        return True
+    if not isinstance(usage, dict):
+        return False
+    return all(v == 0 for key, v in usage.items() if key.endswith("_tokens") and isinstance(v, (int, float)))
+
+
+def newest(k, skip=()):
+    """The newest attempt (by its start, then its name), or None, leaving out readable attempts whose outcome is in
+    skip. An attempt whose result.json is unreadable is returned as one that blocks the gate."""
     found = []
     try:
         entries = list((k / PROPOSALS).iterdir())
@@ -273,7 +296,8 @@ def newest(k):
             key = "~"  # sorts after every timestamp: an unreadable attempt is treated as the newest
             found.append((key, entry.name, entry, str(e)))
             continue
-        found.append((key, entry.name, a, None))
+        if a.data.get("outcome") not in skip:
+            found.append((key, entry.name, a, None))
     if not found:
         return None
     _, _, a, error = max(found, key=lambda f: (f[0], f[1]))
@@ -409,8 +433,8 @@ class Stage:
                 return
         if a and a.data.get("outcome") == REMOTE_UNKNOWN and not a.data.get("cleared"):
             raise Skip("remote-unknown")
-        if (a and a.data.get("outcome") != UNAVAILABLE
-                and now - (datetime.fromisoformat(str(a.data["started"]).replace("Z", "+00:00"))) < WEEK):
+        last = newest(self.k, skip=(UNAVAILABLE,))  # an attempt whose model did no work does not use up the week
+        if last and now - (datetime.fromisoformat(str(last.data["started"]).replace("Z", "+00:00"))) < WEEK:
             raise Skip("not due")
         if not self.slug:
             raise Skip("no GitHub origin")
@@ -462,6 +486,7 @@ class Stage:
     def minimal_env(self):
         env = {k: os.environ[k] for k in CLAUDE_ENV if k in os.environ}
         env["HOME"] = str(self.home)
+        env.update(endpoint_env(self.home))
         return env
 
     def identity(self):
@@ -581,9 +606,10 @@ class Stage:
         if not (code == 0 and isinstance(result, dict) and result.get("subtype") == "success"
                 and result.get("is_error") is False and matches(result.get("structured_output"), SCHEMA)):
             detail = f"exit {code}: {err.decode(errors='replace')[-200:]}"
-            if isinstance(result, dict) and cost == 0:
-                # no model work was billed (e.g. a usage limit or a login problem): retry at the next run
-                raise Stop(UNAVAILABLE, f"{detail} {str(result.get('result'))[:200]}")
+            if isinstance(result, dict) and cost == 0 and no_tokens(result.get("usage")):
+                # the model did no work (e.g. a usage limit or a login problem): retry at the next run
+                excerpt = str(result.get("result"))[:200].encode("utf-8", "replace").decode()
+                raise Stop(UNAVAILABLE, f"{detail} {excerpt}")
             raise Stop("failed:model-result", detail)
         return result["structured_output"]
 

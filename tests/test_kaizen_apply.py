@@ -384,6 +384,30 @@ class Chain(Base):
         self.assertEqual(self.cursor(), m2)
         self.assertEqual((self.live(T_SKILL), self.inode(T_SKILL)), (b"skill v2\n", before))
 
+    def test_a_tip_that_is_not_a_plain_file_is_not_done(self):
+        for name, tip in {"deleted": None, "symlink": ("120000", b"skill v2\n")}.items():
+            with self.subTest(name):
+                repo = Repo()
+                L = repo.head
+                m1 = repo.main({SKILL: b"skill v1\n"}, "Merge pull request #1 from a")
+                repo.main({SKILL: tip}, "Merge pull request #2 from b")
+                self.setup(repo, L)
+                (self.home / T_SKILL).write_bytes(b"skill v2\n")
+                res = self.run_apply()  # no crash; m1 is a conflict, not done
+                self.assertEqual(res["merges"][0]["commit"], m1)
+                self.assertEqual(res["merges"][0]["status"], "conflict")
+                self.assertEqual(self.cursor(), L)
+
+    def test_a_revert_at_the_tip_is_not_written_over(self):
+        repo = Repo()
+        L = repo.head
+        repo.main({SKILL: b"skill v1\n"}, "Merge pull request #1 from a")
+        repo.main({SKILL: b"skill v0\n", "home/dot_claude/hooks/x.py": b"print(1)\n"}, "Merge pull request #2 from b")
+        self.setup(repo, L)  # live is skill v0: the parent of #1 and main's tip
+        before = self.inode(T_SKILL)
+        self.run_apply()
+        self.assertEqual((self.live(T_SKILL), self.inode(T_SKILL)), (b"skill v0\n", before))
+
     def test_cursor_off_the_chain_is_an_error(self):
         repo = self.setup()
         side = repo.commit({REF: b"side\n"}, parent=self.L)
