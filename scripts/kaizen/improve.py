@@ -62,7 +62,10 @@ WRITING = "scripts/kaizen/writing.md"
 PUBLIC_CHECK = HERE / "public-check"
 PUBLIC_WHERE = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/(?:pull|actions/runs)/\d+")
 ATTEMPT = re.compile(r"\d{8}-[0-9a-f]{6}")
-LINK = re.compile(r"\]\(([^)\s]+)")  # the target of a Markdown link
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+CODE_SPAN = re.compile(r"(`+)(?!`).*?(?<!`)\1(?!`)", re.S)
+INLINE_LINK = re.compile(r"\]\(\s*(<[^>\n]*>|[^)\s]+)")
+REFERENCE = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^>\n]*>|\S+)", re.M)
 UNFINISHED = ("started", "publishing")
 REMOTE_UNKNOWN = "failed:remote-unknown"
 TASK = """\
@@ -143,6 +146,23 @@ def finite_cost(value):
         return value if math.isfinite(value) else None
     except OverflowError:
         return None
+
+
+def markdown_links(text):
+    """The destinations of inline links and reference definitions, outside fenced and inline code, with an <...>
+    destination unwrapped."""
+    kept, fence = [], None
+    for line in text.splitlines():
+        m = FENCE.match(line)
+        if fence is None and m:
+            fence = m.group(1)[0] * len(m.group(1))
+        elif fence is not None and m and m.group(1).startswith(fence):
+            fence = None
+        elif fence is None:
+            kept.append(line)
+    prose = CODE_SPAN.sub("", "\n".join(kept))
+    found = INLINE_LINK.findall(prose) + REFERENCE.findall(prose)
+    return {t[1:-1] if t.startswith("<") and t.endswith(">") else t for t in found}
 
 
 def blob_id(data):
@@ -583,11 +603,20 @@ class Stage:
                     continue
                 seen.add(rel)
                 mode = want.get(rel, (None,))[0]
-                if stat.S_ISLNK(st.st_mode) and mode == "120000":
-                    continue  # a link of base; changed_set judges its target
-                if not stat.S_ISREG(st.st_mode) or mode not in (None, "100644", "100755"):
-                    out.append(f"# type changed or added: {rel}\n")
+                before = (f"link to {''.join(old(rel))}" if mode == "120000" else f"mode {mode}") if mode else "absent"
+                if stat.S_ISLNK(st.st_mode):
+                    target = os.readlink(full)
+                    if mode != "120000" or blob_id(os.fsencode(target)) != want[rel][1]:
+                        out.append(f"# {rel}: {before} -> link to {target}\n")
                     continue
+                if not stat.S_ISREG(st.st_mode):
+                    out.append(f"# {rel}: {before} -> not a regular file\n")
+                    continue
+                now = "100755" if st.st_mode & 0o111 else "100644"
+                if mode and mode != now:
+                    out.append(f"# {rel}: {before} -> mode {now}\n")
+                    if mode == "120000":
+                        continue
                 with open(full, "rb") as f:
                     data = f.read()
                 if rel in want and blob_id(data) == want[rel][1]:
@@ -641,8 +670,8 @@ class Stage:
         paths |= {"/".join(p.split("/")[:i]) for p in paths for i in range(1, p.count("/") + 1)}
         broken = []
         for path, data in sorted(changed.items()):
-            old = set(LINK.findall(self.git("show", f"{base}:{path}").decode(errors="replace")))
-            for target in sorted(set(LINK.findall(data.decode(errors="replace"))) - old):
+            old = markdown_links(self.git("show", f"{base}:{path}").decode(errors="replace"))
+            for target in sorted(markdown_links(data.decode(errors="replace")) - old):
                 if re.match(r"[a-z][a-z0-9+.-]*:|#|/", target):  # a URL, an anchor or an absolute path
                     continue
                 resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target.split("#")[0]))

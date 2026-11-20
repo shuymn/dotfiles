@@ -582,7 +582,11 @@ class Weekly(Fakes):
     def test_c15_an_added_broken_relative_link_is_a_proposal(self):
         cases = {"broken": ("skill v1 see [ref](references/missing.md)\n", "proposal:links"),
                  "resolves": ("skill v1 see [ref](references/a.md#top) and [dir](references/)\n", "pr "),
-                 "a URL": ("skill v1 see [x](https://example.com/a)\n", "pr ")}
+                 "a URL": ("skill v1 see [x](https://example.com/a)\n", "pr "),
+                 "inline code": ("skill v1 `[x](references/none.md)`\n", "pr "),
+                 "fenced code": ("skill v1\n```\n[x](references/none.md)\n```\n", "pr "),
+                 "angle brackets": ("skill v1 [a](<references/a.md>)\n", "pr "),
+                 "broken reference": ("skill v1 [x][r]\n\n[r]: references/none.md\n", "proposal:links")}
         for name, (text, outcome) in cases.items():
             with self.subTest(name):
                 shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
@@ -592,6 +596,18 @@ class Weekly(Fakes):
                 self.scenario(claude={"edits": {SKILL: text}, "result": {"structured_output": OUTPUT}})
                 self.weekly()
                 self.assertTrue(self.result()["outcome"].startswith(outcome), self.result())
+
+    def test_m6_mode_and_link_changes_are_named_in_the_diff(self):
+        cases = {"mode only": ({"chmod": [SKILL]}, f"# {SKILL}: mode 100644 -> mode 100755"),
+                 "link retarget": ({"symlink": {"CLAUDE.md": "README.md"}},
+                                   "# CLAUDE.md: link to AGENTS.md -> link to README.md")}
+        for name, (spec, needle) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                self.scenario(claude={"result": {"structured_output": OUTPUT}, **spec})
+                self.weekly()
+                self.assertEqual(self.result()["outcome"], "proposal:tree")
+                self.assertIn(needle, (self.k / improve.PROPOSALS / self.attempts()[0] / "diff.patch").read_text())
 
     def test_m6_a_refused_candidate_keeps_its_diff(self):
         cases = {"new file": ({"create": ["home/dot_claude/skills/hiden/references/new.md"],
