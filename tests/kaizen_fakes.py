@@ -256,6 +256,9 @@ def claude():
         Path(path).write_text("new\n")
     for path in spec.get("chmod", []):
         os.chmod(path, 0o755)
+    for path, target in spec.get("symlink", {}).items():
+        os.unlink(path)
+        os.symlink(target, path)
     found = [m for m in SCENARIO.get("markers", []) for top, _, files in os.walk(".") for n in files
              if not os.path.islink(os.path.join(top, n)) and m.encode() in Path(top, n).read_bytes()]
     dump("scan.json", found)

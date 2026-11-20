@@ -330,16 +330,23 @@ class Weekly(Fakes):
         self.assertEqual([c["argv"][0] for c in self.calls("gh")], ["api"])
         self.assertNoWrites()
 
-    def test_c6_missing_checker_inputs_skip_before_the_model(self):
-        for missing in (self.repo / "host.toml", self.k / "private-terms"):
-            with self.subTest(missing.name):
-                saved = missing.read_bytes()
-                missing.unlink()
-                res = self.weekly()
-                missing.write_bytes(saved)
-                self.assertTrue(res["status"].startswith("skipped:"), res["status"])
-                self.assertIn(missing.name, res["status"])
-                self.assertEqual((self.calls("claude"), self.attempts()), ([], []))
+    def test_c6_a_missing_host_toml_or_a_broken_terms_file_skips(self):
+        (self.repo / "host.toml").unlink()
+        res = self.weekly()
+        self.assertEqual(res["status"], "skipped:host.toml unreadable")
+        (self.repo / "host.toml").write_text('hostName = "alice-mbp"\n')
+        (self.k / "private-terms").unlink()
+        (self.k / "private-terms").mkdir()  # present but not a readable file: fail closed
+        res = self.weekly()
+        self.assertEqual(res["status"], "skipped:private-terms unreadable")
+        self.assertEqual((self.calls("claude"), self.attempts()), ([], []))
+
+    def test_c6_private_terms_are_optional(self):
+        (self.k / "private-terms").unlink()
+        self.weekly()
+        self.assertTrue(self.result()["outcome"].startswith("pr "), self.result())
+        [checked] = self.jsonl("checked.jsonl")
+        self.assertEqual(checked["argv"][checked["argv"].index("--private-terms") + 1], os.devnull)
 
     def test_c6_unusable_key_or_claude_auth_skips(self):
         for change, needle in (({"keygen_code": 1}, "signing key"), ({"auth_code": 1}, "claude auth")):
@@ -582,7 +589,13 @@ class Weekly(Fakes):
     def test_c15_an_added_broken_relative_link_is_a_proposal(self):
         cases = {"broken": ("skill v1 see [ref](references/missing.md)\n", "proposal:links"),
                  "resolves": ("skill v1 see [ref](references/a.md#top) and [dir](references/)\n", "pr "),
-                 "a URL": ("skill v1 see [x](https://example.com/a)\n", "pr ")}
+                 "a URL": ("skill v1 see [x](https://example.com/a)\n", "pr "),
+                 "inline code": ("skill v1 `[x](references/none.md)`\n", "pr "),
+                 "fenced code": ("skill v1\n```\n[x](references/none.md)\n```\n", "pr "),
+                 "angle brackets": ("skill v1 [a](<references/a.md>)\n", "pr "),
+                 "broken reference": ("skill v1 [x][r]\n\n[r]: references/none.md\n", "proposal:links"),
+                 "backticks in other blocks": ("skill v1 `\n\n[x](references/none.md)\n\n`\n", "proposal:links"),
+                 "info string is no closer": ("skill v1\n```md\n```yaml\n[x](references/none.md)\n```\n", "pr ")}
         for name, (text, outcome) in cases.items():
             with self.subTest(name):
                 shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
@@ -592,6 +605,18 @@ class Weekly(Fakes):
                 self.scenario(claude={"edits": {SKILL: text}, "result": {"structured_output": OUTPUT}})
                 self.weekly()
                 self.assertTrue(self.result()["outcome"].startswith(outcome), self.result())
+
+    def test_m6_mode_and_link_changes_are_named_in_the_diff(self):
+        cases = {"mode only": ({"chmod": [SKILL]}, f"# {SKILL}: mode 100644 -> mode 100755"),
+                 "link retarget": ({"symlink": {"CLAUDE.md": "README.md"}},
+                                   "# CLAUDE.md: link to AGENTS.md -> link to README.md")}
+        for name, (spec, needle) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                self.scenario(claude={"result": {"structured_output": OUTPUT}, **spec})
+                self.weekly()
+                self.assertEqual(self.result()["outcome"], "proposal:tree")
+                self.assertIn(needle, (self.k / improve.PROPOSALS / self.attempts()[0] / "diff.patch").read_text())
 
     def test_m6_a_refused_candidate_keeps_its_diff(self):
         cases = {"new file": ({"create": ["home/dot_claude/skills/hiden/references/new.md"],
@@ -607,17 +632,19 @@ class Weekly(Fakes):
                 self.assertIn(needle, (self.k / improve.PROPOSALS / self.attempts()[0] / "diff.patch").read_text())
 
     def test_c2_the_lock_is_held_until_the_result_is_saved(self):
-        started = self.fdir / "create.pid"
-        self.scenario(create={"stdout": "https://github.com/o/r/pull/9\n", "sleep": 2, "pidfile": str(started)})
-        t = threading.Thread(target=self.weekly)
-        t.start()
-        deadline = time.monotonic() + 30
-        while not started.exists() and time.monotonic() < deadline:
-            time.sleep(0.05)
-        self.assertTrue(started.exists())
-        self.assertIsNone(improve.take_lock(self.k))  # held during the last remote write
-        t.join(60)
+        real, probes = improve.save, []
+
+        def probe(path, value):  # at the save of the final outcome, another taker must still be refused
+            if str(value.get("outcome", "")).startswith("pr "):
+                other = improve.take_lock(self.k)
+                probes.append(other is None)
+                if other:
+                    other.close()
+            real(path, value)
+        with mock.patch.object(improve, "save", side_effect=probe):
+            self.weekly()
         self.assertTrue(self.result()["outcome"].startswith("pr "))
+        self.assertEqual(probes, [True])
         lock = improve.take_lock(self.k)
         self.assertIsNotNone(lock)
         lock.close()
@@ -728,6 +755,38 @@ class Weekly(Fakes):
         lookups = [c["argv"][-1] for c in self.calls("gh") if "state=all" in c["argv"][-1]]
         self.assertTrue(lookups and all(u.startswith("repos/o/r/pulls") for u in lookups), lookups)
         self.assertEqual(self.result(a.data["id"])["outcome"], "pr https://github.com/o/r/pull/9")
+
+    def test_c18_recovery_without_a_checkout_is_a_decision(self):
+        a, r = self.publishing()
+        self.scenario(open=["fail"])
+        res = improve.weekly(self.k, self.home, None, "o/r", [PUBLIC], READY, NOW, time.monotonic() + 60,
+                             sources={"gh": {"status": "ok"}})
+        after = self.result(a.data["id"])
+        self.assertEqual(after["outcome"], improve.REMOTE_UNKNOWN)
+        self.assertIn("checkout", after["reason"])
+        self.assertTrue(any(r["branch"] in d and "cycle.py clear" in d for d in res["decisions"]), res["decisions"])
+        self.assertEqual(self.jsonl("created.jsonl"), [])
+
+    def test_c18_a_tree_that_cannot_be_removed_does_not_stop_recovery(self):
+        a, r = self.publishing()
+        tree = self.home / improve.STATE / "tree-left"
+        tree.mkdir()
+        a.update(tree=str(tree))
+        self.scenario(open=["fail"])
+        with mock.patch.object(improve.shutil, "rmtree", side_effect=PermissionError("denied")) as rmtree:
+            self.weekly()
+        rmtree.assert_called_once()
+        self.assertEqual(self.result(a.data["id"])["outcome"], "pr https://github.com/o/r/pull/9")
+
+    def test_c18_an_unexpected_recovery_error_is_a_decision(self):
+        a, r = self.publishing()
+        self.scenario(open=["fail"])
+        with mock.patch.object(improve.Stage, "lookup", side_effect=RuntimeError("boom")):
+            res = self.weekly()
+        after = self.result(a.data["id"])
+        self.assertEqual(after["outcome"], improve.REMOTE_UNKNOWN)
+        self.assertIn("RuntimeError: boom", after["reason"])
+        self.assertTrue(any(r["branch"] in d for d in res["decisions"]))
 
     def test_c18_ambiguous_remote_state_is_a_decision(self):
         cases = {"another oid": lambda r: [[pr("e" * 40, ref=r["branch"])]],

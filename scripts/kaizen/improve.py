@@ -62,7 +62,11 @@ WRITING = "scripts/kaizen/writing.md"
 PUBLIC_CHECK = HERE / "public-check"
 PUBLIC_WHERE = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/(?:pull|actions/runs)/\d+")
 ATTEMPT = re.compile(r"\d{8}-[0-9a-f]{6}")
-LINK = re.compile(r"\]\(([^)\s]+)")  # the target of a Markdown link
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+FENCE_CLOSE = re.compile(r" {0,3}(`{3,}|~{3,})[ \t]*")
+CODE_SPAN = re.compile(r"(`+)(?!`).*?(?<!`)\1(?!`)", re.S)
+INLINE_LINK = re.compile(r"\]\(\s*(<[^>\n]*>|[^)\s]+)")
+REFERENCE = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^>\n]*>|\S+)", re.M)
 UNFINISHED = ("started", "publishing")
 REMOTE_UNKNOWN = "failed:remote-unknown"
 TASK = """\
@@ -143,6 +147,24 @@ def finite_cost(value):
         return value if math.isfinite(value) else None
     except OverflowError:
         return None
+
+
+def markdown_links(text):
+    """The destinations of inline links and reference definitions, outside fenced and inline code, with an <...>
+    destination unwrapped."""
+    kept, fence = [], None
+    for line in text.splitlines():
+        m = FENCE.match(line)
+        if fence is None and m:
+            fence = m.group(1)[0] * len(m.group(1))
+        elif fence is not None and (c := FENCE_CLOSE.fullmatch(line)) and c.group(1).startswith(fence):
+            fence = None
+        elif fence is None:
+            kept.append(line)
+    # a code span never crosses a blank line (a block boundary)
+    prose = "\n\n".join(CODE_SPAN.sub("", b) for b in re.split(r"\n[ \t]*\n", "\n".join(kept)))
+    found = INLINE_LINK.findall(prose) + REFERENCE.findall(prose)
+    return {t[1:-1] if t.startswith("<") and t.endswith(">") else t for t in found}
 
 
 def blob_id(data):
@@ -269,8 +291,8 @@ def remove_tree(state, path):
     try:
         if stat.S_ISDIR(os.lstat(p).st_mode):
             shutil.rmtree(p)
-    except FileNotFoundError:
-        pass
+    except OSError:
+        pass  # a leftover tree is harmless; recovery must still reach its decision
 
 
 def clear(k, attempt):
@@ -423,8 +445,8 @@ class Stage:
     def preflight(self):
         if not self.repo or not regular(Path(self.repo) / "host.toml"):
             raise Skip("host.toml unreadable")
-        if not regular(self.k / "private-terms"):
-            raise Skip("private-terms unreadable")
+        if os.path.lexists(self.k / "private-terms") and not regular(self.k / "private-terms"):
+            raise Skip("private-terms unreadable")  # present but broken: fail closed; absent means no terms
         ident = self.identity()
         code, _, err = self.call(["ssh-keygen", "-y", "-P", "", "-f", ident["key"]], self.minimal_env(),
                                  SECONDS["keygen"])
@@ -583,11 +605,20 @@ class Stage:
                     continue
                 seen.add(rel)
                 mode = want.get(rel, (None,))[0]
-                if stat.S_ISLNK(st.st_mode) and mode == "120000":
-                    continue  # a link of base; changed_set judges its target
-                if not stat.S_ISREG(st.st_mode) or mode not in (None, "100644", "100755"):
-                    out.append(f"# type changed or added: {rel}\n")
+                before = (f"link to {''.join(old(rel))}" if mode == "120000" else f"mode {mode}") if mode else "absent"
+                if stat.S_ISLNK(st.st_mode):
+                    target = os.readlink(full)
+                    if mode != "120000" or blob_id(os.fsencode(target)) != want[rel][1]:
+                        out.append(f"# {rel}: {before} -> link to {target}\n")
                     continue
+                if not stat.S_ISREG(st.st_mode):
+                    out.append(f"# {rel}: {before} -> not a regular file\n")
+                    continue
+                now = "100755" if st.st_mode & 0o111 else "100644"
+                if mode and mode != now:
+                    out.append(f"# {rel}: {before} -> mode {now}\n")
+                    if mode == "120000":
+                        continue
                 with open(full, "rb") as f:
                     data = f.read()
                 if rel in want and blob_id(data) == want[rel][1]:
@@ -641,8 +672,8 @@ class Stage:
         paths |= {"/".join(p.split("/")[:i]) for p in paths for i in range(1, p.count("/") + 1)}
         broken = []
         for path, data in sorted(changed.items()):
-            old = set(LINK.findall(self.git("show", f"{base}:{path}").decode(errors="replace")))
-            for target in sorted(set(LINK.findall(data.decode(errors="replace"))) - old):
+            old = markdown_links(self.git("show", f"{base}:{path}").decode(errors="replace"))
+            for target in sorted(markdown_links(data.decode(errors="replace")) - old):
                 if re.match(r"[a-z][a-z0-9+.-]*:|#|/", target):  # a URL, an anchor or an absolute path
                     continue
                 resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target.split("#")[0]))
@@ -688,9 +719,14 @@ class Stage:
         """public-check of the frozen inputs, run with the job's Python in the mirror, git's environment clean."""
         argv = [sys.executable, str(PUBLIC_CHECK), f"{base}..{oid}", "--title", (a.dir / "title.txt").read_text(),
                 "--body-file", str(a.dir / "body.md"), "--branch", branch,
-                "--host-toml", str(Path(self.repo) / "host.toml"), "--private-terms", str(self.k / "private-terms")]
+                "--host-toml", str(Path(self.repo) / "host.toml"), "--private-terms", self.terms_file()]
         code, out, err = self.call(argv, self.genv, SECONDS["check"], cwd=str(self.mirror))
         return code, (out + err).decode(errors="replace")
+
+    def terms_file(self):
+        """K/private-terms, or an empty file when the owner keeps none: the terms are optional."""
+        terms = self.k / "private-terms"
+        return str(terms) if os.path.lexists(terms) else os.devnull
 
     def caps(self, base, targets):
         """The attention hook's own rules, from its source at base, with the owner's live budget.json: a .md file in a
@@ -798,8 +834,10 @@ class Stage:
             self.reconcile(a, remote)
         except Stop as s:
             a.update(outcome=s.outcome, reason=s.detail)
-        except (apply.ApplyError, OSError, ValueError, KeyError) as e:
-            a.update(outcome=REMOTE_UNKNOWN, reason=f"{type(e).__name__}: {e}")
+        except Deadline:
+            raise
+        except Exception as e:  # noqa: BLE001 — any other failure is a decision naming the branch, never a crash
+            a.update(outcome=REMOTE_UNKNOWN, reason=f"recovery failed: {type(e).__name__}: {e}")
 
     def lookup(self, remote):
         owner = remote["repo"].split("/")[0]
@@ -846,6 +884,8 @@ class Stage:
         oids = [line.split()[0] for line in listed.splitlines() if line.strip()]
         if oids != [remote["oid"]]:
             raise Stop(REMOTE_UNKNOWN, "ref missing" if not oids else "the ref is at another commit")
+        if not self.repo or not regular(Path(self.repo) / "host.toml"):
+            raise Stop(REMOTE_UNKNOWN, "the checkout or its host.toml is unavailable, so the PR cannot be checked")
         rc, out = self.public_check(a, a.data["base"], remote["oid"], remote["branch"])
         if rc != 0:
             raise Stop(REMOTE_UNKNOWN, f"public-check now fails: {out[-200:]}")
