@@ -443,8 +443,8 @@ class Stage:
     def preflight(self):
         if not self.repo or not regular(Path(self.repo) / "host.toml"):
             raise Skip("host.toml unreadable")
-        if not regular(self.k / "private-terms"):
-            raise Skip("private-terms unreadable")
+        if os.path.lexists(self.k / "private-terms") and not regular(self.k / "private-terms"):
+            raise Skip("private-terms unreadable")  # present but broken: fail closed; absent means no terms
         ident = self.identity()
         code, _, err = self.call(["ssh-keygen", "-y", "-P", "", "-f", ident["key"]], self.minimal_env(),
                                  SECONDS["keygen"])
@@ -717,9 +717,14 @@ class Stage:
         """public-check of the frozen inputs, run with the job's Python in the mirror, git's environment clean."""
         argv = [sys.executable, str(PUBLIC_CHECK), f"{base}..{oid}", "--title", (a.dir / "title.txt").read_text(),
                 "--body-file", str(a.dir / "body.md"), "--branch", branch,
-                "--host-toml", str(Path(self.repo) / "host.toml"), "--private-terms", str(self.k / "private-terms")]
+                "--host-toml", str(Path(self.repo) / "host.toml"), "--private-terms", self.terms_file()]
         code, out, err = self.call(argv, self.genv, SECONDS["check"], cwd=str(self.mirror))
         return code, (out + err).decode(errors="replace")
+
+    def terms_file(self):
+        """K/private-terms, or an empty file when the owner keeps none: the terms are optional."""
+        terms = self.k / "private-terms"
+        return str(terms) if os.path.lexists(terms) else os.devnull
 
     def caps(self, base, targets):
         """The attention hook's own rules, from its source at base, with the owner's live budget.json: a .md file in a

@@ -330,16 +330,23 @@ class Weekly(Fakes):
         self.assertEqual([c["argv"][0] for c in self.calls("gh")], ["api"])
         self.assertNoWrites()
 
-    def test_c6_missing_checker_inputs_skip_before_the_model(self):
-        for missing in (self.repo / "host.toml", self.k / "private-terms"):
-            with self.subTest(missing.name):
-                saved = missing.read_bytes()
-                missing.unlink()
-                res = self.weekly()
-                missing.write_bytes(saved)
-                self.assertTrue(res["status"].startswith("skipped:"), res["status"])
-                self.assertIn(missing.name, res["status"])
-                self.assertEqual((self.calls("claude"), self.attempts()), ([], []))
+    def test_c6_a_missing_host_toml_or_a_broken_terms_file_skips(self):
+        (self.repo / "host.toml").unlink()
+        res = self.weekly()
+        self.assertEqual(res["status"], "skipped:host.toml unreadable")
+        (self.repo / "host.toml").write_text('hostName = "alice-mbp"\n')
+        (self.k / "private-terms").unlink()
+        (self.k / "private-terms").mkdir()  # present but not a readable file: fail closed
+        res = self.weekly()
+        self.assertEqual(res["status"], "skipped:private-terms unreadable")
+        self.assertEqual((self.calls("claude"), self.attempts()), ([], []))
+
+    def test_c6_private_terms_are_optional(self):
+        (self.k / "private-terms").unlink()
+        self.weekly()
+        self.assertTrue(self.result()["outcome"].startswith("pr "), self.result())
+        [checked] = self.jsonl("checked.jsonl")
+        self.assertEqual(checked["argv"][checked["argv"].index("--private-terms") + 1], os.devnull)
 
     def test_c6_unusable_key_or_claude_auth_skips(self):
         for change, needle in (({"keygen_code": 1}, "signing key"), ({"auth_code": 1}, "claude auth")):
