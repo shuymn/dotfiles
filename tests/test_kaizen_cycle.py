@@ -554,6 +554,135 @@ class Cycle(Temp):
         self.main()
         self.assertEqual(self.published("record.json")["watch"][0]["pre_source"], "snapshot")
 
+    APPLIED = {"status": "stopped", "reason": None, "head": "f" * 40, "passed": 1,
+               "cursor": {"commit": "a" * 40, "by": "cycle", "at": "2026-11-18T21:00:00Z"},
+               "merges": [{"commit": "b" * 40, "pr": "#7", "status": "conflict", "reason": "live differs from both sides",
+                           "targets": {".claude/skills/x/SKILL.md": "conflict: edited"}}],
+               "journal": [], "decisions": ["apply: #7 (bbbbbbbb) not applied: live differs"]}
+
+    def test_apply_runs_first_and_its_result_and_decisions_are_published(self):
+        order = []
+        real_observe = cycle.observe.observe
+        with mock.patch.object(cycle.apply, "run", side_effect=lambda *a, **k: order.append("apply") or self.APPLIED), \
+                mock.patch.object(cycle.observe, "observe",
+                                  side_effect=lambda *a, **k: order.append("observe") or real_observe(*a, **k)):
+            summary = self.main()
+        self.assertEqual(order, ["apply", "observe"])
+        record = self.published("record.json")
+        self.assertEqual(record["apply"], self.APPLIED)
+        self.assertIn(self.APPLIED["decisions"][0], record["decisions"])
+        self.assertEqual(summary["decisions"], len(record["decisions"]))
+        self.assertIn("transcripts", record["sources"])  # observe still ran
+        digest = (self.k / "current/digest.md").read_text()
+        self.assertIn("## 適用", digest)
+        self.assertIn("位置: aaaaaaaaaaaa（cycle、2026-11-18T21:00:00Z）", digest)
+        self.assertIn("#7 conflict", digest)
+
+    def test_an_apply_exception_does_not_prevent_publication(self):
+        state = self.home / ".local/state/kaizen-apply"
+        state.mkdir(parents=True)
+        (state / "applied.json").write_text(json.dumps({"commit": "c" * 40, "by": "owner", "at": "t", "run": None}))
+        (state / "journal.json").write_text(json.dumps({"entries": [
+            {"merge": "d" * 40, "target": ".claude/agents/w.md", "backup": "backup/r/m/.claude/agents/w.md",
+             "step": "unresolved", "note": "swapped back", "expected_old_sha": "0" * 64, "new_sha": "1" * 64}]}))
+        with mock.patch.object(cycle.apply, "run", side_effect=RuntimeError("boom")):
+            self.main()
+        record = self.published("record.json")
+        self.assertEqual(record["apply"]["status"], "error")
+        self.assertIn("apply crashed: RuntimeError: boom", record["decisions"])
+        digest = (self.k / "current/digest.md").read_text()
+        self.assertIn("位置: cccccccccccc（owner、t）", digest)  # the stored cursor and journal, always (N5)
+        self.assertIn("未解決の journal: 1 件", digest)
+        self.assertIn(".claude/agents/w.md（unresolved）", digest)
+        self.assertIn("## 取りこぼしと無駄", digest)
+
+    def test_invalid_apply_state_is_a_decision_and_the_run_publishes(self):
+        state = self.home / ".local/state/kaizen-apply"
+        state.mkdir(parents=True)
+        (state / "applied.json").write_text('{"commit": "bad"}')
+        self.main()
+        record = self.published("record.json")
+        self.assertEqual(record["apply"]["status"], "error")
+        self.assertTrue(any("state invalid" in d for d in record["decisions"]))
+        self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
+        (state / "applied.json").unlink()
+        (state / "journal.json").write_text("{")
+        with mock.patch.object(cycle.apply, "run", side_effect=RuntimeError("boom")):
+            self.main(now=NOW + timedelta(days=1))
+        self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
+
+    def test_malformed_apply_state_never_stops_publication(self):
+        state = self.home / ".local/state/kaizen-apply"
+        state.mkdir(parents=True)
+        good = {"merge": "d" * 40, "target": ".claude/agents/w.md", "backup": "backup/r/m/.claude/agents/w.md",
+                "step": "unresolved", "expected_old_sha": "0" * 64, "new_sha": "1" * 64}
+        cases = {"target null": json.dumps({"entries": [{**good, "target": None}]}),
+                 "lone surrogate": json.dumps({"entries": [{**good, "note": "\ud800"}]}),
+                 "fifo": None}
+        day = 0
+        for name, content in cases.items():
+            for extra in ((), ("--no-apply",)):
+                with self.subTest(name=name, extra=extra):
+                    journal = state / "journal.json"
+                    journal.unlink(missing_ok=True)
+                    if content is None:
+                        os.mkfifo(journal)
+                    else:
+                        journal.write_text(content)
+                    day += 1
+                    # main() installs its own SIGALRM, so its deadline is what ends a blocked read here
+                    self.main(*extra, "--deadline", "20", now=NOW + timedelta(days=day))
+                    record = self.published("record.json")
+                    self.assertEqual(record["date"], (NOW + timedelta(days=day)).astimezone(observe.TZ).date().isoformat())
+                    self.assertIn("journal.json", record["apply"]["state_error"])
+                    self.assertIn("適用の状態が読めない", (self.k / "current/digest.md").read_text())
+
+    def test_text_that_utf8_cannot_carry_is_still_published(self):
+        run_dir = cycle.publish_run(self.k, {}, {"digest.md": "note \ud800", "status.json": "{}"})
+        self.assertEqual((run_dir / "digest.md").read_text(), "note ?")
+
+    def test_a_slow_clone_leaves_time_to_observe_and_publish(self):
+        checkout = self.dir / "checkout"
+        checkout.mkdir()
+        fake(self.bin, "git", 'case " $* " in\n  *" remote get-url "*) echo https://github.com/o/r.git ;;\n'
+                              '  *" clone "*) exec sleep 60 ;;\nesac\n')
+        started = time.monotonic()
+        with mock.patch.object(cycle.ready, "source_repo", return_value=checkout), \
+                mock.patch.object(cycle, "APPLY_RESERVE", 25), \
+                mock.patch.dict(os.environ, {"PATH": f"{self.bin}:{os.environ['PATH']}"}):
+            self.main("--deadline", "30")
+        self.assertLess(time.monotonic() - started, 20)
+        record = self.published("record.json")
+        self.assertIn("timed out", record["apply"]["reason"])
+        self.assertIn("transcripts", record["sources"])
+        self.assertIn("R1", record["ready"])
+
+    def test_no_apply_skips_the_stage(self):
+        with mock.patch.object(cycle.apply, "run") as run:
+            self.main("--no-apply")
+        run.assert_not_called()
+        self.assertEqual(self.published("record.json")["apply"]["status"], "off")
+        self.assertIn("位置: 未設定", (self.k / "current/digest.md").read_text())
+
+    def test_the_real_apply_stage_reports_a_missing_checkout(self):
+        self.main()  # the fake chezmoi fails, so there is no origin to fetch; the run still publishes
+        record = self.published("record.json")
+        self.assertEqual(record["apply"]["status"], "error")
+        self.assertTrue(any(d.startswith("apply: no checkout") for d in record["decisions"]))
+
+    def test_resolve_and_adopt_commands(self):
+        state = self.home / ".local/state/kaizen-apply"
+        state.mkdir(parents=True)
+        (state / "journal.json").write_text(json.dumps({"entries": [
+            {"merge": "d" * 40, "target": ".claude/agents/w.md", "backup": "backup/r/m/.claude/agents/w.md",
+             "step": "staged", "expected_old_sha": "0" * 64, "new_sha": "1" * 64}]}))
+        self.assertEqual(self.main("resolve")["cleared"], False)
+        self.assertEqual(self.main("resolve", "--yes")["cleared"], True)
+        self.assertEqual(json.loads((state / "journal.json").read_text()), {"entries": []})
+        with mock.patch.object(cycle.apply, "adopt", return_value={"adopted": "e" * 40}) as adopt:
+            self.assertEqual(self.main("adopt", "e" * 40), {"adopted": "e" * 40})
+        self.assertEqual(adopt.call_args.args[2], "e" * 40)
+
     def test_invalid_change_id_is_rejected(self):
         self.watch.write_text(json.dumps([{"change": "../x", "signal": "regression", "apply": ts(NOW)}]))
         with self.assertRaises(ValueError):
