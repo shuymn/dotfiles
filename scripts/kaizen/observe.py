@@ -417,6 +417,8 @@ def observe(paths, since, until, gh="gh"):
 
 
 def default_paths(home):
-    return {"projects": home / ".claude/projects", "t3_db": home / ".t3" / "userdata" / "statev2.sqlite",
+    """t3_db is None (t3 off) when ~/.t3 is absent: T3 Code is not used on this machine."""
+    t3_db = home / ".t3" / "userdata" / "statev2.sqlite" if (home / ".t3").is_dir() else None
+    return {"projects": home / ".claude/projects", "t3_db": t3_db,
             "codex": home / ".codex/sessions", "ledgers": home / ".claude/review-ledgers",
             "hiden": home / ".claude/skills/hiden"}
