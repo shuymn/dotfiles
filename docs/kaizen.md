@@ -2,6 +2,51 @@
 
 hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skills/hiden/` にある。hiden の役目は、能力の高いモデルの注意を配ることにある。規則、台帳、予算、改善の周期は、どれもそのための手段である。
 
+## 全体像
+
+kaizen は、実作業の観測から hiden の注意の配分を少しずつ直す仕組みである。自動で動くのは毎日の周期で、launchd が起動し、モデルを呼ばずに、マージ済みの変更の live への適用、観測、準備状態の検査、digest と判断事項の公開までを行う。オーナーは、digest の判断事項を読んで決め、管理パスに触れる PR を GitHub の UI でマージし、自動の適用が断った変更を自分で適用して越える。作業するセッションは、この仕組みに関わらない（原則 4）。週 1 回の improver が変更を 1 つ選んで PR にする経路（PR3c）と、orchestrator から文を取る PR4 は、まだ入っていない。
+
+```mermaid
+flowchart TD
+  job["launchd の kaizen-cycle<br/>毎日 6:00"] --> apply
+  subgraph run ["cycle.py run（モデルを呼ばない）"]
+    apply["適用: L の後のマージを live へ<br/>skills/agents の通常のファイルだけ"] --> observe["observe: 直近 7 日の取りこぼしと無駄"]
+    observe --> watch["監視中の変更の前後"]
+    watch --> ready["ready: R1–R5"]
+    ready --> publish["公開: record.json・digest.md・status.json<br/>current を rename で向け直す"]
+  end
+  publish --> statusline["ステータスライン<br/>kaizen ✗N・判断 N・stale Nd"]
+  publish --> owner["オーナーが digest の判断事項を読む"]
+  owner --> cmds["adopt・resolve --yes・make apply"]
+  owner --> merge["PR を GitHub の UI でマージ"]
+  merge -->|次の run| apply
+  cmds -->|L と journal| apply
+  improver["週 1 回の improver が PR を作る<br/>（PR3c、未実装）"]:::todo -.-> merge
+  pr4["orchestrator から取る分<br/>（PR4、未実装）"]:::todo -.-> merge
+  classDef todo stroke-dasharray:5 5
+```
+
+| もの | 場所 |
+|---|---|
+| source | `home/dot_claude/**`（管理パスの一覧は `.claude/kaizen-managed`） |
+| live | `~/.claude/`（自動で適用するのは `~/.claude/skills/**` と `~/.claude/agents/**` の既存の通常のファイルだけ） |
+| 周期のスクリプト | `scripts/kaizen/`。ジョブは store の写しを走らせるので、変更は次の switch で効く |
+| ジョブ | `launchd.agents.kaizen-cycle`（`nix/home/profiles/dev.nix`）、label `org.nix-community.home.kaizen-cycle`、毎日 6:00、期限 20 分 |
+| ログ | `~/Library/Logs/kaizen-cycle.log` |
+| 公開物 | `~/.claude/kaizen/current/`（`runs/<id>/` へのシンボリックリンク）の `record.json`、`digest.md`、`status.json`。ステータスラインは `status.json` を読む |
+| 監視 | 一覧は `scripts/kaizen/watch.json`、前の窓の基準値は `~/.claude/kaizen/watch/<id>.json` |
+| 適用の状態 | `~/.local/state/kaizen-apply/` の `applied.json`（適用の位置 L）、`journal.json`、`backup/`、`mirror.git` |
+
+**オーナーのコマンド**（`scripts/kaizen/` の下）:
+- `cycle.py adopt <sha>`: 飛ばす候補を示してから、そのコミットを L にする。最初の L を決めるときと、断られた候補を pull と `make apply` で入れた後に使う。
+- `cycle.py resolve [--yes]`: 未解決の journal の記録ごとに live と backup を示す。`--yes` のときだけ journal を消し、ファイルには触れない。
+- `cycle.py run --no-apply`: 適用を飛ばして、観測から公開までを手で走らせる。
+- `apply.py --check`: 写しの fetch のほかは何も書かずに、L、journal、待っている候補を示す。
+
+**判断事項になるもの:** オーナーが直す準備状態の FAIL（R1、R2、`gh auth status` が通らない R4）、読めなかった入力、計算できなかった監視、適用が止まった理由（L が無い、候補を丸ごと断った、衝突、未解決の journal、状態のファイルが読めない）。R3 と R5 の FAIL は digest の準備状態にだけ出る。
+
+詳しくは、証拠は [§2](#2-証拠と配る仕組み)、周期の段と適用と守りは [§6](#6-周期)、PR ごとの中身と完了条件は [§7](#7-pr-の計画) にある。
+
 ## 1. 原則
 
 1. **既定は信頼する。** 指示の単位は、それが無いとモデルが落ちる証拠がある所にだけ置く。証拠とは、実際の事故か、床を示した probe のこと。証拠の無い統制はトークンと注意を使い、能力を狭めることがある。
