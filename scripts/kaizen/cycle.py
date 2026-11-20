@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""The kaizen daily cycle (docs/kaizen.md §6): one stateless run over the last 7 days. No model is called.
+"""The kaizen daily cycle (docs/kaizen.md §6): one stateless run over the last 7 days. The daily stages call no model.
 
   cycle.py [run]            apply merged changes first (apply.py; --no-apply skips it), then observe, watch and
-                            readiness from scratch, then write record.json, digest.md and
+                            readiness from scratch, then the weekly stage (improve.py; off unless
+                            K/improve-enabled exists), then write record.json, digest.md and
                             status.json into a new directory K/runs/<id> and publish the whole run in one step: the
                             symlink K/current is replaced by rename to point at it (K = $KAIZEN_HOME, else
                             ~/.claude/kaizen; the run date is in Asia/Tokyo). Readers go through K/current. A run that
@@ -14,6 +15,7 @@
                             this file for the pre window when it is there.
   cycle.py adopt <sha>      record <sha> as the applied commit, after printing what it skips (apply.adopt)
   cycle.py resolve [--yes]  print the unresolved apply journal; --yes clears it and nothing else (apply.resolve)
+  cycle.py clear <attempt>  lift the stop a failed:remote-unknown weekly attempt puts on the weekly stage (improve.clear)
 Watch (watch.json): per change, the regression signal of signals.py over pre [apply - 30 d, apply] and post
 [apply, min(now, apply + days)]; a worker active across apply is counted in both windows.
 The last stdout line is a JSON summary; progress goes to stderr.
@@ -47,6 +49,7 @@ def sibling(name):
 
 
 apply = sibling("apply")
+improve = sibling("improve")
 observe = sibling("observe")
 ready = sibling("ready")
 signals = sibling("signals")
@@ -56,7 +59,7 @@ PRE_DAYS = 30
 CHANGE_ID = re.compile(r"[A-Za-z0-9#._-]+")
 REGRESSION_KEYS = ("window", "workers", "opportunities", "counted", "ambiguous", "not_counted", "rate", "harm")
 EXAMPLES = 3
-DEADLINE = 1200  # seconds a whole run may take; a normal one takes under 2 minutes
+DEADLINE = 1200  # seconds a whole run may take without --deadline; a normal one takes under 2 minutes
 # The apply stage ends this long before the run's deadline (and after apply.BUDGET at most), so a slow fetch still
 # leaves time to observe, check and publish: those take about a minute, and 240 s is over three times that.
 APPLY_RESERVE = 240
@@ -184,6 +187,7 @@ def decisions(record):
         if w.get("status", "").startswith("unavailable"):
             found.append(f"watch {w['change']} {w['status']}")
     found += record["apply"].get("decisions", [])
+    found += record["improver"].get("decisions", [])
     return found
 
 
@@ -221,6 +225,25 @@ def apply_lines(a):
     return lines
 
 
+def usd(v):
+    return f"${v}" if isinstance(v, (int, float)) and not isinstance(v, bool) else "unknown"
+
+
+def improver_lines(i):
+    if not i.get("enabled"):
+        return ["- 止めている（有効にする: touch ~/.claude/kaizen/improve-enabled）"]
+    lines = [f"- 有効。今回: {i.get('status')}"]
+    a = i.get("attempt")
+    if not a:
+        return lines + ["- 試み: まだ無い"]
+    lines.append(f"- 最新の試み {a['id']}（{a['started']}）: {a['outcome']}" + ("（clear 済み）" if a.get("cleared") else "")
+                 + f"、費用 {usd(a.get('cost_usd'))}")
+    lines.append(f"  - PR: {a['pr']}" if a.get("pr") else f"  - 記録: {a['dir']}")
+    if a.get("watch"):
+        lines.append(f"  - 見るもの（マージのとき watch.json へ）: {text(a['watch'])}")
+    return lines
+
+
 def digest(record):
     lines = [f"# kaizen {record['date']}", "", f"窓: {record['window']['since']} – {record['window']['until']}"
              f"（{record['secs']} 秒で計算）", "", "## 準備状態"]
@@ -243,8 +266,11 @@ def digest(record):
         lines.append(f"  - 後: {regression_text(w['post'])}")
     if not record["watch"]:
         lines.append("- なし")
+    lines += ["", "## 週次の改善", *improver_lines(record["improver"])]
     lines += ["", "## 判断事項", *([f"{i}. {d}" for i, d in enumerate(record["decisions"], 1)] or ["- なし"])]
-    lines += ["", "## 費用", "- Claude $0、Codex $0（モデルを呼ばない）", "- 元の行: 同じディレクトリの record.json", ""]
+    cost = record["cost"]
+    lines += ["", "## 費用", f"- 今回: Claude {usd(cost['claude_usd'])}、Codex {cost['codex_runs']} 回",
+              "- 元の行: 同じディレクトリの record.json", ""]
     return "\n".join(lines)
 
 
@@ -256,7 +282,7 @@ def run_apply(home, repo, args, started):
     else:
         log("apply")
         try:
-            return apply.run(home, repo, deadline=started + args.deadline - APPLY_RESERVE)
+            return apply.run(home, repo, deadline=started + (args.deadline or DEADLINE) - APPLY_RESERVE)
         except Exception as e:  # noqa: BLE001 — a broken apply is its own decision
             result = {"status": "error", "reason": f"{type(e).__name__}: {e}",
                       "decisions": [f"apply crashed: {type(e).__name__}: {e}"]}
@@ -265,6 +291,26 @@ def run_apply(home, repo, args, started):
     except Exception as e:  # noqa: BLE001 — persisted reports invalid state itself; anything else must not stop the run
         result["reason"] = (result.get("reason") or "") + f"; apply state unreadable: {e}"
     return result
+
+
+def run_weekly(k, home, repo, items, results, now, args, started):
+    """The weekly stage (improve.weekly) under one monotonic deadline. Without an explicit --deadline the stage gets
+    STAGE_SECONDS from here and the run's alarm is re-armed to that plus the digest reserve; with one, the alarm stays
+    and the stage ends DIGEST_RESERVE before it. An error is reported, never raised, so the run publishes."""
+    if not improve.enabled(k):
+        return improve.weekly(k, home, repo, None, items, results, now, 0)
+    if args.deadline is None:
+        deadline = time.monotonic() + improve.STAGE_SECONDS
+        signal.alarm(improve.STAGE_SECONDS + improve.DIGEST_RESERVE)
+    else:
+        deadline = started + args.deadline - improve.DIGEST_RESERVE
+    log("weekly")
+    try:
+        return improve.weekly(k, home, repo, repo and observe.origin_repo(str(repo)), items, results, now, deadline,
+                              gh=args.gh)
+    except Exception as e:  # noqa: BLE001 — a broken weekly stage is its own decision
+        return {"enabled": True, "status": f"error: {type(e).__name__}: {e}", "attempt": None, "cost_usd": "unknown",
+                "codex_runs": 0, "decisions": [f"improver crashed: {type(e).__name__}: {e}"]}
 
 
 def run_cycle(k, home, now, args):
@@ -294,8 +340,10 @@ def run_cycle(k, home, now, args):
             results[rid] = check()
         except Exception as e:  # noqa: BLE001 — one broken check is its own FAIL
             results[rid] = ready.result(False, f"check crashed: {type(e).__name__}: {e}")
+    improver = run_weekly(k, home, repo, obs["items"], results, now, args, started)
     record = {"date": today, **{key: obs[key] for key in ("window", "sources", "counts", "tally", "codex_sessions")},
-              "ready": results, "apply": applied, "watch": watched, "items": obs["items"], "cost": {"claude_usd": 0, "codex_usd": 0}}
+              "ready": results, "apply": applied, "watch": watched, "items": obs["items"], "improver": improver,
+              "cost": {"claude_usd": improver["cost_usd"], "codex_runs": improver["codex_runs"]}}
     record["decisions"] = decisions(record)
     record["secs"] = round(time.monotonic() - started, 1)
     record["finished"] = observe.iso(datetime.now(timezone.utc))
@@ -310,10 +358,10 @@ def run_cycle(k, home, now, args):
 def main(argv=None, now=None):
     # unwind on SIGTERM and at the deadline, so an unpublished run directory or temp file is removed
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
-    signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"kaizen: run passed its {args.deadline}s deadline"))
+    signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"kaizen: run passed its {args.deadline or 'default'}s deadline"))
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("command", nargs="?", default="run", choices=("run", "baseline", "adopt", "resolve"))
-    p.add_argument("change", nargs="?", help="baseline: the change id; adopt: the commit")
+    p.add_argument("command", nargs="?", default="run", choices=("run", "baseline", "adopt", "resolve", "clear"))
+    p.add_argument("change", nargs="?", help="baseline: the change id; adopt: the commit; clear: the attempt")
     p.add_argument("--home", type=Path, default=Path.home())
     p.add_argument("--watch-file", default=str(HERE / "watch.json"))
     p.add_argument("--gh", default="gh")
@@ -323,9 +371,11 @@ def main(argv=None, now=None):
     p.add_argument("--no-t3", action="store_true")
     p.add_argument("--no-apply", action="store_true", help="skip the apply stage")
     p.add_argument("--yes", action="store_true", help="resolve: clear the journal")
-    p.add_argument("--deadline", type=int, default=DEADLINE, help="seconds before the run exits; a run already publishing finishes that first")
+    p.add_argument("--deadline", type=int, default=None,
+                   help=f"seconds before the run exits (default {DEADLINE}, and up to about 62 minutes when the weekly "
+                        "stage runs); a run already publishing finishes that first")
     args = p.parse_args(argv)
-    signal.alarm(args.deadline)
+    signal.alarm(args.deadline or DEADLINE)
     try:
         run_command(p, args, now)
     finally:
@@ -347,6 +397,8 @@ def run_command(p, args, now):
             summary = apply.adopt(home, ready.source_repo(args.chezmoi), args.change)
         except apply.ApplyError as e:
             raise SystemExit(f"kaizen: adopt: {e}") from e
+    elif args.command == "clear":
+        summary = improve.clear(k, args.change)
     elif args.command == "resolve":
         try:
             summary = apply.resolve(home, args.yes)

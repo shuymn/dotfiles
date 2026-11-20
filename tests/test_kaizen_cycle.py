@@ -417,7 +417,7 @@ class Cycle(Temp):
         self.assertEqual((status["fail"], status["decisions"]), (summary["fail"], summary["decisions"]))
         self.assertGreaterEqual(status["fail"], 2)  # R1 (no chezmoi source) and R2 (job not loaded)
         record = self.published("record.json")
-        self.assertEqual((record["date"], record["cost"]), ("2026-11-19", {"claude_usd": 0, "codex_usd": 0}))
+        self.assertEqual((record["date"], record["cost"]), ("2026-11-19", {"claude_usd": 0, "codex_runs": 0}))
         self.assertEqual(record["watch"][0]["pre_source"], "live, partial: older transcripts deleted")
         digest = (self.k / "current/digest.md").read_text()
         for section in ("## 準備状態", "## 取りこぼしと無駄", "## 監視中の変更", "## 判断事項", "## 費用"):
@@ -684,6 +684,72 @@ class Cycle(Temp):
         with mock.patch.object(cycle.apply, "adopt", return_value={"adopted": "e" * 40}) as adopt:
             self.assertEqual(self.main("adopt", "e" * 40), {"adopted": "e" * 40})
         self.assertEqual(adopt.call_args.args[2], "e" * 40)
+
+    def test_weekly_stage_off_shows_in_the_digest_and_calls_nothing(self):
+        claude = fake(self.bin, "claude", f'touch "{self.dir}/claude-called"\n')
+        with mock.patch.dict(os.environ, {"PATH": f"{self.bin}:{os.environ['PATH']}"}):
+            self.main()
+        self.assertTrue(Path(claude).exists())
+        self.assertFalse((self.dir / "claude-called").exists())
+        record = self.published("record.json")
+        self.assertEqual(record["improver"]["status"], "off")
+        self.assertEqual(record["cost"], {"claude_usd": 0, "codex_runs": 0})
+        digest = (self.k / "current/digest.md").read_text()
+        self.assertIn("## 週次の改善\n- 止めている（有効にする: touch ~/.claude/kaizen/improve-enabled）", digest)
+        self.assertIn("Claude $0、Codex 0 回", digest)
+        self.assertFalse((self.k / "proposals").exists())
+
+    def attempt(self, **fields):
+        (self.k / "improve-enabled").parent.mkdir(parents=True, exist_ok=True)
+        (self.k / "improve-enabled").touch()
+        return cycle.improve.Attempt.create(self.k, NOW - timedelta(days=2), fields)
+
+    def test_digest_shows_the_newest_attempt(self):
+        a = self.attempt(outcome="pr https://github.com/o/r/pull/9", cost_usd=12.5, watch="worker regression")
+        self.main()
+        record = self.published("record.json")
+        self.assertEqual(record["improver"]["status"], "skipped:not due")
+        digest = (self.k / "current/digest.md").read_text()
+        self.assertIn(f"- 最新の試み {a.data['id']}（{a.data['started']}）: pr https://github.com/o/r/pull/9、費用 $12.5",
+                      digest)
+        self.assertIn("  - PR: https://github.com/o/r/pull/9", digest)
+        self.assertIn("見るもの（マージのとき watch.json へ）: worker regression", digest)
+
+    def test_unknown_cost_is_never_zero(self):
+        a = self.attempt(outcome="failed:interrupted", cost_usd="unknown")
+        unknown = {"enabled": True, "status": "attempted", "cost_usd": "unknown", "codex_runs": 1, "decisions": [],
+                   "attempt": cycle.improve.summary(a)}
+        with mock.patch.object(cycle.improve, "weekly", return_value=unknown):
+            self.main()
+        record = self.published("record.json")
+        self.assertEqual(record["cost"], {"claude_usd": "unknown", "codex_runs": 1})
+        digest = (self.k / "current/digest.md").read_text()
+        self.assertIn("Claude unknown、Codex 1 回", digest)
+        self.assertIn(f"failed:interrupted、費用 unknown", digest)
+        self.assertNotIn("Claude $0", digest)
+        self.assertEqual(cycle.improve.attempt_decisions(a), [f"improver: failed:interrupted — {a.dir}"])
+
+    def test_weekly_deadline_and_alarm(self):
+        self.attempt(outcome="no-change")
+        stub = {"enabled": True, "status": "x", "cost_usd": 0, "codex_runs": 0, "decisions": [], "attempt": None}
+        for extra, alarms in (((), [1200, 3720, 0]), (("--deadline", "1200"), [1200, 0])):
+            with self.subTest(extra), mock.patch.object(cycle.signal, "alarm") as alarm, \
+                    mock.patch.object(cycle.improve, "weekly", return_value=stub) as weekly:
+                before = time.monotonic()
+                self.main(*extra)
+                self.assertEqual([c.args[0] for c in alarm.call_args_list], alarms)
+                deadline = weekly.call_args.args[7]
+                if extra:
+                    self.assertLess(deadline, before + 1200 - 119)
+                else:
+                    self.assertGreater(deadline, before + 3599)
+
+    def test_clear_command(self):
+        a = self.attempt(outcome="failed:remote-unknown", remote={"branch": "kaizen/improve-x"})
+        self.assertEqual(self.main("clear", a.data["id"]), {"cleared": a.data["id"], "branch": "kaizen/improve-x"})
+        self.assertTrue(json.loads((a.dir / "result.json").read_text())["cleared"])
+        with self.assertRaises(SystemExit):
+            self.main("clear", "../x")
 
     def test_invalid_change_id_is_rejected(self):
         self.watch.write_text(json.dumps([{"change": "../x", "signal": "regression", "apply": ts(NOW)}]))
