@@ -30,7 +30,8 @@ class HookCase(unittest.TestCase):
         self.repo = self.tmp / "work" / "repo"
         for d in (self.home, self.repo / ".git"):
             d.mkdir(parents=True)
-        self.env = {**{k: v for k, v in os.environ.items() if k != "HERDR_ENV"}, "HOME": str(self.home)}
+        self.env = {**{k: v for k, v in os.environ.items() if k not in ("HERDR_ENV", "T3CODE_THREAD_ID")},
+                    "HOME": str(self.home)}
 
     def run_hook(self, data, hook=HOOK):
         p = subprocess.run([sys.executable, "-I", str(hook)], input=json.dumps(data), capture_output=True, text=True,
@@ -218,26 +219,36 @@ class UnchangedEventsTest(HookCase):
 
 
 class HandoverTest(HookCase):
-    """The handover reminder names no T3 tool; the herdr how-to appears only inside herdr (HERDR_ENV=1)."""
+    """The handover how-to matches the environment: T3 Code with T3CODE_THREAD_ID, herdr with HERDR_ENV=1, else none."""
 
-    def context_with(self, herdr):
+    T3_NAMES = r"t3_|delegate_task|watch_pull_request|T3 Code"
+
+    def outputs(self, env):
         kit = self.home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(self.repo)) / "demo-orchestration"
         kit.mkdir(parents=True)
         (kit / "state.md").write_text("State: step 1.\n")
-        if herdr is not None:
-            self.env["HERDR_ENV"] = herdr
-        out = self.run_hook({"hook_event_name": "SessionStart", "source": "startup", "cwd": str(self.repo)})
-        return json.loads(out)["hookSpecificOutput"]["additionalContext"]
+        (kit / "watch").write_text(f"{self.tmp / 'watched'}\n")
+        old = time.time() - 3600
+        os.utime(kit / "state.md", (old, old))
+        (self.tmp / "watched").write_text("w\n")
+        self.env.update(env)
+        start = self.run_hook({"hook_event_name": "SessionStart", "source": "startup", "cwd": str(self.repo)})
+        stop = self.run_hook({"hook_event_name": "Stop", "cwd": str(self.repo), "stop_hook_active": False})
+        shutil.rmtree(self.home / ".claude")
+        for k in env:
+            del self.env[k]
+        return json.loads(start)["hookSpecificOutput"]["additionalContext"], json.loads(stop)["reason"]
 
-    def test_herdr_lines_only_with_herdr_env(self):
-        for herdr, shown in ((None, False), ("0", False), ("1", True)):
-            with self.subTest(herdr=herdr):
-                text = self.context_with(herdr)
-                shutil.rmtree(self.home / ".claude")
-                self.assertIn("hand over to a fresh orchestrator session", text)
-                self.assertEqual("herdr agent start" in text, shown, text)
-                self.assertEqual("never answer its prompts" in text, shown, text)
-                self.assertIsNone(re.search(r"t3_|delegate_task|watch_pull_request|T3 Code|thread", text), text)
+    def test_handover_per_environment(self):
+        cases = (({}, None), ({"HERDR_ENV": "0"}, None), ({"HERDR_ENV": "1"}, "herdr"),
+                 ({"T3CODE_THREAD_ID": "t-1"}, "t3"), ({"T3CODE_THREAD_ID": "t-1", "HERDR_ENV": "1"}, "t3"))
+        for env, kind in cases:
+            with self.subTest(env=env):
+                for text in self.outputs(env):
+                    self.assertEqual("hand over to a fresh orchestrator session" in text, kind is not None, text)
+                    self.assertEqual("herdr agent start" in text, kind == "herdr", text)
+                    self.assertEqual("t3_thread_launch" in text and "t3_thread_organize" in text, kind == "t3", text)
+                    self.assertEqual(bool(re.search(self.T3_NAMES, text)), kind == "t3", text)
 
 
 def managed_hooks():
