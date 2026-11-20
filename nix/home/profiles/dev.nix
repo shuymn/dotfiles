@@ -75,10 +75,12 @@ in
     };
   };
 
-  # The kaizen daily cycle (docs/kaizen.md §6): a stateless run over the last
-  # 7 days that calls no model. launchd starts a calendar job missed while
-  # asleep on wake and runs one instance of a label at a time. The scripts run
-  # from their store copy, so a change takes effect at the next switch.
+  # The kaizen cycle (docs/kaizen.md §6): a stateless run over the last 7 days
+  # whose daily stages call no model; the weekly stage, off until
+  # ~/.claude/kaizen/improve-enabled exists, runs claude and codex through the
+  # mise shims. launchd starts a calendar job missed while asleep on wake and
+  # runs one instance of a label at a time. The scripts run from their store
+  # copy, so a change takes effect at the next switch.
   launchd.agents.kaizen-cycle = {
     enable = true;
     config = {
@@ -92,7 +94,7 @@ in
           Minute = 0;
         }
       ];
-      EnvironmentVariables.PATH = "${config.home.profileDirectory}/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+      EnvironmentVariables.PATH = "${config.home.profileDirectory}/bin:/usr/bin:/bin:/usr/sbin:/sbin:${config.home.homeDirectory}/.local/share/mise/shims";
       ProcessType = "Background";
       LowPriorityIO = true;
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/kaizen-cycle.log";
