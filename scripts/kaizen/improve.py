@@ -270,12 +270,27 @@ def endpoint_env(home):
     out = {}
     for k in ENDPOINT_ENV:
         v = env.get(k)
+        if v is None:
+            continue
         try:
-            if isinstance(v, str) and v and "\0" not in v and v.encode("utf-8"):
-                out[k] = v
+            if not (isinstance(v, str) and v and "\0" not in v and v.encode("utf-8")):
+                return {}  # a malformed value: use neither, so a token never goes to another endpoint
         except UnicodeEncodeError:
-            pass
+            return {}
+        out[k] = v
     return out
+
+
+def strings(value):
+    """Every string inside a decoded JSON value."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from strings(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from strings(v)
 
 
 def no_tokens(usage):
@@ -378,6 +393,9 @@ def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh", so
     if a:
         res["attempt"] = summary(a)
         res["decisions"] += attempt_decisions(a)
+    for other in (newest(k, only=UNFINISHED + (REMOTE_UNKNOWN,)) if a else None,):
+        if other and other.dir != a.dir:  # an older attempt that holds the gate, behind a newer one
+            res["decisions"] += attempt_decisions(other)
     return res
 
 
@@ -584,7 +602,7 @@ class Stage:
         finally:
             diff = self.tree_diff(tree, base)
             a.write("diff.patch", self.redact(diff))  # what the model left, for the owner, whatever follows
-        if self.leaks(diff) or self.leaks(json.dumps(out, ensure_ascii=False)):
+        if self.leaks(diff) or any(self.leaks(s) for s in strings(out)):
             raise Stop("proposal:credential", "the model output contains the endpoint credential")
         a.update(watch=out["watch"], summary=out["summary"], evidence_ids=out["evidence_ids"])
         if not out["change"]:
@@ -631,7 +649,7 @@ class Stage:
             a.update(cost_usd=cost)
         if not (code == 0 and isinstance(result, dict) and result.get("subtype") == "success"
                 and result.get("is_error") is False and matches(result.get("structured_output"), SCHEMA)):
-            detail = self.redact(f"exit {code}: {err.decode(errors='replace')[-200:]}")
+            detail = f"exit {code}: {self.redact(err.decode(errors='replace'))[-200:]}"
             if isinstance(result, dict) and cost == 0 and no_tokens(result.get("usage")):
                 # the model did no work (e.g. a usage limit or a login problem): retry at the next run
                 excerpt = self.redact(str(result.get("result")))[:200].encode("utf-8", "replace").decode()
