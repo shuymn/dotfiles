@@ -357,7 +357,7 @@ esac
 
     def test_r4_passes_without_t3(self):
         self.assertIsNone(observe.default_paths(self.dir)["t3_db"])  # no ~/.t3: T3 Code is not used here
-        (self.dir / ".t3").mkdir()
+        (self.dir / ".t3").symlink_to(self.dir / "gone")  # a broken link is not an absent T3
         self.assertEqual(observe.default_paths(self.dir)["t3_db"], self.dir / ".t3/userdata/statev2.sqlite")
         sources = {"transcripts": {"status": "ok"}, "t3": {"status": "off"}, "gh": {"status": "off"}}
         self.assertEqual(ready.check_r4(sources, fake(self.dir, "gh", "exit 0\n"))["status"], "PASS")
