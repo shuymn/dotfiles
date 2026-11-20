@@ -50,6 +50,7 @@ ready = apply.ready
 STATE = ".local/state/kaizen-improve"
 ENABLE, LOCK, PROPOSALS = "improve-enabled", ".improve.lock", "proposals"
 WEEK = timedelta(days=7)
+UNAVAILABLE = "failed:model-unavailable"  # the model did no billed work; does not use up the week
 STAGE_SECONDS = 3600  # the stage's own deadline when the run has no explicit --deadline
 DIGEST_RESERVE = 120  # left after the stage for the digest publish
 SECONDS = {"claude": 2400, "codex": 1200, "gh": 60, "git": 120, "push": 120, "check": 120, "keygen": 30}
@@ -408,7 +409,8 @@ class Stage:
                 return
         if a and a.data.get("outcome") == REMOTE_UNKNOWN and not a.data.get("cleared"):
             raise Skip("remote-unknown")
-        if a and now - (datetime.fromisoformat(str(a.data["started"]).replace("Z", "+00:00"))) < WEEK:
+        if (a and a.data.get("outcome") != UNAVAILABLE
+                and now - (datetime.fromisoformat(str(a.data["started"]).replace("Z", "+00:00"))) < WEEK):
             raise Skip("not due")
         if not self.slug:
             raise Skip("no GitHub origin")
@@ -578,7 +580,11 @@ class Stage:
             a.update(cost_usd=cost)
         if not (code == 0 and isinstance(result, dict) and result.get("subtype") == "success"
                 and result.get("is_error") is False and matches(result.get("structured_output"), SCHEMA)):
-            raise Stop("failed:model-result", f"exit {code}: {err.decode(errors='replace')[-200:]}")
+            detail = f"exit {code}: {err.decode(errors='replace')[-200:]}"
+            if isinstance(result, dict) and cost == 0:
+                # no model work was billed (e.g. a usage limit or a login problem): retry at the next run
+                raise Stop(UNAVAILABLE, f"{detail} {str(result.get('result'))[:200]}")
+            raise Stop("failed:model-result", detail)
         return result["structured_output"]
 
     def base_files(self, base):

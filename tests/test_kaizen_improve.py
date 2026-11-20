@@ -440,6 +440,18 @@ class Weekly(Fakes):
         self.assertNoWrites()
         self.assertIn("skill v1", (self.k / improve.PROPOSALS / r["id"] / "diff.patch").read_text())
 
+    def test_c3_a_model_that_did_no_work_does_not_use_up_the_week(self):
+        limit = {"result": "You've hit your weekly limit", "total_cost_usd": 0, "is_error": True}
+        self.scenario(claude={"result": limit, "code": 1})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], improve.UNAVAILABLE)
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"}, "result": {"structured_output": OUTPUT}})
+        self.weekly()  # the next day: a new attempt, not "not due"
+        outcomes = sorted(self.result(i)["outcome"] for i in self.attempts())
+        self.assertEqual(len(outcomes), 2)
+        self.assertEqual(outcomes[0], improve.UNAVAILABLE)
+        self.assertTrue(outcomes[1].startswith("pr "), outcomes)
+
     def test_c9_a_cost_too_large_for_a_float_is_unknown(self):
         result = {"type": "result", "subtype": "success", "is_error": False, "structured_output": OUTPUT}
         self.scenario(claude={"edits": {SKILL: "skill v1\n"},
