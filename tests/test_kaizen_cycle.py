@@ -360,11 +360,13 @@ esac
         self.assertEqual(ready.check_r5(self.dir, NOW, "o/r", empty), ready.result(True, "first run"))
         (self.dir / "current").mkdir()
         (self.dir / "current/record.json").write_text(json.dumps({"finished": ts(NOW - timedelta(days=5))}))
-        prs = [{"number": 1, "headRefName": "kaizen/x", "createdAt": ts(NOW - timedelta(days=20))},
-               {"number": 2, "headRefName": "other", "createdAt": ts(NOW - timedelta(days=20))}]
+        old = ts(NOW - timedelta(days=20))
+        prs = [[{"number": 1, "head": {"ref": "kaizen/x", "repo": {"full_name": "o/r"}}, "created_at": old},
+                {"number": 2, "head": {"ref": "other", "repo": {"full_name": "o/r"}}, "created_at": old}],
+               [{"number": 3, "head": {"ref": "kaizen/y", "repo": {"full_name": "fork/r"}}, "created_at": old}]]
         r = ready.check_r5(self.dir, NOW, "o/r", fake(self.dir, "gh", f"echo '{json.dumps(prs)}'\n"))
         self.assertEqual(r["status"], "FAIL")
-        self.assertEqual(len(r["detail"]), 2)
+        self.assertEqual(r["detail"], ["last run finished 5 days ago", "open PR #1 (kaizen/x) is 20 days old"])
         (self.dir / "current/record.json").write_text(json.dumps({"finished": ts(NOW - timedelta(days=1))}))
         self.assertEqual(ready.check_r5(self.dir, NOW, "o/r", empty)["status"], "PASS")
 
@@ -385,7 +387,7 @@ class Cycle(Temp):
         self.watch.write_text(json.dumps([{"change": "#1", "signal": "regression", "apply": ts(NOW - timedelta(days=2)),
                                            "days": 28}]))
         self.args = ["--home", str(self.home), "--watch-file", str(self.watch), "--no-t3",
-                     "--gh", fake(self.bin, "gh", "case \"$1\" in pr) echo '[]';; esac; exit 0\n"),
+                     "--gh", fake(self.bin, "gh", "case \"$1\" in pr|api) echo '[]';; esac; exit 0\n"),
                      "--chezmoi", fake(self.bin, "chezmoi", "exit 1\n"),
                      "--launchctl", fake(self.bin, "launchctl", "exit 113\n")]
 

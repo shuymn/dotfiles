@@ -9,7 +9,8 @@ R2  the cycle's launchd job is loaded (`launchctl print gui/<uid>/<label>`) and 
 R3  `<home>/.claude/hooks/attention-budget.py status` shows no OVER line. An improver candidate.
 R4  every observation source read without failure (gh may be off) and `gh auth status` passes (owner when not).
 R5  the published run (K/current/record.json, read before this run publishes) finished at most 3 days ago, and every
-    open PR of the dotfiles repository whose head branch starts with kaizen/ is at most 14 days old.
+    open PR of the dotfiles repository whose head is its own branch starting with kaizen/ is at most 14 days old
+    (open_kaizen_prs, which the weekly stage also uses).
 Each result: {"status": "PASS"|"FAIL", "detail": str or list, "owner": bool}.
 """
 import json
@@ -126,6 +127,26 @@ def check_r4(sources, gh="gh"):
     return result(not bad, bad or "sources ok; gh authenticated", code != 0)
 
 
+def open_kaizen_prs(repo_slug, gh="gh", runner=None):
+    """The open PRs of repo_slug (REST objects) whose head is a branch of that same repository starting with kaizen/;
+    a fork's kaizen/ branch does not count. Every page is read. ValueError when gh fails or the answer is not pages of
+    PRs. runner(argv) -> (returncode or None, stdout, stderr) replaces the default 60-second run."""
+    argv = [gh, "api", "--paginate", "--slurp", f"repos/{repo_slug}/pulls?state=open&per_page=100"]
+    code, out, err = runner(argv) if runner else run(argv, 60)
+    if code != 0:
+        raise ValueError(f"gh api pulls failed: {err}")
+    return [pr for pr in slurped(out) if pr["head"]["ref"].startswith("kaizen/")
+            and str((pr["head"].get("repo") or {}).get("full_name", "")).lower() == repo_slug.lower()]
+
+
+def slurped(out):
+    """The items of `gh api --paginate --slurp` output (a list of pages); ValueError for any other shape."""
+    pages = json.loads(out)
+    if not isinstance(pages, list) or not all(isinstance(p, list) for p in pages):
+        raise ValueError("gh api: not a list of pages")
+    return [pr for page in pages for pr in page]
+
+
 def check_r5(k, now, repo_slug, gh="gh"):
     bad, notes = [], []
     try:
@@ -142,15 +163,11 @@ def check_r5(k, now, repo_slug, gh="gh"):
     if repo_slug is None:
         bad.append("open kaizen PRs unknown: no GitHub origin for the dotfiles checkout")
     else:
-        code, out, err = run([gh, "pr", "list", "-R", repo_slug, "--state", "open", "--limit", "200", "--json",
-                              "number,headRefName,createdAt"], 60)
         try:
-            if code != 0:
-                raise ValueError(err)
-            for pr in json.loads(out):
-                created = datetime.fromisoformat(pr["createdAt"].replace("Z", "+00:00"))
-                if pr["headRefName"].startswith("kaizen/") and now - created > timedelta(days=PR_DAYS):
-                    bad.append(f"open PR #{pr['number']} ({pr['headRefName']}) is {(now - created).days} days old")
+            for pr in open_kaizen_prs(repo_slug, gh):
+                created = datetime.fromisoformat(pr["created_at"].replace("Z", "+00:00"))
+                if now - created > timedelta(days=PR_DAYS):
+                    bad.append(f"open PR #{pr['number']} ({pr['head']['ref']}) is {(now - created).days} days old")
         except (ValueError, KeyError, TypeError, AttributeError) as e:
             bad.append(f"open kaizen PRs unknown: {e}")
     return result(not bad, bad + notes if bad else "; ".join(notes) or "alive")
