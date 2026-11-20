@@ -798,8 +798,10 @@ class Stage:
             self.reconcile(a, remote)
         except Stop as s:
             a.update(outcome=s.outcome, reason=s.detail)
-        except (apply.ApplyError, OSError, ValueError, KeyError) as e:
-            a.update(outcome=REMOTE_UNKNOWN, reason=f"{type(e).__name__}: {e}")
+        except Deadline:
+            raise
+        except Exception as e:  # noqa: BLE001 — any other failure is a decision naming the branch, never a crash
+            a.update(outcome=REMOTE_UNKNOWN, reason=f"recovery failed: {type(e).__name__}: {e}")
 
     def lookup(self, remote):
         owner = remote["repo"].split("/")[0]
@@ -846,6 +848,8 @@ class Stage:
         oids = [line.split()[0] for line in listed.splitlines() if line.strip()]
         if oids != [remote["oid"]]:
             raise Stop(REMOTE_UNKNOWN, "ref missing" if not oids else "the ref is at another commit")
+        if not self.repo or not regular(Path(self.repo) / "host.toml"):
+            raise Stop(REMOTE_UNKNOWN, "the checkout or its host.toml is unavailable, so the PR cannot be checked")
         rc, out = self.public_check(a, a.data["base"], remote["oid"], remote["branch"])
         if rc != 0:
             raise Stop(REMOTE_UNKNOWN, f"public-check now fails: {out[-200:]}")

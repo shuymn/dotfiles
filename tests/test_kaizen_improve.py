@@ -729,6 +729,27 @@ class Weekly(Fakes):
         self.assertTrue(lookups and all(u.startswith("repos/o/r/pulls") for u in lookups), lookups)
         self.assertEqual(self.result(a.data["id"])["outcome"], "pr https://github.com/o/r/pull/9")
 
+    def test_c18_recovery_without_a_checkout_is_a_decision(self):
+        a, r = self.publishing()
+        self.scenario(open=["fail"])
+        res = improve.weekly(self.k, self.home, None, "o/r", [PUBLIC], READY, NOW, time.monotonic() + 60,
+                             sources={"gh": {"status": "ok"}})
+        after = self.result(a.data["id"])
+        self.assertEqual(after["outcome"], improve.REMOTE_UNKNOWN)
+        self.assertIn("checkout", after["reason"])
+        self.assertTrue(any(r["branch"] in d and "cycle.py clear" in d for d in res["decisions"]), res["decisions"])
+        self.assertEqual(self.jsonl("created.jsonl"), [])
+
+    def test_c18_an_unexpected_recovery_error_is_a_decision(self):
+        a, r = self.publishing()
+        self.scenario(open=["fail"])
+        with mock.patch.object(improve.Stage, "lookup", side_effect=RuntimeError("boom")):
+            res = self.weekly()
+        after = self.result(a.data["id"])
+        self.assertEqual(after["outcome"], improve.REMOTE_UNKNOWN)
+        self.assertIn("RuntimeError: boom", after["reason"])
+        self.assertTrue(any(r["branch"] in d for d in res["decisions"]))
+
     def test_c18_ambiguous_remote_state_is_a_decision(self):
         cases = {"another oid": lambda r: [[pr("e" * 40, ref=r["branch"])]],
                  "another base": lambda r: [[pr(r["oid"], ref=r["branch"], base="dev")]],
