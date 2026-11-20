@@ -55,15 +55,19 @@ HANDOVER = (  # the owner's standing request; only where the environment can sta
     "is to hand over to a fresh orchestrator session without asking (hiden references/attention.md). Rewrite the state "
     "first. ")
 T3_HANDOVER = HANDOVER + (
-    "In T3 Code: children and PR watches stay bound to this thread, so unwatch the PRs, `t3_thread_launch` at the T3 "
+    "In T3 Code: confirm this thread belongs to the target repository's T3 project, not just its shell cwd. Children "
+    "and PR watches stay bound to this thread, so unwatch the PRs, `t3_thread_launch` at the T3 "
     "project root without a worktree with \"Read <state.md path> and continue this orchestration.\", report its link, "
     "then settle this thread with `t3_thread_organize`."
 )
 HERDR_HANDOVER = HANDOVER + (
-    "In herdr: stop the PR waits, `herdr pane split --current --direction right --no-focus --cwd <repo root>` (new pane "
-    "id), `herdr agent start <name> --kind claude --pane <id>`, `herdr agent prompt <name> \"Read <state.md path> and "
-    "continue this orchestration.\" --wait`, then `herdr agent read <name>` to confirm it started. If it is blocked, "
-    "tell the owner; never answer its prompts. Use herdr only for this; workers and reviews stay in this session."
+    "In herdr: stop the PR waits; `herdr pane split --current --direction right --no-focus --cwd <repo root>` and keep "
+    "its `.result.pane.pane_id` as <id>; `herdr agent start <name> --kind claude --pane <id>`; `herdr agent prompt "
+    "<name> \"Read <state.md path> and continue this orchestration.\" --wait --until working --until blocked --timeout "
+    "60000`, which waits for the start only. On an error or timeout, inspect the same agent (`herdr agent get <name>`, "
+    "`herdr agent read <name>`) before deciding; never resend blindly. Once it is working, this session does no more "
+    "work. If it is blocked, tell the owner; never answer its prompts. Close no panes. Use herdr only for this; "
+    "workers and reviews stay in this session."
 )
 
 

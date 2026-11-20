@@ -1,4 +1,5 @@
 from pathlib import Path
+import itertools
 import json
 import os
 import re
@@ -223,7 +224,7 @@ class HandoverTest(HookCase):
 
     T3_NAMES = r"t3_|delegate_task|watch_pull_request|T3 Code"
 
-    def outputs(self, env):
+    def outputs(self, env, source):
         kit = self.home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(self.repo)) / "demo-orchestration"
         kit.mkdir(parents=True)
         (kit / "state.md").write_text("State: step 1.\n")
@@ -232,7 +233,7 @@ class HandoverTest(HookCase):
         os.utime(kit / "state.md", (old, old))
         (self.tmp / "watched").write_text("w\n")
         self.env.update(env)
-        start = self.run_hook({"hook_event_name": "SessionStart", "source": "startup", "cwd": str(self.repo)})
+        start = self.run_hook({"hook_event_name": "SessionStart", "source": source, "cwd": str(self.repo)})
         stop = self.run_hook({"hook_event_name": "Stop", "cwd": str(self.repo), "stop_hook_active": False})
         shutil.rmtree(self.home / ".claude")
         for k in env:
@@ -242,11 +243,13 @@ class HandoverTest(HookCase):
     def test_handover_per_environment(self):
         cases = (({}, None), ({"HERDR_ENV": "0"}, None), ({"HERDR_ENV": "1"}, "herdr"),
                  ({"T3CODE_THREAD_ID": "t-1"}, "t3"), ({"T3CODE_THREAD_ID": "t-1", "HERDR_ENV": "1"}, "t3"))
-        for env, kind in cases:
-            with self.subTest(env=env):
-                for text in self.outputs(env):
+        for (env, kind), source in itertools.product(cases, ("startup", "compact")):
+            with self.subTest(env=env, source=source):
+                for text in self.outputs(env, source):
                     self.assertEqual("hand over to a fresh orchestrator session" in text, kind is not None, text)
                     self.assertEqual("herdr agent start" in text, kind == "herdr", text)
+                    self.assertEqual("--until working --until blocked --timeout" in text, kind == "herdr", text)
+                    self.assertEqual("belongs to the target repository" in text, kind == "t3", text)
                     self.assertEqual("t3_thread_launch" in text and "t3_thread_organize" in text, kind == "t3", text)
                     self.assertEqual(bool(re.search(self.T3_NAMES, text)), kind == "t3", text)
 
