@@ -713,7 +713,7 @@ class Cycle(Temp):
         self.assertIn(f"- 最新の試み {a.data['id']}（{a.data['started']}）: pr https://github.com/o/r/pull/9、費用 $12.5",
                       digest)
         self.assertIn("  - PR: https://github.com/o/r/pull/9", digest)
-        self.assertIn("見るもの（マージのとき watch.json へ）: worker regression", digest)
+        self.assertIn("見るもの（メモ。watch.json の形ではない）: worker regression", digest)
 
     def test_unknown_cost_is_never_zero(self):
         a = self.attempt(outcome="failed:interrupted", cost_usd="unknown")
@@ -732,17 +732,21 @@ class Cycle(Temp):
     def test_weekly_deadline_and_alarm(self):
         self.attempt(outcome="no-change")
         stub = {"enabled": True, "status": "x", "cost_usd": 0, "codex_runs": 0, "decisions": [], "attempt": None}
-        for extra, alarms in (((), [1200, 3720, 0]), (("--deadline", "1200"), [1200, 0])):
+        for extra, alarms, seconds in (((), [1200, 3720, 0], None), (("--deadline", "1200"), [1200, 0], 1200),
+                                       (("--deadline", "0"), [0, 0], 0)):
             with self.subTest(extra), mock.patch.object(cycle.signal, "alarm") as alarm, \
-                    mock.patch.object(cycle.improve, "weekly", return_value=stub) as weekly:
+                    mock.patch.object(cycle.improve, "weekly", return_value=stub) as weekly, \
+                    mock.patch.object(cycle.apply, "run", return_value={"status": "ok"}) as run:
                 before = time.monotonic()
                 self.main(*extra)
                 self.assertEqual([c.args[0] for c in alarm.call_args_list], alarms)
                 deadline = weekly.call_args.args[7]
-                if extra:
-                    self.assertLess(deadline, before + 1200 - 119)
-                else:
+                if seconds is None:
                     self.assertGreater(deadline, before + 3599)
+                else:  # an explicit --deadline, 0 included, is the run's limit
+                    self.assertLess(deadline, before + seconds - 119)
+                    self.assertLess(run.call_args.kwargs["deadline"], time.monotonic() + seconds - 239)
+                self.assertIn("gh", weekly.call_args.kwargs["sources"])  # observe's sources reach the stage
 
     def test_clear_command(self):
         a = self.attempt(outcome="failed:remote-unknown", remote={"branch": "kaizen/improve-x"})

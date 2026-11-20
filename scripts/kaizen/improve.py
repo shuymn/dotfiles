@@ -22,6 +22,7 @@ import io
 import json
 import math
 import os
+import posixpath
 import re
 import shlex
 import shutil
@@ -61,6 +62,7 @@ WRITING = "scripts/kaizen/writing.md"
 PUBLIC_CHECK = HERE / "public-check"
 PUBLIC_WHERE = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/(?:pull|actions/runs)/\d+")
 ATTEMPT = re.compile(r"\d{8}-[0-9a-f]{6}")
+LINK = re.compile(r"\]\(([^)\s]+)")  # the target of a Markdown link
 UNFINISHED = ("started", "publishing")
 REMOTE_UNKNOWN = "failed:remote-unknown"
 TASK = """\
@@ -134,7 +136,13 @@ def matches(value, schema):
 
 
 def finite_cost(value):
-    return value if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) else None
+    """value when it is a finite number (not a bool), else None; an int too large for a float is not finite."""
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    try:
+        return value if math.isfinite(value) else None
+    except OverflowError:
+        return None
 
 
 def blob_id(data):
@@ -287,9 +295,10 @@ def clear(k, attempt):
 
 # ---------------------------------------------------------------- the stage
 
-def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh"):
+def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh", sources=None):
     """record["improver"]: {enabled, status, attempt (the newest, summarized), cost_usd (this run's Claude cost: 0,
-    a number or "unknown"), codex_runs, decisions}."""
+    a number or "unknown"), codex_runs, decisions}. sources are observe's, whose gh status says whether the absence of
+    public items can be trusted."""
     res = {"enabled": enabled(k), "status": "off", "attempt": None, "cost_usd": 0, "codex_runs": 0, "decisions": []}
     if not res["enabled"]:
         return res
@@ -298,7 +307,7 @@ def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh"):
         res["status"] = "skipped:locked"
     else:
         try:
-            Stage(k, Path(home), repo, slug, gh, deadline, res).run(items, ready_results, now)
+            Stage(k, Path(home), repo, slug, gh, deadline, res).run(items, ready_results, now, sources or {})
         except Skip as e:
             res["status"] = f"skipped:{e}"
         finally:
@@ -328,6 +337,9 @@ def attempt_decisions(a):
     if s["outcome"] == REMOTE_UNKNOWN and not s["cleared"]:
         return [f"improver: branch {s['branch']} is in an unknown remote state ({d.get('reason')}); check its PR, "
                 f"then cycle.py clear {s['id']} (the weekly stage stays stopped until then)"]
+    if s["outcome"] == "publishing":
+        return [f"improver: branch {s['branch']} is publishing ({d.get('reason') or 'no PR confirmed yet'}); the next "
+                "run looks for its PR"]
     if s["outcome"].startswith(("proposal:", "failed:")) and s["outcome"] != REMOTE_UNKNOWN:
         return [f"improver: {s['outcome']}" + (f" ({d['reason']})" if d.get("reason") else "") + f" — {a.dir}"]
     return []
@@ -340,6 +352,7 @@ class Stage:
         self.state = home / STATE
         self.mirror = self.state / "mirror.git"
         self.genv = {**apply.git_env(self.state), "GIT_NO_REPLACE_OBJECTS": "1"}
+        self._files = None
 
     # -- children
     def call(self, argv, env, seconds, cwd=None, input=None):
@@ -363,7 +376,7 @@ class Stage:
         return code, out.decode(errors="replace"), err.decode(errors="replace").strip()[-300:]
 
     # -- the order of D1
-    def run(self, items, ready_results, now):
+    def run(self, items, ready_results, now, sources):
         a = newest(self.k)
         if a and a.data.get("outcome") in UNFINISHED:
             try:
@@ -388,6 +401,9 @@ class Stage:
         public = [it for it in items
                   if it.get("provenance") == "public" and PUBLIC_WHERE.fullmatch(str(it.get("where")))]
         if not public:
+            observed = (sources.get("gh") or {}).get("status")
+            if observed != "ok":  # an unread source is not evidence of no public items; retry the next day
+                raise Skip(f"GitHub observation {observed or 'missing'}")
             self.no_public_evidence(items, ready_results, now)
         else:
             self.model_lane(public, now)
@@ -491,7 +507,10 @@ class Stage:
         with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
             tar.extractall(tree, filter="data")
         prompt = f"{brief}\n## Writing rules\n\n{writing}\n{TASK.format(base=base)}"
-        out = self.claude(a, tree, prompt)
+        try:
+            out = self.claude(a, tree, prompt)
+        finally:
+            a.write("diff.patch", self.tree_diff(tree, base))  # what the model left, for the owner, whatever follows
         a.update(watch=out["watch"], summary=out["summary"], evidence_ids=out["evidence_ids"])
         if not out["change"]:
             raise Stop("no-change")
@@ -499,7 +518,6 @@ class Stage:
             raise Stop("proposal:evidence-ids", f"cited {out['evidence_ids']}")
         changed = self.changed_set(tree, base)
         remove_tree(self.state, tree)
-        a.write("diff.patch", self.patch(base, changed))
         title, message = out["pr_title"].strip(), out["commit_message"].strip()
         if not title or "\n" in title or not message:
             raise Stop("proposal:metadata", "blank or multi-line title, or blank commit message")
@@ -536,16 +554,55 @@ class Stage:
         cost = finite_cost(result.get("total_cost_usd")) if isinstance(result, dict) else None
         if cost is not None:
             a.update(cost_usd=cost)
-        if not (isinstance(result, dict) and result.get("subtype") == "success" and result.get("is_error") is False
-                and matches(result.get("structured_output"), SCHEMA)):
+        if not (code == 0 and isinstance(result, dict) and result.get("subtype") == "success"
+                and result.get("is_error") is False and matches(result.get("structured_output"), SCHEMA)):
             raise Stop("failed:model-result", f"exit {code}: {err.decode(errors='replace')[-200:]}")
         return result["structured_output"]
+
+    def base_files(self, base):
+        """{path: (mode, blob id)} of every blob at base, read once."""
+        if self._files is None:
+            self._files = {path: (mode, obj) for mode, kind, obj, path in
+                           apply.parse_ls_tree(self.git("ls-tree", "-r", "-z", "--full-tree", base)) if kind == "blob"}
+        return self._files
+
+    def tree_diff(self, tree, base):
+        """A unified diff of every regular file the tree adds, changes or lacks against base; other kinds of change
+        are named. Text only: it is a record for the owner, not what is published."""
+        want, out, seen = self.base_files(base), [], set()
+
+        def old(path):
+            return self.git("show", f"{base}:{path}").decode(errors="replace").splitlines(keepends=True)
+
+        for top, dirs, files in os.walk(tree):
+            for name in sorted(dirs + files):
+                full = os.path.join(top, name)
+                st = os.lstat(full)
+                rel = os.path.relpath(full, tree)
+                if stat.S_ISDIR(st.st_mode):
+                    continue
+                seen.add(rel)
+                mode = want.get(rel, (None,))[0]
+                if stat.S_ISLNK(st.st_mode) and mode == "120000":
+                    continue  # a link of base; changed_set judges its target
+                if not stat.S_ISREG(st.st_mode) or mode not in (None, "100644", "100755"):
+                    out.append(f"# type changed or added: {rel}\n")
+                    continue
+                with open(full, "rb") as f:
+                    data = f.read()
+                if rel in want and blob_id(data) == want[rel][1]:
+                    continue
+                out += difflib.unified_diff(old(rel) if rel in want else [],
+                                            data.decode(errors="replace").splitlines(keepends=True),
+                                            f"a/{rel}" if rel in want else "/dev/null", f"b/{rel}")
+        for rel in sorted(set(want) - seen):
+            out += difflib.unified_diff(old(rel), [], f"a/{rel}", "/dev/null")
+        return "".join(out)
 
     def changed_set(self, tree, base):
         """{path: new bytes}: modifications of 100644 blobs that are still regular non-executable files. Anything else
         (a new, deleted or retyped path, an edit to another mode) ends the attempt as a proposal."""
-        want = {path: (mode, obj) for mode, kind, obj, path in
-                apply.parse_ls_tree(self.git("ls-tree", "-r", "-z", "--full-tree", base)) if kind == "blob"}
+        want = self.base_files(base)
         changed, seen = {}, set()
         for top, dirs, files in os.walk(tree):
             for name in dirs + files:
@@ -578,13 +635,20 @@ class Stage:
             raise Stop("proposal:tree", "change: true without a diff")
         return changed
 
-    def patch(self, base, changed):
-        out = []
-        for path, new in sorted(changed.items()):
-            old = self.git("show", f"{base}:{path}").decode(errors="replace").splitlines(keepends=True)
-            out += difflib.unified_diff(old, new.decode(errors="replace").splitlines(keepends=True), f"a/{path}",
-                                        f"b/{path}")
-        return "".join(out)
+    def broken_links(self, base, changed):
+        """Relative Markdown links added by the change whose target is no path (file or directory) of the tree."""
+        paths = set(self.base_files(base))
+        paths |= {"/".join(p.split("/")[:i]) for p in paths for i in range(1, p.count("/") + 1)}
+        broken = []
+        for path, data in sorted(changed.items()):
+            old = set(LINK.findall(self.git("show", f"{base}:{path}").decode(errors="replace")))
+            for target in sorted(set(LINK.findall(data.decode(errors="replace"))) - old):
+                if re.match(r"[a-z][a-z0-9+.-]*:|#|/", target):  # a URL, an anchor or an absolute path
+                    continue
+                resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target.split("#")[0]))
+                if resolved not in paths:
+                    broken.append(f"{path}: {target}")
+        return broken
 
     def commit(self, base, changed, message, ident, work):
         """The candidate commit in the mirror: a temp index from base plus the new blobs, signed by commit-tree -S
@@ -612,6 +676,9 @@ class Stage:
         over = self.caps(base, {rel: changed[source] for source, rel in targets})
         if over:
             raise Stop("proposal:caps", over)
+        broken = self.broken_links(base, changed)
+        if broken:
+            raise Stop("proposal:links", "; ".join(broken)[:300])
         rc, out = self.public_check(a, base, oid, branch)
         a.update(public_check=out)
         if rc != 0:
@@ -697,21 +764,27 @@ class Stage:
             a.update(reason=f"push: exit {code}: {err.decode(errors='replace')[-200:]}")
             return
         a.remote(pr_dispatched=True)
-        self.create(a, branch)
+        remote = a.data["remote"]
+        self.create(a, remote)
+        try:
+            prs = self.lookup(remote)
+        except Stop as s:
+            a.update(reason=s.detail)  # stays publishing; the next run looks again
+            return
+        if not self.adopt(a, prs, remote) and prs:
+            raise Stop(REMOTE_UNKNOWN, f"{len(prs)} PR(s) for the branch; not exactly one matching repo, ref, oid "
+                       "and base")
 
-    def create(self, a, branch):
-        """gh pr create with the frozen title and body file; False when it was not run or failed."""
+    def create(self, a, remote):
+        """gh pr create in the recorded repo with the frozen title and body file. Its answer is not trusted: the
+        attempt stays publishing until a lookup finds the one matching PR (--head names a ref, not a commit)."""
         if not self.frozen(a):
             raise Stop(REMOTE_UNKNOWN, "title or body changed after public-check; no PR was created")
-        code, out, err = self.gh_run([self.gh, "pr", "create", "--repo", self.slug, "--base", "main", "--head", branch,
-                                      "--title", (a.dir / "title.txt").read_text(), "--body-file",
-                                      str(a.dir / "body.md")])
-        found = re.findall(r"https://github\.com/\S+/pull/\d+", out)
-        if code == 0 and found:
-            a.update(outcome=f"pr {found[-1]}")
-            return True
-        a.update(reason=f"gh pr create: exit {code}: {err}")
-        return False
+        code, _, err = self.gh_run([self.gh, "pr", "create", "--repo", remote["repo"], "--base", "main", "--head",
+                                    remote["branch"], "--title", (a.dir / "title.txt").read_text(), "--body-file",
+                                    str(a.dir / "body.md")])
+        if code != 0:
+            a.update(reason=f"gh pr create: exit {code}: {err}")
 
     # -- recovery (D5 step 7)
     def recover(self, a):
@@ -777,7 +850,7 @@ class Stage:
         if rc != 0:
             raise Stop(REMOTE_UNKNOWN, f"public-check now fails: {out[-200:]}")
         a.remote(recovery_dispatched=True)
-        self.create(a, remote["branch"])
+        self.create(a, remote)
         if not self.adopt(a, self.lookup(remote), remote):
             raise Stop(REMOTE_UNKNOWN, "no matching PR after the recovery create")
 

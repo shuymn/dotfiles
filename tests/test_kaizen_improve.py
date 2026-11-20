@@ -149,16 +149,16 @@ class Fakes(unittest.TestCase):
 
     def scenario(self, **changes):
         base = {"claude": {"edits": {SKILL: "skill v1\n"}, "result": {"structured_output": OUTPUT}},
-                "open": [[]], "lookup": [[]], "create": {"stdout": "https://github.com/o/r/pull/9\n"},
+                "open": [[]], "lookup": "auto", "create": {"stdout": "https://github.com/o/r/pull/9\n"},
                 "codex": {"verdict": {"high": []}}, "public_check": {"code": 0}, "markers": MARKERS + [KEY_MARKER]}
         current = json.loads((self.fdir / "scenario.json").read_text()) if changes.pop("keep", False) else base
         current.update(changes)
         (self.fdir / "scenario.json").write_text(json.dumps(current))
         (self.fdir / "calls.json").unlink(missing_ok=True)
 
-    def weekly(self, items=None, now=NOW, seconds=60):
-        return improve.weekly(self.k, self.home, self.repo, "o/r", [PUBLIC, *PRIVATE] if items is None else items,
-                              READY, now, time.monotonic() + seconds)
+    def weekly(self, items=None, now=NOW, seconds=60, slug="o/r", gh_source="ok"):
+        return improve.weekly(self.k, self.home, self.repo, slug, [PUBLIC, *PRIVATE] if items is None else items,
+                              READY, now, time.monotonic() + seconds, sources={"gh": {"status": gh_source}})
 
     def calls(self, tool=None):
         try:
@@ -196,6 +196,7 @@ class Fakes(unittest.TestCase):
     def publishing(self, **remote):
         """An attempt left publishing after its push, with frozen title and body, and the server ref at its oid."""
         a = self.old_attempt(outcome="publishing")
+        (self.home / improve.STATE / "mirror.git").mkdir(parents=True, exist_ok=True)  # the run that pushed made it
         a.write("title.txt", "docs: t")
         a.write("body.md", "Body.\n")
         branch = f"kaizen/improve-{a.data['id']}"
@@ -310,6 +311,14 @@ class Weekly(Fakes):
         self.assertEqual(self.attempts(), [])
 
     # ---------------------------------------------------------------- C5, C6: lanes and preflight
+    def test_c5_an_unread_github_source_is_not_absence(self):
+        for status in ("fail", "off"):
+            with self.subTest(status):
+                res = self.weekly(items=PRIVATE, gh_source=status)
+                self.assertEqual(res["status"], f"skipped:GitHub observation {status}")
+                self.assertEqual(self.attempts(), [])
+                self.assertEqual(self.calls("claude"), [])
+
     def test_c5_without_public_evidence_no_model_and_a_proposal(self):
         res = self.weekly(items=PRIVATE)
         self.assertEqual(self.result()["outcome"], "proposal:no-public-evidence")
@@ -415,6 +424,23 @@ class Weekly(Fakes):
         self.assertEqual((self.result()["outcome"], self.result()["cost_usd"], res["cost_usd"]),
                          ("failed:model-result", "unknown", "unknown"))
 
+    def test_c10_a_nonzero_exit_rejects_a_success_shaped_result(self):
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"}, "result": {"structured_output": OUTPUT,
+                                                                       "total_cost_usd": 2.0}, "code": 17})
+        self.weekly()
+        r = self.result()
+        self.assertEqual((r["outcome"], r["cost_usd"]), ("failed:model-result", 2.0))
+        self.assertNoWrites()
+        self.assertIn("skill v1", (self.k / improve.PROPOSALS / r["id"] / "diff.patch").read_text())
+
+    def test_c9_a_cost_too_large_for_a_float_is_unknown(self):
+        result = {"type": "result", "subtype": "success", "is_error": False, "structured_output": OUTPUT}
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"},
+                              "raw": json.dumps(result)[:-1] + ', "total_cost_usd": 1' + "0" * 309 + "}"})
+        res = self.weekly()
+        self.assertEqual((self.result()["cost_usd"], res["cost_usd"]), ("unknown", "unknown"))
+        self.assertTrue(self.result()["outcome"].startswith("pr "))
+
     def test_c10_invalid_results_end_without_a_pr(self):
         bad = {"error subtype": {"subtype": "error_max_budget_usd", "structured_output": OUTPUT},
                "is_error": {"is_error": True, "structured_output": OUTPUT},
@@ -495,8 +521,9 @@ class Weekly(Fakes):
     # ---------------------------------------------------------------- C14, C15: Codex and public-check
     def test_c14_codex_runs_read_only_after_the_freeze(self):
         self.weekly()
-        order = [c["tool"] for c in self.calls() if c["tool"] in ("codex", "gh")]
-        self.assertEqual(order[-2:], ["codex", "gh"])  # codex, then gh pr create
+        order = [c["tool"] if c["tool"] == "codex" else c["argv"][1] for c in self.calls()
+                 if c["tool"] == "codex" or c["argv"][:2] == ["pr", "create"]]
+        self.assertEqual(order, ["codex", "create"])  # codex, then gh pr create
         [call] = self.calls("codex")
         self.assertEqual(call["argv"][call["argv"].index("-s") + 1], "read-only")
         self.assertIn("approval_policy=never", call["argv"])
@@ -544,6 +571,56 @@ class Weekly(Fakes):
         self.assertIn("https://github.com/o/r/pull/7", bytes.fromhex(created["body"]).decode())
         self.assertEqual((copt("--repo"), copt("--base")), ("o/r", "main"))
         self.assertEqual(r["outcome"], "pr https://github.com/o/r/pull/9")
+
+    def test_c15_more_than_one_commit_is_a_proposal(self):
+        self.scenario(rev_list_count=2)
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], "proposal:check")
+        self.assertEqual(self.jsonl("checked.jsonl"), [])
+        self.assertNoWrites()
+
+    def test_c15_an_added_broken_relative_link_is_a_proposal(self):
+        cases = {"broken": ("skill v1 see [ref](references/missing.md)\n", "proposal:links"),
+                 "resolves": ("skill v1 see [ref](references/a.md#top) and [dir](references/)\n", "pr "),
+                 "a URL": ("skill v1 see [x](https://example.com/a)\n", "pr ")}
+        for name, (text, outcome) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                db = self.db()
+                db["server"], db["prs"] = {}, []
+                self.db(db)
+                self.scenario(claude={"edits": {SKILL: text}, "result": {"structured_output": OUTPUT}})
+                self.weekly()
+                self.assertTrue(self.result()["outcome"].startswith(outcome), self.result())
+
+    def test_m6_a_refused_candidate_keeps_its_diff(self):
+        cases = {"new file": ({"create": ["home/dot_claude/skills/hiden/references/new.md"],
+                               "result": {"structured_output": OUTPUT}}, "references/new.md"),
+                 "foreign id": ({"edits": {SKILL: "skill v1\n"},
+                                 "result": {"structured_output": {**OUTPUT, "evidence_ids": ["x"]}}}, "+skill v1")}
+        for name, (spec, needle) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                self.scenario(claude=spec)
+                self.weekly()
+                self.assertTrue(self.result()["outcome"].startswith("proposal:"))
+                self.assertIn(needle, (self.k / improve.PROPOSALS / self.attempts()[0] / "diff.patch").read_text())
+
+    def test_c2_the_lock_is_held_until_the_result_is_saved(self):
+        started = self.fdir / "create.pid"
+        self.scenario(create={"stdout": "https://github.com/o/r/pull/9\n", "sleep": 2, "pidfile": str(started)})
+        t = threading.Thread(target=self.weekly)
+        t.start()
+        deadline = time.monotonic() + 30
+        while not started.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(started.exists())
+        self.assertIsNone(improve.take_lock(self.k))  # held during the last remote write
+        t.join(60)
+        self.assertTrue(self.result()["outcome"].startswith("pr "))
+        lock = improve.take_lock(self.k)
+        self.assertIsNotNone(lock)
+        lock.close()
 
     def test_c15_a_public_check_hit_is_a_proposal(self):
         self.scenario(public_check={"code": 1})
@@ -607,7 +684,7 @@ class Weekly(Fakes):
             with self.subTest(state):
                 shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
                 (self.fdir / "created.jsonl").unlink(missing_ok=True)
-                self.scenario(create={"code": 1})
+                self.scenario(create={"code": 1, "server": False}, lookup=["fail"])
                 self.weekly()
                 r = self.result()
                 self.assertEqual(r["outcome"], "publishing")
@@ -615,6 +692,42 @@ class Weekly(Fakes):
                 self.weekly(now=NOW + timedelta(days=1))
                 self.assertEqual(self.result()["outcome"], "pr https://github.com/o/r/pull/12")
                 self.assertEqual(len(self.jsonl("created.jsonl")), 1)  # no second create
+
+    def test_c18_the_first_create_is_confirmed_by_the_head_oid(self):
+        self.scenario(create={"stdout": "https://github.com/o/r/pull/9\n", "head_sha": "e" * 40})
+        res = self.weekly()
+        self.assertEqual(self.result()["outcome"], improve.REMOTE_UNKNOWN)  # gh said yes; the PR head is not ours
+        self.assertTrue(any(self.result()["branch"] in d for d in res["decisions"]))
+
+    def test_c18_a_lookup_failure_after_create_stays_publishing(self):
+        self.scenario(lookup=["fail"])
+        res = self.weekly()
+        self.assertEqual(self.result()["outcome"], "publishing")
+        self.assertTrue(any("is publishing" in d and self.result()["branch"] in d for d in res["decisions"]))
+        self.scenario(lookup="auto", keep=True)
+        self.weekly(now=NOW + timedelta(days=1))
+        self.assertEqual(self.result()["outcome"], "pr https://github.com/o/r/pull/9")
+        self.assertEqual(len(self.jsonl("created.jsonl")), 1)
+
+    def test_c18_a_recovery_create_is_confirmed_before_success(self):
+        a, r = self.publishing()
+        self.scenario(lookup=[[[]], {"sleep": 30}])  # empty, then the confirming lookup hangs past the deadline
+        res = self.weekly(seconds=4)
+        self.assertEqual(res["status"], "skipped:deadline in recovery")
+        after = self.result(a.data["id"])
+        self.assertEqual(after["outcome"], "publishing")
+        self.assertTrue(after["remote"]["recovery_dispatched"])
+        self.assertEqual(len(self.jsonl("created.jsonl")), 1)
+
+    def test_c18_recovery_uses_the_recorded_repo(self):
+        a, r = self.publishing()
+        self.scenario(open=["fail"])  # stop at the gate after the recovery
+        self.weekly(slug="o/new-repo")  # the checkout's origin moved since the push
+        [created] = self.jsonl("created.jsonl")
+        self.assertEqual(created["argv"][created["argv"].index("--repo") + 1], "o/r")
+        lookups = [c["argv"][-1] for c in self.calls("gh") if "state=all" in c["argv"][-1]]
+        self.assertTrue(lookups and all(u.startswith("repos/o/r/pulls") for u in lookups), lookups)
+        self.assertEqual(self.result(a.data["id"])["outcome"], "pr https://github.com/o/r/pull/9")
 
     def test_c18_ambiguous_remote_state_is_a_decision(self):
         cases = {"another oid": lambda r: [[pr("e" * 40, ref=r["branch"])]],
@@ -670,6 +783,12 @@ class Weekly(Fakes):
         self.assertEqual((r["outcome"], r["cost_usd"]), ("failed:interrupted", "unknown"))
         self.assertFalse(tree.exists())
         self.assertTrue(outside.exists())
+
+    def test_c19_an_interrupted_attempt_keeps_a_recorded_cost(self):
+        self.old_attempt(outcome="started", cost_usd=4.0)
+        self.scenario(open=["fail"])
+        self.weekly()
+        self.assertEqual((self.result()["outcome"], self.result()["cost_usd"]), ("failed:interrupted", 4.0))
 
     def test_c19_a_recorded_path_outside_the_state_dir_is_left(self):
         outside = self.dir / "tree-outside"

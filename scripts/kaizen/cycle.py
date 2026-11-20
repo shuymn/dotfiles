@@ -240,7 +240,7 @@ def improver_lines(i):
                  + f"、費用 {usd(a.get('cost_usd'))}")
     lines.append(f"  - PR: {a['pr']}" if a.get("pr") else f"  - 記録: {a['dir']}")
     if a.get("watch"):
-        lines.append(f"  - 見るもの（マージのとき watch.json へ）: {text(a['watch'])}")
+        lines.append(f"  - 見るもの（メモ。watch.json の形ではない）: {text(a['watch'])}")
     return lines
 
 
@@ -282,7 +282,7 @@ def run_apply(home, repo, args, started):
     else:
         log("apply")
         try:
-            return apply.run(home, repo, deadline=started + (args.deadline or DEADLINE) - APPLY_RESERVE)
+            return apply.run(home, repo, deadline=started + run_seconds(args) - APPLY_RESERVE)
         except Exception as e:  # noqa: BLE001 — a broken apply is its own decision
             result = {"status": "error", "reason": f"{type(e).__name__}: {e}",
                       "decisions": [f"apply crashed: {type(e).__name__}: {e}"]}
@@ -293,12 +293,16 @@ def run_apply(home, repo, args, started):
     return result
 
 
-def run_weekly(k, home, repo, items, results, now, args, started):
+def run_seconds(args):
+    return DEADLINE if args.deadline is None else args.deadline
+
+
+def run_weekly(k, home, repo, obs, results, now, args, started):
     """The weekly stage (improve.weekly) under one monotonic deadline. Without an explicit --deadline the stage gets
     STAGE_SECONDS from here and the run's alarm is re-armed to that plus the digest reserve; with one, the alarm stays
     and the stage ends DIGEST_RESERVE before it. An error is reported, never raised, so the run publishes."""
     if not improve.enabled(k):
-        return improve.weekly(k, home, repo, None, items, results, now, 0)
+        return improve.weekly(k, home, repo, None, obs["items"], results, now, 0)
     if args.deadline is None:
         deadline = time.monotonic() + improve.STAGE_SECONDS
         signal.alarm(improve.STAGE_SECONDS + improve.DIGEST_RESERVE)
@@ -306,8 +310,8 @@ def run_weekly(k, home, repo, items, results, now, args, started):
         deadline = started + args.deadline - improve.DIGEST_RESERVE
     log("weekly")
     try:
-        return improve.weekly(k, home, repo, repo and observe.origin_repo(str(repo)), items, results, now, deadline,
-                              gh=args.gh)
+        return improve.weekly(k, home, repo, repo and observe.origin_repo(str(repo)), obs["items"], results, now,
+                              deadline, gh=args.gh, sources=obs["sources"])
     except Exception as e:  # noqa: BLE001 — a broken weekly stage is its own decision
         return {"enabled": True, "status": f"error: {type(e).__name__}: {e}", "attempt": None, "cost_usd": "unknown",
                 "codex_runs": 0, "decisions": [f"improver crashed: {type(e).__name__}: {e}"]}
@@ -340,7 +344,7 @@ def run_cycle(k, home, now, args):
             results[rid] = check()
         except Exception as e:  # noqa: BLE001 — one broken check is its own FAIL
             results[rid] = ready.result(False, f"check crashed: {type(e).__name__}: {e}")
-    improver = run_weekly(k, home, repo, obs["items"], results, now, args, started)
+    improver = run_weekly(k, home, repo, obs, results, now, args, started)
     record = {"date": today, **{key: obs[key] for key in ("window", "sources", "counts", "tally", "codex_sessions")},
               "ready": results, "apply": applied, "watch": watched, "items": obs["items"], "improver": improver,
               "cost": {"claude_usd": improver["cost_usd"], "codex_runs": improver["codex_runs"]}}
@@ -358,7 +362,7 @@ def run_cycle(k, home, now, args):
 def main(argv=None, now=None):
     # unwind on SIGTERM and at the deadline, so an unpublished run directory or temp file is removed
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
-    signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"kaizen: run passed its {args.deadline or 'default'}s deadline"))
+    signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"kaizen: run passed its {run_seconds(args)}s deadline"))
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("command", nargs="?", default="run", choices=("run", "baseline", "adopt", "resolve", "clear"))
     p.add_argument("change", nargs="?", help="baseline: the change id; adopt: the commit; clear: the attempt")
@@ -375,7 +379,7 @@ def main(argv=None, now=None):
                    help=f"seconds before the run exits (default {DEADLINE}, and up to about 62 minutes when the weekly "
                         "stage runs); a run already publishing finishes that first")
     args = p.parse_args(argv)
-    signal.alarm(args.deadline or DEADLINE)
+    signal.alarm(run_seconds(args))
     try:
         run_command(p, args, now)
     finally:

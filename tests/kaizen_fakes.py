@@ -199,6 +199,8 @@ def git():
         commits[c] = {"tree": t, "parents": [parent], "message": message, "config": config, "signed": "-S" in rest,
                       "env": {k: v for k, v in os.environ.items() if k.startswith("GIT_")}}
         out(c + "\n")
+    elif cmd == "rev-list" and "rev_list_count" in SCENARIO:
+        out(f"{SCENARIO['rev_list_count']}\n")
     elif cmd == "rev-list":
         a, b = rest[-1].split("..")
         a, b = rev(a), rev(b)
@@ -273,6 +275,16 @@ def gh():
         with open(DIR / "created.jsonl", "a") as f:
             f.write(json.dumps({"argv": ARGS, "body": Path(ARGS[ARGS.index("--body-file") + 1]).read_bytes().hex()})
                     + "\n")
+        if spec.get("server", True):  # the PR the server holds: head at what the branch points to now
+            db = load("db.json", {})
+            opt = lambda flag: ARGS[ARGS.index(flag) + 1]
+            prs = db.setdefault("prs", [])
+            number = int(spec.get("number", 9))
+            prs.append({"number": number, "html_url": f"https://github.com/{opt('--repo')}/pull/{number}",
+                        "state": "open", "base": {"ref": opt("--base")},
+                        "head": {"ref": opt("--head"), "repo": {"full_name": spec.get("head_repo", opt("--repo"))},
+                                 "sha": spec.get("head_sha") or db.get("server", {}).get(f"refs/heads/{opt('--head')}")}})
+            dump("db.json", db)
         sleep_with_grandchild(spec)
         out(spec.get("stdout", ""))
         sys.exit(spec.get("code", 0))
@@ -284,6 +296,11 @@ def gh():
         if spec == "fail" or (isinstance(spec, dict) and spec.get("code")):
             sys.stderr.write("gh: HTTP 502\n")
             sys.exit(1)
+        if spec == "auto":  # the server's PRs for the head the query names, in one page
+            head = url.split("head=")[1].split("&")[0].split(":", 1)[1]
+            repo = url.split("repos/")[1].split("/pulls")[0]
+            spec = [[p for p in load("db.json", {}).get("prs", [])
+                     if p["head"]["ref"] == head and p["html_url"].startswith(f"https://github.com/{repo}/")]]
         out(json.dumps(spec))
         return
     if ARGS[0] == "auth":
