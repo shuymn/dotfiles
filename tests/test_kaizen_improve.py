@@ -379,6 +379,52 @@ class Weekly(Fakes):
                 self.assertNotIn("OTHER", call["env"])
                 self.assertNotIn("tok-x", json.dumps(call["argv"]) + call.get("stdin", ""))
 
+    def endpoint(self, env):
+        settings = self.home / ".claude/settings.json"
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps({"env": env}) if not isinstance(env, str) else env)
+
+    def test_the_endpoint_credential_never_reaches_a_commit_or_a_record(self):
+        self.endpoint({"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317", "ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        self.scenario(claude={"edits": {SKILL: "skill tok-canary-123\n"}, "result": {"structured_output": OUTPUT}})
+        self.weekly()
+        r = self.result()
+        self.assertEqual(r["outcome"], "proposal:credential")
+        self.assertNoWrites()
+        self.assertEqual(self.git_calls("commit-tree"), [])
+        saved = "".join(p.read_text() for p in (self.k / improve.PROPOSALS / r["id"]).iterdir())
+        self.assertNotIn("tok-canary-123", saved)
+        self.assertIn("<redacted>", saved)
+
+    def test_an_echoed_credential_in_an_error_is_redacted(self):
+        self.endpoint({"ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        echo = {"result": "bad request: Bearer tok-canary-123", "total_cost_usd": 0, "is_error": True}
+        self.scenario(claude={"result": echo, "code": 1, "stderr": "auth: Bearer tok-canary-123\n"})
+        res = self.weekly()
+        self.assertEqual(self.result()["outcome"], improve.UNAVAILABLE)
+        self.assertNotIn("tok-canary-123", json.dumps(self.result()) + json.dumps(res))
+
+    def test_malformed_endpoint_settings_fall_back_to_the_default_login(self):
+        for name, env in {"array": ["x"], "string": "x", "true": True, "nul": {"ANTHROPIC_AUTH_TOKEN": "a\0b"},
+                          "surrogate": {"ANTHROPIC_AUTH_TOKEN": "a\ud800b"}, "not json": "{"}.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                (self.fdir / "log.jsonl").unlink(missing_ok=True)
+                if name == "not json":
+                    self.endpoint("{")
+                else:
+                    self.endpoint(env)
+                self.weekly()
+                [call] = [c for c in self.calls("claude") if c["argv"][:1] == ["-p"]]
+                self.assertFalse([k for k in call["env"] if k.startswith("ANTHROPIC")])
+
+    def test_only_claude_gets_the_endpoint(self):
+        self.endpoint({"ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        self.weekly()
+        for c in self.calls():
+            if c["tool"] != "claude":
+                self.assertNotIn("tok-canary-123", json.dumps(c.get("env", {})), c["tool"])
+
     # ---------------------------------------------------------------- C7, C8, C17: what claude gets
     def test_c7_c8_c17_claude_inputs(self):
         self.weekly()
@@ -481,6 +527,26 @@ class Weekly(Fakes):
         self.assertEqual(self.result()["outcome"], "failed:model-result")
         self.weekly()
         self.assertEqual(len(self.attempts()), 1)  # not due
+
+    def test_c3_malformed_token_counts_are_work(self):
+        odd = {"result": "x", "total_cost_usd": 0, "is_error": True, "usage": {"output_tokens": "12"}}
+        self.scenario(claude={"result": odd, "code": 1})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], "failed:model-result")
+
+    def test_c18_an_unfinished_publication_is_recovered_behind_a_newer_attempt(self):
+        a, r = self.publishing()
+        later = self.k / improve.PROPOSALS / (a.dir.name[:9] + "ffffff")
+        if later == a.dir:
+            later = self.k / improve.PROPOSALS / (a.dir.name[:9] + "fffffe")
+        shutil.copytree(a.dir, later)
+        data = json.loads((later / "result.json").read_text())
+        data.update(outcome=improve.UNAVAILABLE, id=later.name)
+        data.pop("remote", None)
+        (later / "result.json").write_text(json.dumps(data))
+        self.scenario(open=["fail"])
+        self.weekly()
+        self.assertEqual(self.result(a.dir.name)["outcome"], "pr https://github.com/o/r/pull/9")
 
     def test_c3_an_unavailable_attempt_does_not_hide_a_counting_one(self):
         self.scenario(claude={"result": {"result": "x", "total_cost_usd": 2.0, "is_error": True}, "code": 1})

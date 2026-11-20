@@ -269,6 +269,8 @@ def claude():
         result = {"type": "result", "subtype": "success", "is_error": False, "total_cost_usd": 1.25,
                   **spec.get("result", {})}
         out(json.dumps(result))
+    if spec.get("stderr"):
+        sys.stderr.write(spec["stderr"])
     sys.exit(spec.get("code", 0))
 
 
