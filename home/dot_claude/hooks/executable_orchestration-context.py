@@ -12,7 +12,8 @@ whose "signals" path holds its entry. These paths only pair a worker with its ki
 Other sessions get nothing.
 
 SessionStart (startup, resume, clear, compact): orchestrator -> state files, orchestrator items (global register +
-  kit register), the budget line, the macro questions, then the board output (the only part that is cut to fit).
+  kit register), the budget line, the macro questions, the herdr handover lines when HERDR_ENV=1, then the board
+  output (the only part that is cut to fit).
   This text, not the compaction summary, is the source of truth after a compaction.
 SessionStart (compact) of a worker, any cwd: when the first non-meta, non-sidechain user message of the transcript has a
   line starting with WORKER_LINE (the fixed line of a worker brief), the body of ../agents/opus-worker.md (next to this
@@ -48,8 +49,14 @@ IGNORE = "If you were not handed this orchestration (a planner, or a product age
 QUESTIONS = (
     "Before the next completion: is the critical path to the purpose moving, and is its blocker being worked? Is anything "
     "running that does not serve it (cancel, defer, track)? Very long session at a step boundary with no delegate "
-    "running or awaiting follow-up: hand over to a fresh orchestrator thread without asking (hiden "
+    "running or awaiting follow-up: hand over to a fresh orchestrator session without asking (hiden "
     "references/attention.md)."
+)
+HERDR = (  # SessionStart only, when HERDR_ENV=1: how to start the fresh session inside herdr
+    "herdr handover: `herdr pane split --current --direction right --no-focus --cwd <repo root>` (new pane id), "
+    "`herdr agent start <name> --kind claude --pane <id>`, `herdr agent prompt <name> \"Read <state.md path> and "
+    "continue this orchestration.\" --wait`, then `herdr agent read <name>` to confirm it started. If it is blocked, "
+    "tell the owner; never answer its prompts. Use herdr only for this; workers and reviews stay in this session."
 )
 
 
@@ -211,7 +218,7 @@ def kit_context(data):
         bodies += b
         items += read_items(kit / "attention" / "items.json")
     parts.append(f"<orchestrator-attention-items>\n{rules(items, ('orchestrator', 'all'))}\n</orchestrator-attention-items>")
-    parts += [budget_line(items), QUESTIONS]
+    parts += [budget_line(items), QUESTIONS, HERDR if os.environ.get("HERDR_ENV") == "1" else ""]
     head = ("This session orchestrates this work: the text below is the source of truth over a compaction summary; after a "
             "compaction also re-read the hiden reference for your current stage. " + IGNORE + "\n\n"
             + "\n\n".join(p for p in parts if p))

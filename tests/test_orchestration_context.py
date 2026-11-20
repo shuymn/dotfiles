@@ -30,7 +30,7 @@ class HookCase(unittest.TestCase):
         self.repo = self.tmp / "work" / "repo"
         for d in (self.home, self.repo / ".git"):
             d.mkdir(parents=True)
-        self.env = {**os.environ, "HOME": str(self.home)}
+        self.env = {**{k: v for k, v in os.environ.items() if k != "HERDR_ENV"}, "HOME": str(self.home)}
 
     def run_hook(self, data, hook=HOOK):
         p = subprocess.run([sys.executable, "-I", str(hook)], input=json.dumps(data), capture_output=True, text=True,
@@ -215,6 +215,29 @@ class UnchangedEventsTest(HookCase):
         for part in ("<orchestration-state", "over 3000", "kit rule for orchestrator", "OVER: orchestrator",
                      "board: two delegates", "You are a worker", '"decision": "block"'):
             self.assertIn(part, joined)
+
+
+class HandoverTest(HookCase):
+    """The handover reminder names no T3 tool; the herdr how-to appears only inside herdr (HERDR_ENV=1)."""
+
+    def context_with(self, herdr):
+        kit = self.home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(self.repo)) / "demo-orchestration"
+        kit.mkdir(parents=True)
+        (kit / "state.md").write_text("State: step 1.\n")
+        if herdr is not None:
+            self.env["HERDR_ENV"] = herdr
+        out = self.run_hook({"hook_event_name": "SessionStart", "source": "startup", "cwd": str(self.repo)})
+        return json.loads(out)["hookSpecificOutput"]["additionalContext"]
+
+    def test_herdr_lines_only_with_herdr_env(self):
+        for herdr, shown in ((None, False), ("0", False), ("1", True)):
+            with self.subTest(herdr=herdr):
+                text = self.context_with(herdr)
+                shutil.rmtree(self.home / ".claude")
+                self.assertIn("hand over to a fresh orchestrator session", text)
+                self.assertEqual("herdr agent start" in text, shown, text)
+                self.assertEqual("never answer its prompts" in text, shown, text)
+                self.assertIsNone(re.search(r"t3_|delegate_task|watch_pull_request|T3 Code|thread", text), text)
 
 
 def managed_hooks():
