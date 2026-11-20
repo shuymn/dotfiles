@@ -249,7 +249,7 @@ flowchart TD
 2. 監視中の変更（`scripts/kaizen/watch.json`）について、§5 の観測を足す。
    - 前の窓は [適用 − 30 日, 適用]、後の窓は [適用, 今]。transcript は既定で 30 日後に消えるので、`cycle.py baseline <id>` が適用の直後に前の窓の集計を `~/.claude/kaizen/watch/<id>.json` に 1 度だけ書き、毎日の run はそれがあれば使う。無ければ窓から計算し、一部が消えていると示す。
    - 適用をまたいで動いた worker は、両方の窓に入る。
-3. `scripts/kaizen/ready.py` で準備状態を確かめる（下の表）。毎日の段は直さず、FAIL を判断事項にする。
+3. `scripts/kaizen/ready.py` で準備状態を確かめる（下の表）。毎日の段は直さず、オーナーが直す FAIL（表の「FAIL のとき」の列）を判断事項にする。
 4. 出力（`record.json`、`digest.md`、`status.json`）を新しいディレクトリ `~/.claude/kaizen/runs/<id>/` に書き、シンボリックリンク `~/.claude/kaizen/current` をそこへ向け直す rename 1 回で、run 全体を一度に公開する。読み手（オーナー、ステータスライン、次の run）は `current` を通して読む。公開の後、公開した run と直前の run 以外の run ディレクトリを消す。
    - 公開の前に失敗した run、止められた run、期限を超えた run は何も公開せず、`current` は前回のままになる。古い run を消せなかったときは、ログに残して公開はそのままにする。ステータスラインはその時刻から stale を示す。
    - 入力が読めなかった run は、その入力を fail と記して公開する。R4 の FAIL と判断事項に出る。
