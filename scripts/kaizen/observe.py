@@ -417,6 +417,9 @@ def observe(paths, since, until, gh="gh"):
 
 
 def default_paths(home):
-    return {"projects": home / ".claude/projects", "t3_db": home / ".t3" / "userdata" / "statev2.sqlite",
+    """t3_db is None (t3 off) when no ~/.t3 entry exists at all: T3 Code is not used on this machine. Anything there,
+    a broken symlink included, keeps t3 on so a damaged install reads as a failure."""
+    t3_db = home / ".t3" / "userdata" / "statev2.sqlite" if os.path.lexists(home / ".t3") else None
+    return {"projects": home / ".claude/projects", "t3_db": t3_db,
             "codex": home / ".codex/sessions", "ledgers": home / ".claude/review-ledgers",
             "hiden": home / ".claude/skills/hiden"}

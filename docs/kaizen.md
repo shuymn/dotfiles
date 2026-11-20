@@ -302,7 +302,7 @@ flowchart TD
 | R1 | 管理パスの一覧に入るソースの全ターゲット（自動の適用の対象より広い）の live が source と一致する | それに絞った `chezmoi diff`（chezmoi に設定されたチェックアウトの一覧で絞る。`.chezmoiremove` の消し待ちも含む。worker の規則を運ぶ opus-worker.md の本文と settings のフック登録も対象なので、配達の準備もここで見る） | 判断事項（apply はこの検査を使わない） |
 | R2 | 周期が起動される | `launchctl print gui/<uid>/<label>` でジョブが読み込まれており、その program と引数の絶対パスが在る | owner |
 | R3 | 常駐の量が上限内にある | `attention-budget.py status` に OVER が無い | improver の候補 |
-| R4 | 観測できる | その run の observe で各入力が読めた（gh は切ってもよい）。`gh auth status` が通る | 認証は owner |
+| R4 | 観測できる | その run の observe で各入力が読めた（gh は切ってもよく、`~/.t3` が無いか `--no-t3` なら t3 も切る）。`gh auth status` が通る | 認証は owner |
 | R5 | 周期が生きている | 公開中の run（今の run が公開する前の `current`）が 3 日以内に完了した。開いている kaizen PR が 14 日以内 | digest |
 
 検査が呼ぶコマンドには、それぞれ時間の上限がある。上限を超えたか、見つからないか、失敗したコマンドは、その検査の FAIL にする。

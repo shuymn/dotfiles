@@ -355,6 +355,13 @@ esac
         r = ready.check_r4({"transcripts": {"status": "fail", "error": "e"}}, fake(self.dir, "gh2", "exit 0\n"))
         self.assertEqual((r["status"], r["owner"]), ("FAIL", False))
 
+    def test_r4_passes_without_t3(self):
+        self.assertIsNone(observe.default_paths(self.dir)["t3_db"])  # no ~/.t3: T3 Code is not used here
+        (self.dir / ".t3").symlink_to(self.dir / "gone")  # a broken link is not an absent T3
+        self.assertEqual(observe.default_paths(self.dir)["t3_db"], self.dir / ".t3/userdata/statev2.sqlite")
+        sources = {"transcripts": {"status": "ok"}, "t3": {"status": "off"}, "gh": {"status": "off"}}
+        self.assertEqual(ready.check_r4(sources, fake(self.dir, "gh", "exit 0\n"))["status"], "PASS")
+
     def test_r5_old_run_and_old_kaizen_pr(self):
         empty = fake(self.dir, "gh3", "echo '[]'\n")
         self.assertEqual(ready.check_r5(self.dir, NOW, "o/r", empty), ready.result(True, "first run"))

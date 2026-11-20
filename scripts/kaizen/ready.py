@@ -7,7 +7,7 @@ R1  `chezmoi diff` is empty for the live targets whose source path matches .clau
 R2  the cycle's launchd job is loaded (`launchctl print gui/<uid>/<label>`) and every absolute path in its program
     and arguments (words of a `sh -c` string included) exists. Owner.
 R3  `<home>/.claude/hooks/attention-budget.py status` shows no OVER line. An improver candidate.
-R4  every observation source read without failure (gh may be off) and `gh auth status` passes (owner when not).
+R4  every observation source read without failure (gh and t3 may be off) and `gh auth status` passes (owner when not).
 R5  the published run (K/current/record.json, read before this run publishes) finished at most 3 days ago, and every
     open PR of the dotfiles repository whose head is its own branch starting with kaizen/ is at most 14 days old
     (open_kaizen_prs, which the weekly stage also uses).
@@ -120,7 +120,7 @@ def check_r3(home):
 
 def check_r4(sources, gh="gh"):
     bad = [f"source {n} {s.get('status')}: {s.get('error', '')}" for n, s in sources.items()
-           if s.get("status") != "ok" and not (n == "gh" and s.get("status") == "off")]
+           if s.get("status") != "ok" and not (n in ("gh", "t3") and s.get("status") == "off")]
     code, _, err = run([gh, "auth", "status"], 30)
     if code != 0:
         bad.append(f"gh auth status failed: {err}")

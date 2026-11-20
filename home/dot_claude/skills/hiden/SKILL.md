@@ -12,7 +12,7 @@ description: Orchestration handed over by the owner; also design decisions, debu
 ## 範囲
 
 - 議論の後に移されたら、範囲はこの会話で決めたこと。
-- 開始の一言だけで渡されたら、範囲は tracking issue（なければ memory の積み残し）の優先度順の作業のうち、他のセッションが進めていないもの。同じリポジトリで前に区切りまで進めたセッションが残っていれば、`SendMessage`（T3 Code では `t3_thread_send`）で済んだことと残りを聞いてから始める。
+- 開始の一言だけで渡されたら、範囲は tracking issue（なければ memory の積み残し）の優先度順の作業のうち、他のセッションが進めていないもの。同じリポジトリで前に区切りまで進めたセッションが残っていれば、環境のセッション間のメッセージで名指しして、済んだことと残りを聞いてから始める。
 - 他のセッションの作業とぶつかりそうなとき（例: 同じ issue、同じファイル、リリース、共有の資源）や、複数のセッションに効く問題を issue にしたり直したりする前は、[scope.md](references/scope.md) の確認をする。
 - issue や memory に載っている範囲外の作業は、優先度の参考として読む。
 - 仕事のリポジトリ（所属や契約先の組織がチームで開発するもの。当たるかはそのリポジトリの memory にある）では、リポジトリの既存のやり方とチームの手順に従い、個人・OSS 向けの標準は持ち込まない。マージはチームが決めるので、作業は PR の作成で止め、CI の結果を報告する。
@@ -46,7 +46,7 @@ description: Orchestration handed over by the owner; also design decisions, debu
 - 実装エージェントへの指示書と Codex への依頼は英語で書く。
 - 数分かかるコマンド（例: テスト一式、ビルド）は `run_in_background` で走らせ、その間は独立した作業を進める。出力は [verification.md](references/verification.md) の「証拠の強さ」のとおりに残し、見積もりを大きく超えたらどこで止まっているかを調べる。
 - 手元の環境（例: 道具の版、環境変数、フック）で検証が止まったら、オーナーに尋ねる前に `recall_search`（`repo: "."`）で同じエラーや道具の名前を引き、過去のセッションの回避策と、CI が同じ検証をどう走らせているかを確かめる。
-- 外部（CI、デプロイ、承認ゲート）を待って応答を終えるときは、起こすのは背景タスクの終了だけなので、PR のチェックは T3 Code では `watch_pull_request`、それ以外の待ちは終了まで待つ背景コマンドを置く。必須チェックが skip される PR（docs だけの変更など）では watch が起こさないので、終える前に `gh pr view --json mergeStateStatus,statusCheckRollup` でチェックが終わっていないかを自分で確かめる。
+- 外部（例: CI、デプロイ、承認ゲート）を待って応答を終えるときは、起こすのは背景タスクの終了だけなので、PR のチェックも含めて終了まで待つ背景の待ちを置く。必須チェックが skip される PR（例: docs だけの変更）では、終了の通知に頼る待ちは起こさないので、終える前に `gh pr view --json mergeStateStatus,statusCheckRollup` でチェックが終わっていないかを自分で確かめる。
 - 調査や監査の結果を issue にまとめるとき、1 つの目的で複数の issue を起票するときは、[scope.md](references/scope.md) に従う。
 
 ## 区切りで止めるとき

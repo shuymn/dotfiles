@@ -1,4 +1,5 @@
 from pathlib import Path
+import itertools
 import json
 import os
 import re
@@ -30,7 +31,8 @@ class HookCase(unittest.TestCase):
         self.repo = self.tmp / "work" / "repo"
         for d in (self.home, self.repo / ".git"):
             d.mkdir(parents=True)
-        self.env = {**os.environ, "HOME": str(self.home)}
+        self.env = {**{k: v for k, v in os.environ.items() if k not in ("HERDR_ENV", "T3CODE_THREAD_ID")},
+                    "HOME": str(self.home)}
 
     def run_hook(self, data, hook=HOOK):
         p = subprocess.run([sys.executable, "-I", str(hook)], input=json.dumps(data), capture_output=True, text=True,
@@ -215,6 +217,41 @@ class UnchangedEventsTest(HookCase):
         for part in ("<orchestration-state", "over 3000", "kit rule for orchestrator", "OVER: orchestrator",
                      "board: two delegates", "You are a worker", '"decision": "block"'):
             self.assertIn(part, joined)
+
+
+class HandoverTest(HookCase):
+    """The handover how-to matches the environment: T3 Code with T3CODE_THREAD_ID, herdr with HERDR_ENV=1, else none."""
+
+    T3_NAMES = r"t3_|delegate_task|watch_pull_request|T3 Code"
+
+    def outputs(self, env, source):
+        kit = self.home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(self.repo)) / "demo-orchestration"
+        kit.mkdir(parents=True)
+        (kit / "state.md").write_text("State: step 1.\n")
+        (kit / "watch").write_text(f"{self.tmp / 'watched'}\n")
+        old = time.time() - 3600
+        os.utime(kit / "state.md", (old, old))
+        (self.tmp / "watched").write_text("w\n")
+        self.env.update(env)
+        start = self.run_hook({"hook_event_name": "SessionStart", "source": source, "cwd": str(self.repo)})
+        stop = self.run_hook({"hook_event_name": "Stop", "cwd": str(self.repo), "stop_hook_active": False})
+        shutil.rmtree(self.home / ".claude")
+        for k in env:
+            del self.env[k]
+        return json.loads(start)["hookSpecificOutput"]["additionalContext"], json.loads(stop)["reason"]
+
+    def test_handover_per_environment(self):
+        cases = (({}, None), ({"HERDR_ENV": "0"}, None), ({"HERDR_ENV": "1"}, "herdr"),
+                 ({"T3CODE_THREAD_ID": "t-1"}, "t3"), ({"T3CODE_THREAD_ID": "t-1", "HERDR_ENV": "1"}, "t3"))
+        for (env, kind), source in itertools.product(cases, ("startup", "compact")):
+            with self.subTest(env=env, source=source):
+                for text in self.outputs(env, source):
+                    self.assertEqual("hand over to a fresh orchestrator session" in text, kind is not None, text)
+                    self.assertEqual("herdr agent start" in text, kind == "herdr", text)
+                    self.assertEqual("--until working --until blocked --timeout" in text, kind == "herdr", text)
+                    self.assertEqual("belongs to the target repository" in text, kind == "t3", text)
+                    self.assertEqual("t3_thread_launch" in text and "t3_thread_organize" in text, kind == "t3", text)
+                    self.assertEqual(bool(re.search(self.T3_NAMES, text)), kind == "t3", text)
 
 
 def managed_hooks():

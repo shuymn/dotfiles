@@ -12,7 +12,8 @@ whose "signals" path holds its entry. These paths only pair a worker with its ki
 Other sessions get nothing.
 
 SessionStart (startup, resume, clear, compact): orchestrator -> state files, orchestrator items (global register +
-  kit register), the budget line, the macro questions, then the board output (the only part that is cut to fit).
+  kit register), the budget line, the macro questions, the handover how-to of this environment (T3 Code when
+  T3CODE_THREAD_ID is set, herdr when HERDR_ENV=1, else none), then the board output (the only part that is cut to fit).
   This text, not the compaction summary, is the source of truth after a compaction.
 SessionStart (compact) of a worker, any cwd: when the first non-meta, non-sidechain user message of the transcript has a
   line starting with WORKER_LINE (the fixed line of a worker brief), the body of ../agents/opus-worker.md (next to this
@@ -47,10 +48,34 @@ BOARD_SECONDS = 40  # one deadline for all boards, under the hook timeout
 IGNORE = "If you were not handed this orchestration (a planner, or a product agent in the same checkout), ignore this."
 QUESTIONS = (
     "Before the next completion: is the critical path to the purpose moving, and is its blocker being worked? Is anything "
-    "running that does not serve it (cancel, defer, track)? Very long session at a step boundary with no delegate "
-    "running or awaiting follow-up: hand over to a fresh orchestrator thread without asking (hiden "
-    "references/attention.md)."
+    "running that does not serve it (cancel, defer, track)?"
 )
+HANDOVER = (  # the owner's standing request; only where the environment can start a session
+    "Very long session at a step boundary with no delegate running or awaiting follow-up: the owner's standing request "
+    "is to hand over to a fresh orchestrator session without asking (hiden references/attention.md). Rewrite the state "
+    "first. ")
+T3_HANDOVER = HANDOVER + (
+    "In T3 Code: confirm this thread belongs to the target repository's T3 project, not just its shell cwd. Children "
+    "and PR watches stay bound to this thread, so unwatch the PRs, `t3_thread_launch` at the T3 "
+    "project root without a worktree with \"Read <state.md path> and continue this orchestration.\", report its link, "
+    "then settle this thread with `t3_thread_organize`."
+)
+HERDR_HANDOVER = HANDOVER + (
+    "In herdr: stop the PR waits; `herdr pane split --current --direction right --no-focus --cwd <repo root>` and keep "
+    "its `.result.pane.pane_id` as <id>; `herdr agent start <name> --kind claude --pane <id>`; `herdr agent prompt "
+    "<name> \"Read <state.md path> and continue this orchestration.\" --wait --until working --until blocked --timeout "
+    "60000`, which waits for the start only. On an error or timeout, inspect the same agent (`herdr agent get <name>`, "
+    "`herdr agent read <name>`) before deciding; never resend blindly. Once it is working, this session does no more "
+    "work. If it is blocked, tell the owner; never answer its prompts. Close no panes. Use herdr only for this; "
+    "workers and reviews stay in this session."
+)
+
+
+def handover():
+    """The handover how-to for this environment: T3 Code (T3CODE_THREAD_ID set), herdr (HERDR_ENV=1), else none."""
+    if os.environ.get("T3CODE_THREAD_ID"):
+        return T3_HANDOVER
+    return HERDR_HANDOVER if os.environ.get("HERDR_ENV") == "1" else ""
 
 
 def real(path):
@@ -211,7 +236,7 @@ def kit_context(data):
         bodies += b
         items += read_items(kit / "attention" / "items.json")
     parts.append(f"<orchestrator-attention-items>\n{rules(items, ('orchestrator', 'all'))}\n</orchestrator-attention-items>")
-    parts += [budget_line(items), QUESTIONS]
+    parts += [budget_line(items), QUESTIONS, handover()]
     head = ("This session orchestrates this work: the text below is the source of truth over a compaction summary; after a "
             "compaction also re-read the hiden reference for your current stage. " + IGNORE + "\n\n"
             + "\n\n".join(p for p in parts if p))
@@ -300,7 +325,8 @@ def stop(data):
         if stale:
             json.dump({"decision": "block", "reason": (
                 f"{', '.join(stale)} changed after {state}. Rewrite the state (current state only) so it matches, or touch it "
-                f"if nothing changed; then answer: {QUESTIONS} {IGNORE}")}, sys.stdout)
+                f"if nothing changed; then answer: " + " ".join(p for p in (QUESTIONS, handover(), IGNORE) if p))},
+                sys.stdout)
             return
 
 

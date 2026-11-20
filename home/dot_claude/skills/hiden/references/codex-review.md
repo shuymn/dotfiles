@@ -4,8 +4,8 @@ Codex はレビュー専用で、実装はさせない。オーナーは Codex �
 
 ## 実行
 
-- T3 Code の中では、codex-plugin-cc ではなく `delegate_task`（`role: "review"`、モデル `gpt-6.2-sol`）で頼み、編集しないことを依頼文に書く。`reasoningEffort` は費用ではなく成果を基準に、下の「いつ」の区分と問いの難しさに合わせて選ぶ。r2 以降の確認ラウンドも新しい `delegate_task` にし、修正範囲と前の指摘ごとの対応を渡す。
-- それ以外では codex-plugin-cc の `codex:rescue` を `--read-only --prompt-file <file>` で使い、依頼文はファイルに書く（モデルと労力は Codex の設定に従う）。r2 以降の確認ラウンドは、新しいスレッドにせず `--thread <前のラウンドの id>` で続け、修正範囲と前の指摘ごとの対応だけを渡す。
+- 編集しないことを依頼文に書く。環境が選ばせるなら、Codex `gpt-6.2-sol` を reviewer として動かし、労力は費用ではなく成果を基準に、下の「いつ」の区分と問いの難しさで明示する。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
+- codex-plugin-cc では `codex:rescue` を `--read-only --prompt-file <file>` で使い、依頼文はファイルに書き、r2 以降は `--thread <前のラウンドの id>` で続ける（モデルと労力は Codex の設定に従う）。
 - 依頼文に、一時ファイルを `find <dir> -delete` で消すと書く（Codex は権限によらず `rm -f` で承認を待つ）。
 
 ## いつ
