@@ -26,7 +26,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-# LOCAL_PATH in ~/.claude/hooks/guard-agent-actions.py, but a home or volume path must start the token (so the
+# LOCAL_PATH of the retired guard hook, but a home or volume path must start the token (so the
 # repository's own home/ directory is not a hit) and may end it without a slash; /Volumes is added. [s] keeps this
 # line from matching itself.
 LOCAL_PATH = re.compile(r"(?<![\w.-])(?:/Users|/home|/Volumes)/[A-Za-z0-9._-]+(?:/|(?![A-Za-z0-9._-]))"

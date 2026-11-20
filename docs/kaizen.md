@@ -61,7 +61,7 @@ flowchart TD
    - 同じ役割の中でも、段ごとに要る集合が変わり、複数の関心を釣り合わせる。
    - モデル自身に思い出させる文（自己スケジュール）には頼らない。
 3. **取り去るのも配分のうちである。**
-   - 仕組みにできるものは仕組みに渡す（例: マージは merge-pr）。
+   - 仕組みにできるものは仕組みに渡す（例: マージは `stack pr merge`）。
    - モデルが既にしている振る舞いの文は消す。
    - 役割が知る必要の無いものは見せない。
    - 問題でないものは直さない。例: 何度もやり取りした後に英語へ流れることは、意図して直さない。
@@ -72,7 +72,7 @@ flowchart TD
    - 成果のベンチマークはゲートにしない。モデルが強くなるほど、現実的なベンチマークは長く高くなるからである。
    - 安い注意の分布の probe（§5）は、配るか取るかの判断材料にする。マージのゲートにはしない。
 6. **オーナーが握る。**
-   - 守りを緩めるのはオーナーだけ。守りとは、許可・破壊・外部・公開の線、フック、merge-pr、hiden の本質を指す。
+   - 守りを緩めるのはオーナーだけ。守りとは、許可・破壊・外部・公開の線、フック、`stack pr merge`、hiden の本質を指す。
    - kaizen の PR は、オーナーが GitHub の UI でマージする。
    - オーナーの決定は、週 1 回ほどにまとめる。開いている kaizen の PR は 1 本まで。
    - 1 周期の Claude の費用は 50 ドル相当まで（Codex は別に数える）。周期は 1 日 1 回まで。
@@ -139,7 +139,7 @@ flowchart TD
 **常駐:**
 - `opus-worker.md`。回帰テストの一文（"A test counts as a regression test only after it has been seen failing with the fix removed and passing with it restored."）を含む。
   - ネイティブの subagent: system prompt になり、compaction の後も残る。
-  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`orchestration-context.py` の SessionStart(compact) が本文（frontmatter を除く）とそのプロンプトをそのまま文脈へ戻す（フックの上限の長さで切る）。
+  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`stack hook claude session-start` の compact が本文（frontmatter を除く）とそのプロンプトをそのまま文脈へ戻す（フックの上限の長さで切る）。
 - CLAUDE.md。
 - items の `evidence`。
 
