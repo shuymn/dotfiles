@@ -672,8 +672,11 @@ class Run:
     def save(self):
         self.state.save_journal(self.journal)
 
-    def classify(self, parent, commit, targets):
-        """{rel: (kind, live, parent identity, old, new)}, one snapshot per target. A target with a journal entry of
+    def classify(self, parent, commit, targets, head=None):
+        """{rel: (kind, live, parent identity, old, new)}, one snapshot per target. A target whose live file already
+        is main's newest version (head, a 100644 blob of the same source) is done, ahead of write: a later merge was
+        applied another way, and writing this merge's blob would move it back. This does not apply to a target
+        with a journal entry. A target with a journal entry of
         this merge (an earlier run wrote it) never enters the write set: it is done when that snapshot still shows the
         new blob at mode 0644 under the recorded parent; anything else (the old blob included) makes its entry
         unresolved and its kind "journal"."""
@@ -683,6 +686,10 @@ class Run:
             live, pid = snapshot(self.home, rel)
             k = kind(live, old, new)
             mine = [e for e in self.journal if e["merge"] == commit and e["target"] == rel]
+            if k != "done" and head and not mine:
+                tip = self.reader.blob(head, source)  # main's newest version of the same source, if a plain file
+                if tip and tip[0] == "100644" and kind(live, None, tip[1]) == "done":
+                    k, new = "done", tip[1]  # the recheck before L advances then expects main's version
             if mine and not (k == "done" and all(e["step"] == "clean" and e["parent"] == pid for e in mine)):
                 k = "journal"
                 note = "parent changed" if kind(live, old, new) == "done" else describe(live)
@@ -970,7 +977,7 @@ def _apply(home, state, reader, head, cursor, entries, res, stage_deadline, chec
                         continue
                     res["status"] = "stopped"
                     break
-                cls = r.classify(parent, commit, targets)
+                cls = r.classify(parent, commit, targets, head)
                 m["targets"] = {rel: c[0] if c[0] not in ("conflict", "journal") else f"{c[0]}: {describe(c[1])}"
                                 for rel, c in cls.items()}
                 changed = [rel for rel, c in cls.items() if c[0] == "journal"]

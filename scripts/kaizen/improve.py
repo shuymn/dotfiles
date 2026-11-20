@@ -50,6 +50,7 @@ ready = apply.ready
 STATE = ".local/state/kaizen-improve"
 ENABLE, LOCK, PROPOSALS = "improve-enabled", ".improve.lock", "proposals"
 WEEK = timedelta(days=7)
+UNAVAILABLE = "failed:model-unavailable"  # the model did no billed work; does not use up the week
 STAGE_SECONDS = 3600  # the stage's own deadline when the run has no explicit --deadline
 DIGEST_RESERVE = 120  # left after the stage for the digest publish
 SECONDS = {"claude": 2400, "codex": 1200, "gh": 60, "git": 120, "push": 120, "check": 120, "keygen": 30}
@@ -253,9 +254,58 @@ def save(path, value):
         os.close(dfd)
 
 
-def newest(k):
-    """The newest attempt (by its start, then its name), or None. An attempt whose result.json is unreadable is
-    returned as one that blocks the gate."""
+ENDPOINT_ENV = ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN")
+
+
+def endpoint_env(home):
+    """The API endpoint the owner's Claude Code uses on this machine (e.g. a local proxy that spreads requests over
+    several accounts), from the `env` of ~/.claude/settings.json; --restricted ignores that file, so the stage passes
+    these two keys itself. Empty on a machine that sets neither."""
+    try:
+        env = json.loads((home / ".claude/settings.json").read_text()).get("env")
+    except (OSError, ValueError, AttributeError):
+        return {}
+    if not isinstance(env, dict):
+        return {}
+    out = {}
+    for k in ENDPOINT_ENV:
+        v = env.get(k)
+        if v is None:
+            continue
+        try:
+            if not (isinstance(v, str) and v and "\0" not in v and v.encode("utf-8")):
+                return {}  # a malformed value: use neither, so a token never goes to another endpoint
+        except UnicodeEncodeError:
+            return {}
+        out[k] = v
+    return out
+
+
+def strings(value):
+    """Every string inside a decoded JSON value."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from strings(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from strings(v)
+
+
+def no_tokens(usage):
+    """True when usage reports no tokens at all (missing counts as none)."""
+    if usage is None:
+        return True
+    if not isinstance(usage, dict):
+        return False
+    counts = [v for key, v in usage.items() if key.endswith("_tokens")]
+    return all(isinstance(v, (int, float)) and not isinstance(v, bool) and v == 0 for v in counts)
+
+
+def newest(k, skip=(), only=None):
+    """The newest attempt (by its start, then its name), or None, leaving out readable attempts whose outcome is in
+    skip or, when only is given, not in only. An attempt whose result.json is unreadable is returned as one that blocks the gate."""
     found = []
     try:
         entries = list((k / PROPOSALS).iterdir())
@@ -272,7 +322,8 @@ def newest(k):
             key = "~"  # sorts after every timestamp: an unreadable attempt is treated as the newest
             found.append((key, entry.name, entry, str(e)))
             continue
-        found.append((key, entry.name, a, None))
+        if a.data.get("outcome") not in skip and (only is None or a.data.get("outcome") in only):
+            found.append((key, entry.name, a, None))
     if not found:
         return None
     _, _, a, error = max(found, key=lambda f: (f[0], f[1]))
@@ -342,6 +393,9 @@ def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh", so
     if a:
         res["attempt"] = summary(a)
         res["decisions"] += attempt_decisions(a)
+    for other in (newest(k, only=UNFINISHED + (REMOTE_UNKNOWN,)) if a else None,):
+        if other and other.dir != a.dir:  # an older attempt that holds the gate, behind a newer one
+            res["decisions"] += attempt_decisions(other)
     return res
 
 
@@ -370,6 +424,7 @@ def attempt_decisions(a):
 class Stage:
     def __init__(self, k, home, repo, slug, gh, deadline, res):
         self.k, self.home, self.repo, self.slug, self.gh = k, home, repo, slug, gh
+        self.endpoint = endpoint_env(home)
         self.deadline, self.res = deadline, res
         self.state = home / STATE
         self.mirror = self.state / "mirror.git"
@@ -399,16 +454,18 @@ class Stage:
 
     # -- the order of D1
     def run(self, items, ready_results, now, sources):
-        a = newest(self.k)
-        if a and a.data.get("outcome") in UNFINISHED:
+        a = newest(self.k, only=UNFINISHED)  # found apart from the cooldown scan, whatever attempts came after it
+        if a:
             try:
                 self.recover(a)
             except Deadline:
                 self.res["status"] = "skipped:deadline in recovery"
                 return
-        if a and a.data.get("outcome") == REMOTE_UNKNOWN and not a.data.get("cleared"):
+        a = newest(self.k, only=(REMOTE_UNKNOWN,))
+        if a and not a.data.get("cleared"):
             raise Skip("remote-unknown")
-        if a and now - (datetime.fromisoformat(str(a.data["started"]).replace("Z", "+00:00"))) < WEEK:
+        last = newest(self.k, skip=(UNAVAILABLE,))  # an attempt whose model did no work does not use up the week
+        if last and now - (datetime.fromisoformat(str(last.data["started"]).replace("Z", "+00:00"))) < WEEK:
             raise Skip("not due")
         if not self.slug:
             raise Skip("no GitHub origin")
@@ -452,15 +509,26 @@ class Stage:
                                  SECONDS["keygen"])
         if code != 0:
             raise Skip("signing key unusable")
-        code, _, err = self.call(["claude", "auth", "status"], self.minimal_env(), SECONDS["gh"])
+        code, _, err = self.call(["claude", "auth", "status"], self.minimal_env(endpoint=True), SECONDS["gh"])
         if code != 0:
             raise Skip("claude auth status failed")
         return ident
 
-    def minimal_env(self):
+    def minimal_env(self, endpoint=False):
         env = {k: os.environ[k] for k in CLAUDE_ENV if k in os.environ}
         env["HOME"] = str(self.home)
+        if endpoint:
+            env.update(self.endpoint)
         return env
+
+    def redact(self, text):
+        """text with the endpoint credential replaced, for anything saved or shown."""
+        token = self.endpoint.get("ANTHROPIC_AUTH_TOKEN")
+        return text.replace(token, "<redacted>") if token else text
+
+    def leaks(self, text):
+        token = self.endpoint.get("ANTHROPIC_AUTH_TOKEN")
+        return bool(token) and token in text
 
     def identity(self):
         """user.name, user.email and the private key path from ~/.config/git/config.local, read by this process
@@ -532,7 +600,10 @@ class Stage:
         try:
             out = self.claude(a, tree, prompt)
         finally:
-            a.write("diff.patch", self.tree_diff(tree, base))  # what the model left, for the owner, whatever follows
+            diff = self.tree_diff(tree, base)
+            a.write("diff.patch", self.redact(diff))  # what the model left, for the owner, whatever follows
+        if self.leaks(diff) or any(self.leaks(s) for s in strings(out)):
+            raise Stop("proposal:credential", "the model output contains the endpoint credential")
         a.update(watch=out["watch"], summary=out["summary"], evidence_ids=out["evidence_ids"])
         if not out["change"]:
             raise Stop("no-change")
@@ -565,7 +636,7 @@ class Stage:
                 "--output-format", "json", "--json-schema", json.dumps(SCHEMA), "--model", MODEL, "--effort", EFFORT,
                 "--max-budget-usd", MAX_BUDGET_USD]
         try:
-            code, out, err = self.call(argv, self.minimal_env(), SECONDS["claude"], cwd=str(tree),
+            code, out, err = self.call(argv, self.minimal_env(endpoint=True), SECONDS["claude"], cwd=str(tree),
                                        input=prompt.encode())
         except apply.Timeout as e:
             raise Stop("failed:timeout", str(e)) from e
@@ -578,7 +649,12 @@ class Stage:
             a.update(cost_usd=cost)
         if not (code == 0 and isinstance(result, dict) and result.get("subtype") == "success"
                 and result.get("is_error") is False and matches(result.get("structured_output"), SCHEMA)):
-            raise Stop("failed:model-result", f"exit {code}: {err.decode(errors='replace')[-200:]}")
+            detail = f"exit {code}: {self.redact(err.decode(errors='replace'))[-200:]}"
+            if isinstance(result, dict) and cost == 0 and no_tokens(result.get("usage")):
+                # the model did no work (e.g. a usage limit or a login problem): retry at the next run
+                excerpt = self.redact(str(result.get("result")))[:200].encode("utf-8", "replace").decode()
+                raise Stop(UNAVAILABLE, f"{detail} {excerpt}")
+            raise Stop("failed:model-result", detail)
         return result["structured_output"]
 
     def base_files(self, base):

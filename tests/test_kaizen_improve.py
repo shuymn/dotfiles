@@ -357,6 +357,90 @@ class Weekly(Fakes):
                 self.assertEqual([c for c in self.calls("claude") if c["argv"][:1] == ["-p"]], [])
                 self.assertEqual(self.attempts(), [])
 
+    def test_claude_gets_the_owners_endpoint_and_nothing_else_from_settings(self):
+        settings = self.home / ".claude/settings.json"
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        cases = {"proxy": ({"env": {"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317", "ANTHROPIC_AUTH_TOKEN": "tok-x",
+                                    "OTHER": "y"}}, {"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317",
+                                                     "ANTHROPIC_AUTH_TOKEN": "tok-x"}),
+                 "no proxy": ({"env": {}}, {}),
+                 "no file": (None, {})}
+        for name, (content, expected) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                (self.fdir / "log.jsonl").unlink(missing_ok=True)
+                if content is None:
+                    settings.unlink(missing_ok=True)
+                else:
+                    settings.write_text(json.dumps(content))
+                self.weekly()
+                [call] = [c for c in self.calls("claude") if c["argv"][:1] == ["-p"]]
+                self.assertEqual({k: v for k, v in call["env"].items() if k.startswith("ANTHROPIC")}, expected)
+                self.assertNotIn("OTHER", call["env"])
+                self.assertNotIn("tok-x", json.dumps(call["argv"]) + call.get("stdin", ""))
+
+    def endpoint(self, env):
+        settings = self.home / ".claude/settings.json"
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps({"env": env}) if not isinstance(env, str) else env)
+
+    def test_the_endpoint_credential_never_reaches_a_commit_or_a_record(self):
+        self.endpoint({"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317", "ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        self.scenario(claude={"edits": {SKILL: "skill tok-canary-123\n"}, "result": {"structured_output": OUTPUT}})
+        self.weekly()
+        r = self.result()
+        self.assertEqual(r["outcome"], "proposal:credential")
+        self.assertNoWrites()
+        self.assertEqual(self.git_calls("commit-tree"), [])
+        saved = "".join(p.read_text() for p in (self.k / improve.PROPOSALS / r["id"]).iterdir())
+        self.assertNotIn("tok-canary-123", saved)
+        self.assertIn("<redacted>", saved)
+
+    def test_a_credential_with_a_backslash_in_model_output_is_caught(self):
+        self.endpoint({"ANTHROPIC_AUTH_TOKEN": "tok\\canary"})
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"},
+                              "result": {"structured_output": {**OUTPUT, "pr_title": "docs: tok\\canary"}}})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], "proposal:credential")
+        self.assertNoWrites()
+
+    def test_a_malformed_base_url_drops_the_token_too(self):
+        self.endpoint({"ANTHROPIC_BASE_URL": "http://x\0", "ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        self.weekly()
+        [call] = [c for c in self.calls("claude") if c["argv"][:1] == ["-p"]]
+        self.assertFalse([k for k in call["env"] if k.startswith("ANTHROPIC")])
+
+    def test_an_echoed_credential_in_an_error_is_redacted(self):
+        self.endpoint({"ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        echo = {"result": "bad request: Bearer tok-canary-123", "total_cost_usd": 0, "is_error": True}
+        self.scenario(claude={"result": echo, "code": 1, "stderr": "Bearer tok-canary-123" + "y" * 195})
+        res = self.weekly()
+        self.assertEqual(self.result()["outcome"], improve.UNAVAILABLE)
+        saved = json.dumps(self.result()) + json.dumps(res)
+        self.assertNotIn("canary", saved)
+        self.assertNotIn("y-123", saved)  # no tail of the token left by a slice either
+
+    def test_malformed_endpoint_settings_fall_back_to_the_default_login(self):
+        for name, env in {"array": ["x"], "string": "x", "true": True, "nul": {"ANTHROPIC_AUTH_TOKEN": "a\0b"},
+                          "surrogate": {"ANTHROPIC_AUTH_TOKEN": "a\ud800b"}, "not json": "{"}.items():
+            with self.subTest(name):
+                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
+                (self.fdir / "log.jsonl").unlink(missing_ok=True)
+                if name == "not json":
+                    self.endpoint("{")
+                else:
+                    self.endpoint(env)
+                self.weekly()
+                [call] = [c for c in self.calls("claude") if c["argv"][:1] == ["-p"]]
+                self.assertFalse([k for k in call["env"] if k.startswith("ANTHROPIC")])
+
+    def test_only_claude_gets_the_endpoint(self):
+        self.endpoint({"ANTHROPIC_AUTH_TOKEN": "tok-canary-123"})
+        self.weekly()
+        for c in self.calls():
+            if c["tool"] != "claude":
+                self.assertNotIn("tok-canary-123", json.dumps(c.get("env", {})), c["tool"])
+
     # ---------------------------------------------------------------- C7, C8, C17: what claude gets
     def test_c7_c8_c17_claude_inputs(self):
         self.weekly()
@@ -371,7 +455,7 @@ class Weekly(Fakes):
             self.assertIn(flag, argv)
         self.assertEqual(json.loads(argv[argv.index("--json-schema") + 1]), improve.SCHEMA)
         self.assertLessEqual(set(call["env"]) - {"__CF_USER_TEXT_ENCODING", "PWD", "SHLVL", "_", "OLDPWD"},
-                             set(improve.CLAUDE_ENV))
+                             set(improve.CLAUDE_ENV) | set(improve.ENDPOINT_ENV))
         self.assertEqual(call["env"]["HOME"], str(self.home))
         state = self.home / improve.STATE
         self.assertEqual(Path(call["cwd"]).parent.resolve(), state.resolve())
@@ -439,6 +523,71 @@ class Weekly(Fakes):
         self.assertEqual((r["outcome"], r["cost_usd"]), ("failed:model-result", 2.0))
         self.assertNoWrites()
         self.assertIn("skill v1", (self.k / improve.PROPOSALS / r["id"] / "diff.patch").read_text())
+
+    def test_c3_a_model_that_did_no_work_does_not_use_up_the_week(self):
+        limit = {"result": "You've hit your weekly limit", "total_cost_usd": 0, "is_error": True}
+        self.scenario(claude={"result": limit, "code": 1})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], improve.UNAVAILABLE)
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"}, "result": {"structured_output": OUTPUT}})
+        self.weekly()  # the next day: a new attempt, not "not due"
+        outcomes = sorted(self.result(i)["outcome"] for i in self.attempts())
+        self.assertEqual(len(outcomes), 2)
+        self.assertEqual(outcomes[0], improve.UNAVAILABLE)
+        self.assertTrue(outcomes[1].startswith("pr "), outcomes)
+
+    def test_c3_zero_cost_with_tokens_still_uses_up_the_week(self):
+        worked = {"result": "error", "total_cost_usd": 0, "is_error": True, "usage": {"output_tokens": 12}}
+        self.scenario(claude={"edits": {SKILL: "skill v1\n"}, "result": worked, "code": 1})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], "failed:model-result")
+        self.weekly()
+        self.assertEqual(len(self.attempts()), 1)  # not due
+
+    def test_c3_malformed_token_counts_are_work(self):
+        odd = {"result": "x", "total_cost_usd": 0, "is_error": True, "usage": {"output_tokens": "12"}}
+        self.scenario(claude={"result": odd, "code": 1})
+        self.weekly()
+        self.assertEqual(self.result()["outcome"], "failed:model-result")
+
+    def test_c18_an_unfinished_publication_is_recovered_behind_a_newer_attempt(self):
+        a, r = self.publishing()
+        later = self.k / improve.PROPOSALS / (a.dir.name[:9] + "ffffff")
+        if later == a.dir:
+            later = self.k / improve.PROPOSALS / (a.dir.name[:9] + "fffffe")
+        shutil.copytree(a.dir, later)
+        data = json.loads((later / "result.json").read_text())
+        data.update(outcome=improve.UNAVAILABLE, id=later.name)
+        data.pop("remote", None)
+        (later / "result.json").write_text(json.dumps(data))
+        self.scenario(open=["fail"])
+        self.weekly()
+        self.assertEqual(self.result(a.dir.name)["outcome"], "pr https://github.com/o/r/pull/9")
+
+    def test_the_digest_names_an_older_attempt_that_holds_the_gate(self):
+        a, r = self.publishing()
+        later = self.k / improve.PROPOSALS / (a.dir.name[:9] + ("ffffff" if not a.dir.name.endswith("ffffff") else "fffffe"))
+        shutil.copytree(a.dir, later)
+        data = json.loads((later / "result.json").read_text())
+        data.update(outcome=improve.UNAVAILABLE, id=later.name)
+        data.pop("remote", None)
+        (later / "result.json").write_text(json.dumps(data))
+        self.scenario(lookup=["fail"], open=["fail"])
+        res = self.weekly()
+        self.assertEqual(self.result(a.dir.name)["outcome"], improve.REMOTE_UNKNOWN)
+        self.assertTrue(any(r["branch"] in d and "cycle.py clear" in d for d in res["decisions"]), res["decisions"])
+
+    def test_c3_an_unavailable_attempt_does_not_hide_a_counting_one(self):
+        self.scenario(claude={"result": {"result": "x", "total_cost_usd": 2.0, "is_error": True}, "code": 1})
+        self.weekly()
+        counting = self.attempts()[0]
+        later = self.k / improve.PROPOSALS / (counting[:9] + "ffffff")  # same start, a name that sorts after
+        shutil.copytree(self.k / improve.PROPOSALS / counting, later)
+        data = json.loads((later / "result.json").read_text())
+        data.update(outcome=improve.UNAVAILABLE, id=later.name)
+        (later / "result.json").write_text(json.dumps(data))
+        self.weekly()
+        self.assertEqual(len(self.attempts()), 2)  # still not due: the $2 attempt counts
 
     def test_c9_a_cost_too_large_for_a_float_is_unknown(self):
         result = {"type": "result", "subtype": "success", "is_error": False, "structured_output": OUTPUT}
