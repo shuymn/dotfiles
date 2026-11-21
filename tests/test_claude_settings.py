@@ -17,7 +17,8 @@ def managed_hooks():
 
 
 class SettingsTest(unittest.TestCase):
-    GUARD = {"matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
+    # The core hook denies only raw merges, which are Bash calls.
+    GUARD = {"matcher": "Bash",
              "hooks": [{"type": "command", "command": "stack", "args": ["hook", "claude", "pre-tool-use"],
                         "timeout": 5, "onFailure": "continue"}]}
     GUARD_EXT = {"matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
