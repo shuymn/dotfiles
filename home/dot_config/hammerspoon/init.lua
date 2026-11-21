@@ -29,6 +29,18 @@ local APPS = {
 	"com.tinyspeck.slackmacgap",
 }
 
+-- alt-shift-space toggles the frontmost app in or out of layout; the choice persists in
+-- hs.settings as { [bundleID] = true | false } and overrides APPS.
+local TOGGLED_KEY = "toggledApps"
+
+local function isOptedIn(bundleID)
+	local toggled = hs.settings.get(TOGGLED_KEY) or {}
+	if toggled[bundleID] ~= nil then
+		return toggled[bundleID]
+	end
+	return hs.fnutils.contains(APPS, bundleID)
+end
+
 -- Optional manual layout override per workspace ("tiles" or "accordion"); cleared on reload.
 -- When unset, a workspace with 1 distinct app uses "accordion", and 2+ apps use "tiles".
 local layoutOverrides = {}
@@ -116,9 +128,20 @@ loadAssignments = function()
 		end
 	end
 	-- Other apps' workspaces are never kept, so nothing below can reach them.
+	-- APPS keep their order; apps opted in by hand follow, sorted for a stable order.
+	local candidates = hs.fnutils.copy(APPS)
+	local extra = {}
+	for bundleID, on in pairs(hs.settings.get(TOGGLED_KEY) or {}) do
+		if on == true and not hs.fnutils.contains(APPS, bundleID) then
+			table.insert(extra, bundleID)
+		end
+	end
+	table.sort(extra)
+	hs.fnutils.concat(candidates, extra)
+
 	local apps, workspaces = {}, {}
-	for _, bundleID in ipairs(APPS) do
-		if assigned[bundleID] then
+	for _, bundleID in ipairs(candidates) do
+		if assigned[bundleID] and isOptedIn(bundleID) then
 			workspaces[bundleID] = assigned[bundleID]
 			table.insert(apps, bundleID)
 		end
@@ -510,6 +533,24 @@ end
 -- Explicit re-tile: re-read assignments and retry frames apps declined before.
 hs.hotkey.bind({ "alt", "shift" }, "r", function()
 	applied = {}
+	loadAssignments()
+end)
+hs.hotkey.bind({ "alt", "shift" }, "space", function()
+	local app = hs.application.frontmostApplication()
+	local bundleID = app and app:bundleID()
+	if not bundleID then
+		return
+	end
+	local on = not isOptedIn(bundleID)
+	local toggled = hs.settings.get(TOGGLED_KEY) or {}
+	-- Store only departures from the APPS default.
+	if on == hs.fnutils.contains(APPS, bundleID) then
+		toggled[bundleID] = nil
+	else
+		toggled[bundleID] = on
+	end
+	hs.settings.set(TOGGLED_KEY, toggled)
+	hs.alert.show((on and "Layout: " or "Floating: ") .. app:name())
 	loadAssignments()
 end)
 hs.hotkey.bind({ "alt" }, "/", function()
