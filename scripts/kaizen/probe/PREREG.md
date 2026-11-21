@@ -77,3 +77,6 @@ scripts/kaizen/probe/score --out "$OUT" --case worker-L0 --runs 1
 scripts/kaizen/probe/run --out "$OUT"
 scripts/kaizen/probe/score --out "$OUT"
 ```
+
+`build` skips filler holding a term of the generated `~/.config/stack/private-terms`, so run `make apply` after
+editing `~/.config/stack/private-terms.local`.

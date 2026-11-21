@@ -9,15 +9,16 @@ calibration) and level 2 (a deterministic pseudo history of about 25k tokens, mo
   B  no hook; the unit's text (UNIT in signals.py) as a system-reminder at the head of the history (L2) or
      prompt (L0).
 scaffold.sh pre-stages the fixture files in the working directory, so the session writes only its own files.
-Filler packets come from merge commits of --repo at the pinned --rev; material that public-check's rules reject
-(local paths, host.toml values, private terms) is skipped, and the built cases are checked again as a whole.
+Filler packets come from merge commits of --repo at the pinned --rev; material holding a local path, a host.toml value
+(read by scripts/stack-private-terms) or a term of ~/.config/stack/private-terms is skipped, and the built cases are
+checked again as a whole.
 Output: <out>/build/B/ and <out>/build/build.json. A rebuild replaces only a directory this script built.
 """
 import argparse
 import importlib.machinery
 import importlib.util
 import json
-import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -35,12 +36,18 @@ import case_worker as W  # noqa: E402
 DEFAULT_OUT = Path.home() / ".claude/kaizen/probe"
 DEFAULT_REV = "83034fe07f89843d6c99d10e4e80141dc85ee9e2"  # public merge history the filler comes from
 SIGNALS = REPO / "scripts/kaizen/signals.py"
+PRIVATE_TERMS = REPO / "scripts/stack-private-terms"
 WORKER_DOC = REPO / "home/dot_claude/agents/opus-worker.md"
 UNIT_ID = "regression-seen-fail"
 SESSION_ID = "00000000-0000-4000-8000-000000000301"
 HISTORY_CWD = "/work/paginate"
 N_FILL = 10
 MARKER = "build.json"
+# A local path: a home or volume path must start the token (so the repository's own home/ directory is not a hit) and
+# may end it without a slash; also T3 data, Claude's tmp and macOS temp directories. [s] keeps this line from matching
+# itself.
+LOCAL_PATH = re.compile(r"(?<![\w.-])(?:/Users|/home|/Volumes)/[A-Za-z0-9._-]+(?:/|(?![A-Za-z0-9._-]))"
+                        r"|\.t3/(?:scratch|worktrees|userdata)/|/tmp/claude-\d+/|/private/var/folder[s]/")
 
 
 def load(name, path):
@@ -49,6 +56,13 @@ def load(name, path):
     module = importlib.util.module_from_spec(spec)
     loader.exec_module(module)
     return module
+
+
+def scan(where, text, hosts, terms):
+    lower = text.lower()
+    return ([f"{where}: local path {m.group(0)!r}" for m in LOCAL_PATH.finditer(text)]
+            + [f"{where}: a host.toml value ({v!r})" for v in hosts if v.lower() in lower]
+            + [f"{where}: private term {t!r}" for t in terms if t.lower() in lower])
 
 
 def reminder(text):
@@ -228,19 +242,14 @@ def main(argv=None):
     if not set(levels) <= {0, 2}:
         p.error("--levels takes 0 and/or 2")
 
-    pc = load("public_check", REPO / "scripts/kaizen/public-check")
+    spt = load("stack_private_terms", PRIVATE_TERMS)
     repo = Path(git(a.repo, "rev-parse", "--show-toplevel").strip())
     rev = git(repo, "rev-parse", "--verify", f"{'HEAD' if a.filler else a.rev}^{{commit}}").strip()
-    cwd = os.getcwd()
-    os.chdir(repo)  # public-check reads host.toml and the base revision from the current repository
-    try:
-        main_checkout = Path(pc.git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()).parent
-        hosts, terms = sorted(pc.host_values(repo, main_checkout, rev)), pc.private_terms()
-    finally:
-        os.chdir(cwd)
+    hosts = sorted(spt.host_values(repo, rev, [repo / "host.toml", spt.main_checkout(repo) / "host.toml"]))
+    terms = spt.private_terms(spt.TARGET)
 
     def clean(text):
-        return not pc.scan("filler", text, hosts, terms)
+        return not scan("filler", text, hosts, terms)
 
     text = unit_text()
     if 2 not in levels:
@@ -255,7 +264,7 @@ def main(argv=None):
     fresh(root)
     make_arm(root / "B", "B", levels, text, material, a.history_version)
     hits = [h for f in sorted(root.rglob("*")) if f.is_file()
-            for h in pc.scan(str(f.relative_to(root)), f.read_text(), hosts, terms)]
+            for h in scan(str(f.relative_to(root)), f.read_text(), hosts, terms)]
     if hits:
         shutil.rmtree(root)
         sys.exit("build: private strings in the built cases:\n" + "\n".join(hits))

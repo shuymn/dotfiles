@@ -4,45 +4,102 @@
 # ///
 """Write ~/.config/stack/private-terms (mode 0600), the terms `stack check public` rejects.
 
-The terms are those scripts/kaizen/public-check rejects, read through its own functions: the private string values
-of the git-ignored host.toml (this checkout's, else the main checkout's), each line of ~/.claude/kaizen/private-terms,
-and the T3 data directory fragments its local-path pattern matched. Run by chezmoi on every apply, so this file holds
-no value and chezmoi never shows one in a diff or plan.
+The terms are the private string values of the git-ignored host.toml (this checkout's, else the main checkout's), each
+line of ~/.config/stack/private-terms.local, and the T3 data directory fragments. Run by chezmoi on every apply, so
+this file holds no value and chezmoi never shows one in a diff or plan. scripts/kaizen/probe/build reads host_values
+and private_terms from here.
 
-Exit status: 0 written, 1 no host.toml in this checkout or the main one (no file is written).
+Exit status: 0 written, 1 no host.toml in this checkout or the main one (no file is written), 2 an unreadable input
+or a git error.
 """
 
-import importlib.machinery
-import importlib.util
 import os
+import re
+import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 TARGET = Path.home() / ".config/stack/private-terms"
+LOCAL_TERMS = Path.home() / ".config/stack/private-terms.local"
+T3_FRAGMENTS = [f".t3/{name}/" for name in ("scratch", "worktrees", "userdata")]
 
 
-def public_check():
-    loader = importlib.machinery.SourceFileLoader("public_check", str(REPO / "scripts/kaizen/public-check"))
-    module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
-    loader.exec_module(module)
-    return module
+def die(message: str) -> None:
+    print(f"stack-private-terms: {message}", file=sys.stderr)
+    sys.exit(2)
+
+
+def git(repo: Path, *args: str, check: bool = True) -> str:
+    """Git's output in repo, decoded as is: universal newlines would turn a bare CR into a line break."""
+    result = subprocess.run(["git", "-C", str(repo), *args], capture_output=True)
+    if result.returncode != 0 and not check:
+        return ""
+    if result.returncode != 0:
+        die(f"git {' '.join(args)} failed: {result.stderr.decode(errors='replace').strip()}")
+    return result.stdout.decode(errors="replace")
+
+
+def read(path: Path, required: bool = False) -> str:
+    """The file's text; a file that does not exist reads as empty unless required."""
+    try:
+        return path.read_text()
+    except FileNotFoundError:
+        if required:
+            die(f"cannot read {path}: no such file")
+        return ""
+    except (OSError, UnicodeDecodeError) as e:
+        die(f"cannot read {path}: {e}")
+
+
+def parse_toml(text: str, name: str) -> dict:
+    try:
+        return tomllib.loads(text)
+    except tomllib.TOMLDecodeError as e:
+        die(f"cannot parse {name}: {e}")
+
+
+def main_checkout(repo: Path) -> Path:
+    """The main checkout of repo; a linked worktree has no host.toml of its own."""
+    return Path(git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir").strip()).parent
+
+
+def owner_login(repo: Path) -> str:
+    """The GitHub owner in origin's URL, which every repository URL and merge commit already publishes."""
+    m = re.search(r"github\.com[:/]([A-Za-z0-9-]+)/", git(repo, "remote", "get-url", "origin", check=False))
+    return m.group(1).lower() if m else ""
+
+
+def host_values(repo: Path, base: str, files: list[Path], required: bool = False) -> set[str]:
+    """String values of the host.toml files (a missing one counting as empty unless required), except the generic
+    values of nix/host.default.toml and the role names of nix/roles.toml, both read at base, and a username that is
+    the owner."""
+    def at_base(name: str) -> dict:
+        return parse_toml(git(repo, "show", f"{base}:{name}", check=False), f"{base}:{name}")
+
+    public = {v for v in at_base("nix/host.default.toml").values() if isinstance(v, str)}
+    public |= set(at_base("nix/roles.toml"))
+    owner = owner_login(repo)
+    return {v for f in files for key, v in parse_toml(read(f, required), str(f)).items()
+            if isinstance(v, str) and v.strip() and v not in public and not (key == "username" and v.lower() == owner)}
+
+
+def private_terms(path: Path) -> list[str]:
+    """The non-comment lines of path, a missing file counting as empty."""
+    return [t for line in read(path).splitlines() if (t := line.strip()) and not t.startswith("#")]
 
 
 def main() -> int:
-    os.chdir(REPO)  # public-check's git calls read this checkout
-    pc = public_check()
-    main_checkout = Path(pc.git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()).parent
-    candidates = list(dict.fromkeys((REPO / "host.toml", main_checkout / "host.toml")))
+    candidates = list(dict.fromkeys((REPO / "host.toml", main_checkout(REPO) / "host.toml")))
     hosts = [p for p in candidates if p.is_file()]
     if not hosts:
         print(f"stack-private-terms: {' or '.join(map(str, candidates))} not found; run 'make host' first",
               file=sys.stderr)
         return 1
-    terms = sorted(pc.host_values(None, None, "HEAD", hosts)) + pc.private_terms()
-    terms += [f".t3/{name}/" for name in ("scratch", "worktrees", "userdata")]
-    text = "# Generated on chezmoi apply by scripts/stack-private-terms; edit host.toml or ~/.claude/kaizen/private-terms.\n"
+    terms = sorted(host_values(REPO, "HEAD", hosts, required=True)) + private_terms(LOCAL_TERMS) + T3_FRAGMENTS
+    text = "# Generated on chezmoi apply by scripts/stack-private-terms; edit host.toml or ~/.config/stack/private-terms.local.\n"
     text += "".join(f"{t}\n" for t in dict.fromkeys(terms))
     TARGET.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=TARGET.parent, prefix=".private-terms.")  # created 0600

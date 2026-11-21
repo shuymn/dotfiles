@@ -6,6 +6,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -29,7 +30,7 @@ def load(name, path):
 
 sys.dont_write_bytecode = True  # importing the scripts must not leave __pycache__ in the checkout
 SCORE = load("probe_score", PROBE / "score")
-PUBLIC_CHECK = load("public_check", REPO / "scripts/kaizen/public-check")
+BUILD = load("probe_build", PROBE / "build")
 
 
 class TempCase(unittest.TestCase):
@@ -205,19 +206,21 @@ class VerdictTest(unittest.TestCase):
 class BuildTest(TempCase):
     LEAK = "/" + "Users/someone/private"  # split so the committed line is not a local path itself
 
-    def build(self, *args):
+    def build(self, *args, probe=PROBE):
         home = self.tmp / "home"
         home.mkdir(exist_ok=True)
-        p = subprocess.run([sys.executable, str(PROBE / "build"), "--out", str(self.tmp / "out"), *args],
+        p = subprocess.run([sys.executable, str(probe / "build"), "--out", str(self.tmp / "out"), *args],
                            capture_output=True, text=True, timeout=120,
                            env={"PATH": os.environ.get("PATH", ""), "HOME": str(home)})
         self.assertEqual(p.returncode, 0, p.stderr)
         return self.tmp / "out" / "build"
 
-    def filler(self):
+    def filler(self, term=None):
         items = [{"sha": f"{i:040x}", "title": f"Change number {i}", "body": "Details of the change.",
-                  "diff": f"Change number {i}\n file.txt | 1 +\n+line {i}\n"} for i in range(11)]
+                  "diff": f"Change number {i}\n file.txt | 1 +\n+line {i}\n"} for i in range(12 if term else 11)]
         items[0]["body"] = f"See {self.LEAK}/notes.md"
+        if term:
+            items[1]["title"] = f"Rename {term} settings"
         path = self.tmp / "filler.json"
         path.write_text(json.dumps(items))
         return path
@@ -226,7 +229,7 @@ class BuildTest(TempCase):
         hits = []
         for f in sorted(root.rglob("*")):
             if f.is_file() and f.name != "build.json":
-                hits += PUBLIC_CHECK.scan(str(f), f.read_text(), [], [])
+                hits += BUILD.scan(str(f), f.read_text(), [], [])
         self.assertEqual(hits, [])
         for level in (0, 2):
             b = root / "B" / "evals" / f"worker-L{level}"
@@ -248,6 +251,27 @@ class BuildTest(TempCase):
         root = self.build("--filler", str(self.filler()))
         self.check(root)
         self.assertNotIn(self.LEAK, (root / "B/evals/worker-L2/history.jsonl").read_text())
+
+    def test_private_term_filler_is_excluded_without_public_check(self):
+        """A copy of the checkout without scripts/kaizen/public-check still builds and keeps out the generated terms."""
+        term = "zephyrquill"
+        copy = self.tmp / "checkout"
+        shutil.copytree(REPO / "scripts", copy / "scripts", ignore=shutil.ignore_patterns("__pycache__", "public-check"))
+        self.assertFalse((copy / "scripts/kaizen/public-check").exists())
+        for rel in ("home/dot_claude/agents/opus-worker.md", "nix/host.default.toml", "nix/roles.toml"):
+            (copy / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(REPO / rel, copy / rel)
+        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(self.tmp), "GIT_CONFIG_NOSYSTEM": "1"}
+        for args in (["init", "-q"], ["add", "."], ["commit", "-q", "-m", "copy"]):
+            subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.com",
+                            "-c", "commit.gpgsign=false", *args], cwd=copy, env=env, check=True, capture_output=True)
+        terms = self.tmp / "home/.config/stack/private-terms"
+        terms.parent.mkdir(parents=True)
+        terms.write_text(f"# generated\n{term.upper()}\n")
+        root = self.build("--filler", str(self.filler(term)), "--repo", str(copy), probe=copy / "scripts/kaizen/probe")
+        self.check(root)
+        self.assertNotIn(f"{1:040x}", json.loads((root / "build.json").read_text())["merges"])
+        self.assertEqual([f for f in root.rglob("*") if f.is_file() and term in f.read_text().lower()], [])
 
     def test_real_merge_filler_is_public(self):
         shallow = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--is-shallow-repository"],
