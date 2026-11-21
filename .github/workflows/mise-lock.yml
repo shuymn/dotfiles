@@ -1,0 +1,85 @@
+name: Check mise tools
+
+# Install every tool from mise.lock and run the ones a pull request changes on
+# macOS, where these global tools are used. No other check reads mise.lock, so
+# without this the daily mise-update PR would auto-merge tools that were never
+# installed or run.
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - home/dot_config/mise/**
+      - .github/workflows/mise-lock.yml
+
+permissions: {}
+
+jobs:
+  install:
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
+      - name: Install and run tools
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+          MISE_YES: 1
+        run: |
+          set -eu
+          lock=home/dot_config/mise/mise.lock
+          git rev-parse --verify --quiet "${BASE_SHA:?}^{commit}" >/dev/null
+          # Run every tool when the config or this check changes; otherwise only
+          # the tools whose [[tools.<name>]] entries differ from the base.
+          if ! git diff --quiet "$BASE_SHA" HEAD -- home/dot_config/mise/config.toml .github/workflows/mise-lock.yml ||
+            ! git show "$BASE_SHA:$lock" >"$RUNNER_TEMP/base.lock" 2>/dev/null; then
+            : >"$RUNNER_TEMP/base.lock"
+          fi
+          python3 - "$RUNNER_TEMP/base.lock" "$lock" >"$RUNNER_TEMP/changed" <<'EOF'
+          import sys, tomllib
+          base, head = (tomllib.load(open(p, "rb")).get("tools", {}) for p in sys.argv[1:])
+          print(*(name for name in sorted(head) if head[name] != base.get(name)), sep="\n")
+          EOF
+          PATH="$(nix --extra-experimental-features nix-command --extra-experimental-features flakes \
+            build --no-link --print-out-paths .#mise)/bin:$PATH"
+          cd home/dot_config/mise
+          mise trust config.toml >/dev/null
+          mise install --locked
+          failed=0
+          while IFS= read -r tool; do
+            [ -n "$tool" ] || continue
+            # Commands that start the tool and exit 0; the default is
+            # "<last name segment> --version".
+            case $tool in
+              go) set -- go version ;;
+              aqua:kayac/ecspresso) set -- ecspresso version ;;
+              github:Songmu/maltmill) set -- maltmill -h ;;
+              github:google-antigravity/antigravity-cli) set -- agy --version ;;
+              npm:@earendil-works/pi-coding-agent) set -- pi --version ;;
+              pipx:tavily-cli) set -- tvly --version ;;
+              *) set -- "${tool##*[:/]}" --version ;;
+            esac
+            echo "::group::$tool: $*"
+            # Fail rather than run a same-named command the runner provides.
+            bin=$(mise which "$1" --tool "$tool") || bin=
+            dir=$(mise where "$tool") || dir=
+            case $bin in
+              "${dir:-/nonexistent}"/*) ;;
+              *) bin= ;;
+            esac
+            if [ -z "$bin" ] || ! mise exec "$tool" -- "$bin" "${@:2}" </dev/null; then
+              echo "::error::$tool: $* failed"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done <"$RUNNER_TEMP/changed"
+          exit "$failed"
