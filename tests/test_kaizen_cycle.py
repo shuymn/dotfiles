@@ -6,7 +6,6 @@ import importlib.util
 import io
 import json
 import os
-import re
 import shutil
 import signal
 import sqlite3
@@ -766,46 +765,6 @@ class Cycle(Temp):
         self.watch.write_text(json.dumps([{"change": "../x", "signal": "regression", "apply": ts(NOW)}]))
         with self.assertRaises(ValueError):
             self.main("baseline", "../x")
-
-
-TEMPLATE = REPO / "home/dot_claude/executable_statusline.sh.tmpl"
-STDIN = json.dumps({"workspace": {"current_dir": "/"}, "model": {"display_name": "M"},
-                    "context_window": {"used_percentage": 1}})
-
-
-@unittest.skipUnless(shutil.which("chezmoi") and shutil.which("jq"), "needs chezmoi and jq")
-class Statusline(Temp):
-    def setUp(self):
-        super().setUp()
-        with TEMPLATE.open() as tmpl:
-            rendered = subprocess.run(["chezmoi", "--source", str(REPO / "home"), "execute-template"], stdin=tmpl,
-                                      capture_output=True, text=True, check=True).stdout
-        self.script = self.dir / "statusline.sh"
-        self.script.write_text(rendered)
-        self.script.chmod(0o755)
-
-    def line(self, status=None):
-        if status is not None:
-            (self.dir / "current").mkdir(exist_ok=True)
-            (self.dir / "current/status.json").write_text(status if isinstance(status, str) else json.dumps(status))
-        out = subprocess.run([str(self.script)], input=STDIN, capture_output=True, text=True, cwd=self.dir,
-                             env={**os.environ, "KAIZEN_HOME": str(self.dir)}, check=True, timeout=30).stdout
-        return re.sub(r"\x1b\[[0-9;]*m", "", out)
-
-    def test_failures_decisions_and_staleness(self):
-        last = int(time.time()) - 3 * 86400 - 60
-        self.assertIn("kaizen ✗1・判断 2・stale 3d", self.line({"fail": 1, "decisions": 2,
-                                                                 "last_completed_epoch": last}))
-
-    def test_stale_after_36_hours_only(self):
-        now = int(time.time())
-        self.assertNotIn("kaizen", self.line({"fail": 0, "decisions": 0, "last_completed_epoch": now - 35 * 3600}))
-        self.assertIn("kaizen stale 1d", self.line({"fail": 0, "decisions": 0,
-                                                     "last_completed_epoch": now - 37 * 3600}))
-
-    def test_quiet_before_the_first_run_and_visible_when_unreadable(self):
-        self.assertNotIn("kaizen", self.line())
-        self.assertIn("kaizen ?", self.line("not json"))
 
 
 if __name__ == "__main__":

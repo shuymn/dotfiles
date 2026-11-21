@@ -75,18 +75,17 @@ in
     };
   };
 
-  # The kaizen cycle (docs/kaizen.md §6): a stateless run over the last 7 days
-  # whose daily stages call no model; the weekly stage, off until
-  # ~/.claude/kaizen/improve-enabled exists, runs claude and codex through the
-  # mise shims. launchd starts a calendar job missed while asleep on wake and
-  # runs one instance of a label at a time. The scripts run from their store
-  # copy, so a change takes effect at the next switch.
-  launchd.agents.kaizen-cycle = {
+  # The stack cycle (scripts/stack-cycle): stack-observe, then stack-improve, run from the dotfiles checkout;
+  # improve stays off until ~/.config/stack/improve.toml enables it and then runs claude, codex and gh through the
+  # mise shims. stack and its extensions live in ~/.local/bin. launchd starts a calendar job missed while asleep on
+  # wake and runs one instance of a label at a time. The script runs from its store copy, so a change takes effect
+  # at the next switch.
+  launchd.agents.stack-cycle = {
     enable = true;
     config = {
       ProgramArguments = [
-        "${pkgs.python3}/bin/python3"
-        "${../../../scripts/kaizen}/cycle.py"
+        "/bin/sh"
+        "${../../../scripts/stack-cycle}"
       ];
       StartCalendarInterval = [
         {
@@ -94,11 +93,11 @@ in
           Minute = 0;
         }
       ];
-      EnvironmentVariables.PATH = "${config.home.profileDirectory}/bin:/usr/bin:/bin:/usr/sbin:/sbin:${config.home.homeDirectory}/.local/share/mise/shims";
+      EnvironmentVariables.PATH = "${config.home.homeDirectory}/.local/bin:${config.home.profileDirectory}/bin:/usr/bin:/bin:/usr/sbin:/sbin:${config.home.homeDirectory}/.local/share/mise/shims";
       ProcessType = "Background";
       LowPriorityIO = true;
-      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/kaizen-cycle.log";
-      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/kaizen-cycle.log";
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/stack-cycle.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/stack-cycle.log";
     };
   };
 }
