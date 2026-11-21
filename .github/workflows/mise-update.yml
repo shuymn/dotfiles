@@ -88,30 +88,46 @@ jobs:
         run: |
           set -eu
           repo=$GITHUB_REPOSITORY
-          # A branch with the same lockfile is already proposed. Otherwise start
-          # over from the current base; deleting the branch closes its stale PR.
+          # A branch with the same lockfile, up to date with the base, is
+          # already proposed. Otherwise start over from the current base;
+          # deleting the branch closes its stale PR.
           current=false
+          pr=
           if proposed=$(gh api "repos/$repo/contents/$LOCK?ref=$BRANCH" --jq .sha 2>/dev/null); then
             if [ "$proposed" = "$(git hash-object "$LOCK")" ]; then
-              current=true
-            else
+              # Closing the branch's PR (and keeping the branch) rejects this
+              # lockfile. A run that stopped after the commit left no PR, so
+              # this one opens it.
+              head=$(gh api "repos/$repo/git/ref/heads/$BRANCH" --jq .object.sha)
+              pr=$(gh api "repos/$repo/commits/$head/pulls" \
+                --jq "map(select(.head.ref == \"$BRANCH\" and .head.sha == \"$head\"))[0] // empty")
+              if [ -n "$pr" ] && [ "$(printf '%s' "$pr" | jq -r .state)" = closed ]; then
+                echo "$BRANCH proposes this lockfile; its PR was closed"
+                exit 0
+              fi
+              # A branch behind the base ran its checks against an old base and
+              # never satisfies a strict required-checks ruleset. Rebuilding it
+              # also avoids the conflict that merging the base in would hit when
+              # the base changed the same lockfile lines.
+              behind=$(gh api "repos/$repo/compare/$GITHUB_SHA...$head" --jq .behind_by)
+              case $behind in
+                '' | *[!0-9]*)
+                  echo "unexpected behind_by: $behind" >&2
+                  exit 1
+                  ;;
+              esac
+              if [ "$behind" -eq 0 ]; then
+                current=true
+              else
+                pr=
+              fi
+            fi
+            if [ "$current" = false ]; then
               gh api -X DELETE "repos/$repo/git/refs/heads/$BRANCH"
             fi
           fi
 
-          pr=
-          if [ "$current" = true ]; then
-            # Closing the branch's PR (and keeping the branch) rejects this
-            # lockfile. A run that stopped after the commit left no PR, so this
-            # one opens it.
-            head=$(gh api "repos/$repo/git/ref/heads/$BRANCH" --jq .object.sha)
-            pr=$(gh api "repos/$repo/commits/$head/pulls" \
-              --jq "map(select(.head.ref == \"$BRANCH\" and .head.sha == \"$head\"))[0] // empty")
-            if [ -n "$pr" ] && [ "$(printf '%s' "$pr" | jq -r .state)" = closed ]; then
-              echo "$BRANCH proposes this lockfile; its PR was closed"
-              exit 0
-            fi
-          else
+          if [ "$current" = false ]; then
             gh api -X POST "repos/$repo/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$GITHUB_SHA" >/dev/null
 
             # createCommitOnBranch produces a signed commit, which the ruleset requires.
