@@ -2,9 +2,9 @@
 
 ## 注意の項目
 
-- 注意の項目は、フックや lint、テスト、それを通らないと進めないスクリプトが強制していない規則。キットの `attention/items.json` に役割（orchestrator、worker、reviewer、全役割なら `all`）を付けて書く。役割ごとの項目数は `stack budget status` で見られる（表示だけで合否は無い）。
+- 注意の項目は、フックや lint、テスト、それを通らないと進めないスクリプトが強制していない規則。キットの `attention/items.json` に役割（orchestrator、worker、reviewer、全役割なら `all`）を付けて書く。
 - 新しい規則は、仕組み、条件付きの束（当たるときだけ読む）、委譲、常時の項目の順に検討する。常時の項目は、その役割が毎回守る必要のある規則だけにする。繰り返す失敗は、文を足す理由ではなく仕組みにする理由にする。
-- 委譲: 判断は自分でし、作業と監査は、指示書と報告を読む費用に見合うときだけ渡す。監査は steward を読むだけで立て、`Follow the body of ~/.claude/agents/steward.md.` とキットの場所を渡し、段の終わり、状態が古いとき、引き継ぎの前、振り返りで頼む。見落としは台帳に記録する。
+- 委譲: 判断は自分でし、作業と監査は、指示書と報告を読む費用に見合うときだけ渡す。監査は steward を読むだけで立て、`Follow the body of ~/.claude/agents/steward.md.` とキットの場所を渡し、段の終わり、状態が古いとき、引き継ぎの前、振り返りで頼む。`stack pr merge` の後に `audit due (…): run steward on kit <slug>` が出たら、費用の見積もりはせずに必ず、その行のキットの場所だけを依頼文にして（自分の結論は添えない）steward を背景で立て、待たずに次の作業へ進む。見落としは台帳に記録する。
 - 指示書の書き方は [subagent-brief.md](subagent-brief.md)。worker の常時の項目は opus-worker.md にあり、compaction の後はフックが worker の文脈へ戻す。
 
 ## キット
