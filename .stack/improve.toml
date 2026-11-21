@@ -1,0 +1,2 @@
+# What stack-improve may edit in this repository (read from the merged default branch); ** = any directories.
+paths = ["home/dot_claude/skills/**", "home/dot_claude/agents/**"]
