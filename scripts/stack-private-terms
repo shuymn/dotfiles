@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.11"
 # ///
-"""Write ~/.config/stack/private-terms (mode 0600), the terms `stack check public` rejects.
+"""Write ~/.config/stack/private-terms (mode 0600), the terms `stack-public` rejects.
 
 The terms are the private string values of the git-ignored host.toml (this checkout's, else the main checkout's), each
 line of ~/.config/stack/private-terms.local, and the T3 data directory fragments. Run by chezmoi on every apply, so

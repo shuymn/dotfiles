@@ -20,11 +20,15 @@ class SettingsTest(unittest.TestCase):
     GUARD = {"matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
              "hooks": [{"type": "command", "command": "stack", "args": ["hook", "claude", "pre-tool-use"],
                         "timeout": 5, "onFailure": "continue"}]}
+    GUARD_EXT = {"matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
+                 "hooks": [{"type": "command", "command": "stack-guard", "args": ["hook", "claude", "pre-tool-use"],
+                            "timeout": 5, "onFailure": "continue"}]}
     START = {"hooks": [{"type": "command", "command": "stack", "args": ["hook", "claude", "session-start"],
                         "timeout": 60, "onFailure": "continue"}]}
 
     def assert_hooks(self, hooks):
         self.assertIn(self.GUARD, hooks["PreToolUse"])
+        self.assertIn(self.GUARD_EXT, hooks["PreToolUse"])
         self.assertEqual(hooks["SessionStart"], [self.START])
         self.assertNotIn("Stop", hooks)
         commands = json.dumps(hooks)
