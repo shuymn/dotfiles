@@ -66,6 +66,7 @@ INVALID = {
     "result status outside pass/warn": lambda n: (dump({**response(n), "results": [
         {**response(n)["results"][0], "status": "fail"}]}), 0),
     "findings not an array": lambda n: (dump(response(n, findings={})), 0),
+    "result of the other extension": lambda n: (dump(response("improve" if n == "observe" else "observe")), 0),
 }
 
 
