@@ -1,4 +1,9 @@
+from contextlib import redirect_stderr
 from pathlib import Path
+from unittest import mock
+import importlib.machinery
+import importlib.util
+import io
 import os
 import stat
 import subprocess
@@ -97,6 +102,21 @@ class StackPrivateTermsTest(unittest.TestCase):
         new = self.generate()
         self.assertEqual(self.terms(new), self.terms(old))
         self.assertEqual(stat.S_IMODE(new.stat().st_mode), stat.S_IMODE(old.stat().st_mode))
+
+    def test_a_host_file_that_vanishes_exits_2_and_keeps_the_output(self):
+        root = self.checkout("vanish", {"scripts/stack-private-terms": SCRIPT.read_text()})
+        (root / "host.toml").unlink()  # is_file below still selects it, as if it vanished after the check
+        loader = importlib.machinery.SourceFileLoader("stack_private_terms", str(root / "scripts/stack-private-terms"))
+        module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+        loader.exec_module(module)
+        module.TARGET = self.tmp / "out/private-terms"
+        module.TARGET.parent.mkdir()
+        module.TARGET.write_text("previous\n")
+        with mock.patch.object(Path, "is_file", return_value=True), redirect_stderr(io.StringIO()), \
+                self.assertRaises(SystemExit) as raised:
+            module.main()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertEqual(module.TARGET.read_text(), "previous\n")
 
 
 if __name__ == "__main__":

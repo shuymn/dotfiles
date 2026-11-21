@@ -42,11 +42,13 @@ def git(repo: Path, *args: str, check: bool = True) -> str:
     return result.stdout.decode(errors="replace")
 
 
-def read(path: Path) -> str:
-    """The file's text; a file that does not exist reads as empty."""
+def read(path: Path, required: bool = False) -> str:
+    """The file's text; a file that does not exist reads as empty unless required."""
     try:
         return path.read_text()
     except FileNotFoundError:
+        if required:
+            die(f"cannot read {path}: no such file")
         return ""
     except (OSError, UnicodeDecodeError) as e:
         die(f"cannot read {path}: {e}")
@@ -70,16 +72,17 @@ def owner_login(repo: Path) -> str:
     return m.group(1).lower() if m else ""
 
 
-def host_values(repo: Path, base: str, files: list[Path]) -> set[str]:
-    """String values of the host.toml files, a missing one counting as empty, except the generic values of
-    nix/host.default.toml and the role names of nix/roles.toml, both read at base, and a username that is the owner."""
+def host_values(repo: Path, base: str, files: list[Path], required: bool = False) -> set[str]:
+    """String values of the host.toml files (a missing one counting as empty unless required), except the generic
+    values of nix/host.default.toml and the role names of nix/roles.toml, both read at base, and a username that is
+    the owner."""
     def at_base(name: str) -> dict:
         return parse_toml(git(repo, "show", f"{base}:{name}", check=False), f"{base}:{name}")
 
     public = {v for v in at_base("nix/host.default.toml").values() if isinstance(v, str)}
     public |= set(at_base("nix/roles.toml"))
     owner = owner_login(repo)
-    return {v for f in files for key, v in parse_toml(read(f), str(f)).items()
+    return {v for f in files for key, v in parse_toml(read(f, required), str(f)).items()
             if isinstance(v, str) and v.strip() and v not in public and not (key == "username" and v.lower() == owner)}
 
 
@@ -95,7 +98,7 @@ def main() -> int:
         print(f"stack-private-terms: {' or '.join(map(str, candidates))} not found; run 'make host' first",
               file=sys.stderr)
         return 1
-    terms = sorted(host_values(REPO, "HEAD", hosts)) + private_terms(LOCAL_TERMS) + T3_FRAGMENTS
+    terms = sorted(host_values(REPO, "HEAD", hosts, required=True)) + private_terms(LOCAL_TERMS) + T3_FRAGMENTS
     text = "# Generated on chezmoi apply by scripts/stack-private-terms; edit host.toml or ~/.config/stack/private-terms.local.\n"
     text += "".join(f"{t}\n" for t in dict.fromkeys(terms))
     TARGET.parent.mkdir(parents=True, exist_ok=True)
