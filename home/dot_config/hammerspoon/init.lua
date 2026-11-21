@@ -12,6 +12,7 @@ hs.window.animationDuration = 0
 local GAP = 10
 local ACCORDION_PADDING = 30
 local SETTLE_SECONDS = 0.1
+local STACK_STEP_SECONDS = 0.02
 local RETRY_SECONDS = 0.5
 local FLASHSPACE = "/Applications/FlashSpace.app/Contents/Resources/flashspace"
 local FLASHSPACE_DIR = os.getenv("HOME") .. "/.config/flashspace"
@@ -200,7 +201,8 @@ end
 -- Layout ------------------------------------------------------------------------------
 
 local lastFocused = {} -- workspace -> window id
-local raisedOrder = {} -- workspace -> window ids and focus last stacked
+local restackTimers = {} -- workspace -> active cross-app stacking timer
+local restacking = {} -- workspace -> true ("stale" once a layout was skipped) while focusing to fix cross-app Z-order
 local applied = {} -- window id -> { target, result } of the last setFrame
 local windowWatchers = {} -- window id -> { watcher, pid }
 
@@ -222,25 +224,189 @@ local function place(win, frame)
 	end
 end
 
--- Stack the windows so the farther a window is from the focused one, the lower it sits;
--- then every strip stays uncovered. Skipped when nothing changed.
-local function raiseAccordion(workspace, windows, focus, refocus)
-	local ids = {}
-	for _, win in ipairs(windows) do
-		table.insert(ids, win:id())
+local function cancelRestack(workspace)
+	if restackTimers[workspace] then
+		restackTimers[workspace]:stop()
+		restackTimers[workspace] = nil
 	end
-	local key = table.concat(ids, ",") .. "@" .. focus
-	if raisedOrder[workspace] == key then
+	restacking[workspace] = nil
+end
+
+local function windowZOrder()
+	-- WindowServer's front-to-back list; unlike hs.window.orderedWindows() it does not
+	-- query every app's windows through Accessibility.
+	local rank = {}
+	for index, info in ipairs(hs.window.list()) do
+		rank[info.kCGWindowNumber] = rank[info.kCGWindowNumber] or index
+	end
+	return rank
+end
+
+local function allRanked(windows, rank)
+	for _, win in ipairs(windows) do
+		if not rank[win:id()] then
+			return false
+		end
+	end
+	return true
+end
+
+-- True when every strip on both sides of `focus` is uncovered: windows farther from
+-- `focus` sit lower in Z-order (larger rank).
+local function isAccordionStacked(windows, focus, rank)
+	if not allRanked(windows, rank) then
+		return false
+	end
+	for index = 1, focus - 1 do
+		if rank[windows[index]:id()] <= rank[windows[index + 1]:id()] then
+			return false
+		end
+	end
+	for index = focus, #windows - 1 do
+		if rank[windows[index]:id()] >= rank[windows[index + 1]:id()] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Stack the windows so the farther a window is from the focused one, the lower it sits;
+-- then every strip stays uncovered. Skipped when the current Z-order already satisfies this.
+local function raiseAccordion(workspace, windows, focus, refocus, pidOf)
+	if restacking[workspace] then
+		-- Lay out again once the restack settles.
+		restacking[workspace] = "stale"
 		return
 	end
-	raisedOrder[workspace] = key
+	local rank = windowZOrder()
+	if isAccordionStacked(windows, focus, rank) then
+		return
+	end
+
+	local multiApp = false
+	local firstPid = pidOf[windows[1]:id()]
+	for index = 2, #windows do
+		if pidOf[windows[index]:id()] ~= firstPid then
+			multiApp = true
+			break
+		end
+	end
+
 	local order = {}
 	for index = 1, #windows do
 		table.insert(order, index)
 	end
 	table.sort(order, function(a, b)
-		return math.abs(a - focus) > math.abs(b - focus)
+		local da, db = math.abs(a - focus), math.abs(b - focus)
+		if da ~= db then
+			return da > db
+		end
+		return a < b
 	end)
+
+	-- AXRaise only reorders windows within one app, so cross-app accordions go through
+	-- win:focus() — only when this workspace is frontmost, to avoid stealing
+	-- focus from another display or workspace.
+	if multiApp then
+		if not refocus then
+			return
+		end
+		-- Without every window's place in the Z-order the steps cannot be chosen; wait for
+		-- a later layout pass.
+		if not allRanked(windows, rank) then
+			return
+		end
+		-- Any bottom prefix of `order` already descending in Z-order can stay untouched;
+		-- focusing the remaining windows in order stacks them cleanly above it.
+		local start = 2
+		while start <= #order do
+			local prevRank = rank[windows[order[start - 1]]:id()]
+			local currRank = rank[windows[order[start]]:id()]
+			if prevRank > currRank then
+				start = start + 1
+			else
+				break
+			end
+		end
+		local steps = {}
+		for i = start, #order do
+			table.insert(steps, windows[order[i]])
+		end
+
+		cancelRestack(workspace)
+		restacking[workspace] = true
+		local focusID = windows[focus]:id()
+		local function finishRestack()
+			lastFocused[workspace] = focusID
+			restackTimers[workspace] = hs.timer.doAfter(SETTLE_SECONDS, function()
+				local stale = restacking[workspace] == "stale"
+				restackTimers[workspace] = nil
+				restacking[workspace] = nil
+				-- Focus events were ignored while restacking; keep a window the user
+				-- focused meanwhile, and lay out again if anything changed.
+				local current = hs.window.focusedWindow()
+				local currentID = current and current:id()
+				for _, win in ipairs(windows) do
+					if win:id() == currentID and currentID ~= focusID then
+						lastFocused[workspace] = currentID
+						stale = true
+					end
+				end
+				if stale then
+					scheduleTile()
+				end
+			end)
+		end
+		-- The user may switch away, or a window may close, before a delayed step; never pull
+		-- focus back or focus a window that left the screen. Returns the current ranks.
+		local function canContinue()
+			local app = hs.application.frontmostApplication()
+			local now = windowZOrder()
+			if app and workspaceOf[app:bundleID()] == workspace and allRanked(windows, now) then
+				return now
+			end
+			local stale = restacking[workspace] == "stale"
+			cancelRestack(workspace)
+			if stale then
+				scheduleTile()
+			end
+			return nil
+		end
+		-- Try synchronous focus first so intermediate windows do not stay on top long
+		-- enough to flicker; fall back to stepped focus only if WindowServer drops a step.
+		if not canContinue() then
+			return
+		end
+		for _, win in ipairs(steps) do
+			win:focus()
+		end
+		restackTimers[workspace] = hs.timer.doAfter(STACK_STEP_SECONDS, function()
+			local now = canContinue()
+			if not now then
+				return
+			end
+			if isAccordionStacked(windows, focus, now) then
+				finishRestack()
+				return
+			end
+			local stepIndex = 1
+			local function runStep()
+				if not canContinue() then
+					return
+				end
+				steps[stepIndex]:focus()
+				stepIndex = stepIndex + 1
+				if stepIndex <= #steps then
+					restackTimers[workspace] = hs.timer.doAfter(STACK_STEP_SECONDS, runStep)
+				else
+					finishRestack()
+				end
+			end
+			runStep()
+		end)
+		return
+	end
+
 	for _, index in ipairs(order) do
 		windows[index]:raise()
 	end
@@ -323,9 +489,9 @@ local function layout(showing)
 		end
 	end
 
-	for workspace in pairs(raisedOrder) do
+	for workspace in pairs(restackTimers) do
 		if not groups[workspace] then
-			raisedOrder[workspace] = nil
+			cancelRestack(workspace)
 		end
 	end
 
@@ -355,9 +521,9 @@ local function layout(showing)
 			place(win, accordion and accordionFrame(screen, index, count) or cellFrame(screen, index, count))
 		end
 		if accordion and count > 1 then
-			raiseAccordion(workspace, windows, focus or 1, isFrontmost and focus ~= nil)
+			raiseAccordion(workspace, windows, focus or 1, isFrontmost and focus ~= nil, pidOf)
 		else
-			raisedOrder[workspace] = nil
+			cancelRestack(workspace)
 		end
 	end
 end
@@ -438,6 +604,10 @@ local function watchApp(app)
 	end
 	local watcher = app:newWatcher(function(element, event)
 		if event == hs.uielement.watcher.focusedWindowChanged then
+			-- The restack's own focus changes; it records the outcome when it settles.
+			if restacking[workspaceOf[bundleID]] then
+				return
+			end
 			recordFocus(bundleID, element)
 		end
 		scheduleTile()
@@ -487,7 +657,11 @@ AppWatcher = hs.application.watcher
 			return
 		end
 		local bundleID = app:bundleID()
-		if not workspaceOf[bundleID] then
+		local workspace = workspaceOf[bundleID]
+		if not workspace then
+			return
+		end
+		if restacking[workspace] and (event == hs.application.watcher.activated or event == hs.application.watcher.deactivated) then
 			return
 		end
 		if event == hs.application.watcher.launched then
