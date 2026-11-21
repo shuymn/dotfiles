@@ -5,8 +5,10 @@ Codex はレビュー専用で、実装はさせない。オーナーは Codex �
 ## 実行
 
 - 編集しないことを依頼文に書く。環境が選ばせるなら、Codex `gpt-6.2-sol` を reviewer として動かし、労力は費用ではなく成果を基準に、下の「いつ」の区分と問いの難しさで明示する。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
-- codex-plugin-cc では `codex:rescue` を `--read-only --prompt-file <file>` で使い、依頼文はファイルに書き、r2 以降は `--thread <前のラウンドの id>` で続ける（モデルと労力は Codex の設定に従う）。
-- 依頼文に、一時ファイルを `find <dir> -delete` で消すと書く（Codex は権限によらず `rm -f` で承認を待つ）。`<dir>` は reviewer に新しく作らせる専用のディレクトリにし、依頼文・入力資料・他の作業の置き場と同じ親の下に置かず、それ以外は消さない・動かさないと書く（入力資料ごと消える）。
+- codex-plugin-cc では、依頼文をファイルに書き、Bash で `codex-run --prompt-file <絶対パス> --cwd <worktree>` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの id>` を足して続ける（モデルと労力は Codex の設定に従う）。結果は stdout の `result:` が指すファイルから読む（stdout は短いので、ファイルへ流さない）。走らせるたびに `run:` の id と、依頼が編集を許したかを控える。プラグインの更新より前に始まったセッションでは `codex-run` が PATH に無いので、`~/.claude/plugins/cache/shuymn-codex/codex/<版>/bin/codex-run` を絶対パスで呼ぶ。
+- 既定の sandbox は workspace-write で、reviewer が probe や変異テストを走らせられる。それらを走らせない資料のレビューは `--read-only` を付ける。変異テストや probe を頼む依頼文には、終える前に木を元に戻すことを書く。
+- 書き込める実行の後は `changes:` の行を読む。編集を禁じたラウンドで空でない報告は、他の何かが木に触れる前に調べる指摘として扱う。何をどう戻すかは自分で決める（報告にあるのはパスと baseline の tree id だけ）。
+- probe を走らせる依頼文には、一時ファイルを `$TMPDIR` の下に置き、使った絶対パスを出力するよう書く（runner が実行の後に消す）。そのパスを stdout の `scratch:` と照らし、食い違うか `scratch left:` が出たら自分で片付ける（Codex のプロセスが残っているかもしれないので、消えたのを確かめてから）。食い違いが続くなら、reviewer に専用のディレクトリを作らせて `find <dir> -delete` で消させる書き方に戻す（Codex は権限によらず `rm -f` で承認を待つ）。
 
 ## いつ
 
