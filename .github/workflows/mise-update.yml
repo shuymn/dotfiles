@@ -99,8 +99,10 @@ jobs:
               # lockfile. A run that stopped after the commit left no PR, so
               # this one opens it.
               head=$(gh api "repos/$repo/git/ref/heads/$BRANCH" --jq .object.sha)
-              pr=$(gh api "repos/$repo/commits/$head/pulls" \
-                --jq "map(select(.head.ref == \"$BRANCH\" and .head.sha == \"$head\"))[0] // empty")
+              # List by head branch: commits/{sha}/pulls omits closed unmerged
+              # PRs for commits outside the default branch.
+              pr=$(gh api "repos/$repo/pulls?state=all&head=${repo%%/*}:$BRANCH&base=$BASE_BRANCH&per_page=100" \
+                --jq "map(select(.head.sha == \"$head\"))[0] // empty")
               if [ -n "$pr" ] && [ "$(printf '%s' "$pr" | jq -r .state)" = closed ]; then
                 echo "$BRANCH proposes this lockfile; its PR was closed"
                 exit 0
