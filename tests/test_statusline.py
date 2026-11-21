@@ -82,8 +82,8 @@ class Cycle(unittest.TestCase):
     def test_stale_after_36_hours(self):
         self.last({"stage": "cycle", "status": "pass", "results": [result("observe")]}, age_hours=35)
         self.assertIsNone(self.cycle())
-        self.last({"stage": "cycle", "status": "pass", "results": [result("observe")]}, age_hours=49)
-        self.assertEqual(self.cycle(), "cycle stale 2d")
+        self.last({"stage": "cycle", "status": "pass", "results": [result("observe")]}, age_hours=37)
+        self.assertEqual(self.cycle(), "cycle stale 1d")
         self.last({"stage": "cycle", "status": "warn", "results": [result("observe", 1)]}, age_hours=73)
         self.assertEqual(self.cycle(), "cycle warn 1 stale 3d")
 
