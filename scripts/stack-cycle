@@ -1,0 +1,43 @@
+#!/bin/sh
+# Run observe, then improve, from the dotfiles checkout; keep the last valid result for the statusline.
+set -u
+out=$HOME/.local/state/stack/cycle
+latest=$HOME/.local/state/stack/observe/latest.json
+obs="" imp="" all=""
+fail() {
+  printf 'stack-cycle: %s\n' "$1" >&2
+  rm -f ${obs:+"$obs"} ${imp:+"$imp"} ${all:+"$all"}
+  if e=$(mktemp "$out/.error.XXXXXX"); then
+    { date -u +%Y-%m-%dT%H:%M:%SZ && printf '%s\n' "$1"; } >"$e" && mv -f "$e" "$out/last-error" || rm -f "$e"
+  fi
+  exit 2
+}
+# valid NAME FILE CODE: exit 0 and exactly one cycle object with one self-answered result for NAME
+valid() {
+  [ "$3" -eq 0 ] && jq -e -s --arg n "$1" 'length == 1 and (.[0] | .stage == "cycle"
+      and (.status | IN("pass", "warn")) and (.results | type == "array" and length == 1)
+      and (.results[0] | .name == $n and .error == "" and (.status | IN("pass", "warn"))
+           and (.findings | type == "array")))' "$2" >/dev/null 2>&1
+}
+mkdir -p "$out" || { printf 'stack-cycle: cannot create %s\n' "$out" >&2; exit 2; }
+src=$(chezmoi source-path) || fail "chezmoi source-path failed"
+[ -n "$src" ] || fail "chezmoi source-path printed nothing"
+root=$(dirname "$src") && cd "$root" || fail "cannot enter the dotfiles checkout"
+start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+obs=$(mktemp "$out/.observe.XXXXXX") || fail "mktemp failed"
+stack run cycle --ext observe >"$obs"; code=$?
+valid observe "$obs" "$code" || fail "observe: exit $code without a valid result"
+jq -e '[.results[].findings[]? | objects | select(.kind? == "latest-not-written")] | length == 0' "$obs" \
+  >/dev/null || fail "observe could not write latest.json"
+jq -e --arg s "$start" '.version == 1 and (.window.until | fromdateiso8601) >= ($s | fromdateiso8601)' \
+  "$latest" >/dev/null 2>&1 || fail "observe did not write a fresh latest.json"
+imp=$(mktemp "$out/.improve.XXXXXX") || fail "mktemp failed"
+stack run cycle --ext improve >"$imp"; code=$?
+valid improve "$imp" "$code" || fail "improve: exit $code without a valid result"
+all=$(mktemp "$out/.last.XXXXXX") || fail "mktemp failed"
+jq -s '{stage: "cycle", status: (if any(.[]; .status == "warn") then "warn" else "pass" end),
+        results: [.[].results[]], skipped: []}' "$obs" "$imp" >"$all" || fail "cannot merge the results"
+mv -f "$all" "$out/last.json" || fail "cannot replace last.json"
+rm -f "$obs" "$imp"
+rm -f "$out/last-error" || fail "cannot remove last-error"
+exit 0
