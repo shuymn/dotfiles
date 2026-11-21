@@ -28,7 +28,7 @@ description: Orchestration handed over by the owner; also design decisions, debu
 
 | 作業 | reference |
 |---|---|
-| 注意の予算、キット（compaction の後の本質の保持） | [attention.md](references/attention.md) |
+| 注意の項目、キット（compaction の後の本質の保持） | [attention.md](references/attention.md) |
 | 複数 PR にわたる開発、実装エージェントへの委任 | [orchestration.md](references/orchestration.md) |
 | 実装エージェントへの指示書 | [subagent-brief.md](references/subagent-brief.md) |
 | Codex レビュー（計画・コード・資料） | [codex-review.md](references/codex-review.md) |
@@ -55,4 +55,4 @@ description: Orchestration handed over by the owner; also design decisions, debu
 
 ## 手法を直すとき
 
-オーナーが手法を訂正したとき、または振り返りが規則を決めたときは、このディレクトリ（`~/.claude/skills/hiden/`）と同じ `skills/` の派生の skill（`toolchain`、`public-text`）の該当ファイルを、承認を待たずに Edit で直し、最終報告で変更を挙げる。足す規則は先に [attention.md](references/attention.md) の注意の予算に通す。Why は、読み手が規則の境界（当てはまらない場面、別の手を選ばない理由）を判断する仕組みを伝えるときだけ書く。経緯（誰が訂正した、どこで何が起きた）は書かない。読み直してから自分の行だけを現時点の結論に直し、一時的なものには撤去の条件を付ける。1 つのリポジトリにしか当てはまらないことは、そのリポジトリの docs、memory、`.claude/settings.json` に置き、global に置かない。これらは公開リポジトリから配られるので、`public-text` スキルに従う。
+オーナーが手法を訂正したとき、または振り返りが規則を決めたときは、このディレクトリ（`~/.claude/skills/hiden/`）と同じ `skills/` の派生の skill（`toolchain`、`public-text`）の該当ファイルを、承認を待たずに Edit で直し、最終報告で変更を挙げる。Why は、読み手が規則の境界（当てはまらない場面、別の手を選ばない理由）を判断する仕組みを伝えるときだけ書く。経緯（誰が訂正した、どこで何が起きた）は書かない。読み直してから自分の行だけを現時点の結論に直し、一時的なものには撤去の条件を付ける。1 つのリポジトリにしか当てはまらないことは、そのリポジトリの docs、memory、`.claude/settings.json` に置き、global に置かない。これらは公開リポジトリから配られるので、`public-text` スキルに従う。
