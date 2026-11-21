@@ -1,0 +1,4 @@
+# stack pr merge checks --subject/--body with these outbound extensions and refuses the merge when one blocks or
+# cannot answer (shuymn/stack docs/design/core-stages.md §4.2).
+[merge]
+message_checks = ["public"]

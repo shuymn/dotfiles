@@ -140,6 +140,18 @@ exec chezmoi execute-template --with-stdin '
         ]
       },
       {
+        "matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "stack-guard",
+            "args": ["hook", "claude", "pre-tool-use"],
+            "timeout": 5,
+            "onFailure": "continue"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

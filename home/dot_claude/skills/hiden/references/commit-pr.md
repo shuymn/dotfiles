@@ -4,7 +4,7 @@
 
 1. **`commit`** スキルに言語のフラグ（`--english` か `--japanese`）を付ける。新しいブランチが要るときは `--branch` も付ける。
    - 整形は、リポジトリのスクリプトやフックが掛ける道具と範囲だけで行い、コミットの前に差分に自分の変えていない塊がないか確かめる。
-2. **公開の検査:** 公開リポジトリでは、各 push と各 `gh pr create`/`gh pr edit`（`create-pr --update` や CI の測定値の追記を含む）の直前に、送る題と本文の全文をファイルに書いて `stack check public <PR の base>..<送る head> --title-file <題> --body-file <本文> --branch <ブランチ>` を通し、通したファイルをそのまま送る。base は PR の宛先（fork なら upstream）の実際の base にする。`--fill` 系でコミットの文を写すときも同じ範囲で通す。内容を変えたら通し直す。
+2. **公開の検査:** 公開リポジトリでは、各 push と各 `gh pr create`/`gh pr edit`（`create-pr --update` や CI の測定値の追記を含む）の直前に、送る題と本文の全文をファイルに書いて `stack-public check <PR の base>..<送る head> --title-file <題> --body-file <本文> --branch <ブランチ>` を通し、通したファイルをそのまま送る。`stack-public` が起動しないとき（見つからない、実行できない）も、ヒットと同じく push と PR の編集を止める。base は PR の宛先（fork なら upstream）の実際の base にする。`--fill` 系でコミットの文を写すときも同じ範囲で通す。内容を変えたら通し直す。
 3. **`create-pr`** スキルに同じ言語のフラグを付け（base が既定でなければ `--base=<base>` も）、draft で作る。
 4. **Codex レビュー:** PR の差分（PR が無ければ base との差分）に行う（[codex-review.md](codex-review.md)）。
 5. **`simplify`:** コードを変える PR では、最後の Codex ラウンドの後に `origin/<base>...HEAD` に対して毎回行う。省けるのは文書・設定・テストだけか数行の変更で、省いたら理由を報告する。その後、本文を `create-pr --update` で直し `gh pr ready` にする。
