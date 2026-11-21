@@ -1,0 +1,103 @@
+from pathlib import Path
+import os
+import stat
+import subprocess
+import sys
+import tempfile
+import unittest
+
+
+REPO = Path(__file__).resolve().parents[1]
+SCRIPT = REPO / "scripts/stack-private-terms"
+# The last main commit whose generator read host.toml through scripts/kaizen/public-check.
+LEGACY = "e53e5351c84dd8aaf93dca88d04528edf84d0904"
+OWNER = "octo-owner"
+HOME_DIR = "/" + "Users/" + OWNER  # split so the committed line is not a local path itself
+HOST_TOML = (
+    'system = "aarch64-darwin"\n'  # generic: in nix/host.default.toml
+    f'username = "{OWNER}"\n'  # the owner in origin's URL
+    f'homeDirectory = "{HOME_DIR}"\n'
+    'hostName = "example-host"\n'
+    'computerName = "Example Mac"\n'
+    'role = "personal"\n'  # a role name in nix/roles.toml
+    'blank = "  "\n'
+    'count = 3\n'
+    '[displays]\nmain = "Example Display"\n'  # a table, not a string value
+)
+HAND_KEPT = "# a comment\n  project-codename  \n\nexample-client\n"
+EXPECTED = {HOME_DIR, "example-host", "Example Mac", "project-codename", "example-client",
+            *(f".t3/{name}/" for name in ("scratch", "worktrees", "userdata"))}  # built so no line is a local path
+
+
+def git(cwd, *args, env=None):
+    return subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.com",
+                           "-c", "commit.gpgsign=false", *args], cwd=cwd, env=env, check=True,
+                          capture_output=True, text=True).stdout
+
+
+class StackPrivateTermsTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="stack-private-terms-test-")
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(os.path.realpath(tmp.name))
+
+    def checkout(self, name, scripts):
+        """A repository holding the fixture host.toml, the generic nix files at HEAD and the given scripts."""
+        root = self.tmp / name
+        (root / "nix").mkdir(parents=True)
+        (root / "nix/host.default.toml").write_text(
+            'system = "aarch64-darwin"\nusername = "user"\nhostName = "localhost"\ncomputerName = "Mac"\n'
+            'role = "minimal"\n')
+        (root / "nix/roles.toml").write_text('[minimal]\ndarwin = []\n\n[personal]\ndarwin = ["dev"]\n')
+        for rel, text in scripts.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(text)
+        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(self.tmp), "GIT_CONFIG_NOSYSTEM": "1"}
+        git(root, "init", "-q", env=env)
+        git(root, "remote", "add", "origin", f"https://github.com/{OWNER}/dotfiles.git", env=env)
+        git(root, "add", ".", env=env)
+        git(root, "commit", "-q", "-m", "fixture", env=env)
+        (root / "host.toml").write_text(HOST_TOML)
+        return root
+
+    def run_generator(self, root, terms_file):
+        """Run root's generator with a fresh HOME holding the hand-kept list at terms_file; the written file."""
+        home = self.tmp / f"home-{root.name}"
+        (home / terms_file).parent.mkdir(parents=True)
+        (home / terms_file).write_text(HAND_KEPT)
+        p = subprocess.run([sys.executable, str(root / "scripts/stack-private-terms")], capture_output=True, text=True,
+                           timeout=60, env={"PATH": os.environ.get("PATH", ""), "HOME": str(home),
+                                            "GIT_CONFIG_NOSYSTEM": "1"})
+        self.assertEqual(p.returncode, 0, p.stderr)
+        return home / ".config/stack/private-terms"
+
+    @staticmethod
+    def terms(path):
+        return {t for line in path.read_text().splitlines() if (t := line.strip()) and not t.startswith("#")}
+
+    def generate(self):
+        """The current generator, in a checkout without scripts/kaizen/public-check."""
+        root = self.checkout("current", {"scripts/stack-private-terms": SCRIPT.read_text()})
+        return self.run_generator(root, ".config/stack/private-terms.local")
+
+    def test_writes_private_values_hand_kept_terms_and_t3_fragments(self):
+        out = self.generate()
+        self.assertEqual(self.terms(out), EXPECTED)
+        self.assertEqual(stat.S_IMODE(out.stat().st_mode), 0o600)
+        self.assertTrue(out.read_text().startswith("# "))
+
+    def test_term_set_equals_the_legacy_generator(self):
+        legacy = {}
+        for rel in ("scripts/stack-private-terms", "scripts/kaizen/public-check"):
+            p = subprocess.run(["git", "-C", str(REPO), "show", f"{LEGACY}:{rel}"], capture_output=True, text=True)
+            if p.returncode != 0:
+                self.skipTest("needs the legacy commit (CI checks out one commit)")
+            legacy[rel] = p.stdout
+        old = self.run_generator(self.checkout("legacy", legacy), ".claude/kaizen/private-terms")
+        new = self.generate()
+        self.assertEqual(self.terms(new), self.terms(old))
+        self.assertEqual(stat.S_IMODE(new.stat().st_mode), stat.S_IMODE(old.stat().st_mode))
+
+
+if __name__ == "__main__":
+    unittest.main()

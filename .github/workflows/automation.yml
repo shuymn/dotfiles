@@ -12,6 +12,7 @@ on:
       - home/dot_claude/modify_private_settings.json
       - scripts/kaizen/**
       - scripts/stack-cycle
+      - scripts/stack-private-terms
       - home/dot_claude/executable_statusline.sh.tmpl
   pull_request:
     branches:
@@ -24,6 +25,7 @@ on:
       - home/dot_claude/modify_private_settings.json
       - scripts/kaizen/**
       - scripts/stack-cycle
+      - scripts/stack-private-terms
       - home/dot_claude/executable_statusline.sh.tmpl
 
 jobs:
