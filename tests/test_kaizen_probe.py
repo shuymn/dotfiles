@@ -256,8 +256,8 @@ class BuildTest(TempCase):
         """A copy of the checkout without scripts/kaizen/public-check still builds and keeps out the generated terms."""
         term = "zephyrquill"
         copy = self.tmp / "checkout"
-        shutil.copytree(REPO / "scripts", copy / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
-        (copy / "scripts/kaizen/public-check").unlink()
+        shutil.copytree(REPO / "scripts", copy / "scripts", ignore=shutil.ignore_patterns("__pycache__", "public-check"))
+        self.assertFalse((copy / "scripts/kaizen/public-check").exists())
         for rel in ("home/dot_claude/agents/opus-worker.md", "nix/host.default.toml", "nix/roles.toml"):
             (copy / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(REPO / rel, copy / rel)
