@@ -29,8 +29,9 @@ HOST_TOML = (
     'count = 3\n'
     '[displays]\nmain = "Example Display"\n'  # a table, not a string value
 )
+WORKTREE_HOST_TOML = 'hostName = "worktree-host"\n'  # the linked worktree's own host.toml
 HAND_KEPT = "# a comment\n  project-codename  \n\nexample-client\n"
-EXPECTED = {HOME_DIR, "example-host", "Example Mac", "project-codename", "example-client",
+EXPECTED = {HOME_DIR, "example-host", "Example Mac", "worktree-host", "project-codename", "example-client",
             *(f".t3/{name}/" for name in ("scratch", "worktrees", "userdata"))}  # built so no line is a local path
 
 
@@ -47,7 +48,8 @@ class StackPrivateTermsTest(unittest.TestCase):
         self.tmp = Path(os.path.realpath(tmp.name))
 
     def checkout(self, name, scripts):
-        """A repository holding the fixture host.toml, the generic nix files at HEAD and the given scripts."""
+        """A linked worktree of a repository holding the generic nix files and the given scripts at HEAD; the main
+        checkout and the worktree each have a host.toml with a value the other lacks."""
         root = self.tmp / name
         (root / "nix").mkdir(parents=True)
         (root / "nix/host.default.toml").write_text(
@@ -63,7 +65,10 @@ class StackPrivateTermsTest(unittest.TestCase):
         git(root, "add", ".", env=env)
         git(root, "commit", "-q", "-m", "fixture", env=env)
         (root / "host.toml").write_text(HOST_TOML)
-        return root
+        worktree = self.tmp / f"{name}-worktree"
+        git(root, "worktree", "add", "-q", str(worktree), env=env)
+        (worktree / "host.toml").write_text(WORKTREE_HOST_TOML)
+        return worktree
 
     def run_generator(self, root, terms_file):
         """Run root's generator with a fresh HOME holding the hand-kept list at terms_file; the written file."""
