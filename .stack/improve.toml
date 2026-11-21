@@ -1,2 +1,3 @@
-# What stack-improve may edit in this repository (read from the merged default branch); ** = any directories.
-paths = ["home/dot_claude/skills/**", "home/dot_claude/agents/**"]
+# What stack-improve may edit in this repository (read from the merged default branch): the Markdown of skills and
+# agents, never chezmoi attribute files such as symlink_*.tmpl; ** = any directories.
+paths = ["home/dot_claude/skills/**/*.md", "home/dot_claude/agents/**/*.md"]
