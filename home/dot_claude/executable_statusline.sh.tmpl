@@ -148,21 +148,31 @@ comp_pending() {
   fi
 }
 
-# Show the kaizen cycle (scripts/kaizen/cycle.py publishes current/status.json) only when it needs the owner: failed
-# checks, decisions, or no completed run for over 36 h
-comp_kaizen() {
-  local status=${KAIZEN_HOME:-$HOME/.claude/kaizen}/current/status.json
-  [ -e "$status" ] || return 0
-  local fail decisions last parts=()
-  read -r fail decisions last < <(jq -r '[.fail // 0, .decisions // 0, .last_completed_epoch // 0] | @tsv' "$status" 2>/dev/null) ||
-    { PARTS+="${SEP}${RED}kaizen ?${R}"; return 0; }
-  [ "$fail" -gt 0 ] && parts+=("✗${fail}")
-  [ "$decisions" -gt 0 ] && parts+=("判断 ${decisions}")
-  local age=$(($(date +%s) - last))
-  [ "$age" -gt $((36 * 3600)) ] && parts+=("stale $((age / 86400))d")
+# Show the stack cycle (scripts/stack-cycle keeps last.json and last-error) only when it needs the owner: a
+# non-pass result, a failed latest run, or no valid run for over 36 h
+comp_cycle() {
+  local dir=$HOME/.local/state/stack/cycle parts=()
+  if [ ! -e "$dir/last.json" ]; then
+    if [ -e "$dir/last-error" ]; then
+      PARTS+="${SEP}${RED}cycle ✗${R}"
+    elif [ -e "$HOME/Library/LaunchAgents/org.nix-community.home.stack-cycle.plist" ]; then
+      PARTS+="${SEP}${RED}cycle never${R}"
+    fi
+    return 0
+  fi
+  local status count mtime age
+  IFS=$'\t' read -r status count < <(jq -r 'select((.status | type) == "string" and .status != ""
+    and (.results | type) == "array") | [.status, ([.results[] | .findings? | arrays | length] | add // 0)] | @tsv' \
+    "$dir/last.json" 2>/dev/null) || { PARTS+="${SEP}${RED}cycle ?${R}"; return 0; }
+  [ "$status" = pass ] || parts+=("$status $count")
+  [ -e "$dir/last-error" ] && parts+=("✗")
+  mtime=$(date -r "$dir/last.json" +%s 2>/dev/null) || mtime=""
+  if [ -n "$mtime" ]; then
+    age=$(($(date +%s) - mtime))
+    [ "$age" -gt $((36 * 3600)) ] && parts+=("stale $((age / 86400))d")
+  fi
   [ ${#parts[@]} -gt 0 ] || return 0
-  local IFS="・"
-  PARTS+="${SEP}${RED}kaizen ${parts[*]}${R}"
+  PARTS+="${SEP}${RED}cycle ${parts[*]}${R}"
 }
 
 # ── Main ─────────────────────────────────────────────────────────
@@ -172,7 +182,7 @@ PARTS="$(comp_location)"
 # Worktrees share the main checkout's memory, so resolve the root from the common git dir
 common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
 comp_pending "${common:+${common%/.git}}"
-comp_kaizen
+comp_cycle
 
 append_dot "ctx" ".context_window.used_percentage" 80 30
 append_rate "5h" ".rate_limits.five_hour"
