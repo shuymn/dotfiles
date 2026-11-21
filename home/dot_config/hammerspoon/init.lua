@@ -1,0 +1,522 @@
+-- Lays out the windows of the apps in APPS that are assigned to a FlashSpace workspace
+-- (read from ~/.config/flashspace/profiles.json); any other app is never watched or
+-- queried. Within each showing workspace, windows are laid out along the display's longer
+-- side: multiple windows of a single app default to "accordion" (offset strips with the
+-- focused window on top), while mixed apps default to "tiles" (even split).
+
+-- `hs` CLI access (Hammerspoon.app/Contents/Frameworks/hs/hs), e.g. to reload.
+require("hs.ipc")
+
+hs.window.animationDuration = 0
+
+local GAP = 10
+local ACCORDION_PADDING = 30
+local SETTLE_SECONDS = 0.1
+local RETRY_SECONDS = 0.5
+local FLASHSPACE = "/Applications/FlashSpace.app/Contents/Resources/flashspace"
+local FLASHSPACE_DIR = os.getenv("HOME") .. "/.config/flashspace"
+local FLASHSPACE_PROFILES = FLASHSPACE_DIR .. "/profiles.json"
+local FLASHSPACE_PLIST = os.getenv("HOME") .. "/Library/Preferences/pl.wojciechkulik.FlashSpace.plist"
+
+-- Opt-in: bundle IDs to lay out, in layout order within a workspace. FlashSpace
+-- auto-assigns every app that gets focus, so being assigned alone does not opt an app in.
+local APPS = {
+	"com.google.Chrome",
+	"com.mitchellh.ghostty",
+	"com.spotify.client",
+	"com.hnc.Discord",
+	"com.openai.codex",
+	"com.tinyspeck.slackmacgap",
+}
+
+-- Optional manual layout override per workspace ("tiles" or "accordion"); cleared on reload.
+-- When unset, a workspace with 1 distinct app uses "accordion", and 2+ apps use "tiles".
+local layoutOverrides = {}
+
+local function round(n)
+	return math.floor(n + 0.5)
+end
+
+local function frameMatches(a, b)
+	return math.abs(a.x - b.x) <= 2 and math.abs(a.y - b.y) <= 2 and math.abs(a.w - b.w) <= 2 and math.abs(a.h - b.h) <= 2
+end
+
+local function lines(text)
+	return text:gmatch("[^\n]+")
+end
+
+local function runningApps(bundleID)
+	return hs.application.applicationsForBundleID(bundleID)
+end
+
+local scheduleTile -- defined once the layout exists
+local syncWatchers -- defined once watchers exist
+
+-- FlashSpace state ------------------------------------------------------------------
+-- Assignments come directly from profiles.json (single source of truth). Active
+-- workspaces per display are queried asynchronously via the CLI.
+
+local function runAsync(command, args, done)
+	local task = hs.task.new(command, function(code, output)
+		done(code, output or "")
+	end, args)
+	if not (task and task:start()) then
+		done(-1, "")
+	end
+end
+
+local orderedApps = {} -- APPS entries currently assigned, in APPS order
+local workspaceOf = {} -- bundle ID -> workspace name, for those entries only
+local displayOf = {} -- workspace name -> display name
+
+local function selectProfile(profiles)
+	local prefs = hs.plist.read(FLASHSPACE_PLIST)
+	local selectedID = prefs and prefs.selectedProfileId
+	if selectedID then
+		for _, profile in ipairs(profiles) do
+			if type(profile) == "table" and profile.id == selectedID then
+				return profile
+			end
+		end
+	end
+	return profiles[1]
+end
+
+local loadAssignments
+local retryAssignments = hs.timer.delayed.new(RETRY_SECONDS, function()
+	loadAssignments()
+end)
+
+loadAssignments = function()
+	local data = hs.json.read(FLASHSPACE_PROFILES)
+	local profiles = type(data) == "table" and data.profiles
+	if type(profiles) ~= "table" or #profiles == 0 then
+		retryAssignments:start()
+		return
+	end
+	local profile = selectProfile(profiles)
+	if type(profile) ~= "table" or type(profile.workspaces) ~= "table" then
+		retryAssignments:start()
+		return
+	end
+	retryAssignments:stop()
+
+	local assigned, displays = {}, {}
+	for _, ws in ipairs(profile.workspaces) do
+		if type(ws) == "table" and type(ws.name) == "string" then
+			displays[ws.name] = type(ws.display) == "string" and ws.display or ""
+			if type(ws.apps) == "table" then
+				for _, app in ipairs(ws.apps) do
+					local bundleID = type(app) == "table" and app.bundleIdentifier
+					if type(bundleID) == "string" then
+						assigned[bundleID] = ws.name
+					end
+				end
+			end
+		end
+	end
+	-- Other apps' workspaces are never kept, so nothing below can reach them.
+	local apps, workspaces = {}, {}
+	for _, bundleID in ipairs(APPS) do
+		if assigned[bundleID] then
+			workspaces[bundleID] = assigned[bundleID]
+			table.insert(apps, bundleID)
+		end
+	end
+
+	orderedApps, workspaceOf, displayOf = apps, workspaces, displays
+	syncWatchers()
+	scheduleTile()
+end
+
+local function connectedScreen(name)
+	for _, screen in ipairs(hs.screen.allScreens()) do
+		if screen:name() == name then
+			return screen
+		end
+	end
+end
+
+-- A display FlashSpace names but that is not connected means the focused one, as in
+-- FlashSpace itself.
+local function screenNamed(name)
+	return connectedScreen(name) or hs.screen.mainScreen()
+end
+
+-- Frames ------------------------------------------------------------------------------
+
+-- Cell `index` of `count` along the display's longer side, GAP around and between.
+local function cellFrame(screen, index, count)
+	local area = screen:frame()
+	local landscape = area.w >= area.h
+	local origin = landscape and area.x or area.y
+	local length = (landscape and area.w or area.h) - 2 * GAP
+	local cell = (length - GAP * (count - 1)) / count
+	local first = round(origin + GAP + (cell + GAP) * (index - 1))
+	local last = round(origin + GAP + (cell + GAP) * (index - 1) + cell)
+	if landscape then
+		return hs.geometry.rect(first, round(area.y + GAP), last - first, round(area.h - 2 * GAP))
+	end
+	return hs.geometry.rect(round(area.x + GAP), first, round(area.w - 2 * GAP), last - first)
+end
+
+-- Accordion window `index` of `count`: all the same size, each offset one padding
+-- step, so every window's edge stays visible as a strip once stacked (raiseAccordion).
+local function accordionFrame(screen, index, count)
+	local area = screen:frame()
+	local x, y = area.x + GAP, area.y + GAP
+	local w, h = area.w - 2 * GAP, area.h - 2 * GAP
+	local shift = ACCORDION_PADDING * (index - 1)
+	local shrink = ACCORDION_PADDING * (count - 1)
+	if w >= h then
+		return hs.geometry.rect(round(x + shift), round(y), round(w - shrink), round(h))
+	end
+	return hs.geometry.rect(round(x), round(y + shift), round(w), round(h - shrink))
+end
+
+-- Layout ------------------------------------------------------------------------------
+
+local lastFocused = {} -- workspace -> window id
+local raisedOrder = {} -- workspace -> window ids and focus last stacked
+local applied = {} -- window id -> { target, result } of the last setFrame
+local windowWatchers = {} -- window id -> { watcher, pid }
+
+-- Apps may clamp a frame (minimum sizes); do not resend a frame they already declined.
+-- An explicit re-tile clears `applied` to retry.
+local function place(win, frame)
+	local current = win:frame()
+	if frameMatches(current, frame) then
+		return
+	end
+	local id = win:id()
+	local last = id and id ~= 0 and applied[id]
+	if last and frameMatches(last.target, frame) and frameMatches(last.result, current) then
+		return
+	end
+	win:setFrame(frame)
+	if id and id ~= 0 then
+		applied[id] = { target = frame, result = win:frame() }
+	end
+end
+
+-- Stack the windows so the farther a window is from the focused one, the lower it sits;
+-- then every strip stays uncovered. Skipped when nothing changed.
+local function raiseAccordion(workspace, windows, focus, refocus)
+	local ids = {}
+	for _, win in ipairs(windows) do
+		table.insert(ids, win:id())
+	end
+	local key = table.concat(ids, ",") .. "@" .. focus
+	if raisedOrder[workspace] == key then
+		return
+	end
+	raisedOrder[workspace] = key
+	local order = {}
+	for index = 1, #windows do
+		table.insert(order, index)
+	end
+	table.sort(order, function(a, b)
+		return math.abs(a - focus) > math.abs(b - focus)
+	end)
+	for _, index in ipairs(order) do
+		windows[index]:raise()
+	end
+	-- Raising can move keyboard focus inside the frontmost app; give it back.
+	if refocus then
+		windows[focus]:focus()
+	end
+end
+
+-- Window-level events (close, minimize, unminimize) are watched per window of a
+-- managed app: app watchers report creation with elements that are not always windows.
+local function watchWindow(win, pid)
+	local id = win:id()
+	if not id or id == 0 or windowWatchers[id] then
+		return
+	end
+	local watcher = win:newWatcher(function(_, event)
+		if event == hs.uielement.watcher.elementDestroyed then
+			windowWatchers[id].watcher:stop()
+			windowWatchers[id] = nil
+			applied[id] = nil
+		end
+		scheduleTile()
+	end)
+	watcher:start({
+		hs.uielement.watcher.elementDestroyed,
+		hs.uielement.watcher.windowMinimized,
+		hs.uielement.watcher.windowUnminimized,
+	})
+	windowWatchers[id] = { watcher = watcher, pid = pid }
+end
+
+local function isAccordionLayout(workspace, windows, bundleOf)
+	local override = layoutOverrides[workspace]
+	if override then
+		return override == "accordion"
+	end
+	local seen, distinct = {}, 0
+	for _, win in ipairs(windows) do
+		local bundleID = bundleOf[win:id()]
+		if bundleID and not seen[bundleID] then
+			seen[bundleID] = true
+			distinct = distinct + 1
+			if distinct > 1 then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- `showing`: workspace -> display name for the workspaces to lay out.
+local function layout(showing)
+	local frontmost = hs.application.frontmostApplication()
+	local frontmostID = frontmost and frontmost:bundleID()
+
+	local groups, pidOf, bundleOf = {}, {}, {}
+	for _, bundleID in ipairs(orderedApps) do
+		local workspace = workspaceOf[bundleID]
+		for _, app in ipairs(workspace and showing[workspace] and runningApps(bundleID) or {}) do
+			if not app:isHidden() then
+				groups[workspace] = groups[workspace] or {}
+				local windows = app:allWindows()
+				table.sort(windows, function(a, b)
+					return a:id() < b:id()
+				end)
+				for _, win in ipairs(windows) do
+					local id = win:id()
+					-- Windows without a usable id (0) cannot be told apart; leave them alone.
+					if id and id ~= 0 and win:isStandard() then
+						pidOf[id] = app:pid()
+						bundleOf[id] = bundleID
+						watchWindow(win, app:pid())
+						if not win:isMinimized() and not win:isFullScreen() then
+							table.insert(groups[workspace], win)
+						end
+					end
+				end
+			end
+		end
+	end
+
+	for workspace in pairs(raisedOrder) do
+		if not groups[workspace] then
+			raisedOrder[workspace] = nil
+		end
+	end
+
+	for workspace, windows in pairs(groups) do
+		local count = #windows
+		local screen = screenNamed(showing[workspace])
+		local accordion = isAccordionLayout(workspace, windows, bundleOf)
+		-- Focus events are the reliable record (an app's focused window can still name the
+		-- previous one right after it opens a new window), but when the workspace's app is
+		-- frontmost, only a recorded window of that app counts; otherwise use its focused
+		-- window. Never refocus a window that is not in the group.
+		local isFrontmost = workspaceOf[frontmostID] == workspace
+		local inGroup = {}
+		for _, win in ipairs(windows) do
+			inGroup[win:id()] = true
+		end
+		local focusID = lastFocused[workspace]
+		if not inGroup[focusID] or (isFrontmost and pidOf[focusID] ~= frontmost:pid()) then
+			local current = isFrontmost and frontmost:focusedWindow()
+			focusID = current and current:id()
+		end
+		local focus
+		for index, win in ipairs(windows) do
+			if win:id() == focusID then
+				focus = index
+			end
+			place(win, accordion and accordionFrame(screen, index, count) or cellFrame(screen, index, count))
+		end
+		if accordion and count > 1 then
+			raiseAccordion(workspace, windows, focus or 1, isFrontmost and focus ~= nil)
+		else
+			raisedOrder[workspace] = nil
+		end
+	end
+end
+
+-- A workspace is shown where FlashSpace reports it active; on a display where nothing
+-- has been activated yet, every workspace assigned there counts (nothing is hidden).
+local refreshing, rerun = false, false
+local function tileAll()
+	if refreshing then
+		rerun = true
+		return
+	end
+	refreshing = true
+	runAsync(FLASHSPACE, { "list-workspaces", "--active", "--with-display" }, function(code, output)
+		refreshing = false
+		-- Something changed while asking; this answer may already be stale.
+		if rerun then
+			rerun = false
+			tileAll()
+			return
+		end
+		if code ~= 0 then
+			return
+		end
+		-- Active workspaces whose display is unknown or gone (e.g. just unplugged) are
+		-- left alone rather than piled onto the focused display.
+		local showing, claimed, skipped = {}, {}, {}
+		for line in lines(output) do
+			local workspace, display = line:match("^([^,]+),([^,]*)")
+			if workspace and connectedScreen(display) then
+				showing[workspace] = display
+				claimed[display] = true
+			elseif workspace then
+				skipped[workspace] = true
+			end
+		end
+		-- With one display FlashSpace puts every workspace there, whatever display is saved.
+		local screens = hs.screen.allScreens()
+		local only = #screens == 1 and screens[1]:name()
+		for workspace, saved in pairs(displayOf) do
+			local display = only or saved
+			if not claimed[display] and not showing[workspace] and not skipped[workspace] and connectedScreen(display) then
+				showing[workspace] = display
+			end
+		end
+		local laidOut, err = pcall(layout, showing)
+		if not laidOut then
+			print("layout failed: " .. tostring(err))
+		end
+	end)
+end
+
+-- An app shown again reports its windows one event at a time; laying out each would
+-- show a partial set first and flicker, so lay out once the events settle.
+local pendingTile = hs.timer.delayed.new(SETTLE_SECONDS, tileAll)
+scheduleTile = function()
+	if refreshing then
+		rerun = true
+	end
+	pendingTile:start()
+end
+
+-- Watchers (FlashSpace-assigned apps only) --------------------------------------------
+
+local appWatchers = {} -- pid -> { watcher, bundleID }
+
+local function recordFocus(bundleID, win)
+	local workspace = workspaceOf[bundleID]
+	if workspace and win and win.id then
+		lastFocused[workspace] = win:id()
+	end
+end
+
+local function watchApp(app)
+	local bundleID, pid = app:bundleID(), app:pid()
+	if appWatchers[pid] then
+		return
+	end
+	local watcher = app:newWatcher(function(element, event)
+		if event == hs.uielement.watcher.focusedWindowChanged then
+			recordFocus(bundleID, element)
+		end
+		scheduleTile()
+	end)
+	watcher:start({ hs.uielement.watcher.windowCreated, hs.uielement.watcher.focusedWindowChanged })
+	appWatchers[pid] = { watcher = watcher, bundleID = bundleID }
+end
+
+local function forgetApp(pid)
+	if appWatchers[pid] then
+		appWatchers[pid].watcher:stop()
+		appWatchers[pid] = nil
+	end
+	for id, entry in pairs(windowWatchers) do
+		if entry.pid == pid then
+			entry.watcher:stop()
+			windowWatchers[id] = nil
+			applied[id] = nil
+		end
+	end
+end
+
+syncWatchers = function()
+	for pid, entry in pairs(appWatchers) do
+		if not workspaceOf[entry.bundleID] then
+			forgetApp(pid)
+		end
+	end
+	for _, bundleID in ipairs(orderedApps) do
+		for _, app in ipairs(runningApps(bundleID)) do
+			watchApp(app)
+		end
+	end
+end
+
+AppWatcher = hs.application.watcher
+	.new(function(_, event, app)
+		if not app then
+			return
+		end
+		-- A terminated app may no longer report its bundle ID; clean up by pid.
+		if event == hs.application.watcher.terminated then
+			if appWatchers[app:pid()] then
+				forgetApp(app:pid())
+				scheduleTile()
+			end
+			return
+		end
+		local bundleID = app:bundleID()
+		if not workspaceOf[bundleID] then
+			return
+		end
+		if event == hs.application.watcher.launched then
+			watchApp(app)
+		elseif event == hs.application.watcher.activated then
+			-- Switching between apps of one workspace does not change either app's own
+			-- focused window, so record it here.
+			recordFocus(bundleID, app:focusedWindow())
+		end
+		scheduleTile()
+	end)
+	:start()
+
+-- Watch the directory so atomic renames of profiles.json are never missed.
+ProfilesWatcher = hs.pathwatcher
+	.new(FLASHSPACE_DIR, function(files)
+		for _, path in ipairs(files) do
+			if path == FLASHSPACE_PROFILES then
+				loadAssignments()
+				return
+			end
+		end
+	end)
+	:start()
+
+-- Display changes can change the displays FlashSpace resolves; re-read, then lay out.
+ScreenWatcher = hs.screen.watcher
+	.new(function()
+		scheduleTile()
+		loadAssignments()
+	end)
+	:start()
+
+local function setLayout(name)
+	local frontmost = hs.application.frontmostApplication()
+	local workspace = frontmost and workspaceOf[frontmost:bundleID()]
+	if workspace then
+		layoutOverrides[workspace] = name
+		tileAll()
+	end
+end
+
+-- Explicit re-tile: re-read assignments and retry frames apps declined before.
+hs.hotkey.bind({ "alt", "shift" }, "r", function()
+	applied = {}
+	loadAssignments()
+end)
+hs.hotkey.bind({ "alt" }, "/", function()
+	setLayout("tiles")
+end)
+hs.hotkey.bind({ "alt" }, ",", function()
+	setLayout("accordion")
+end)
+
+loadAssignments()

@@ -1,0 +1,17 @@
+{
+  "displayMode": "static",
+  "changeWorkspaceOnAppAssign": true,
+  "skipEmptyWorkspacesOnSwitch": true,
+  "switchWorkspaceOnCursorScreen": true,
+  "autoAssignAppsToWorkspaces": true,
+  "loopWorkspaces": true,
+  "switchToPreviousWorkspace": "opt+a",
+  "switchToNextWorkspace": "opt+s",
+  "switchToRecentWorkspace": "opt+tab",
+  "floatingApps": [
+    { "name": "Finder", "bundleIdentifier": "com.apple.finder" },
+    { "name": "System Settings", "bundleIdentifier": "com.apple.systempreferences" },
+    { "name": "1Password", "bundleIdentifier": "com.1password.1password" },
+    { "name": "Nani", "bundleIdentifier": "jp.kiok.nani" }
+  ]
+}

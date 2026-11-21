@@ -22,7 +22,7 @@ make converge
 | --- | --- |
 | `minimal` | 共通設定のみ |
 | `personal-lite` | 開発環境と、軽めの個人用アプリ |
-| `personal` | `personal-lite` に、ウィンドウ管理（AeroSpace）、ローカル LLM、個人用アプリを加えたもの |
+| `personal` | `personal-lite` に、ウィンドウ管理（FlashSpace と Hammerspoon）、ローカル LLM、個人用アプリを加えたもの |
 | `work` | 開発環境、ウィンドウ管理、ローカル LLM、仕事用のアプリと CLI |
 
 各ロールの組み合わせは `nix/roles.toml` にある。

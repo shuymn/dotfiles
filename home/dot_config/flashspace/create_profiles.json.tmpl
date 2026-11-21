@@ -1,0 +1,40 @@
+{{- $apps := dict
+  "1" (list (list "Google Chrome" "com.google.Chrome"))
+  "2" (list (list "Ghostty" "com.mitchellh.ghostty"))
+  "6" (list (list "Spotify" "com.spotify.client") (list "Discord" "com.hnc.Discord"))
+  "8" (list (list "Codex" "com.openai.codex"))
+  "9" (list (list "Slack" "com.tinyspeck.slackmacgap")) }}
+{{- $ids := list
+  "0B5143A5-3309-4844-8913-FD7C821B575A"
+  "31B212F2-EE19-4EC7-A2DA-8583405EF29D"
+  "7D5667D1-CE92-49BA-9675-5774147EE290"
+  "0AC22588-47CB-46E6-A5CF-851E069691FC"
+  "E0B764C6-D407-49DA-90EA-4EFB4BE433EF"
+  "4CF59563-8E66-4BFB-BD30-942688FB640D"
+  "87BC830F-AB31-4870-ACB9-9F4E9E6FB420"
+  "76DDEEAC-D05C-41AC-A083-8DDF5BC2059F"
+  "E4242B49-B0EC-4A3E-9658-340233B3C8B4"
+  "B0E62229-B783-430A-8B45-12EA99EBC71B"
+}}
+{{- $workspaces := list }}
+{{- range $index, $id := $ids }}
+{{-   $name := add $index 1 | toString }}
+{{-   $key := mod (add $index 1) 10 | toString }}
+{{-   $display := $.displays.secondary }}
+{{-   if lt $index 5 }}
+{{-     $display = $.displays.main }}
+{{-   end }}
+{{-   $wsApps := list }}
+{{-   range (get $apps $name | default list) }}
+{{-     $wsApps = append $wsApps (dict "name" (index . 0) "bundleIdentifier" (index . 1)) }}
+{{-   end }}
+{{-   $workspaces = append $workspaces (dict
+        "id" $id
+        "name" $name
+        "display" $display
+        "shortcut" (printf "opt+%s" $key)
+        "assignAppShortcut" (printf "opt+shift+%s" $key)
+        "apps" $wsApps) }}
+{{- end }}
+{{- $doc := dict "profiles" (list (dict "id" "526947A7-8C57-4FED-85E5-5D6A9C920A7E" "name" "Default" "workspaces" $workspaces)) -}}
+{{ $doc | toPrettyJson }}

@@ -70,10 +70,6 @@
       wvous-tr-corner = 1;
     };
 
-    spaces = {
-      spans-displays = true;
-    };
-
     finder = {
       AppleShowAllFiles = true;
       FXDefaultSearchScope = "SCcf";

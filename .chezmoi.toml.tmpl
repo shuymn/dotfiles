@@ -3,7 +3,8 @@
 {{- if not (stat $hostFile) -}}
 {{-   $hostFile = joinPath .chezmoi.workingTree "nix" "host.default.toml" -}}
 {{- end -}}
-{{- $role := (include $hostFile | fromToml).role -}}
+{{- $host := include $hostFile | fromToml -}}
+{{- $role := $host.role -}}
 {{- $roles := include (joinPath .chezmoi.workingTree "nix" "roles.toml") | fromToml -}}
 {{- if not (hasKey $roles $role) -}}
 {{-   fail (printf "unknown role %q in %s" $role $hostFile) -}}
@@ -19,6 +20,11 @@ pager = "delta --side-by-side"
 
 [data]
 homeProfiles = {{ (index $roles $role).home | toJson }}
+
+# Optional [displays] in host.toml: screen names as macOS shows them (NSScreen.localizedName).
+[data.displays]
+main = {{ dig "displays" "main" "" $host | quote }}
+secondary = {{ dig "displays" "secondary" "" $host | quote }}
 
 [age]
 identity = "~/.config/age/key.txt"

@@ -6,3 +6,8 @@ homeDirectory = "/Users/user"
 hostName = "localhost"
 computerName = "Mac"
 role = "minimal"
+
+# Optional: screen names (NSScreen.localizedName) for the FlashSpace seed.
+# [displays]
+# main = "Built-in Display"
+# secondary = "External Display"
