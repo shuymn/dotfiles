@@ -128,7 +128,7 @@ exec chezmoi execute-template --with-stdin '
         "matcher": "Bash"
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
@@ -140,7 +140,7 @@ exec chezmoi execute-template --with-stdin '
         ]
       },
       {
-        "matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
+        "matcher": "Bash|PowerShell|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
         "hooks": [
           {
             "type": "command",

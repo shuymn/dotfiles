@@ -17,11 +17,11 @@ def managed_hooks():
 
 
 class SettingsTest(unittest.TestCase):
-    # The core hook denies only raw merges, which are Bash calls.
-    GUARD = {"matcher": "Bash",
+    # The core hook denies only raw merges, which are shell calls (Bash or PowerShell).
+    GUARD = {"matcher": "Bash|PowerShell",
              "hooks": [{"type": "command", "command": "stack", "args": ["hook", "claude", "pre-tool-use"],
                         "timeout": 5, "onFailure": "continue"}]}
-    GUARD_EXT = {"matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
+    GUARD_EXT = {"matcher": "Bash|PowerShell|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
                  "hooks": [{"type": "command", "command": "stack-guard", "args": ["hook", "claude", "pre-tool-use"],
                             "timeout": 5, "onFailure": "continue"}]}
     # Suffix regex so it also matches hosts that expose the tool under a prefixed name.
