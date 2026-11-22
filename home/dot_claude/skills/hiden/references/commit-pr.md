@@ -7,7 +7,7 @@
 2. **公開の検査:** 公開リポジトリでは、各 push と各 `gh pr create`/`gh pr edit`（`create-pr --update` や CI の測定値の追記を含む）の直前に、送る題と本文の全文をファイルに書いて `stack-public check <PR の base>..<送る head> --title-file <題> --body-file <本文> --branch <ブランチ>` を通し、通したファイルをそのまま送る。`stack-public` が起動しないとき（例: 見つからない、実行できない）も、ヒットと同じく push と PR の作成・編集を止める。push は `stack-public check <base>..HEAD --branch <ブランチ> && git push …` の 1 コマンドで書き、検査を別の手順に分けない（PR 作成前の途中 push や CI 実行の push で検査が抜けるのを防ぐ）。base は PR の宛先（fork なら upstream）の実際の base にする。`--fill` 系でコミットの文を写すときも同じ範囲で通す。内容を変えたら通し直す。
    - 許可を得て内容を変えないつもりで履歴を書き換えたとき（例: fixup の autosquash）は、push の前に書き換え前の head と `git diff` でツリーが同じかを確かめる。
 3. **`create-pr`** スキルに同じ言語のフラグを付け（base がデフォルトでなければ `--base=<base>` も）、draft で作る。
-4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当は [review.md](review.md) の「実行」と「いつ」で決め、設計書の保証・前提・受け入れる制限を変える差分は設計レビューの担当（Codex と Neon）にかける。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書いてからマージを頼む。
+4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当は [review.md](review.md) の「実行」と「いつ」で決め、設計書の保証・前提・受け入れる制限を変える差分は設計レビューの担当（Codex と `agy`）にかける。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書いてからマージを頼む。
 5. **`simplify`:** コードを変える PR では、最後の Codex ラウンドの後に `origin/<base>...HEAD` に対して毎回行う。省けるのは文書・設定・テストだけか数行の変更で、省いたら理由を報告する。その後、本文を `create-pr --update` で直し `gh pr ready` にする。
 6. **CI** が通るまで直す。
    - CI 成功の印だけでなく CI が出す測定値も読み（読み方は [verification.md](verification.md) の「性能の数値」）、PR 本文に `gh pr edit` で書く（コミットに書くと CI がやり直しになる）。
