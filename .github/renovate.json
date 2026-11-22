@@ -34,6 +34,13 @@
       "description": "Use the repository-wide one-day stability period for npm updates",
       "matchDatasources": ["npm"],
       "minimumReleaseAge": "1 days"
+    },
+    {
+      "description": "Let GitHub auto-merge shared workflow digests: the automerge gate here waits for every check, and it reports only once auto-merge is enabled",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["shuymn/github-actions"],
+      "matchUpdateTypes": ["digest"],
+      "platformAutomerge": true
     }
   ],
   "mise": {
