@@ -10,14 +10,14 @@ disable-model-invocation: true
 
 ## 1. 準備
 
-- 全体の見直し（`~/.claude` の指示と hiden の全文。どのリポジトリでも同じ対象）が要るかを、共有の台帳 `~/.claude/review-ledgers/global.md` の最新の行で決める。行が無い、行のモデル ID がメインのセッションと違う、行の dotfiles のコミットが今の HEAD の祖先でない（`git -C "$(chezmoi source-path)" merge-base --is-ancestor <commit> HEAD` が失敗する）、または `git -C "$(chezmoi source-path)" log --oneline <commit>..HEAD -- dot_claude .chezmoitemplates/agents` に出るコミットがあれば要る。要らなければ全体の見直しは飛ばす。要るときも、別のリポジトリのセッションが全体の見直しを進めていれば（`ListAgents` と recall で確かめる）そちらに任せ、このセッションはリポジトリの分だけを行う。
+- 全体の見直し（`~/.claude` の指示と hiden の全文。どのリポジトリでも同じ対象）が要るかを、共有の台帳 `~/.claude/review-ledgers/global.md` の最新の行で決める。行が無い、行のモデル ID がこのセッションと違う、行の dotfiles のコミットが今の HEAD の祖先でない（`git -C "$(chezmoi source-path)" merge-base --is-ancestor <commit> HEAD` が失敗する）、または `git -C "$(chezmoi source-path)" log --oneline <commit>..HEAD -- dot_claude .chezmoitemplates/agents` に出るコミットがあれば要る。要らなければ全体の見直しは飛ばす。要るときも、別のリポジトリのセッションが全体の見直しを進めていれば（`ListAgents` と recall で確かめる）そちらに任せ、このセッションはリポジトリの分だけを行う。
 - 全体の見直しが要るときだけ、オーナーに、このセッションで先に `/doctor prompt-audit` を走らせたかを確かめる。まだなら走らせてもらい、その結果も対象に含める。要らないときは走らせない。
 - このリポジトリの auto memory のディレクトリ（システムプロンプトが示す場所）が git リポジトリでなければ、そこで `git init` して現状を最初のコミットにする。remote は付けない。
 
 ## 2. 集める
 
 - **memory:** 前回のコミット以降の差分（`git -C <memory dir> diff` と未追跡のファイル）と、索引 `MEMORY.md` を含む全ファイル。初回は全ファイル。
-- **hiden の未承認の書き換え:** `diff -ru "$(chezmoi source-path ~/.claude/skills/<名前>)" ~/.claude/skills/<名前>` を、hiden と派生の skill（`toolchain`、`public-text`。以降の「hiden」はこれらを含む）のそれぞれに行う。左が承認済み、右がセッションが書き換えた現物。
+- **hiden の未承認の書き換え:** `diff -ru "$(chezmoi source-path ~/.claude/skills/<名前>)" ~/.claude/skills/<名前>` を、hiden と派生の skill（`toolchain`、`public-text`。以降の「hiden」はこれらを含む）のそれぞれに行う。左が承認済み、右がセッションが書き換えたライブファイル。
 - **常時読み込む指示:** そのリポジトリの AGENTS.md・CLAUDE.md と、全体の見直しが要るときは `~/.claude/CLAUDE.md`。重複の確かめには、見直しの有無によらず `~/.claude/CLAUDE.md` も正本として読む。
 - **正本:** hiden のソース一式（SKILL.md と references）と、そのリポジトリの docs。
 
@@ -27,7 +27,7 @@ memory はヒントとして扱う。1 ファイルを 1 項目とせず、フ�
 
 - **正本との重複:** その行が hiden・docs・常時読み込む指示のどこに当たるかを決め、そのファイルを判定のときに開き直して読む。同じ意味の文を `file:line` で引用できれば重複、できなければ重複ではない。言葉の検索は候補を探すのに使い、一致しないことを重複でない証拠にしない。言い回しが違っても、役割の説明や Why が正本と同じなら重複に当たる。
 - **hiden とのずれ:** hiden と違うやり方を述べる行と、hiden の各差分では、どちらに揃えれば成果が上がるかを決める。根拠は、それぞれのやり方で実際に起きた結果（例: 台帳、PR、レビューの指摘、やり直し）で示す。リポジトリのやり方が勝てば hiden の該当する文をそれで置き換え、hiden が勝てばリポジトリ側を hiden に揃え、そのリポジトリの事情でしか成り立たなければリポジトリ側に置く。差分があることは、hiden を変える理由にならない。
-- **古い・矛盾:** 現物（例: コード、git、gh、設定）と照らし合わせる。
+- **古い・矛盾:** 実際のファイル・状態（例: コード、git、gh、設定）と照らし合わせる。
 - **オーナーの意図より硬い:** 規則（feedback と、方針を含む project）ごとに、Why が防ぐ失敗を名指ししているか、恒久なのか見直す条件つきなのかが書かれているかを見る。どちらかが欠けていれば「書き直す」に分け、意図をオーナーに尋ねる。推測で埋めない。
 
 ## 4. 分類して表で提案する
@@ -55,12 +55,12 @@ memory はヒントとして扱う。1 ファイルを 1 項目とせず、フ�
 - 採否は `AskUserQuestion` で 1 回だけ尋ねる。選択肢は「推奨どおり（Recommended）」と「行を指定して変える」で、後者では名指しされた行だけを変え、残りは推奨どおりに採る。問いには、採った docs の変更をコミット・PR・CI・マージまで進めることを書く。この返事が、表の各行とマージまでの許可になる。
 - 承認の後は、採った分を最後まで進める。止まるのは表に無い判断が新しく出たときだけで、そのときも推奨を付けて同じ形で尋ねる。
 - **memory:** 確認を終えたら、編集が無くてもその時点の内容を `git -C <memory dir>` でコミットする（差分が無ければ `--allow-empty`。コミットが「確認済み」の印）。メッセージは「wasure: 」に続けて要約。
-- **hiden の昇格:** 足す文に、足す前に 3 の「正本との重複」を hiden に対してもう一度当て、現物の `~/.claude/skills/<名前>/` に書く。ソースとの差分として残り、次の wasure の「hiden: 承認 / 戻す」で審査される。
-- **hiden の差分:** chezmoi のソース（`chezmoi source-path ~/.claude/skills/<名前>`）を直接直す。承認した差分はソースに Edit で写し、新しいファイルはソースにコピーし、消されたファイルはソースからも消す。却下した差分は現物を Edit で元に戻す。保留した差分は現物に残す。ソースの変更はコミットまで行う。
+- **hiden の昇格:** 足す文に、足す前に 3 の「正本との重複」を hiden に対してもう一度当て、ライブファイルの `~/.claude/skills/<名前>/` に書く。ソースとの差分として残り、次の wasure の「hiden: 承認 / 戻す」で審査される。
+- **hiden の差分:** chezmoi のソース（`chezmoi source-path ~/.claude/skills/<名前>`）を直接直す。承認した差分はソースに Edit で写し、新しいファイルはソースにコピーし、消されたファイルはソースからも消す。却下した差分はライブファイルを Edit で元に戻す。保留した差分はライブファイルに残す。ソースの変更はコミットまで行う。
 - **docs へ・常時読み込む指示:** 正本が作業中のリポジトリにあるもの（docs、AGENTS.md、CLAUDE.md）は、ブランチで編集し、hiden の commit-pr.md の手順でマージまで進める。正本が別のリポジトリにあるもの（`~/.claude/CLAUDE.md` など）は、直さず変更案をオーナーに渡す。
 
 ## 6. 記録する
 
-`~/.claude/review-ledgers/<repo>.md` に 1 行追記する: 日付、`wasure`、メインのセッションのモデル ID、各分類の件数、hiden の行数の増減、目立った腐り方（例: 同じ規則が硬く書かれていた）。
+`~/.claude/review-ledgers/<repo>.md` に 1 行追記する: 日付、`wasure`、このセッションのモデル ID、各分類の件数、hiden の行数の増減、目立った劣化パターン（例: 同じ規則が硬く書かれていた）。
 
-全体の見直しをしたときは、`~/.claude/review-ledgers/global.md` にも 1 行追記する: 日付、`wasure`、モデル ID、記録の直前（下の条件が揃った後）に取る `git -C "$(chezmoi source-path)" rev-parse --short HEAD`、見直したリポジトリ、全体の分の件数。記録するのは、採った変更が dotfiles の HEAD に入り（渡した変更案はオーナーが入れる）、オーナーの許可を得た適用で `chezmoi diff ~/.claude/CLAUDE.md` と、採った変更のある hiden の `chezmoi diff ~/.claude/skills/<名前>` が空になってから。適用で、採った変更のほかにも見直した時点から本文が変わっていれば、その差分を見直してから記録する。採った変更より前のハッシュを書くと次の回が自分の変更を見てまた全体の見直しを要ると判定し、適用前の現物を見直してコミットだけを書くと新しい版の見直しを飛ばす。
+全体の見直しをしたときは、`~/.claude/review-ledgers/global.md` にも 1 行追記する: 日付、`wasure`、モデル ID、記録の直前（下の条件が揃った後）に取る `git -C "$(chezmoi source-path)" rev-parse --short HEAD`、見直したリポジトリ、全体の分の件数。記録するのは、採った変更が dotfiles の HEAD に入り（渡した変更案はオーナーが入れる）、オーナーの許可を得た適用で `chezmoi diff ~/.claude/CLAUDE.md` と、採った変更のある hiden の `chezmoi diff ~/.claude/skills/<名前>` が空になってから。適用で、採った変更のほかにも見直した時点から本文が変わっていれば、その差分を見直してから記録する。採った変更より前のハッシュを書くと次の回が自分の変更を見てまた全体の見直しを要ると判定し、適用前のライブファイルを見直してコミットだけを書くと新しいバージョンの見直しを飛ばす。
