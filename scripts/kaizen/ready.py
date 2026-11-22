@@ -1,12 +1,11 @@
-"""Readiness checks R1-R5 of the kaizen daily cycle (docs/kaizen.md §6). Every check reads only; each command it runs
-has its own timeout, and a command that fails, times out or is missing fails its check.
+"""Readiness checks R1, R2, R4 and R5 of the kaizen daily cycle (docs/kaizen.md §6). Every check reads only; each
+command it runs has its own timeout, and a command that fails, times out or is missing fails its check.
 
 R1  `chezmoi diff` is empty for the live targets whose source path matches .claude/kaizen-managed of the checkout
     chezmoi is configured with (`chezmoi source-path`, its parent), pending removals of .chezmoiremove included (their
     source is that file). Owner.
 R2  the cycle's launchd job is loaded (`launchctl print gui/<uid>/<label>`) and every absolute path in its program
     and arguments (words of a `sh -c` string included) exists. Owner.
-R3  `<home>/.claude/hooks/attention-budget.py status` shows no OVER line. An improver candidate.
 R4  every observation source read without failure (gh and t3 may be off) and `gh auth status` passes (owner when not).
 R5  the published run (K/current/record.json, read before this run publishes) finished at most 3 days ago, and every
     open PR of the dotfiles repository whose head is its own branch starting with kaizen/ is at most 14 days old
@@ -108,14 +107,6 @@ def check_r2(launchctl="launchctl", label=LABEL):
     paths = dict.fromkeys(p for a in [program, *args] for p in ABSOLUTE.findall(a))
     missing = [p for p in paths if not os.path.exists(p)]
     return result(not missing, [f"missing: {p}" for p in missing] or f"loaded; program {program}", True)
-
-
-def check_r3(home):
-    code, out, err = run([str(home / ".claude/hooks/attention-budget.py"), "status"], 60)
-    over = [l for l in out.splitlines() if l.startswith("OVER:")]
-    if code not in (0, 1) or (code == 1 and not over):
-        return result(False, f"attention-budget.py status failed ({code}): {err}")
-    return result(not over, over or "no OVER")
 
 
 def check_r4(sources, gh="gh"):

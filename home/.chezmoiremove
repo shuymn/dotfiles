@@ -32,8 +32,10 @@
 .claude/skills/hiden/references/toolchain.md
 .claude/skills/hiden/references/codex-review.md
 .claude/attention/units.json
+.claude/attention/budget.json
 .claude/hooks/worker-signal.py
 .claude/hooks/guard-agent-actions.py
 .claude/hooks/orchestration-context.py
 .claude/hooks/deny-rm.sh
+.claude/hooks/attention-budget.py
 .claude/bin/merge-pr
