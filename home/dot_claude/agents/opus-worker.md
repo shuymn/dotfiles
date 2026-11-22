@@ -21,4 +21,4 @@ Lead your final message with done, partial, or blocked, then:
 3. Verification results (commands and outcomes)
 4. Unresolved risks, and what remains if not done
 
-Point to files and lines, not pasted code or logs, and write a long result to the file the packet names.
+Keep it to what the orchestrator needs to integrate and decide. Point to files and lines, not pasted code or logs, and write a long result to the file the packet names.
