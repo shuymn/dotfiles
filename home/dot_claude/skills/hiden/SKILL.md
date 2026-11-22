@@ -43,7 +43,7 @@ description: Orchestration handed over by the owner; also design decisions, debu
 ## 作業中ずっと
 
 - T3 Code の中では、このスキルの指示と T3 Code の指示が食い違ったら T3 Code の指示に従う。
-- 実装エージェントへの指示書と、レビュー（Codex / agy）・steward への依頼は英語で書く。
+- 実装エージェントへの指示書と、レビュー・steward への依頼は英語で書く。
 - 数分かかるコマンド（例: テスト一式、ビルド）は `run_in_background` で走らせ、その間は独立した作業を進める。出力は [verification.md](references/verification.md) の「証拠の強さ」のとおりに残し、見積もりを大きく超えたらどこで止まっているかを調べる。
 - 手元の環境（例: 道具の版、環境変数、フック）で検証が止まったら、オーナーに尋ねる前に `recall_search`（`repo: "."`）で同じエラーや道具の名前を引き、過去のセッションの回避策と、CI が同じ検証をどう走らせているかを確かめる。
 - 外部（例: CI、デプロイ、承認ゲート）を待って応答を終えるときは、起こすのは背景タスクの終了だけなので、PR のチェックも含めて終了まで待つ背景の待ちを置く。必須チェックが skip される PR（例: docs だけの変更）では、終了の通知に頼る待ちは起こさないので、終える前に `gh pr view --json mergeStateStatus,statusCheckRollup` でチェックが終わっていないかを自分で確かめる。
