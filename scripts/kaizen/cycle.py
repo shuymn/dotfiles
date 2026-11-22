@@ -297,12 +297,12 @@ def run_seconds(args):
     return DEADLINE if args.deadline is None else args.deadline
 
 
-def run_weekly(k, home, repo, obs, results, now, args, started):
+def run_weekly(k, home, repo, obs, now, args, started):
     """The weekly stage (improve.weekly) under one monotonic deadline. Without an explicit --deadline the stage gets
     STAGE_SECONDS from here and the run's alarm is re-armed to that plus the digest reserve; with one, the alarm stays
     and the stage ends DIGEST_RESERVE before it. An error is reported, never raised, so the run publishes."""
     if not improve.enabled(k):
-        return improve.weekly(k, home, repo, None, obs["items"], results, now, 0)
+        return improve.weekly(k, home, repo, None, obs["items"], now, 0)
     if args.deadline is None:
         deadline = time.monotonic() + improve.STAGE_SECONDS
         signal.alarm(improve.STAGE_SECONDS + improve.DIGEST_RESERVE)
@@ -310,8 +310,8 @@ def run_weekly(k, home, repo, obs, results, now, args, started):
         deadline = started + args.deadline - improve.DIGEST_RESERVE
     log("weekly")
     try:
-        return improve.weekly(k, home, repo, repo and observe.origin_repo(str(repo)), obs["items"], results, now,
-                              deadline, gh=args.gh, sources=obs["sources"])
+        return improve.weekly(k, home, repo, repo and observe.origin_repo(str(repo)), obs["items"], now, deadline,
+                              gh=args.gh, sources=obs["sources"])
     except Exception as e:  # noqa: BLE001 — a broken weekly stage is its own decision
         return {"enabled": True, "status": f"error: {type(e).__name__}: {e}", "attempt": None, "cost_usd": "unknown",
                 "codex_runs": 0, "decisions": [f"improver crashed: {type(e).__name__}: {e}"]}
@@ -334,7 +334,6 @@ def run_cycle(k, home, now, args):
     checks = {
         "R1": lambda: ready.check_r1(home, repo, args.chezmoi),
         "R2": lambda: ready.check_r2(args.launchctl),
-        "R3": lambda: ready.check_r3(home),
         "R4": lambda: ready.check_r4(obs["sources"], args.gh),
         "R5": lambda: ready.check_r5(k, now, repo and observe.origin_repo(str(repo)), args.gh),
     }
@@ -344,7 +343,7 @@ def run_cycle(k, home, now, args):
             results[rid] = check()
         except Exception as e:  # noqa: BLE001 — one broken check is its own FAIL
             results[rid] = ready.result(False, f"check crashed: {type(e).__name__}: {e}")
-    improver = run_weekly(k, home, repo, obs, results, now, args, started)
+    improver = run_weekly(k, home, repo, obs, now, args, started)
     record = {"date": today, **{key: obs[key] for key in ("window", "sources", "counts", "tally", "codex_sessions")},
               "ready": results, "apply": applied, "watch": watched, "items": obs["items"], "improver": improver,
               "cost": {"claude_usd": improver["cost_usd"], "codex_runs": improver["codex_runs"]}}

@@ -45,7 +45,6 @@ BASE = {
     SKILL: ("100644", "skill v0\n"),
     REF: ("100644", "ref v0\n"),
     AGENT: ("100644", "agent v0\n"),
-    improve.HOOK: ("100755", (REPO / improve.HOOK).read_text()),
     improve.WRITING: ("100644", "WRITING-RULES-MARKER\n"),
     "AGENTS.md": ("100644", "agents\n"),
     "CLAUDE.md": ("120000", "AGENTS.md"),
@@ -60,7 +59,6 @@ PRIVATE = [{"id": "PRIV-ID-1", "signal": "owner-reply", "where": "/x/PRIV-WHERE-
            {"id": "PRIV-ID-3", "signal": "ci-fail-main", "where": "o/r", "excerpt": "PRIV-EXCERPT-3",
             "provenance": "public", "repo": "o/r", "ts": "PRIV-TS-3"}]
 MARKERS = ["PRIV-ID", "PRIV-WHERE", "PRIV-EXCERPT", "PRIV-REPO", "PRIV-TS", "secret/pull"]
-READY = {"R3": {"status": "FAIL", "detail": ["OVER: x"], "owner": False}}
 OUTPUT = {"change": True, "evidence_ids": ["pub1"], "summary": "s", "watch": "worker regression rate",
           "commit_message": "docs(hiden): tighten the skill", "pr_title": "docs(hiden): tighten the skill",
           "pr_body": "Tightens the skill."}
@@ -125,9 +123,6 @@ class Fakes(unittest.TestCase):
         (self.home / ".config/git").mkdir(parents=True)
         (self.home / ".config/git/config.local").write_text(
             "[user]\n\tname = A Person\n\temail = a@example.com\n\tsigningkey = ~/.ssh/id_kaizen_marker.pub\n")
-        (self.home / ".claude/attention").mkdir(parents=True)
-        (self.home / ".claude/attention/budget.json").write_text(json.dumps(
-            {"caps": {}, "registers": [], "prose": {f"~/.claude/{SKILL[len('home/dot_claude/'):]}": 100}}))
         blobs, tree = {}, {}
         for path, (mode, text) in BASE.items():
             data = text.encode()
@@ -158,7 +153,7 @@ class Fakes(unittest.TestCase):
 
     def weekly(self, items=None, now=NOW, seconds=60, slug="o/r", gh_source="ok"):
         return improve.weekly(self.k, self.home, self.repo, slug, [PUBLIC, *PRIVATE] if items is None else items,
-                              READY, now, time.monotonic() + seconds, sources={"gh": {"status": gh_source}})
+                              now, time.monotonic() + seconds, sources={"gh": {"status": gh_source}})
 
     def calls(self, tool=None):
         try:
@@ -325,7 +320,6 @@ class Weekly(Fakes):
         self.assertEqual(res["cost_usd"], 0)
         proposal = (self.k / improve.PROPOSALS / self.attempts()[0] / "proposal.md").read_text()
         self.assertIn("PRIV-EXCERPT-1", proposal)
-        self.assertIn("OVER: x", proposal)
         self.assertEqual((self.calls("claude"), self.calls("codex")), ([], []))
         self.assertEqual([c["argv"][0] for c in self.calls("gh")], ["api"])
         self.assertNoWrites()
@@ -642,7 +636,7 @@ class Weekly(Fakes):
         self.assertEqual((after["outcome"], after["remote"]), ("publishing", r))
         self.assertNoWrites()
 
-    # ---------------------------------------------------------------- C12, C13: what may be published
+    # ---------------------------------------------------------------- C12: what may be published
     def test_c12_anything_but_plain_modifications_is_a_proposal(self):
         cases = {"new file": {"create": ["home/dot_claude/skills/hiden/references/new.md"]},
                  "outside v1": {"edits": {"home/.chezmoiignore": "# changed\n"}},
@@ -658,21 +652,6 @@ class Weekly(Fakes):
                 self.weekly()
                 self.assertTrue(self.result()["outcome"].startswith("proposal:"), self.result())
                 self.assertNoWrites()
-
-    def test_c13_prose_caps_by_the_hook_rules(self):
-        cases = {"over the cap in UTF-8 bytes": {SKILL: "あ" * 40 + "\n"},  # 40 characters, 121 bytes
-                 "a capped dir without an entry": {REF: "ref v1\n"}}
-        for name, edits in cases.items():
-            with self.subTest(name):
-                shutil.rmtree(self.k / improve.PROPOSALS, ignore_errors=True)
-                self.scenario(claude={"edits": edits, "result": {"structured_output": OUTPUT}})
-                self.weekly()
-                self.assertEqual(self.result()["outcome"], "proposal:caps", self.result().get("reason"))
-                self.assertNoWrites()
-        shutil.rmtree(self.k / improve.PROPOSALS)
-        self.scenario(claude={"edits": {AGENT: "agent v1\n"}, "result": {"structured_output": OUTPUT}})
-        self.weekly()
-        self.assertTrue(self.result()["outcome"].startswith("pr "))  # agents/ is not a capped dir
 
     # ---------------------------------------------------------------- C14, C15: Codex and public-check
     def test_c14_codex_runs_read_only_after_the_freeze(self):
@@ -908,7 +887,7 @@ class Weekly(Fakes):
     def test_c18_recovery_without_a_checkout_is_a_decision(self):
         a, r = self.publishing()
         self.scenario(open=["fail"])
-        res = improve.weekly(self.k, self.home, None, "o/r", [PUBLIC], READY, NOW, time.monotonic() + 60,
+        res = improve.weekly(self.k, self.home, None, "o/r", [PUBLIC], NOW, time.monotonic() + 60,
                              sources={"gh": {"status": "ok"}})
         after = self.result(a.data["id"])
         self.assertEqual(after["outcome"], improve.REMOTE_UNKNOWN)

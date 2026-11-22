@@ -36,7 +36,7 @@ GH_REPOS = 10
 GH_TIMEOUT = 60
 SIGNALS = {"owner-reply": "miss", "revert": "miss", "fix-pr": "miss", "ci-fail-main": "miss", "ledger-miss": "miss",
            "meta-effort": "waste", "hiden-in-worker": "waste", "reference-unread": "waste"}
-META_NAMES = ("review-ledgers/", "retro.md", "attention/budget.json", "attention-budget.py")
+META_NAMES = ("review-ledgers/", "retro.md")
 REFERENCE = re.compile(r"skills/hiden/references/([\w.-]+\.md)")
 GITHUB = re.compile(r"github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$")
 ONE_REF = r"(?:\b[\w.-]+/[\w.-]+)?#\d+"
