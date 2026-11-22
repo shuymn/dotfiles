@@ -2,7 +2,7 @@
 
 指示書は英語で、固定の 1 行（`Follow the body of ~/.claude/agents/opus-worker.md.`。先頭が同じならプロンプトキャッシュが効く）、その作業が当たるルールブロック（下の節を英語にして本文で貼る）、作業内容の順に書く。worker の常時の項目は `opus-worker.md` と項目ファイル（[attention.md](attention.md)）にあるので写さない。ルールブロックは参照でなく本文で渡す（本文に無い規則は守られない）。
 
-フックや permissions が止める形（stash、pkill、`--no-verify`、worktree での push・PR）は書かない。止まらない別の形は下のルールブロックに置く。
+フックや permissions が止める形（例: stash、pkill、`--no-verify`）は書かない。止まらない別の形は下のルールブロックに置く。
 
 ## コミットする作業のルールブロック
 

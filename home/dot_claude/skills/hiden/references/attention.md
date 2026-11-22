@@ -4,7 +4,7 @@
 
 - 注意の項目は、フックや lint、テスト、それを通らないと進めないスクリプトが強制していない規則。キットの `attention/items.json` に役割（orchestrator、worker、reviewer、全役割なら `all`）を付けて書く。
 - 新しい規則は、仕組み、条件付きのルールブロック（当たるときだけ読む）、委任、常時の項目の順に検討する。常時の項目は、その役割が毎回守る必要のある規則だけにする。繰り返す失敗は、文を足す理由ではなく仕組みにする理由にする。
-- 委任: 判断は自分でし、作業と監査は、指示書と報告を読む費用に見合うときだけ渡す。監査（steward）は読むだけで、依頼文に `Follow the body of ~/.claude/agents/steward.md.` とキットのディレクトリ（`~/.local/state/stack/kits/<名前>/`）を渡し、フェーズの終わり、状態が古いとき、引き継ぎの前、振り返りで頼む。実行は Antigravity（`agy`）の Gemini 4 Neon（medium。呼び出し方は [review.md](review.md) の「実行」）で、エラー（例: クォータ枯渇）で失敗したら [review.md](review.md) の「実行後の確認」を済ませてからオーケストレーターと同じモデル・労力にフォールバックする。`stack pr merge` の後に `audit due (…): run steward on kit <slug>` が出たら、費用の見積もりはせずに必ず、その `<slug>` のキットのディレクトリだけを足した同じ書式で（自分の結論は添えない）steward をバックグラウンドで起動し、待たずに次の作業へ進む。`agy-run` でバックグラウンド監査を走らせる間は、結果を読むまで同じ作業ツリーで編集しない（次の作業は別 worktree で進めるか読み取りだけにする）。見落としは台帳に記録する。
+- 委任: 判断は自分でし、作業と監査は、指示書と報告を読む費用に見合うときだけ渡す。監査（steward）は読むだけで、依頼文に `Follow the body of ~/.claude/agents/steward.md.` とキットのディレクトリ（`~/.local/state/stack/kits/<名前>/`）を渡し、フェーズの終わり、状態が古いとき、引き継ぎの前、振り返りで頼む。実行は [review.md](review.md) の「実行」の `agy-run` で行い、エラー（例: クォータ枯渇）で失敗したら [review.md](review.md) の「実行後の確認」を済ませてからオーケストレーターと同じモデル・労力にフォールバックする。`stack pr merge` の後に `audit due (…): run steward on kit <slug>` が出たら、費用の見積もりはせずに必ず、その `<slug>` のキットのディレクトリだけを足した同じ書式で（自分の結論は添えない）steward をバックグラウンドで起動し、待たずに次の作業へ進む。`agy-run` でバックグラウンド監査を走らせる間は、結果を読むまで同じ作業ツリーで編集しない（次の作業は別 worktree で進めるか読み取りだけにする）。見落としは台帳に記録する。
 - 指示書の書き方は [subagent-brief.md](subagent-brief.md)。worker の常時の項目は `opus-worker.md` にあり、compaction の後はフックが worker のコンテキストへ戻す。
 
 ## キット

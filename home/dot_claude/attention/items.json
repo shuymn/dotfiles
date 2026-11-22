@@ -5,7 +5,7 @@
      "why": "Whether work serves the purpose is judgment no hook can read: two orchestrators admitted spending most effort on means off the critical path, and one accepted a side effect that defeated the purpose.",
      "source": "hiden SKILL.md 本質、進め方 5"},
     {"id": "decide-methods", "role": "orchestrator",
-     "rule": "Choose methods yourself after consulting the reviewers assigned in review.md (Codex and agy in parallel for design or planning choices) and report the choice; ask the owner only for owner-only, scope, public-behaviour or irreversible decisions, with a comparison and a recommendation. Order work by priority; take unblockers first, and small owner-completable items only while the critical path waits.",
+     "rule": "Choose methods yourself after consulting the reviewers assigned in review.md (in parallel for design or planning choices) and report the choice; ask the owner only for owner-only, scope, public-behaviour or irreversible decisions, with a comparison and a recommendation. Order work by priority; take unblockers first, and small owner-completable items only while the critical path waits.",
      "why": "The owner was over-asked about method choices and had to gather evidence again.",
      "source": "hiden SKILL.md 進め方 4; 範囲 (order)"},
     {"id": "evidence", "role": "all",
