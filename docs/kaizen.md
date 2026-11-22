@@ -4,12 +4,12 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 ## 1. 原則
 
-1. **既定は信頼する。** 指示の単位は、それが無いとモデルが落ちる証拠がある所にだけ置く。証拠とは、実際の事故か、床を示した probe のこと。証拠の無い統制はトークンと注意を使い、能力を狭めることがある。
+1. **デフォルトは信頼する。** 指示の単位は、それが無いとモデルが落ちる証拠がある所にだけ置く。証拠とは、実際の事故か、床を示した probe のこと。証拠の無い統制はトークンと注意を使い、能力を狭めることがある。
 2. **時と場所を合わせて渡す。** 注意は CPU の割り当てに似ている。ただしエージェントは自分を見失うので、出来事で起こす。
    - 常駐させる文は、目的と本質だけにする。
-   - 単位は、判断点と段の切り替えで出来事が届ける。
+   - 単位は、判断点とフェーズの切り替えで出来事が届ける。
    - references は、要るときに読む。
-   - 同じ役割の中でも、段ごとに要る集合が変わり、複数の関心を釣り合わせる。
+   - 同じ役割の中でも、フェーズごとに要る集合が変わり、複数の関心を釣り合わせる。
    - モデル自身に思い出させる文（自己スケジュール）には頼らない。
 3. **取り去るのも配分のうちである。**
    - 仕組みにできるものは仕組みに渡す（例: マージは `stack pr merge`）。
@@ -33,14 +33,14 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 | 証拠（P はパイロット） | 設計への帰結 |
 |---|---|
 | P1: 短く整ったケースでは、hiden が無くても Opus は全部通った。進め方 4 の 1 行だけを消すと、hiden が無いときより悪くなった | 成果の合否では配分を比べられない。釣り合う組の行は、片方だけを取らない |
-| P2: 実際の判断点の文脈は長く、その長さで成果を試すと 1 周期の上限を大きく超える | 成果のベンチマークは周期に入れない |
-| P3: 埋もれた事実は、負荷によらず 100% 拾われた。落ちたのは既定の作法で、負荷によらなかった。作法とは、実際の入力で確かめる、修正を外してテストが落ちるのを見る、確認のラウンドを頼む、の 3 つ | 床は作法の側にある。単位はそこにだけ置く |
-| P3: 判断の直前に 1 単位だけ渡す配り方（just-in-time）は、hiden 全体の常駐に一度も負けなかった。worker の「落ちるのを見る」は 5/6 対 0/6 で、全体を常駐させるとこの作法が消えた | 束を常駐させず、判断点で 1 単位を渡す |
+| P2: 実際の判断点のコンテキストは長く、その長さで成果を試すと 1 周期の上限を大きく超える | 成果のベンチマークは周期に入れない |
+| P3: 埋もれた事実は、負荷によらず 100% 拾われた。落ちたのはデフォルトの作法で、負荷によらなかった。作法とは、実際の入力で確かめる、修正を外してテストが落ちるのを見る、確認のラウンドを頼む、の 3 つ | 床は作法の側にある。単位はそこにだけ置く |
+| P3: 判断の直前に 1 単位だけ渡す配り方（just-in-time）は、hiden 全体の常駐に一度も負けなかった。worker の「落ちるのを見る」は 5/6 対 0/6 で、全体を常駐させるとこの作法が消えた | ルールブロックを常駐させず、判断点で 1 単位を渡す |
 | P3: description だけで置いた skill は、merge と format の 6 run で 1 回も呼ばれなかった（worker では試していない） | 床の単位を「必要時」に置かない |
 | P3: hiden を配っても、気を散らす物は増えなかった。統制しすぎ仮説の結果は混在した。選択式の状況テストは天井に当たり、答えが行動を予測しなかった | 選択式のテストは使わない。単位を足すのは、床があるときだけ |
 | 直近の transcript で、hiden の references は Read と Edit で頻繁に開かれている | 表で名前を挙げた references は、実際に読まれている |
 
-**フックで文脈に入れられるもの**（https://code.claude.com/docs/en/hooks.md）
+**フックでコンテキストに入れられるもの**（https://code.claude.com/docs/en/hooks.md）
 
 - `additionalContext` が使えるイベントと、文が届く位置:
   - SessionStart、SubagentStart: 会話の初め。
@@ -51,13 +51,13 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - subagent の中でも同じフックが走り、入力に `agent_id` と `agent_type` が付く（親と子で `session_id` は同じ）。
 - ネイティブの subagent では `agents/*.md` の本文が system prompt になり、compaction の要約の対象にならない。
 - SessionStart の入力には `source`（`startup`、`resume`、`clear`、`compact`）と `transcript_path` が付く。compaction の後も transcript の先頭には元の最初のプロンプトが残る。
-- SubagentStart の文は subagent の文脈に入り、compaction で失われた後は次の発火で入れ直される。
+- SubagentStart の文は subagent のコンテキストに入り、compaction で失われた後は次の発火で入れ直される。
 - PreToolUse の文も「結果の隣」に届くので、その呼び出し自体は変えられない（変えられるのは deny、ask、`updatedInput`）。そのため、判断点への配達は直前のツールの結果、つまり PostToolUse に置く。
 - docs の勧めに従い、配る文は命令ではなく事実の形で書く。
 - T3 の `delegate_task` の子は別のセッションで、`agent_type` は無く、cwd は専用の worktree のことも共有のチェックアウトのこともある。worker の子は、最初のプロンプトの固定の 1 行（`Follow the body of ~/.claude/agents/opus-worker.md`）で見分ける。cwd では見分けない。
 - Codex（reviewer）には Claude のフックが届かない。配達点は依頼文だけになる。
 
-## 3. 役割と段ごとの配分
+## 3. 役割とフェーズごとの配分
 
 「仮説」と書いたものは、§5 の観測で確かめる。
 
@@ -68,16 +68,16 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - SessionStart で入る items: `essence`、`decide-methods`、`evidence`。
 - 進め方 3〜5 と `decide-methods` は、釣り合う組なので手を付けない（P1）。
 
-| 段 | 出来事で渡す | 必要時 | 取る | 証拠 |
+| フェーズ | 出来事で渡す | 必要時 | 取る | 証拠 |
 |---|---|---|---|---|
-| 開始・再開・clear | SessionStart: state.md、items、経路の問い 1 文 | 表から当たる reference | 予算の使用量の行（meta） | 原則 4 |
-| compaction | SessionStart(compact): 上の内容と「今の段の reference を読み直す」 | — | 進め方 2「各段に入る前に読み直す」 | 原則 2。効き目は仮説 |
+| 開始・再開・clear | SessionStart: state.md、items、クリティカルパスの問い 1 文 | 表から当たる reference | 予算の使用量の行（meta） | 原則 4 |
+| compaction | SessionStart(compact): 上の内容と「今のステップの reference を読み直す」 | — | 進め方 2「各ステップに入る前に読み直す」 | 原則 2。効き目は仮説 |
 | state が古い | Stop: `watch` が state より新しければ 1 度止める（今の仕組み） | — | — | 既存の仕組み |
 | 委任 | — | subagent-brief.md | 報告の仕様にある回帰テストの句（§3.2 へ移す） | P3 |
-| 外部を待つ | — | commit-pr.md（SKILL の「外部を待つ」の段落を移す） | SKILL の常駐段落（579 B） | 段に属する判断で、常駐は要らない |
+| 外部を待つ | — | commit-pr.md（SKILL の「外部を待つ」の段落を移す） | SKILL の常駐段落（579 B） | フェーズに属する判断で、常駐は要らない |
 | レビュー・マージ | — | review.md（依頼の書式に、主張ごとに最も強い証拠を求める一文を置く）、commit-pr.md | 「reviewer の常時の項目を依頼文に貼る」 | `evidence` の役目を依頼の書式が引き継ぐ |
 | 環境で検証が止まった | — | debugging.md（recall の行を移す） | SKILL の常駐の行 | 仮説 |
-| 段の区切り | — | steward（目的と経路の監査が要るときに呼ぶ） | 台帳の記録、振り返り、文書整理、`/wasure` を勧める文、「手法を直すとき」は周期へ移す。steward を呼ぶ定例の時期は消す | 原則 4 |
+| フェーズの区切り | — | steward（目的とクリティカルパスの監査が要るときに呼ぶ） | 台帳の記録、振り返り、文書整理、`/wasure` を勧める文、「手法を直すとき」は周期へ移す。steward を呼ぶ定例の時期は消す | 原則 4 |
 
 引き継ぎの文は、`~/.config/stack/handover/` の環境ごとのファイルにあり、`stack kit open` と compaction の後の SessionStart だけが出す。Stop のフックは無い。
 
@@ -90,13 +90,13 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 **常駐:**
 - `opus-worker.md`。回帰テストの一文（"A test counts as a regression test only after it has been seen failing with the fix removed and passing with it restored."）を含む。
   - ネイティブの subagent: system prompt になり、compaction の後も残る。
-  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`stack hook claude session-start` の compact が本文（frontmatter を除く）とそのプロンプトをそのまま文脈へ戻す（フックの上限の長さで切る）。
+  - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`stack hook claude session-start` の compact が本文（frontmatter を除く）とそのプロンプトをそのままコンテキストへ戻す（フックの上限の長さで切る）。
 - CLAUDE.md。
 - items の `evidence`。
 
-| 段 | 出来事で渡す | 取る | 証拠 |
+| フェーズ | 出来事で渡す | 取る | 証拠 |
 |---|---|---|---|
-| 開始 | 指示書（作業、当たる束、完了条件）。SessionStart か SubagentStart で worker の items | items の `report`（opus-worker.md と重複）、`carry-through`（CLAUDE.md の Completion と重複）。`scope` は、公開の契約を決める前に尋ねる点を opus-worker.md の範囲の一文に畳んでから消す | 静的な事実 |
+| 開始 | 指示書（作業、当たるルールブロック、完了条件）。SessionStart か SubagentStart で worker の items | items の `report`（opus-worker.md と重複）、`carry-through`（CLAUDE.md の Completion と重複）。`scope` は、公開の契約を決める前に尋ねる点を opus-worker.md の範囲の一文に畳んでから消す | 静的な事実 |
 | 報告 | opus-worker.md の報告の形 | — | — |
 
 - **見せないもの:** hiden の全体。P3 で、全体を常駐させると作法が消えた。
@@ -111,7 +111,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 ## 4. 周期
 
-改善の周期（transcript の観測、変更 1 つを選ぶ週 1 回の PR、ステータスラインへの表示、オーナーの opt-in）は `shuymn/stack` の `stack-observe` と `stack-improve` が行う。段、入力、守り、状態のファイル、このリポジトリでの launchd の起動は、`shuymn/stack` の `docs/design/phase3-cycle.md` が正本である。この文書は、周期が従う原則と配分（§1–§3）と、変更の確かめ方（§5）を持つ。
+改善の周期（transcript の観測、変更 1 つを選ぶ週 1 回の PR、ステータスラインへの表示、オーナーの opt-in）は `shuymn/stack` の `stack-observe` と `stack-improve` が行う。フェーズ、入力、守り、状態のファイル、このリポジトリでの launchd の起動は、`shuymn/stack` の `docs/design/phase3-cycle.md` が正本である。この文書は、周期が従う原則と配分（§1–§3）と、変更の確かめ方（§5）を持つ。
 
 ## 5. 変更の確かめ方
 
@@ -121,7 +121,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - 判断点への配達を動かす変更。
   - 釣り合う組の片方を取る変更。
 - 方法は P3 と同じ形にする。
-  - P3 の道具（build、run-jobs、score）を `scripts/kaizen/probe/` に置いて使う（PR2 で入れる）。
+  - P3 のツール（build、run-jobs、score）を `scripts/kaizen/probe/` に置いて使う。
   - grader は事前に登録する。
   - 負荷は L2 の疑似の履歴。
   - 2 腕 × 6 run。短い疑似の履歴なので、1 回の probe は周期の上限の 1 割に収まる。
@@ -135,7 +135,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - 害を示す信号。
   - 同じスクリプトで過去 30 日の transcript から出した基準値。
 - 回帰テストの単位の場合:
-  - 動かすはずの信号: テストのファイルを書いた worker のセッションのうち、同じテストが狙った理由で赤になり、修正の後に緑になった例の割合。
+  - 動かすはずの信号: テストのファイルを書いた worker のセッションのうち、同じテストが狙った理由で失敗し、修正の後にパスした例の割合。
   - 害を示す信号: worker のターン数と報告の長さが増える。worker についてのオーナーの訂正が増える。
 - 取る変更の場合:
   - 消した振る舞いに触れるオーナーの訂正を見る。

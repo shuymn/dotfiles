@@ -1,11 +1,28 @@
 ---
 name: skill-vocabulary
-description: Standardize agent-facing technical vocabulary under home/dot_claude/skills/**. Use when creating, editing, or proofreading those skills.
+description: Standardize writing policies and technical vocabulary across repository documentation (README.md, docs/**) and agent-facing documents (home/dot_claude/skills/**, AGENTS.md, etc.). Use when creating, editing, or proofreading documentation or skills.
 ---
 
 # Skill Vocabulary
 
-`home/dot_claude/skills/**` のスキル文書を、人間向けの言い換えではなく、エージェントが正確に解釈できる統一語彙で執筆・校正するための基準。
+リポジトリ内の人間向け文書（`README.md`、`docs/**`）および Agent 向け文書（`home/dot_claude/skills/**`、`AGENTS.md` など）を、言い換えのない標準技術用語で一貫して執筆・校正するための基準。
+
+## 文書区分ごとの方針
+
+- **共通:**
+  - **ボキャブラリ統一:** 人間向け・Agent 向けを問わず標準技術用語（カタカナ・英語の技術用語を含む）を使い、和製的な言い換えを避ける。
+  - **公開制約:** 公開リポジトリのため [public-text](../../../home/dot_claude/skills/public-text/SKILL.md) に従う。
+  - **現行状態の維持:** 変更時は現時点の仕様・結論へ書き換え、古い経緯の追記や日記化をしない。
+- **人間向け文書（`README.md`、`docs/**`）:**
+  - **目的:** 全体像の把握、操作手順の参照、設計判断の根拠の理解。
+  - **構成:** 読みやすさと一覧性を優先する。設計書では意思決定の根拠・前提・実験結果・比較を残す。`README.md` はコードや設定から読み取れる詳細の網羅ミラーにしない。
+  - **言語:** 日本語（実験事前登録 `scripts/kaizen/probe/PREREG.md` のみ英語）。
+- **Agent 向け文書（`AGENTS.md`、`home/.chezmoitemplates/agents/AGENTS.md`、`home/dot_claude/skills/**`、`home/dot_claude/agents/**`、`home/dot_config/stack/handover/**`）:**
+  - **目的:** 行動境界・判断条件・手順を誤解なく実行させる。
+  - **構成:** コンテキスト予算を節約するため常駐は最小限にし、詳細は `references/` へ分離する。モデルがデフォルトでできる振る舞いは書かない。
+  - **Why の扱い:** 経緯・履歴は書かない。`Why` は規則の適用境界や別案を採らない仕組み上の理由を示すときだけ書き、一時的な規則には撤去条件を付ける。
+  - **解釈精度:** 文字通り解釈される前提で書き、lost judgment を防ぎ、例示の括弧には `例:` を付け、固有名詞に閉じず判断メカニズムを記述する。
+  - **言語:** 常駐指示・サブエージェント・handover は英語、スキル群（`home/dot_claude/skills/**`）は日本語。
 
 ## 原則
 
@@ -16,7 +33,7 @@ description: Standardize agent-facing technical vocabulary under home/dot_claude
   - 本番コード・対象実装の実行を求める箇所を「同等」にぼかさない。
   - 有効性チェックや差分の出所確認では「どの既存パスと同じチェックか」「自分の変更に由来するか」の条件を残す。
   - パーサー出力の例は AST だけに狭めず `パーサーの構文木や DOM ツリー` とする。
-- **関連規則との整合:** `writing-for-agents`、`shuymn/stack` の `extensions/improve/writing.md`（文字通りの解釈、例示括弧への `例:`、境界を示すときだけの `Why`）、`public-text` に従う。
+- **関連規則との整合:** 上記の「文書区分ごとの方針」、`shuymn/stack` の `extensions/improve/writing.md`（文字通りの解釈、例示括弧への `例:`、境界を示すときだけの `Why`）、`public-text` に従う。
 
 ## 用語対照表
 
@@ -68,7 +85,7 @@ description: Standardize agent-facing technical vocabulary under home/dot_claude
 | `テスト実行口` / `起動口` / `口` | `テストランナー` / `エントリポイント` / `ラッパー` |
 | `定番の手` / `変則的な手` | `標準的な手法` / `非標準の手法` |
 | `手当て` | `対処` |
-| `緑` / `緑の印`（CI 結果） | `CI がパス` / `CI 成功`（ローカルテストの成功は `パス`） |
+| `赤` / `緑` / `緑の印`（テスト・CI 結果） | `失敗` / `パス`（CI 結果は `CI 失敗` / `CI がパス`・`CI 成功`） |
 | `他のソフト` / `連合の相手` | `外部ソフトウェア` / `フェデレーション相手` |
 | `揺れ` / `数字`（計測値） | `ばらつき` / `数値` |
 | `束`（指示書へ貼る規則群） | `ルールブロック` |
@@ -85,10 +102,10 @@ description: Standardize agent-facing technical vocabulary under home/dot_claude
 
 ## 手順
 
-1. 対象の `home/dot_claude/skills/**/*.md` を走査し、対照表の「避ける語」と多義語の混在を洗い出す。
+1. 対象の `README.md`、`docs/**/*.md`、`home/dot_claude/skills/**/*.md` を走査し、対照表の「避ける語」と多義語の混在を洗い出す。
 2. 依頼がレビュー・校正の指摘のみなら、ファイルを編集せず該当箇所と置換案を返す。作成・編集の依頼なら、意味と境界を保ったまま正規語へ置換し、見出し名を変えた場合はリポジトリ内で見つかった参照（例: 他スキル、`home/dot_claude/attention/items.json`、`docs/`）も同時に更新する。
 3. 編集した場合は次をすべて確認して完了とする:
-   - `home/dot_claude/skills/**` の相対 Markdown リンクがすべて解決する。
+   - 編集した文書と `home/dot_claude/skills/**` の相対 Markdown リンクがすべて解決する。
    - 変更した旧見出し・旧ファイル名への残存参照がない。
    - 差分が `git diff --check` と `public-text` スキルに適合する（公開前の `stack-public check` 実行はコミット・PR 公開手順に委ねる）。
-   - 複数ファイルにまたがる書き換えでは、オーケストレーターがレビューで lost judgment（条件の狭まり・抜け）がないか確認する（worker は差分と検証結果を返すまでとする）。
+   - Agent 向け文書の複数ファイルにまたがる書き換えでは、オーケストレーターがレビューで lost judgment（条件の狭まり・抜け）がないか確認する（worker は差分と検証結果を返すまでとする）。
