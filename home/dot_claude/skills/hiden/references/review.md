@@ -8,7 +8,7 @@ reviewer（Codex・`agy`）はレビュー専用で、実装はさせない。�
 - **依頼と継続:** 編集しないことを依頼文に書く。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
 - **codex-plugin-cc（`codex-run`）:** 依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree> --model gpt-6.2-sol --effort high` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの id>` を足す。結果は `result:` のファイルから読む。probe や変異テストを走らせない資料のレビューは `--read-only` を付ける。走らせる依頼文には、一時ファイルを `$TMPDIR` に置くことと、終える前に木を元に戻すことを書く。
 - **agy-plugin-cc（`agy-run`）:** 同じ形で `agy-run --prompt-file <絶対パス> --cwd <worktree> --model gemini-4-neon-medium` を `run_in_background` で走らせ、結果は `result:` から読む。読み取り専用の指定は無く毎回書き込める実行になる。`--thread` は前回の実行が同じディレクトリで返した `thread:` の id があるときだけ足し、別の worktree や id が無いときは新しい会話に前の結果を渡す。同じ作業ツリーで同時に走らせるのは 1 つまで。
-- **実行後の確認:** 書き込める実行の後は、失敗時も含めて `changes:` を読み、編集を禁じたラウンドで空でなければ、他の何かが木に触れる前に調べる。`scratch left:` が出たら片付ける。
+- **実行後の確認:** 書き込める実行が起動した後は、失敗時も含めて `changes:` を読み、`none` 以外（`unknown` や欠落を含む）ならプロセス終了と作業ツリーを確かめてから次へ進む。`scratch left:` はプロセス終了を確かめてから片付ける。
 
 ## いつ
 
