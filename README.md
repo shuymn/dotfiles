@@ -1,6 +1,6 @@
 # dotfiles
 
-自分の Mac を再現・維持するための個人用 dotfiles（他環境向けの汎用テンプレートではない）。役割の異なる 3 つのツールで構成する。
+自分の Mac を再現・維持するための個人用 dotfiles。役割の異なる 3 つのツールで構成する。
 
 - **nix-darwin / Home Manager**: macOS の設定、Nix の設定、日常利用する CLI、Homebrew の GUI アプリ
 - **chezmoi**: `$HOME` に配置する設定ファイル
