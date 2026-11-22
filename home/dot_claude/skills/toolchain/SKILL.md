@@ -3,11 +3,11 @@ name: toolchain
 description: Adding or pinning a tool or version; setting up a repository's CI or GitHub Actions.
 ---
 
-# 道具立て
+# ツールチェーン
 
 ## 使うツールは dotfiles が決める
 
-手元で使えるツールと版の方針の正本は dotfiles（shuymn/dotfiles）で、グローバルの mise 設定 `~/.config/mise/config.toml` と、Nix が入れる日常の CLI がそれに当たる。ツールを選ぶときは、まずそこに入っているものを使う。入っていないものは一次資料で最新の安定版を確かめて選び、採否と理由を報告する。
+手元で使えるツールとバージョン方針の正本は dotfiles（shuymn/dotfiles）で、グローバルの mise 設定 `~/.config/mise/config.toml` と、Nix が入れる日常の CLI がそれに当たる。ツールを選ぶときは、まずそこに入っているものを使う。入っていないものは一次資料で最新の安定バージョンを確かめて選び、採否と理由を報告する。
 
 ## リポジトリでツールを足すとき
 
@@ -16,7 +16,7 @@ description: Adding or pinning a tool or version; setting up a repository's CI o
 
 ## 新しい個人のリポジトリ
 
-- **版の固定:** mise で行い、`mise.toml` にメジャーの範囲を書き、`mise.lock`（`locked = true`）で固定する。言語別の版ファイルは使わない。例外は、外部のビルド環境が言語別の版ファイルしか読まないとき（`.node-version` など）で、その言語の版はそのファイルだけに書き、mise には `idiomatic_version_file_enable_tools` で同じファイルを読ませる（`mise.lock` はそのまま固定する）。Renovate の同じファイルのマネージャ（`nodenv` など）は無効にする。Renovate の mise マネージャは無効にし、日次の mise-update ワークフローが `mise lock --bump` で PR を作る。見本は shuymn/dotfiles の `.github/workflows/mise-update.yml`。
+- **バージョンの固定:** mise で行い、`mise.toml` にメジャーの範囲を書き、`mise.lock`（`locked = true`）で固定する。言語別のバージョンファイルは使わない。例外は、外部のビルド環境が言語別のバージョンファイルしか読まないとき（`.node-version` など）で、その言語のバージョンはそのファイルだけに書き、mise には `idiomatic_version_file_enable_tools` で同じファイルを読ませる（`mise.lock` はそのまま固定する）。Renovate の同じファイルのマネージャ（`nodenv` など）は無効にする。Renovate の mise マネージャは無効にし、日次の mise-update ワークフローが `mise lock --bump` で PR を作る。見本は shuymn/dotfiles の `.github/workflows/mise-update.yml`。
 - **デプロイ:** main は依存の更新が入り続けるので、main から直接デプロイしない。release-please のリリース PR をマージしたときだけ、ワークフローが `release` ブランチをタグへ fast-forward し、デプロイ先はそのブランチだけを見る。`release` を作る・進める・消すのはリリース用の App だけに rulesets で絞り、`release_immutability` を有効にする。
 - **ローカルの検査:** lefthook から走らせる。security/gha ワークフローのツール（actionlint・ghalint・betterleaks など）も mise で固定し、CI とローカルで同じものを使う。
 - **GitHub のリポジトリ設定:** マージ方式、rulesets、許可する Actions、セキュリティ機能は `.github/infra.yaml` に宣言し、gh-infra（`mise.toml` で固定）の `plan` で差分を見てから `apply` する。`gh api` で直接変えない。見本は shuymn/octo-translator の `.github/infra.yaml`。Why: API で直接変えると設定がリポジトリに残らず、標準とのずれも `plan` で見えなくなる。
