@@ -1,13 +1,14 @@
-# Codex レビュー
+# レビュー
 
-Codex はレビュー専用で、実装はさせない。オーナーは Codex レビューを経た内容だけを確定版として扱う。
+reviewer（Codex・`agy`）はレビュー専用で、実装はさせない。オーナーはこの手順のレビューを経た内容だけを確定版として扱う。
 
 ## 実行
 
-- 編集しないことを依頼文に書く。環境が選ばせるなら、Codex `gpt-6.2-sol` を reviewer として動かし、労力は費用ではなく成果を基準に、下の「いつ」の区分と問いの難しさで明示する。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
-- codex-plugin-cc では、依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree>` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの id>` を足す。結果は `result:` のファイルから読む。
-- probe や変異テストを走らせない資料のレビューは `--read-only` を付ける。走らせる依頼文には、一時ファイルを `$TMPDIR` に置くことと、終える前に木を元に戻すことを書く。
-- 書き込める実行の後は `changes:` を読み、編集を禁じたラウンドで空でなければ、他の何かが木に触れる前に調べる。`scratch left:` が出たら片付ける。
+- **担当:** コードレビュー・資料レビューは Codex `gpt-6.2-sol`（high）単体で行う。設計レビューだけこれに Antigravity（`agy`）の Gemini 4 Neon（medium。モデルと労力を分けて選ぶ環境では `gemini-4-neon` の medium、`agy-run` では `--model gemini-4-neon-medium`）を併用し、`agy` 側がエラー（例: クォータ枯渇）で失敗したら無視して `gpt-6.2-sol` の結果だけで進める。
+- **依頼と継続:** 編集しないことを依頼文に書く。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
+- **codex-plugin-cc（`codex-run`）:** 依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree> --model gpt-6.2-sol --effort high` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの id>` を足す。結果は `result:` のファイルから読む。probe や変異テストを走らせない資料のレビューは `--read-only` を付ける。走らせる依頼文には、一時ファイルを `$TMPDIR` に置くことと、終える前に木を元に戻すことを書く。
+- **agy-plugin-cc（`agy-run`）:** 同じ形で `agy-run --prompt-file <絶対パス> --cwd <worktree> --model gemini-4-neon-medium`（r2 以降は `--thread`）を `run_in_background` で走らせ、結果は `result:` から読む。読み取り専用の指定は無く毎回書き込める実行になる。`--thread` は会話を始めたディレクトリからだけ通り、別の worktree では新しい会話に前の結果を渡す。同じ作業ツリーで同時に走らせるのは 1 つまで。
+- **実行後の確認:** 書き込める実行の後は `changes:` を読み、編集を禁じたラウンドで空でなければ、他の何かが木に触れる前に調べる。`scratch left:` が出たら片付ける。
 
 ## いつ
 
