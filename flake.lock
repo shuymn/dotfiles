@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795332170,
-        "narHash": "sha256-o6y6vXC3T3iGFL33xKD1k/7BsWocGugJjLE930vuRSU=",
+        "lastModified": 1795350139,
+        "narHash": "sha256-dk+/O19fUtEQN2gJ3IYbp3xlfGe5m9I/8aUEDr1Cy1k=",
         "owner": "babarot",
         "repo": "nur-packages",
-        "rev": "aa50596cfdcb0829a351d66acb9a37d1c9bdfc8a",
+        "rev": "919231f7480a93beceadcca9a66f9fecd307fd5a",
         "type": "github"
       },
       "original": {
