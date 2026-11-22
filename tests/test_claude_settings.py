@@ -26,7 +26,7 @@ class SettingsTest(unittest.TestCase):
                             "timeout": 5, "onFailure": "continue"}]}
     # Suffix regex so it also matches hosts that expose the tool under a prefixed name.
     ASK = {"matcher": "AskUserQuestion$",
-           "hooks": [{"type": "command", "command": "~/.claude/hooks/ask-owner-checklist.sh", "timeout": 5,
+           "hooks": [{"type": "command", "command": "~/.claude/hooks/ask-owner-checklist.sh", "timeout": 15,
                       "onFailure": "continue"}]}
     START = {"hooks": [{"type": "command", "command": "stack", "args": ["hook", "claude", "session-start"],
                         "timeout": 60, "onFailure": "continue"}]}

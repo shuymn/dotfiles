@@ -167,7 +167,7 @@ exec chezmoi execute-template --with-stdin '
           {
             "type": "command",
             "command": "~/.claude/hooks/ask-owner-checklist.sh",
-            "timeout": 5,
+            "timeout": 15,
             "onFailure": "continue"
           }
         ]
