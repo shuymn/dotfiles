@@ -6,13 +6,13 @@ reviewer（Codex・`agy`）はレビュー専用で、実装はさせない。�
 
 - **担当:** コード・資料（骨子を含む）と低区分の完成差分は Codex `gpt-6.2-sol`（high）単体で行う。設計レビュー（設計書・実装計画の審査）だけこれに Antigravity（`agy`）の Gemini 4 Neon（medium。モデルと労力を分けて選ぶ環境では `gemini-4-neon` の medium）を併用し、`agy` 側がエラー（例: クォータ枯渇）で失敗したら無視して `gpt-6.2-sol` の結果だけで進める。
 - **依頼と継続:** 編集しないことを依頼文に書く。probe や変異テストを走らせる依頼文には、一時ファイルは `$TMPDIR` に置いてそのまま残すこと（自分で消さない）と、終える前に作業ツリーを元に戻すことを書く。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
-- **codex-plugin-cc（`codex-run`）:** 依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree> --model gpt-6.2-sol --effort high` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの thread: の id>` を足す。結果は `result:` のファイルから読む。probe や変異テストを走らせない資料のレビューは `--read-only` を付ける。
+- **codex-plugin-cc（`codex-run`）:** 依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree> --model gpt-6.2-sol --effort high` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの thread: の id>` を足す。結果は `result:` のファイルから読む。デフォルトは `--read-only` とし、反例は再現テストのソースを回答に書かせて自分で走らせる。書き込める実行は、実行中に提供元の判定（例: "flagged for possible cybersecurity risk"）で止まりやすいので、読み取りの結論では決まらない probe に限る。
 - **agy-plugin-cc（`agy-run`）:** 同じ形で `agy-run --prompt-file <絶対パス> --cwd <worktree> --model gemini-4-neon-medium` を `run_in_background` で走らせ、結果は `result:` から読む。読み取り専用の指定は無く毎回書き込める実行になる。`--thread` は前回の実行が同じディレクトリで返した `thread:` の id があるときだけ足し、別の worktree や id が無いときは新しい会話に前の結果を渡す。同じ作業ツリーで同時に走らせるのは 1 つまで。
 - **実行後の確認:** 走らせるたびに `run:` と `thread:` の id と `sandbox:` を控え、`changes:` はその実行のものとして読む。書き込める実行が起動した後は、失敗時も含めて `changes:` を読み、`none` 以外（`unknown` や欠落を含む）ならプロセス終了と作業ツリーを確かめてから次へ進む。`scratch left:` はプロセス終了と対象を確かめてから `trash` で片付ける。
 
 ## いつ
 
-区分は行数や revert のしやすさではなく、変更後に何に作用するかで決め、迷ったら上の区分にする。simplify は回数に数えない。
+区分は行数や revert のしやすさではなく、変更後に何に作用するかで決め、迷ったら上の区分にする。simplify は回数に数えない。コードの PR でも、設計書の保証・前提・受け入れる制限を変える差分（指摘を直さず設計書に限界として書く対応を含む）は設計レビューの担当（「実行」）にかける。
 
 - **低**（文書・設定・テストだけを変える修正、短い資料）: 計画と主張の一覧は作らず、完成した差分に 1 回、計画と資料の観点で。修正の確認は、修正が意味を変えたときだけ。
 - **標準**（普通のコード、長い資料）: 計画（資料は骨子）と完成物に各 1 回。直す指摘が出たら確認のラウンドを足す。
