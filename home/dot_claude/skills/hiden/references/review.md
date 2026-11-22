@@ -5,10 +5,10 @@ reviewer（Codex・`agy`）はレビュー専用で、実装はさせない。�
 ## 実行
 
 - **担当:** コード・資料（骨子を含む）と低区分の完成差分は Codex `gpt-6.2-sol`（high）単体で行う。設計レビュー（設計書・実装計画の審査）だけこれに Antigravity（`agy`）の Gemini 4 Neon（medium。モデルと労力を分けて選ぶ環境では `gemini-4-neon` の medium）を併用し、`agy` 側がエラー（例: クォータ枯渇）で失敗したら無視して `gpt-6.2-sol` の結果だけで進める。
-- **依頼と継続:** 編集しないことを依頼文に書く。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
-- **codex-plugin-cc（`codex-run`）:** 依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree> --model gpt-6.2-sol --effort high` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの id>` を足す。結果は `result:` のファイルから読む。probe や変異テストを走らせない資料のレビューは `--read-only` を付ける。走らせる依頼文には、一時ファイルを `$TMPDIR` に置くことと、終える前に木を元に戻すことを書く。
+- **依頼と継続:** 編集しないことを依頼文に書く。probe や変異テストを走らせる依頼文には、一時ファイルは `$TMPDIR` に置いてそのまま残すこと（自分で消さない）と、終える前に木を元に戻すことを書く。r2 以降の確認ラウンドには修正範囲と前の指摘ごとの対応を渡し、履歴を引き継がない確認には最初の依頼文・指摘・反論も渡す。
+- **codex-plugin-cc（`codex-run`）:** 依頼文をファイルに書き、`codex-run --prompt-file <絶対パス> --cwd <worktree> --model gpt-6.2-sol --effort high` を `run_in_background` で走らせ、r2 以降は `--thread <前のラウンドの id>` を足す。結果は `result:` のファイルから読む。probe や変異テストを走らせない資料のレビューは `--read-only` を付ける。
 - **agy-plugin-cc（`agy-run`）:** 同じ形で `agy-run --prompt-file <絶対パス> --cwd <worktree> --model gemini-4-neon-medium` を `run_in_background` で走らせ、結果は `result:` から読む。読み取り専用の指定は無く毎回書き込める実行になる。`--thread` は前回の実行が同じディレクトリで返した `thread:` の id があるときだけ足し、別の worktree や id が無いときは新しい会話に前の結果を渡す。同じ作業ツリーで同時に走らせるのは 1 つまで。
-- **実行後の確認:** 書き込める実行が起動した後は、失敗時も含めて `changes:` を読み、`none` 以外（`unknown` や欠落を含む）ならプロセス終了と作業ツリーを確かめてから次へ進む。`scratch left:` はプロセス終了を確かめてから片付ける。
+- **実行後の確認:** 書き込める実行が起動した後は、失敗時も含めて `changes:` を読み、`none` 以外（`unknown` や欠落を含む）ならプロセス終了と作業ツリーを確かめてから次へ進む。`scratch left:` はプロセス終了と対象を確かめてから `trash` で片付ける。
 
 ## いつ
 
