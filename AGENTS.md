@@ -34,12 +34,12 @@ This is one person's dotfiles for their own Macs. Prefer built-in tool features 
 ### Renovate and mise Updates
 
 - Pin Hosted Renovate compatibility validation through `.github/renovate-version`; do not reintroduce self-hosting solely to pin Renovate.
-- Keep Renovate's mise manager disabled. `home/dot_config/mise/config.toml` holds major-version ranges, and `.github/workflows/mise-update.yml` advances `mise.lock` with `mise lock --bump`; major updates are manual range edits (`docs/mise-update.md`).
+- Keep Renovate's mise manager disabled. `home/dot_config/mise/config.toml` holds major-version ranges (pin an exact version with a reason comment to opt out of auto-updates), and `.github/workflows/mise-update.yml` advances `mise.lock` with `mise lock --bump`; major updates are manual range edits.
 - Keep that job free of tool installs and tool execution, because it also holds the maintainer App token (current repository, contents and pull-requests write). Never expose that App secret/token to `pull_request` workflows or let Renovate run mise through `allowedUnsafeExecutions`/`postUpgradeTasks`.
 
 ### Agent Knowledge Upkeep
 
-Sessions rewrite the live `~/.claude/skills/{hiden,toolchain,public-text,wasure}` and `agents/steward.md` in place; their source is `home/dot_claude/**`. Left alone they drift back into sediment, so:
+Sessions rewrite the live `~/.claude/skills/{hiden,toolchain,public-text}` in place; their source is `home/dot_claude/**` (`wasure` and `steward` are maintained directly in source). Left alone they drift back into sediment, so:
 
 - Sync: `chezmoi add` each live edit into the source. A deleted file also needs a `.chezmoiremove` line. A new skill joins the `for skill in …` list in `executable_statusline.sh.tmpl` and the diff step of `wasure`, or its drift is never reviewed.
 - Writing: before editing hiden, `toolchain`, `public-text`, `wasure` or `steward`, and when `wasure` reviews their diffs, read `extensions/improve/writing.md` in `shuymn/stack` (wording, splits, prune pass). A cycle run uses the copy embedded in the installed `stack-improve`, so reinstall it after changing that file.
@@ -50,14 +50,14 @@ Sessions rewrite the live `~/.claude/skills/{hiden,toolchain,public-text,wasure}
 | --- | --- |
 | hiden, `toolchain`, `public-text`, `wasure`, `steward` | `diff -rq "$(chezmoi source-path ~/.claude/skills/<name>)" ~/.claude/skills/<name>` is empty after `chezmoi add`; relative links in `references/` resolve. |
 | Migrating unmanaged global CLIs | Run `make audit-cli-path` first; use PATH evidence to choose ownership. |
-| Adding or renaming mise tools | Write the tool as a major-version range (`node = "24"`) and run `mise lock` in `home/dot_config/mise`; see `docs/mise-update.md`. |
+| Adding or renaming mise tools | Write the tool as a major-version range (`node = "24"`) and run `mise lock` in `home/dot_config/mise`. |
 | Homebrew taps, formulae, or casks | Run `make check-brew` to check availability and compare installed formula leaves/casks with the generated Brewfile. |
 | Nix or activation paths | Run `make check`; its flake checks evaluate Home Manager ownership for every role in `nix/roles.toml`. Run `make build` when the activated system changes. |
 | Chezmoi source state | Run `chezmoi diff`; inspect the intended home-directory changes without applying them. |
 
 ### Documentation
 
-- Keep `README.md` a user-facing current-state overview, not an exhaustive mirror of discoverable code/config details.
-- Follow [.agents/skills/skill-vocabulary/SKILL.md](.agents/skills/skill-vocabulary/SKILL.md) for human-facing vs. agent-facing writing policies, language split, and unified technical vocabulary across `README.md`, `docs/**`, and `home/dot_claude/skills/**`.
+- Keep `README.md` a concise bootstrap/entrypoint overview and avoid duplicating details discoverable from code, config, or git history.
+- Follow [.agents/skills/skill-vocabulary/SKILL.md](.agents/skills/skill-vocabulary/SKILL.md) for documentation role boundaries, information-control policy, language split, and unified technical vocabulary across `README.md`, `docs/**`, and `home/dot_claude/skills/**`.
 
 <!-- Maintenance: Update this file when skill or dotfile ownership changes. -->

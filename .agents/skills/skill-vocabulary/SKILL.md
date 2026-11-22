@@ -7,22 +7,16 @@ description: Standardize writing policies and technical vocabulary across reposi
 
 リポジトリ内の人間向け文書（`README.md`、`docs/**`）および Agent 向け文書（`home/dot_claude/skills/**`、`AGENTS.md` など）を、言い換えのない標準技術用語で一貫して執筆・校正するための基準。
 
-## 文書区分ごとの方針
+## 文書の役割と情報量コントロール
 
-- **共通:**
-  - **ボキャブラリ統一:** 人間向け・Agent 向けを問わず標準技術用語（カタカナ・英語の技術用語を含む）を使い、和製的な言い換えを避ける。
-  - **公開制約:** 公開リポジトリのため [public-text](../../../home/dot_claude/skills/public-text/SKILL.md) に従う。
-  - **現行状態の維持:** 変更時は現時点の仕様・結論へ書き換え、古い経緯の追記や日記化をしない。
-- **人間向け文書（`README.md`、`docs/**`）:**
-  - **目的:** 全体像の把握、操作手順の参照、設計判断の根拠の理解。
-  - **構成:** 読みやすさと一覧性を優先する。設計書では意思決定の根拠・前提・実験結果・比較を残す。`README.md` はコードや設定から読み取れる詳細の網羅ミラーにしない。
-  - **言語:** 日本語（実験事前登録 `scripts/kaizen/probe/PREREG.md` のみ英語）。
-- **Agent 向け文書（`AGENTS.md`、`home/.chezmoitemplates/agents/AGENTS.md`、`home/dot_claude/skills/**`、`home/dot_claude/agents/**`、`home/dot_config/stack/handover/**`）:**
-  - **目的:** 行動境界・判断条件・手順を誤解なく実行させる。
-  - **構成:** コンテキスト予算を節約するため常駐は最小限にし、詳細は `references/` へ分離する。モデルがデフォルトでできる振る舞いは書かない。
-  - **Why の扱い:** 経緯・履歴は書かない。`Why` は規則の適用境界や別案を採らない仕組み上の理由を示すときだけ書き、一時的な規則には撤去条件を付ける。
-  - **解釈精度:** 文字通り解釈される前提で書き、lost judgment を防ぎ、例示の括弧には `例:` を付け、固有名詞に閉じず判断メカニズムを記述する。
-  - **言語:** 常駐指示・サブエージェント・handover は英語、スキル群（`home/dot_claude/skills/**`）は日本語。
+- **情報量コントロールの基準（共通）:** コード・設定・git 履歴を見れば分かり、気になったときに Agent へ質問すれば済む詳細や、変化が速く陳腐化しやすい一覧・個別メモは書かない。文書に残すのは「Agent が動く前の入口（ブートストラップ）」と「コードだけでは読み取りにくい意図・境界・規約」に絞る。
+- **共通制約:** ボキャブラリ統一（標準技術用語）、公開制約（[public-text](../../../home/dot_claude/skills/public-text/SKILL.md)）、現行状態の維持（変更時は現時点の仕様・結論へ書き換え、古い経緯の追記や日記化をしない）。
+- **文書の役割区分（5 区分）:**
+  1. **入口・ブートストラップ（`README.md`）:** 日本語。目的・3 ツール分担・新規 Mac 立ち上げ・日常入口コマンドと正本への導線だけを持つ。
+  2. **設計・運用不変条件（`docs/**`）:** 日本語（実験事前登録 `scripts/kaizen/probe/PREREG.md` は英語）。コードからは読み取りにくい設計根拠・制約・比較を残す。
+  3. **リポジトリ保守契約（`AGENTS.md`）:** 英語。所有権境界・禁止事項・変更種別ごとの必須検証を固定する。
+  4. **横断の常駐ガードレール（`home/.chezmoitemplates/agents/AGENTS.md`、`CLAUDE.md.tmpl`、`agents/*.md`、`handover/*.md`）:** 英語。全リポジトリ共通の行動境界・環境制約・役割定義を最小限に保つ。
+  5. **必要時参照のスキル（`home/dot_claude/skills/**`、`.agents/skills/**`）:** 日本語。判断基準・適用境界・手順を、文字通りの解釈を前提に（lost judgment 防止・例示括弧への `例:`・境界を示すときだけの `Why`・一時的規則への撤去条件）記述する。
 
 ## 原則
 
@@ -33,7 +27,7 @@ description: Standardize writing policies and technical vocabulary across reposi
   - 本番コード・対象実装の実行を求める箇所を「同等」にぼかさない。
   - 有効性チェックや差分の出所確認では「どの既存パスと同じチェックか」「自分の変更に由来するか」の条件を残す。
   - パーサー出力の例は AST だけに狭めず `パーサーの構文木や DOM ツリー` とする。
-- **関連規則との整合:** 上記の「文書区分ごとの方針」、`shuymn/stack` の `extensions/improve/writing.md`（文字通りの解釈、例示括弧への `例:`、境界を示すときだけの `Why`）、`public-text` に従う。
+- **関連規則との整合:** 上記の「文書の役割と情報量コントロール」、`shuymn/stack` の `extensions/improve/writing.md`（文字通りの解釈、例示括弧への `例:`、境界を示すときだけの `Why`）、`public-text` に従う。
 
 ## 用語対照表
 
