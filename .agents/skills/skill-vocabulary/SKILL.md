@@ -1,6 +1,6 @@
 ---
 name: skill-vocabulary
-description: Standardize agent-facing technical vocabulary across dotfiles skills. Use when creating, editing, or proofreading skills under home/dot_claude/skills/**.
+description: Standardize agent-facing technical vocabulary under home/dot_claude/skills/**. Use when creating, editing, or proofreading those skills.
 ---
 
 # Skill Vocabulary
@@ -12,7 +12,7 @@ description: Standardize agent-facing technical vocabulary across dotfiles skill
 - **標準技術用語を優先する:** 事前学習の概念に直結する技術用語（`worktree`、`バックグラウンド`、`コンテキスト`、`エッジケース`、`プロパティベーステスト` など）を使い、文学的・和製的な言い換え（`木`、`根`、`見回り`、`清潔`、`番人`、`指紋` など）を避ける。
 - **1 概念 1 語:** 同じ概念に別語を混ぜない。1 語が複数概念を兼ねて衝突している語は意味ごとに分離する。
 - **判断を落とさない（lost judgment 防止）:** 言い換えで規則の適用範囲や条件を狭めたり曖昧にしたりしない。
-  - 全サブエージェント（`worker`・`reviewer`・`steward`）を指す箇所を `worker` に狭めない（`子セッション` を使う）。
+  - 全サブエージェント（例: `worker`・`reviewer`・`steward`・設計エージェント）を指す箇所を `worker` に狭めない（`子セッション` を使う）。
   - 本番コード・対象実装の実行を求める箇所を「同等」にぼかさない。
   - 有効性チェックや差分の出所確認では「どの既存パスと同じチェックか」「自分の変更に由来するか」の条件を残す。
   - パーサー出力の例は AST だけに狭めず `パーサーの構文木や DOM ツリー` とする。
@@ -68,7 +68,7 @@ description: Standardize agent-facing technical vocabulary across dotfiles skill
 | `テスト実行口` / `起動口` / `口` | `テストランナー` / `エントリポイント` / `ラッパー` |
 | `定番の手` / `変則的な手` | `標準的な手法` / `非標準の手法` |
 | `手当て` | `対処` |
-| `緑` / `緑の印` | `CI がパス` / `CI 成功` |
+| `緑` / `緑の印`（CI 結果） | `CI がパス` / `CI 成功`（ローカルテストの成功は `パス`） |
 | `他のソフト` / `連合の相手` | `外部ソフトウェア` / `フェデレーション相手` |
 | `揺れ` / `数字`（計測値） | `ばらつき` / `数値` |
 | `束`（指示書へ貼る規則群） | `ルールブロック` |
@@ -86,9 +86,9 @@ description: Standardize agent-facing technical vocabulary across dotfiles skill
 ## 手順
 
 1. 対象の `home/dot_claude/skills/**/*.md` を走査し、対照表の「避ける語」と多義語の混在を洗い出す。
-2. 意味と境界を保ったまま正規語へ置換する。見出し名を変えた場合は、リポジトリ内の参照（他スキル、`home/dot_claude/attention/items.json`、`docs/`）も同時に更新する。
-3. 次をすべて確認して完了とする:
+2. 依頼がレビュー・校正の指摘のみなら、ファイルを編集せず該当箇所と置換案を返す。作成・編集の依頼なら、意味と境界を保ったまま正規語へ置換し、見出し名を変えた場合はリポジトリ内で見つかった参照（例: 他スキル、`home/dot_claude/attention/items.json`、`docs/`）も同時に更新する。
+3. 編集した場合は次をすべて確認して完了とする:
    - `home/dot_claude/skills/**` の相対 Markdown リンクがすべて解決する。
    - 変更した旧見出し・旧ファイル名への残存参照がない。
-   - `git diff --check` と `stack-public check` が通る。
-   - 複数ファイルにまたがる書き換えでは、Codex レビュー（[review.md](../../../home/dot_claude/skills/hiden/references/review.md)）で lost judgment（条件の狭まり・抜け）がないか確認する。
+   - 差分が `git diff --check` と `public-text` スキルに適合する（公開前の `stack-public check` 実行はコミット・PR 公開手順に委ねる）。
+   - 複数ファイルにまたがる書き換えでは、オーケストレーターがレビューで lost judgment（条件の狭まり・抜け）がないか確認する（worker は差分と検証結果を返すまでとする）。
