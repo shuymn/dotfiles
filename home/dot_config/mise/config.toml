@@ -9,7 +9,7 @@ pipx.uvx = true
 sops.age_key_file = "~/.config/age/key.txt"
 
 # Each tool tracks its major version; mise.lock pins exact versions and
-# .github/workflows/mise-update.yml advances it (see docs/mise-update.md).
+# .github/workflows/mise-update.yml advances it.
 [tools]
 bun = "1"
 go = "1"
