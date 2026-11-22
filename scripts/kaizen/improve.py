@@ -6,7 +6,7 @@ Nothing (no gh, model or file write) happens unless K/improve-enabled is a regul
   2. gate: no uncleared failed:remote-unknown, the newest attempt started 7 days ago or more, no open kaizen/ PR;
   3. lane: without a public GitHub PR or run among the items, write proposal.md and call no model; otherwise
      preflight, then `claude -p` edits a temp tree of the mirror at main, and the change is committed in the mirror,
-     signed with the owner's SSH key, checked (one commit, apply.assess, prose caps, public-check, Codex) and pushed to
+     signed with the owner's SSH key, checked (one commit, apply.assess, public-check, Codex) and pushed to
      a new branch with a PR. Every child runs through apply.bounded within the stage deadline.
 An attempt is K/proposals/<YYYYMMDD>-<id>/ with result.json; remote refs are never deleted.
 """
@@ -30,7 +30,6 @@ import stat
 import tarfile
 import tempfile
 import time
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -58,7 +57,6 @@ PUSH_MARGIN = 30  # no remote write starts with less time left than this
 MODEL, EFFORT, MAX_BUDGET_USD = "claude-opus-5-5", "xhigh", "50"
 TOOLS = "Read,Edit,Write,Grep,Glob"
 CLAUDE_ENV = ("PATH", "HOME", "USER", "LANG", "TMPDIR")
-HOOK = "home/dot_claude/hooks/executable_attention-budget.py"
 WRITING = "scripts/kaizen/writing.md"
 PUBLIC_CHECK = HERE / "public-check"
 PUBLIC_WHERE = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/(?:pull|actions/runs)/\d+")
@@ -368,7 +366,7 @@ def clear(k, attempt):
 
 # ---------------------------------------------------------------- the stage
 
-def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh", sources=None):
+def weekly(k, home, repo, slug, items, now, deadline, gh="gh", sources=None):
     """record["improver"]: {enabled, status, attempt (the newest, summarized), cost_usd (this run's Claude cost: 0,
     a number or "unknown"), codex_runs, decisions}. sources are observe's, whose gh status says whether the absence of
     public items can be trusted."""
@@ -380,7 +378,7 @@ def weekly(k, home, repo, slug, items, ready_results, now, deadline, gh="gh", so
         res["status"] = "skipped:locked"
     else:
         try:
-            Stage(k, Path(home), repo, slug, gh, deadline, res).run(items, ready_results, now, sources or {})
+            Stage(k, Path(home), repo, slug, gh, deadline, res).run(items, now, sources or {})
         except Skip as e:
             res["status"] = f"skipped:{e}"
         finally:
@@ -453,7 +451,7 @@ class Stage:
         return code, out.decode(errors="replace"), err.decode(errors="replace").strip()[-300:]
 
     # -- the order of D1
-    def run(self, items, ready_results, now, sources):
+    def run(self, items, now, sources):
         a = newest(self.k, only=UNFINISHED)  # found apart from the cooldown scan, whatever attempts came after it
         if a:
             try:
@@ -483,17 +481,16 @@ class Stage:
             observed = (sources.get("gh") or {}).get("status")
             if observed != "ok":  # an unread source is not evidence of no public items; retry the next day
                 raise Skip(f"GitHub observation {observed or 'missing'}")
-            self.no_public_evidence(items, ready_results, now)
+            self.no_public_evidence(items, now)
         else:
             self.model_lane(public, now)
 
-    def no_public_evidence(self, items, ready_results, now):
+    def no_public_evidence(self, items, now):
         a = Attempt.create(self.k, now, {"lane": "proposal", "cost_usd": 0})
-        r3 = (ready_results.get("R3") or {})
         lines = ["# 提案（公開の証拠が無い週。モデルは呼んでいない）", "", "## 候補"]
         lines += ([f"- {it.get('id')} {it.get('signal')} {it.get('where')} — {it.get('excerpt')}" for it in items]
                   or ["- なし"])
-        lines += ["", "## R3", f"- {r3.get('status')}: {r3.get('detail')}", ""]
+        lines.append("")
         a.write("proposal.md", "\n".join(lines))
         a.update(outcome="proposal:no-public-evidence")
         self.res["status"] = "proposal"
@@ -780,9 +777,6 @@ class Stage:
             raise Stop("proposal:assess", reason)
         if {source for source, _ in targets} != set(changed):
             raise Stop("proposal:assess", "the applicable targets differ from the changed files")
-        over = self.caps(base, {rel: changed[source] for source, rel in targets})
-        if over:
-            raise Stop("proposal:caps", over)
         broken = self.broken_links(base, changed)
         if broken:
             raise Stop("proposal:links", "; ".join(broken)[:300])
@@ -803,27 +797,6 @@ class Stage:
         """K/private-terms, or an empty file when the owner keeps none: the terms are optional."""
         terms = self.k / "private-terms"
         return str(terms) if os.path.lexists(terms) else os.devnull
-
-    def caps(self, base, targets):
-        """The attention hook's own rules, from its source at base, with the owner's live budget.json: a .md file in a
-        capped dir needs a prose entry, and a file with an entry must fit its cap in UTF-8 bytes."""
-        try:
-            source = self.git("show", f"{base}:{HOOK}").decode()
-            spec = importlib.util.spec_from_loader("kaizen_attention_budget", loader=None)
-            hook = importlib.util.module_from_spec(spec)
-            with home_env(self.home):
-                exec(compile(source, HOOK, "exec"), hook.__dict__)
-                budget = hook.load_budget((self.home / ".claude/attention/budget.json").read_text())
-                _, prose = hook.tracked(budget)
-                for rel, data in sorted(targets.items()):
-                    path = hook.expand("~/" + rel)
-                    if hook.in_capped_dir(path) and path not in prose:
-                        return f"{rel} has no prose entry"
-                    if path in prose and len(data) > prose[path]:
-                        return f"{rel} is {len(data)} bytes; the cap is {prose[path]}"
-        except Exception as e:  # noqa: BLE001 — a hook that cannot be used is a refusal, not a pass
-            return f"attention hook unusable: {type(e).__name__}: {e}"
-        return None
 
     def codex(self, a, work, brief, message, title, body):
         """Codex reviews the frozen candidate; its verdict can only block."""
@@ -969,17 +942,3 @@ class Stage:
         self.create(a, remote)
         if not self.adopt(a, self.lookup(remote), remote):
             raise Stop(REMOTE_UNKNOWN, "no matching PR after the recovery create")
-
-
-@contextmanager
-def home_env(home):
-    """HOME set to the owner's home while the hook's ~ paths are expanded."""
-    old = os.environ.get("HOME")
-    os.environ["HOME"] = str(home)
-    try:
-        yield
-    finally:
-        if old is None:
-            os.environ.pop("HOME", None)
-        else:
-            os.environ["HOME"] = old

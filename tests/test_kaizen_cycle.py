@@ -341,12 +341,6 @@ esac
         self.assertIn(".claude/gone", args)
         self.assertEqual((r["status"], r["detail"]), ("FAIL", [".claude/gone"]))
 
-    def test_r3_fails_on_over(self):
-        hooks = self.dir / ".claude/hooks"
-        hooks.mkdir(parents=True)
-        fake(hooks, "attention-budget.py", "echo 'OVER: x is 9 bytes; cap 1'; exit 1\n")
-        self.assertEqual(ready.check_r3(self.dir)["detail"], ["OVER: x is 9 bytes; cap 1"])
-
     def test_r4_owner_when_gh_is_not_authenticated(self):
         gh = fake(self.dir, "gh", "exit 1\n")
         r = ready.check_r4({"transcripts": {"status": "ok"}, "gh": {"status": "off"}}, gh)
@@ -383,9 +377,8 @@ class Cycle(Temp):
     def setUp(self):
         super().setUp()
         self.home = self.dir / "home"
-        for d in (".claude/projects", ".codex/sessions", ".claude/hooks"):
+        for d in (".claude/projects", ".codex/sessions"):
             (self.home / d).mkdir(parents=True)
-        fake(self.home / ".claude/hooks", "attention-budget.py", "exit 0\n")
         self.k = self.dir / "k"
         self.bin = self.dir / "bin"
         self.bin.mkdir()
@@ -746,7 +739,7 @@ class Cycle(Temp):
                 before = time.monotonic()
                 self.main(*extra)
                 self.assertEqual([c.args[0] for c in alarm.call_args_list], alarms)
-                deadline = weekly.call_args.args[7]
+                deadline = weekly.call_args.args[6]
                 if seconds is None:
                     self.assertGreater(deadline, before + 3599)
                 else:  # an explicit --deadline, 0 included, is the run's limit
