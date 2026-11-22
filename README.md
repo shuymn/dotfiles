@@ -1,10 +1,10 @@
 # dotfiles
 
-自分の Mac を同じ環境にそろえて維持するための dotfiles。役割の違う 3 つの道具で構成する。
+自分の Mac を同じ環境にそろえて維持するための dotfiles。役割の違う 3 つのツールで構成する。
 
 - **nix-darwin / Home Manager**: macOS の設定、Nix の設定、CLI、Homebrew の GUI アプリ
 - **chezmoi**: `$HOME` に置く設定ファイル
-- **mise**: 言語ランタイムと、版を追いかけたい CLI
+- **mise**: 言語ランタイムと、バージョンを追いかけたい CLI
 
 ## 新しい Mac を準備する
 
@@ -69,7 +69,7 @@ chezmoi の暗号化には age を使う。鍵はリポジトリに入れず、�
 
 ## 更新の仕組み
 
-- **mise のツール**: `mise-update` ワークフローが毎日、範囲内の新しい版で `mise.lock` を更新する PR を作り、自動でマージする。メジャー更新は手で範囲を書き換える。詳しくは [docs/mise-update.md](docs/mise-update.md)。
+- **mise のツール**: `mise-update` ワークフローが毎日、範囲内の新しいバージョンで `mise.lock` を更新する PR を作り、自動でマージする。メジャー更新は手で範囲を書き換える。詳しくは [docs/mise-update.md](docs/mise-update.md)。
 - **`flake.lock` と GitHub Actions**: Renovate が PR を作る。lock の更新と minor / patch は自動でマージされ、メジャー更新は手でマージする。
 - **Google Cloud SDK**: work ロールの Nix パッケージとして更新する。追加コンポーネントは `google-cloud-sdk.withExtraComponents` で宣言し、`gcloud components install/update` は使わない。
 - **Homebrew の cask**: `make switch` では更新しない。各アプリの自動更新か `brew upgrade --cask` に任せる。

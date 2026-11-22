@@ -58,5 +58,6 @@ Sessions rewrite the live `~/.claude/skills/{hiden,toolchain,public-text,wasure}
 ### Documentation
 
 - Keep `README.md` a user-facing current-state overview, not an exhaustive mirror of discoverable code/config details.
+- Follow [.agents/skills/skill-vocabulary/SKILL.md](.agents/skills/skill-vocabulary/SKILL.md) for human-facing vs. agent-facing writing policies, language split, and unified technical vocabulary across `README.md`, `docs/**`, and `home/dot_claude/skills/**`.
 
 <!-- Maintenance: Update this file when skill or dotfile ownership changes. -->
