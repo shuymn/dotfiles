@@ -128,7 +128,7 @@ exec chezmoi execute-template --with-stdin '
         "matcher": "Bash"
       },
       {
-        "matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
