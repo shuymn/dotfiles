@@ -23,9 +23,10 @@ class SettingsTest(unittest.TestCase):
     GUARD_EXT = {"matcher": "Bash|Read|NotebookRead|Grep|Glob|mcp__pencil__execute",
                  "hooks": [{"type": "command", "command": "stack-guard", "args": ["hook", "claude", "pre-tool-use"],
                             "timeout": 5, "onFailure": "continue"}]}
-    # Regex so it also matches hosts that expose the tool under a prefixed name.
-    ASK = {"matcher": ".*AskUserQuestion",
-           "hooks": [{"type": "command", "command": "~/.claude/hooks/ask-owner-checklist.sh", "timeout": 5}]}
+    # Suffix regex so it also matches hosts that expose the tool under a prefixed name.
+    ASK = {"matcher": "AskUserQuestion$",
+           "hooks": [{"type": "command", "command": "~/.claude/hooks/ask-owner-checklist.sh", "timeout": 5,
+                      "onFailure": "continue"}]}
     START = {"hooks": [{"type": "command", "command": "stack", "args": ["hook", "claude", "session-start"],
                         "timeout": 60, "onFailure": "continue"}]}
 

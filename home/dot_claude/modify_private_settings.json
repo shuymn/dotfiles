@@ -162,12 +162,13 @@ exec chezmoi execute-template --with-stdin '
         ]
       },
       {
-        "matcher": ".*AskUserQuestion",
+        "matcher": "AskUserQuestion$",
         "hooks": [
           {
             "type": "command",
             "command": "~/.claude/hooks/ask-owner-checklist.sh",
-            "timeout": 5
+            "timeout": 5,
+            "onFailure": "continue"
           }
         ]
       }
