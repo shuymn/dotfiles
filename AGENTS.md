@@ -42,7 +42,7 @@ This is one person's dotfiles for their own Macs. Prefer built-in tool features 
 Sessions rewrite the live `~/.claude/skills/{hiden,toolchain,public-text,wasure}` and `agents/steward.md` in place; their source is `home/dot_claude/**`. Left alone they drift back into sediment, so:
 
 - Sync: `chezmoi add` each live edit into the source. A deleted file also needs a `.chezmoiremove` line. A new skill joins the `for skill in …` list in `executable_statusline.sh.tmpl` and the diff step of `wasure`, or its drift is never reviewed.
-- Writing: before editing hiden, `toolchain`, `public-text`, `wasure` or `steward`, and when `wasure` reviews their diffs, read `extensions/improve/writing.md` in `shuymn/stack` (size, wording, splits, prune pass). A cycle run uses the copy embedded in the installed `stack-improve`, so reinstall it after changing that file.
+- Writing: before editing hiden, `toolchain`, `public-text`, `wasure` or `steward`, and when `wasure` reviews their diffs, read `extensions/improve/writing.md` in `shuymn/stack` (wording, splits, prune pass). A cycle run uses the copy embedded in the installed `stack-improve`, so reinstall it after changing that file.
 
 ### Change-Specific Validation
 
