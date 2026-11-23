@@ -27,7 +27,7 @@ description: Standardize writing policies and technical vocabulary across reposi
   - 本番コード・対象実装の実行を求める箇所を「同等」にぼかさない。
   - 有効性チェックや差分の出所確認では「どの既存パスと同じチェックか」「自分の変更に由来するか」の条件を残す。
   - パーサー出力の例は AST だけに狭めず `パーサーの構文木や DOM ツリー` とする。
-- **関連規則との整合:** 上記の「文書の役割と情報量コントロール」、`shuymn/stack` の `extensions/improve/writing.md`（文字通りの解釈、例示括弧への `例:`、境界を示すときだけの `Why`）、`public-text` に従う。
+- **関連規則との整合:** 上記の「文書の役割と情報量コントロール」、`.stack/writing.md`（文字通りの解釈、例示括弧への `例:`、境界を示すときだけの `Why`）、`public-text` に従う。
 
 ## 用語対照表
 
