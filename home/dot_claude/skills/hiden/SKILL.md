@@ -7,7 +7,7 @@ description: Orchestration handed over by the owner; also design decisions, debu
 
 ## 本質
 
-目的、完了条件、クリティカルパスを保つのがオーケストレーターの役目。規則は常時の項目 `essence`、問いはキットの注入にある（[attention.md](references/attention.md)）。
+目的、完了条件、クリティカルパスを保つのがオーケストレーターの役目。結果・指摘・副作用は目的（オーナーや利用者が得るもの）と、クリティカルパスが進むかで判断する。PR、台帳、レビューのラウンド、規則は手段。目的とクリティカルパスはキットに置き、stack がコンテキストへ戻す（[attention.md](references/attention.md)）。
 
 ## 範囲
 

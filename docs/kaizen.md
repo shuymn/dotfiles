@@ -65,8 +65,8 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 **常駐:**
 - SKILL.md の本質、範囲、進め方 1・3・4・5、references の表、「作業中ずっと」の残り。
-- SessionStart で入る items: `essence`、`decide-methods`、`evidence`。
-- 進め方 3〜5 と `decide-methods` は、釣り合う組なので手を付けない（P1）。
+- SessionStart で入る items: キットの `attention/items.json` のうち `orchestrator` と `all` の項目。
+- 進め方 3〜5 は、釣り合う組なので手を付けない（P1）。
 
 | フェーズ | 出来事で渡す | 必要時 | 取る | 証拠 |
 |---|---|---|---|---|
@@ -91,7 +91,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - ネイティブの subagent: system prompt になり、compaction の後も残る。
   - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`stack hook claude session-start` の compact が本文（frontmatter を除く）とそのプロンプトをそのままコンテキストへ戻す（フックの上限の長さで切る）。
 - CLAUDE.md。
-- items の `evidence`。
+- 証拠の強さ（hiden `verification.md`）は、オーケストレーターが指示書の報告の仕様に入れる。
 
 | フェーズ | 出来事で渡す | 取る | 証拠 |
 |---|---|---|---|
