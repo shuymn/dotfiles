@@ -231,17 +231,22 @@ class StackCycle(unittest.TestCase):
 
     def test_synthetic_error_counts_only_on_a_valid_exit_and_shape(self):
         crashed = response("jev-classify", status="warn", error="extension crashed")
+        listed = {"stage": "cycle", "status": "pass", "results": [], "skipped": ["jev-classify"]}
         for case, (output, code) in {"exit 2": (dump(crashed), 2),
-                                     "stage not cycle": (dump({**crashed, "stage": "check"}), 0)}.items():
+                                     "stage not cycle": (dump({**crashed, "stage": "check"}), 0),
+                                     "error on a pass result": (dump(response("jev-classify", error="made up")), 0),
+                                     "skipped with status block": (dump({**listed, "status": "block"}), 0),
+                                     "skipped with other names": (dump({**listed, "skipped": ["jev-classify", "x"]}),
+                                                                  0)}.items():
             with self.subTest(case):
                 self.calls.unlink(missing_ok=True)
                 last = self.classify_outcome(output, code)
                 self.assertEqual(last["results"][1]["error"], "invalid output")
 
     def test_synthetic_classify_error_keeps_core_error_text(self):
-        last = self.classify_outcome(dump(response("jev-classify", status="warn", error="extension crashed")))
+        last = self.classify_outcome(dump(response("jev-classify", status="warn", error="extension crashed\n")))
         self.assertEqual(last["status"], "warn")
-        self.assertEqual(last["results"][1]["error"], "extension crashed")
+        self.assertEqual(last["results"][1]["error"], "extension crashed\n")
         self.assertEqual(last["results"][1]["name"], "jev-classify")
 
     def test_invalid_improve_after_classify_keeps_previous_last_json(self):

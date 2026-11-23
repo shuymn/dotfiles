@@ -41,11 +41,10 @@ if [ "$code" -eq 0 ] && jq -e -s 'length == 1 and (.[0] | .stage == "cycle")' "$
     def warn($e): {status: "warn", skipped: [],
       results: [{name: "jev-classify", status: "warn", context: "", error: $e, findings: []}]};
     if $ok == "1" then {status: .results[0].status, results: [.results[0]], skipped: []}
-    elif (.results | type == "array" and length == 0) and (.skipped | type == "array")
-      and any(.skipped[]; . == "jev-classify" or .name? == "jev-classify")
+    elif .status == "pass" and .results == [] and .skipped == ["jev-classify"]
     then {status: "pass", results: [], skipped: ["jev-classify"]}
-    elif (.results | type == "array" and length == 1) and (.results[0] | .name == "jev-classify"
-      and (.error | type == "string") and .error != "")
+    elif .status == "warn" and (.results | type == "array" and length == 1) and (.results[0] | .name == "jev-classify"
+      and .status == "warn" and (.error | type == "string") and .error != "")
     then warn(.results[0].error)
     else warn("invalid output") end' "$cls") || n=""
 else
