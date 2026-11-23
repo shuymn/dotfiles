@@ -1,3 +1,5 @@
 # What stack-improve may edit in this repository (read from the merged default branch): the Markdown of skills and
 # agents, never chezmoi attribute files such as symlink_*.tmpl; ** = any directories.
 paths = ["home/dot_claude/skills/**/*.md", "home/dot_claude/agents/**/*.md"]
+# The writing guide stack-improve gives the model; outside paths, so stack-improve cannot rewrite its own rules.
+writing = ".stack/writing.md"
