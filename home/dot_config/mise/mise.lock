@@ -294,19 +294,19 @@ url_api = "https://api.github.com/repos/shuymn/kastty/releases/assets/678660805"
 provenance = "github-attestations"
 
 [[tools."github:shuymn/pommitlint"]]
-version = "2.0.4"
+version = "2.0.5"
 backend = "github:shuymn/pommitlint"
 
 [tools."github:shuymn/pommitlint"."platforms.linux-x64"]
-checksum = "sha256:96d02e55b5507f7823075d47ba46c585a7b16df85f76711a4c7368ac71e6f61c"
-url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.4/pommitlint_v2.0.4_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/663972620"
+checksum = "sha256:aef35f06a74af87694b5cb54c81df3ebd9a021dd6f84de8a7ffd3633873a757f"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.5/pommitlint_v2.0.5_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/779959724"
 provenance = "github-attestations"
 
 [tools."github:shuymn/pommitlint"."platforms.macos-arm64"]
-checksum = "sha256:3520fff3ad06391ec9e151a3f3e88d76220dffad75ca077128bc7953baeee57b"
-url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.4/pommitlint_v2.0.4_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/663972623"
+checksum = "sha256:7b8b89cd21881ce2c807bd1d6375c50d91ff715d193cc86282e1f765987d8b50"
+url = "https://github.com/shuymn/pommitlint/releases/download/v2.0.5/pommitlint_v2.0.5_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/shuymn/pommitlint/releases/assets/779959718"
 provenance = "github-attestations"
 
 [[tools."github:suzuki-shunsuke/ghalint"]]
