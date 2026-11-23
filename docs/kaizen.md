@@ -65,8 +65,8 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 
 **常駐:**
 - SKILL.md の本質、範囲、進め方 1・3・4・5、references の表、「作業中ずっと」の残り。
-- SessionStart で入る items: `essence`、`decide-methods`、`evidence`。
-- 進め方 3〜5 と `decide-methods` は、釣り合う組なので手を付けない（P1）。
+- SessionStart で入る items: キットの `attention/items.json` のうち `orchestrator` と `all` の項目。
+- 進め方 3〜5 は、釣り合う組なので手を付けない（P1）。
 
 | フェーズ | 出来事で渡す | 必要時 | 取る | 証拠 |
 |---|---|---|---|---|
@@ -74,7 +74,7 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 | compaction | SessionStart(compact): 上の内容と「今のステップの reference を読み直す」 | — | 進め方 2「各ステップに入る前に読み直す」 | 原則 2。効き目は仮説 |
 | 委任 | — | subagent-brief.md | 報告の仕様にある回帰テストの句（§3.2 へ移す） | P3 |
 | 外部を待つ | — | commit-pr.md（SKILL の「外部を待つ」の段落を移す） | SKILL の常駐段落（579 B） | フェーズに属する判断で、常駐は要らない |
-| レビュー・マージ | — | review.md（依頼の書式に、主張ごとに最も強い証拠を求める一文を置く）、commit-pr.md | 「reviewer の常時の項目を依頼文に貼る」 | `evidence` の役目を依頼の書式が引き継ぐ |
+| レビュー・マージ | — | review.md（依頼の書式に、主張ごとに最も強い証拠を求める一文を置く）、commit-pr.md | 「reviewer の常時の項目を依頼文に貼る」 | 主張ごとの証拠は依頼の書式が求める |
 | 環境で検証が止まった | — | debugging.md（recall の行を移す） | SKILL の常駐の行 | 仮説 |
 | フェーズの区切り | — | steward（目的とクリティカルパスの監査が要るときに呼ぶ） | 台帳の記録、振り返り、文書整理、`/wasure` を勧める文、「手法を直すとき」は周期へ移す。steward を呼ぶ定例の時期は消す | 原則 4 |
 
@@ -91,7 +91,6 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
   - ネイティブの subagent: system prompt になり、compaction の後も残る。
   - T3 の子: 固定の 1 行で読ませる。compaction の後は、最初のプロンプトに固定の 1 行があれば、`stack hook claude session-start` の compact が本文（frontmatter を除く）とそのプロンプトをそのままコンテキストへ戻す（フックの上限の長さで切る）。
 - CLAUDE.md。
-- items の `evidence`。
 
 | フェーズ | 出来事で渡す | 取る | 証拠 |
 |---|---|---|---|

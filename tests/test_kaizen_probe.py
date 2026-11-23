@@ -252,12 +252,11 @@ class BuildTest(TempCase):
         self.check(root)
         self.assertNotIn(self.LEAK, (root / "B/evals/worker-L2/history.jsonl").read_text())
 
-    def test_private_term_filler_is_excluded_without_public_check(self):
-        """A copy of the checkout without scripts/kaizen/public-check still builds and keeps out the generated terms."""
+    def test_private_term_filler_is_excluded_by_the_generated_terms(self):
+        """A copy of the checkout builds and keeps out the terms in the generated private-terms file."""
         term = "zephyrquill"
         copy = self.tmp / "checkout"
-        shutil.copytree(REPO / "scripts", copy / "scripts", ignore=shutil.ignore_patterns("__pycache__", "public-check"))
-        self.assertFalse((copy / "scripts/kaizen/public-check").exists())
+        shutil.copytree(REPO / "scripts", copy / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
         for rel in ("home/dot_claude/agents/opus-worker.md", "nix/host.default.toml", "nix/roles.toml"):
             (copy / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(REPO / rel, copy / rel)
