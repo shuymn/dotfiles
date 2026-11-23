@@ -79,7 +79,8 @@ in
   # improve stays off until ~/.config/stack/improve.toml enables it and then runs claude, codex and gh through the
   # mise shims. stack and its extensions live in ~/.local/bin. launchd starts a calendar job missed while asleep on
   # wake and runs one instance of a label at a time. The script runs from its store copy, so a change takes effect
-  # at the next switch. The cycle is specified in docs/design/phase3-cycle.md of shuymn/stack.
+  # at the next switch. The cycle is specified in docs/design/phase3-cycle.md of shuymn/stack; the summary files the
+  # script writes for the statusline, in docs/stack-cycle.md.
   launchd.agents.stack-cycle = {
     enable = true;
     config = {
