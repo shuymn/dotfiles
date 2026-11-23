@@ -14,7 +14,8 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts/stack-private-terms"
-# The last main commit whose generator read host.toml through scripts/kaizen/public-check.
+# The last main commit whose generator read host.toml through a helper script retired since; its scripts/ tree
+# is the parity baseline.
 LEGACY = "e53e5351c84dd8aaf93dca88d04528edf84d0904"
 OWNER = "octo-owner"
 HOME_DIR = "/" + "Users/" + OWNER  # split so the committed line is not a local path itself
@@ -86,7 +87,7 @@ class StackPrivateTermsTest(unittest.TestCase):
         return {t for line in path.read_text().splitlines() if (t := line.strip()) and not t.startswith("#")}
 
     def generate(self):
-        """The current generator, in a checkout without scripts/kaizen/public-check."""
+        """The current generator, in a checkout holding no other script."""
         root = self.checkout("current", {"scripts/stack-private-terms": SCRIPT.read_text()})
         return self.run_generator(root, ".config/stack/private-terms.local")
 
@@ -97,12 +98,11 @@ class StackPrivateTermsTest(unittest.TestCase):
         self.assertTrue(out.read_text().startswith("# "))
 
     def test_term_set_equals_the_legacy_generator(self):
-        legacy = {}
-        for rel in ("scripts/stack-private-terms", "scripts/kaizen/public-check"):
-            p = subprocess.run(["git", "-C", str(REPO), "show", f"{LEGACY}:{rel}"], capture_output=True, text=True)
-            if p.returncode != 0:
-                self.skipTest("needs the legacy commit (CI checks out one commit)")
-            legacy[rel] = p.stdout
+        p = subprocess.run(["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", LEGACY, "scripts"],
+                           capture_output=True, text=True)
+        if p.returncode != 0:
+            self.skipTest("needs the legacy commit (CI checks out one commit)")
+        legacy = {rel: git(REPO, "show", f"{LEGACY}:{rel}") for rel in p.stdout.splitlines()}
         old = self.run_generator(self.checkout("legacy", legacy), ".claude/kaizen/private-terms")
         new = self.generate()
         self.assertEqual(self.terms(new), self.terms(old))
