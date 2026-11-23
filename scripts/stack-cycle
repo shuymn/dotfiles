@@ -13,13 +13,16 @@ fail() {
   fi
   exit 2
 }
-# valid NAME FILE CODE: exit 0 and exactly one cycle object with one self-answered result for NAME
+# answered($n): a cycle object with exactly one self-answered result for $n
+answered='def answered($n): .stage == "cycle" and (.status | IN("pass", "warn"))
+  and (.results | type == "array" and length == 1)
+  and (.results[0] | .name == $n and .error == "" and (.status | IN("pass", "warn")) and (.findings | type == "array"));'
+# valid NAME FILE CODE: exit 0 and exactly one such object
 valid() {
-  [ "$3" -eq 0 ] && jq -e -s --arg n "$1" 'length == 1 and (.[0] | .stage == "cycle"
-      and (.status | IN("pass", "warn")) and (.results | type == "array" and length == 1)
-      and (.results[0] | .name == $n and .error == "" and (.status | IN("pass", "warn"))
-           and (.findings | type == "array")))' "$2" >/dev/null 2>&1
+  [ "$3" -eq 0 ] && jq -e -s --arg n "$1" "$answered"' length == 1 and (.[0] | answered($n))' "$2" >/dev/null 2>&1
 }
+# The classify result recorded when its answer is unusable
+invalid='{"status":"warn","skipped":[],"results":[{"name":"jev-classify","status":"warn","context":"","error":"invalid output","findings":[]}]}'
 mkdir -p "$out" || { printf 'stack-cycle: cannot create %s\n' "$out" >&2; exit 2; }
 src=$(chezmoi source-path) || fail "chezmoi source-path failed"
 [ -n "$src" ] || fail "chezmoi source-path printed nothing"
@@ -37,20 +40,18 @@ stack run cycle --ext jev-classify >"$cls"; code=$?
 # Normalise classify to {status, results, skipped}: its own result; `skipped` when stack lists it there; a `warn`
 # result keeping core's error text for a synthetic error; else a `warn` result with "invalid output"
 if [ "$code" -eq 0 ] && jq -e -s 'length == 1 and (.[0] | .stage == "cycle")' "$cls" >/dev/null 2>&1; then
-  n=$(jq -c --arg ok "$(valid jev-classify "$cls" 0 && echo 1)" '
-    def warn($e): {status: "warn", skipped: [],
-      results: [{name: "jev-classify", status: "warn", context: "", error: $e, findings: []}]};
-    if $ok == "1" then {status: .results[0].status, results: [.results[0]], skipped: []}
+  n=$(jq -c --argjson invalid "$invalid" "$answered"'
+    if (try answered("jev-classify") catch false) then {status: .results[0].status, results: [.results[0]], skipped: []}
     elif .status == "pass" and .results == [] and .skipped == ["jev-classify"]
     then {status: "pass", results: [], skipped: ["jev-classify"]}
     elif .status == "warn" and (.results | type == "array" and length == 1) and (.results[0] | .name == "jev-classify"
       and .status == "warn" and (.error | type == "string") and .error != "")
-    then warn(.results[0].error)
-    else warn("invalid output") end' "$cls") || n=""
+    then .results[0].error as $e | $invalid | .results[0].error = $e
+    else $invalid end' "$cls") || n=""
 else
   n=""
 fi
-[ -n "$n" ] || n='{"status":"warn","skipped":[],"results":[{"name":"jev-classify","status":"warn","context":"","error":"invalid output","findings":[]}]}'
+[ -n "$n" ] || n=$invalid
 printf '%s\n' "$n" >"$cls" || fail "cannot record the jev-classify result"
 imp=$(mktemp "$out/.improve.XXXXXX") || fail "mktemp failed"
 stack run cycle --ext improve >"$imp"; code=$?

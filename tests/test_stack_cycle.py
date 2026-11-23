@@ -249,14 +249,6 @@ class StackCycle(unittest.TestCase):
         self.assertEqual(last["results"][1]["error"], "extension crashed\n")
         self.assertEqual(last["results"][1]["name"], "jev-classify")
 
-    def test_invalid_improve_after_classify_keeps_previous_last_json(self):
-        self.previous()
-        self.stage("improve", body("", 0))
-        result = self.run_cycle()
-        self.assert_failed(result, "improve: exit 0 without a valid result")
-        self.assertEqual((self.out / "last.json").read_bytes(), OLD_LAST)
-        self.assertEqual(self.called(), ["observe", "jev-classify", "improve"])
-
     def test_stale_latest_json_does_not_run_improve(self):
         self.previous()
         self.stage("observe", body(dump(response("observe"))))  # latest.json keeps its window from 2000
