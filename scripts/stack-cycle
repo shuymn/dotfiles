@@ -1,12 +1,13 @@
 #!/bin/sh
-# Run observe, then improve, from the dotfiles checkout; keep the last valid result for the statusline.
+# Run observe, jev-classify, then improve, from the dotfiles checkout; keep the last valid result for the
+# statusline. Classify's outcome never fails the job.
 set -u
 out=$HOME/.local/state/stack/cycle
 latest=$HOME/.local/state/stack/observe/latest.json
-obs="" imp="" all=""
+obs="" cls="" imp="" all=""
 fail() {
   printf 'stack-cycle: %s\n' "$1" >&2
-  rm -f ${obs:+"$obs"} ${imp:+"$imp"} ${all:+"$all"}
+  rm -f ${obs:+"$obs"} ${cls:+"$cls"} ${imp:+"$imp"} ${all:+"$all"}
   if e=$(mktemp "$out/.error.XXXXXX"); then
     { date -u +%Y-%m-%dT%H:%M:%SZ && printf '%s\n' "$1"; } >"$e" && mv -f "$e" "$out/last-error" || rm -f "$e"
   fi
@@ -31,13 +32,32 @@ jq -e '[.results[].findings[]? | objects | select(.kind? == "latest-not-written"
   >/dev/null || fail "observe could not write latest.json"
 jq -e --arg s "$start" '.version == 1 and (.window.until | fromdateiso8601) >= ($s | fromdateiso8601)' \
   "$latest" >/dev/null 2>&1 || fail "observe did not write a fresh latest.json"
+cls=$(mktemp "$out/.classify.XXXXXX") || fail "mktemp failed"
+stack run cycle --ext jev-classify >"$cls"; code=$?
+# Normalise classify to one cycle object: its own result, `skipped` when missing, or a `warn` result naming the
+# problem (core's error text, else "invalid output")
+if valid jev-classify "$cls" "$code"; then
+  :
+elif [ "$code" -eq 0 ] && jq -e -s 'length == 1 and (.[0] | .stage == "cycle" and (.results | length == 0)
+    and (.skipped | type == "array" and any(.[]; .name? == "jev-classify")))' "$cls" >/dev/null 2>&1; then
+  n=$(jq '{stage, status: "pass", results: [], skipped: [.skipped[] | select(.name? == "jev-classify")]}' "$cls") \
+    && printf '%s\n' "$n" >"$cls" || fail "cannot record the jev-classify result"
+else
+  err=$(jq -r -s 'if length == 1 and (.[0].results | type == "array") then
+      [.[0].results[] | select(.name? == "jev-classify" and (.error | type == "string") and .error != "")
+       | .error][0] // empty else empty end' "$cls" 2>/dev/null)
+  jq -n --arg e "${err:-invalid output}" '{stage: "cycle", status: "warn", skipped: [],
+      results: [{name: "jev-classify", status: "warn", context: "", error: $e, findings: []}]}' \
+    >"$cls" || fail "cannot record the jev-classify result"
+fi
 imp=$(mktemp "$out/.improve.XXXXXX") || fail "mktemp failed"
 stack run cycle --ext improve >"$imp"; code=$?
 valid improve "$imp" "$code" || fail "improve: exit $code without a valid result"
 all=$(mktemp "$out/.last.XXXXXX") || fail "mktemp failed"
 jq -s '{stage: "cycle", status: (if any(.[]; .status == "warn") then "warn" else "pass" end),
-        results: [.[].results[]], skipped: []}' "$obs" "$imp" >"$all" || fail "cannot merge the results"
+        results: [.[].results[]], skipped: [.[].skipped[]]}' "$obs" "$cls" "$imp" >"$all" \
+  || fail "cannot merge the results"
 mv -f "$all" "$out/last.json" || fail "cannot replace last.json"
-rm -f "$obs" "$imp"
+rm -f "$obs" "$cls" "$imp"
 rm -f "$out/last-error" || fail "cannot remove last-error"
 exit 0
