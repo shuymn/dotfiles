@@ -90,6 +90,7 @@ class StackCycle(unittest.TestCase):
                            f'. {sh_quote(str(self.dir))}/"$4.sh"\n')
         self.fake("chezmoi", f"printf '%s\\n' {sh_quote(str(self.checkout / 'home'))}\n")
         self.stage("observe", body(dump(response("observe")), fresh=True))
+        self.stage("jev-classify", body(dump(response("jev-classify"))))
         self.stage("improve", body(dump(response("improve", status="warn", findings=[{"kind": "x"}]))))
         jq = shutil.which("jq")
         self.path = os.pathsep.join([str(self.bin), os.path.dirname(jq), "/usr/bin", "/bin"])
@@ -138,11 +139,11 @@ class StackCycle(unittest.TestCase):
         last = json.loads((self.out / "last.json").read_text())
         self.assertEqual(last["stage"], "cycle")
         self.assertEqual(last["status"], "warn")
-        self.assertEqual([r["name"] for r in last["results"]], ["observe", "improve"])
+        self.assertEqual([r["name"] for r in last["results"]], ["observe", "jev-classify", "improve"])
         self.assertEqual(last["skipped"], [])
         self.assertFalse((self.out / "last-error").exists())
         self.assertEqual(self.calls.read_text().splitlines(),
-                         [f"observe {self.checkout.resolve()}", f"improve {self.checkout.resolve()}"])
+                         [f"{n} {self.checkout.resolve()}" for n in ("observe", "jev-classify", "improve")])
         self.assert_no_temp()
 
     def test_first_valid_run_creates_the_state_directory(self):
@@ -165,7 +166,7 @@ class StackCycle(unittest.TestCase):
                 result = self.run_cycle()
                 self.assert_failed(result, f"improve: exit {code} without a valid result")
                 self.assertEqual((self.out / "last.json").read_bytes(), OLD_LAST)
-                self.assertEqual(self.called(), ["observe", "improve"])
+                self.assertEqual(self.called(), ["observe", "jev-classify", "improve"])
 
     def test_invalid_observe_does_not_run_improve(self):
         for case, make in INVALID.items():
@@ -178,6 +179,83 @@ class StackCycle(unittest.TestCase):
                 self.assert_failed(result, f"observe: exit {code} without a valid result")
                 self.assertEqual((self.out / "last.json").read_bytes(), OLD_LAST)
                 self.assertEqual(self.called(), ["observe"])
+
+    def classify_outcome(self, output, code=0):
+        """Run the cycle with classify answering output and return last.json; improve passes."""
+        self.stage("improve", body(dump(response("improve"))))
+        self.stage("jev-classify", body(output, code))
+        result = self.run_cycle()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.called(), ["observe", "jev-classify", "improve"])
+        self.assert_no_temp()
+        return json.loads((self.out / "last.json").read_text())
+
+    def test_classify_pass_leaves_the_status_to_the_others(self):
+        last = self.classify_outcome(dump(response("jev-classify")))
+        self.assertEqual(last["status"], "pass")
+        self.assertEqual([r["name"] for r in last["results"]], ["observe", "jev-classify", "improve"])
+        self.assertEqual(last["results"][1]["context"], "jev-classify ran")
+
+    def test_classify_warn_makes_the_status_warn(self):
+        last = self.classify_outcome(dump(response("jev-classify", status="warn", findings=[{"kind": "y"}])))
+        self.assertEqual(last["status"], "warn")
+        self.assertEqual(last["results"][1]["findings"], [{"kind": "y"}])
+
+    def test_missing_classify_is_listed_under_skipped(self):
+        # The shape stack prints when the extension is not on PATH
+        skipped = {"stage": "cycle", "status": "pass", "results": [], "skipped": ["jev-classify"]}
+        last = self.classify_outcome(dump(skipped))
+        self.assertEqual(last["status"], "pass")
+        self.assertEqual([r["name"] for r in last["results"]], ["observe", "improve"])
+        self.assertEqual(last["skipped"], ["jev-classify"])
+
+    def test_missing_skipped_fields_never_fail_the_job(self):
+        no_skipped = {k: v for k, v in response("jev-classify").items() if k != "skipped"}
+        self.stage("observe", body(dump({k: v for k, v in response("observe").items() if k != "skipped"}),
+                                   fresh=True))
+        last = self.classify_outcome(dump(no_skipped))
+        self.assertEqual(last["status"], "pass")
+        self.assertEqual(last["skipped"], [])
+        self.assertEqual([r["name"] for r in last["results"]], ["observe", "jev-classify", "improve"])
+
+    def test_invalid_classify_is_a_warn_result_and_the_job_still_succeeds(self):
+        cases = {k: v for k, v in INVALID.items() if k not in ("only in skipped", "synthetic error")}
+        for case, make in cases.items():
+            with self.subTest(case):
+                self.calls.unlink(missing_ok=True)
+                output, code = make("jev-classify")
+                last = self.classify_outcome(output, code)
+                self.assertEqual(last["status"], "warn")
+                self.assertEqual(last["results"][1], {"name": "jev-classify", "status": "warn", "context": "",
+                                                      "error": "invalid output", "findings": []})
+
+    def test_synthetic_error_counts_only_on_a_valid_exit_and_shape(self):
+        crashed = response("jev-classify", status="warn", error="extension crashed")
+        listed = {"stage": "cycle", "status": "pass", "results": [], "skipped": ["jev-classify"]}
+        for case, (output, code) in {"exit 2": (dump(crashed), 2),
+                                     "stage not cycle": (dump({**crashed, "stage": "check"}), 0),
+                                     "error on a pass result": (dump(response("jev-classify", error="made up")), 0),
+                                     "skipped with status block": (dump({**listed, "status": "block"}), 0),
+                                     "skipped with other names": (dump({**listed, "skipped": ["jev-classify", "x"]}),
+                                                                  0)}.items():
+            with self.subTest(case):
+                self.calls.unlink(missing_ok=True)
+                last = self.classify_outcome(output, code)
+                self.assertEqual(last["results"][1]["error"], "invalid output")
+
+    def test_synthetic_classify_error_keeps_core_error_text(self):
+        last = self.classify_outcome(dump(response("jev-classify", status="warn", error="extension crashed\n")))
+        self.assertEqual(last["status"], "warn")
+        self.assertEqual(last["results"][1]["error"], "extension crashed\n")
+        self.assertEqual(last["results"][1]["name"], "jev-classify")
+
+    def test_invalid_improve_after_classify_keeps_previous_last_json(self):
+        self.previous()
+        self.stage("improve", body("", 0))
+        result = self.run_cycle()
+        self.assert_failed(result, "improve: exit 0 without a valid result")
+        self.assertEqual((self.out / "last.json").read_bytes(), OLD_LAST)
+        self.assertEqual(self.called(), ["observe", "jev-classify", "improve"])
 
     def test_stale_latest_json_does_not_run_improve(self):
         self.previous()
@@ -271,7 +349,7 @@ class StackCycle(unittest.TestCase):
                 self.assert_previous_error(error)
                 code, err = self.release(proc, fifo)
                 self.assertEqual(code, 0, err)
-                self.assertEqual(len(json.loads((self.out / "last.json").read_text())["results"]), 2)
+                self.assertEqual(len(json.loads((self.out / "last.json").read_text())["results"]), 3)
                 self.assertFalse((self.out / "last-error").exists())
 
     def test_half_written_last_error_is_never_visible(self):

@@ -4,12 +4,14 @@
 
 ## 有効な実行
 
-ジョブは `stack run cycle --ext observe` の後に `stack run cycle --ext improve` を走らせ、次をすべて満たすときだけ有効とする。
+ジョブは `stack run cycle --ext observe`、`stack run cycle --ext jev-classify`、`stack run cycle --ext improve` の順に走らせ、observe と improve が次をすべて満たすときだけ有効とする。
 
 - 2 回とも終了コード 0 で、`stage` が `cycle`、`status` が `pass` か `warn` の JSON オブジェクトを 1 つだけ出す。
 - その `results` は呼んだ拡張の結果 1 件だけで、その拡張自身が答えたもの（`error` が空、`status` が `pass` か `warn`、`findings` が配列）。
 - observe に `latest-not-written` の finding が無く、`observe/latest.json` の `version` が 1 で `window.until` がジョブの開始時刻以降。
-- improve は有効な observe の後にだけ走る。
+- jev-classify と improve は有効な observe の後にだけ走る。jev-classify は improve の前に走るので、その週の報告は improve の結果に左右されない（`shuymn/stack` の `docs/design/phase4-jev.md` §3.2）。
+
+jev-classify の結果は実行の成否に関わらない。自身が答えた結果はそのまま、`PATH` に無ければ `skipped` に入れ、終了コード 0 以外や形の崩れた出力は `error` が `invalid output`、core が合成したエラーはその文の `warn` の結果にして合わせる。
 
 それ以外（例: stack の終了コード 2、`PATH` に無い拡張が `skipped` に入る、拡張のクラッシュ、古い `latest.json`）は失敗で、ジョブは終了コード 2 で終わる。
 
@@ -17,7 +19,7 @@
 
 | ファイル | 書く時 | 中身 |
 |---|---|---|
-| `last.json` | 有効な実行の後だけ、一時ファイルからの rename で置き換える | 2 つの結果を合わせた `cycle` オブジェクト 1 つ: `stage` は `cycle`、`status` はどちらかが `warn` なら `warn`、他は `pass`、`results` は observe、improve の順、`skipped` は空。提案の本文は `jq -r '.results[].context'` で読む |
+| `last.json` | 有効な実行の後だけ、一時ファイルからの rename で置き換える | 結果を合わせた `cycle` オブジェクト 1 つ: `stage` は `cycle`、`status` はどれかが `warn` なら `warn`、他は `pass`、`results` は observe、jev-classify、improve の順、`skipped` は jev-classify が無いときだけそれを持つ。提案の本文は `jq -r '.results[].context'` で読む |
 | `last-error` | 失敗した実行で、一時ファイルからの rename で置き換える。有効な実行で消す | 1 行目に UTC の時刻（`YYYY-MM-DDTHH:MM:SSZ`）、2 行目に理由 |
 
 失敗しても前回の `last.json` は残る。ラッパーを走らせるのはジョブだけなので、`last-error` があれば最新の実行が失敗したことを表し、時刻を比べる必要はない。
