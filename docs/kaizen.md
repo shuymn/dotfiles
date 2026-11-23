@@ -72,7 +72,6 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 |---|---|---|---|---|
 | 開始・再開・clear | SessionStart: state.md、items、クリティカルパスの問い 1 文 | 表から当たる reference | 予算の使用量の行（meta） | 原則 4 |
 | compaction | SessionStart(compact): 上の内容と「今のステップの reference を読み直す」 | — | 進め方 2「各ステップに入る前に読み直す」 | 原則 2。効き目は仮説 |
-| state が古い | Stop: `watch` が state より新しければ 1 度止める（今の仕組み） | — | — | 既存の仕組み |
 | 委任 | — | subagent-brief.md | 報告の仕様にある回帰テストの句（§3.2 へ移す） | P3 |
 | 外部を待つ | — | commit-pr.md（SKILL の「外部を待つ」の段落を移す） | SKILL の常駐段落（579 B） | フェーズに属する判断で、常駐は要らない |
 | レビュー・マージ | — | review.md（依頼の書式に、主張ごとに最も強い証拠を求める一文を置く）、commit-pr.md | 「reviewer の常時の項目を依頼文に貼る」 | `evidence` の役目を依頼の書式が引き継ぐ |
