@@ -34,28 +34,31 @@ jq -e --arg s "$start" '.version == 1 and (.window.until | fromdateiso8601) >= (
   "$latest" >/dev/null 2>&1 || fail "observe did not write a fresh latest.json"
 cls=$(mktemp "$out/.classify.XXXXXX") || fail "mktemp failed"
 stack run cycle --ext jev-classify >"$cls"; code=$?
-# Normalise classify to one cycle object: its own result, `skipped` when missing, or a `warn` result naming the
-# problem (core's error text, else "invalid output")
-if valid jev-classify "$cls" "$code"; then
-  :
-elif [ "$code" -eq 0 ] && jq -e -s 'length == 1 and (.[0] | .stage == "cycle" and (.results | length == 0)
-    and (.skipped | type == "array" and any(.[]; .name? == "jev-classify")))' "$cls" >/dev/null 2>&1; then
-  n=$(jq '{stage, status: "pass", results: [], skipped: [.skipped[] | select(.name? == "jev-classify")]}' "$cls") \
-    && printf '%s\n' "$n" >"$cls" || fail "cannot record the jev-classify result"
+# Normalise classify to {status, results, skipped}: its own result; `skipped` when stack lists it there; a `warn`
+# result keeping core's error text for a synthetic error; else a `warn` result with "invalid output"
+if [ "$code" -eq 0 ] && jq -e -s 'length == 1 and (.[0] | .stage == "cycle")' "$cls" >/dev/null 2>&1; then
+  n=$(jq -c --arg ok "$(valid jev-classify "$cls" 0 && echo 1)" '
+    def warn($e): {status: "warn", skipped: [],
+      results: [{name: "jev-classify", status: "warn", context: "", error: $e, findings: []}]};
+    if $ok == "1" then {status: .results[0].status, results: [.results[0]], skipped: []}
+    elif (.results | type == "array" and length == 0) and (.skipped | type == "array")
+      and any(.skipped[]; . == "jev-classify" or .name? == "jev-classify")
+    then {status: "pass", results: [], skipped: ["jev-classify"]}
+    elif (.results | type == "array" and length == 1) and (.results[0] | .name == "jev-classify"
+      and (.error | type == "string") and .error != "")
+    then warn(.results[0].error)
+    else warn("invalid output") end' "$cls") || n=""
 else
-  err=$(jq -r -s 'if length == 1 and (.[0].results | type == "array") then
-      [.[0].results[] | select(.name? == "jev-classify" and (.error | type == "string") and .error != "")
-       | .error][0] // empty else empty end' "$cls" 2>/dev/null)
-  jq -n --arg e "${err:-invalid output}" '{stage: "cycle", status: "warn", skipped: [],
-      results: [{name: "jev-classify", status: "warn", context: "", error: $e, findings: []}]}' \
-    >"$cls" || fail "cannot record the jev-classify result"
+  n=""
 fi
+[ -n "$n" ] || n='{"status":"warn","skipped":[],"results":[{"name":"jev-classify","status":"warn","context":"","error":"invalid output","findings":[]}]}'
+printf '%s\n' "$n" >"$cls" || fail "cannot record the jev-classify result"
 imp=$(mktemp "$out/.improve.XXXXXX") || fail "mktemp failed"
 stack run cycle --ext improve >"$imp"; code=$?
 valid improve "$imp" "$code" || fail "improve: exit $code without a valid result"
 all=$(mktemp "$out/.last.XXXXXX") || fail "mktemp failed"
 jq -s '{stage: "cycle", status: (if any(.[]; .status == "warn") then "warn" else "pass" end),
-        results: [.[].results[]], skipped: [.[].skipped[]]}' "$obs" "$cls" "$imp" >"$all" \
+        results: [.[].results[]], skipped: .[1].skipped}' "$obs" "$cls" "$imp" >"$all" \
   || fail "cannot merge the results"
 mv -f "$all" "$out/last.json" || fail "cannot replace last.json"
 rm -f "$obs" "$cls" "$imp"

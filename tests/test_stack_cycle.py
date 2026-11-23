@@ -202,12 +202,21 @@ class StackCycle(unittest.TestCase):
         self.assertEqual(last["results"][1]["findings"], [{"kind": "y"}])
 
     def test_missing_classify_is_listed_under_skipped(self):
-        skipped = {"stage": "cycle", "status": "pass", "results": [],
-                   "skipped": [{"name": "jev-classify", "reason": "not found"}]}
+        # The shape stack prints when the extension is not on PATH
+        skipped = {"stage": "cycle", "status": "pass", "results": [], "skipped": ["jev-classify"]}
         last = self.classify_outcome(dump(skipped))
         self.assertEqual(last["status"], "pass")
         self.assertEqual([r["name"] for r in last["results"]], ["observe", "improve"])
-        self.assertEqual(last["skipped"], [{"name": "jev-classify", "reason": "not found"}])
+        self.assertEqual(last["skipped"], ["jev-classify"])
+
+    def test_missing_skipped_fields_never_fail_the_job(self):
+        no_skipped = {k: v for k, v in response("jev-classify").items() if k != "skipped"}
+        self.stage("observe", body(dump({k: v for k, v in response("observe").items() if k != "skipped"}),
+                                   fresh=True))
+        last = self.classify_outcome(dump(no_skipped))
+        self.assertEqual(last["status"], "pass")
+        self.assertEqual(last["skipped"], [])
+        self.assertEqual([r["name"] for r in last["results"]], ["observe", "jev-classify", "improve"])
 
     def test_invalid_classify_is_a_warn_result_and_the_job_still_succeeds(self):
         cases = {k: v for k, v in INVALID.items() if k not in ("only in skipped", "synthetic error")}
@@ -219,6 +228,15 @@ class StackCycle(unittest.TestCase):
                 self.assertEqual(last["status"], "warn")
                 self.assertEqual(last["results"][1], {"name": "jev-classify", "status": "warn", "context": "",
                                                       "error": "invalid output", "findings": []})
+
+    def test_synthetic_error_counts_only_on_a_valid_exit_and_shape(self):
+        crashed = response("jev-classify", status="warn", error="extension crashed")
+        for case, (output, code) in {"exit 2": (dump(crashed), 2),
+                                     "stage not cycle": (dump({**crashed, "stage": "check"}), 0)}.items():
+            with self.subTest(case):
+                self.calls.unlink(missing_ok=True)
+                last = self.classify_outcome(output, code)
+                self.assertEqual(last["results"][1]["error"], "invalid output")
 
     def test_synthetic_classify_error_keeps_core_error_text(self):
         last = self.classify_outcome(dump(response("jev-classify", status="warn", error="extension crashed")))
