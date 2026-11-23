@@ -27,7 +27,7 @@
 オーナーの対応が要るときだけ赤で出す。`pass` で新しく、`last-error` が無ければ何も出さない。
 
 - `last.json` が無い: `last-error` があれば `cycle ✗`、Home Manager の `stack-cycle` の plist があれば `cycle never`（ジョブは入っているが有効な実行がまだ無い）、どちらも無ければ何も出さない（cycle を設定していない）。
-- `.status` が空でない文字列でないか、`.results` が配列でない: `cycle ?`。
+- `last.json` が JSON として読めない、`.status` が空でない文字列でない、または `.results` が配列でない: `cycle ?` だけを出す（`✗` や `stale` は足さない）。
 - `.status` が `pass` 以外: `cycle <status> <N>`。`N` は `.results` 全体の `findings` の件数で、変更の数ではない（observe は `replay-change` を最大 20 件しか並べず、総数は `context` にある）。
 - `last-error` がある: `✗` を足す（表示中の結果は前回の有効な実行のもの）。
 - `last.json` の mtime が 36 時間より古い: `stale <日数>d` を足す（`pass` なら単独で出す）。
