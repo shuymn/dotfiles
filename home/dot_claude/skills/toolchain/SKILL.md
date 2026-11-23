@@ -20,7 +20,7 @@ description: Adding or pinning a tool or version; setting up a repository's CI o
 - **デプロイ:** main は依存の更新が入り続けるので、main から直接デプロイしない。release-please のリリース PR をマージしたときだけ、ワークフローが `release` ブランチをタグへ fast-forward し、デプロイ先はそのブランチだけを見る。`release` を作る・進める・消すのはリリース用の App だけに rulesets で絞り、`release_immutability` を有効にする。
 - **ローカルの検査:** lefthook から走らせる。security/gha ワークフローのツール（actionlint・ghalint・betterleaks など）も mise で固定し、CI とローカルで同じものを使う。
 - **GitHub のリポジトリ設定:** マージ方式、rulesets、許可する Actions、セキュリティ機能は `.github/infra.yaml` に宣言し、gh-infra（`mise.toml` で固定）の `plan` で差分を見てから `apply` する。`gh api` で直接変えない。見本は shuymn/octo-translator の `.github/infra.yaml`。Why: API で直接変えると設定がリポジトリに残らず、標準とのずれも `plan` で見えなくなる。
-- **JS/TS:** lint と format は oxlint と oxfmt。Cloudflare Workers の型は、`wrangler types` の生成物をコミットせず、`@cloudflare/workers-types` を tsconfig の `types` に入れ、使う binding だけを手書きの `src/env.d.ts`（`declare namespace Cloudflare { interface Env {...} }`）で宣言する。
+- **JS/TS:** パッケージマネージャは pnpm（npm・yarn は使わない。pnpm 自体も mise で固定する）。lint と format は oxlint と oxfmt。Cloudflare Workers の型は、`wrangler types` の生成物をコミットせず、`@cloudflare/workers-types` を tsconfig の `types` に入れ、使う binding だけを手書きの `src/env.d.ts`（`declare namespace Cloudflare { interface Env {...} }`）で宣言する。
 
 Why: オーナーの明示的な好みで、リポジトリ間で揃っていることを各ベンダーの推奨より優先する。
 
