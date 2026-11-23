@@ -6,6 +6,9 @@
 # within 10 minutes goes through.
 # Only main sessions with a stack kit open (`stack kit open`) are orchestrators; workers, including
 # in-process subagents that share the parent's session id, ask their orchestrator by design.
+# The check relies on the read-only sessions/<id>.kits format in shuymn/stack
+# docs/design/phase2-core.md §4.1: the file exists only while it lists a slug, and <id> is the
+# session id lower-cased, so presence is checked by metadata alone.
 # Any input or tool failure lets the question through.
 
 # Process starts are slow on some hosts (Git Bash on Windows), so this sticks to shell builtins and
