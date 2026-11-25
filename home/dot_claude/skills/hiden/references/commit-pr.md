@@ -8,14 +8,14 @@
    - 許可を得て内容を変えないつもりで履歴を書き換えたとき（例: fixup の autosquash）は、push の前に書き換え前の head と `git diff` でツリーが同じかを確かめる。
    - PR の作成・編集で `stack-public check` が通った後、`stack-jev-semantic` が `PATH` にあれば、送る head をコミットで固定し、`if mb=$(git merge-base <PR の base> <head>); then stack run outbound --ext jev-semantic --range "$mb..<head>" --title-file <題> --body-file <本文> --branch <ブランチ>; else echo "jev-semantic skipped: no merge base"; fi` を走らせる（`skipped` が出たら `jev-semantic` を省いたと報告する）。出た指摘（例: テストや検査を弱めた理由が本文に無い、差分が支えない主張）は、本文か差分で直すか直さない理由を付けて、どちらも報告する。結果は助言で、push も PR も止めない。
 3. **`create-pr`** スキルに同じ言語のフラグを付け（base がデフォルトでなければ `--base=<base>` も）、draft で作る。
-4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当と区分（設計書の保証・前提・受け入れる制限を変える差分を含む）は [review.md](review.md) の「実行」と「いつ」に従う。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書いてからマージを頼む。
+4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当と区分（設計書の保証・前提・受け入れる制限を変える差分を含む）は [review.md](review.md) の「実行」と「いつ」に従う。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書く。
 5. **`simplify`:** コードを変える PR では、最後の Codex ラウンドの後に `origin/<base>...HEAD` に対して毎回行う。省けるのは文書・設定・テストだけか数行の変更で、省いたら理由を報告する。その後、本文を `create-pr --update` で直し `gh pr ready` にする。
 6. **CI** が通るまで直す。
    - CI・デプロイ・承認ゲートを待って応答を終えるときは、終了まで待つバックグラウンドの待機を置く。必須チェックが skip される PR（例: docs だけの変更）では完了通知が来ないため、終える前に `gh pr view --json mergeStateStatus,statusCheckRollup` でチェックが終わっているかを自分で確かめる。
    - CI 成功の印だけでなく CI が出す測定値も読み（読み方は [verification.md](verification.md) の「性能の数値」）、PR 本文に `gh pr edit` で書く（コミットに書くと CI がやり直しになる）。
    - マージの出力に `audit due (…)` の行があれば、[attention.md](attention.md) の委任のとおり steward をバックグラウンドで起動する。
    - 共有の連番や生成値（例: lockfile、CHANGELOG、migration の番号）を変える PR が並ぶときは、マージの順を先に決め、先頭の PR だけが base を取り込んでマージし、次は新しい base で CI がパスしてから。Why: Git はこれらをテキストとしてマージするので、各 PR がパスしてもマージ結果は未検証。
-7. **PR のレビューコメント**（AI のレビューを含む）の 1 件ずつに採否を決め、スレッドに返事を書いてからマージする。直したものは commit を、見送るものは理由を書く。resolve はしない（ruleset が要求するリポジトリではオーナーに確かめる）。
+7. **PR のレビューコメント**（AI のレビューを含む）の 1 件ずつに採否を決め、スレッドに返事を書いてから、`stack pr merge <PR 番号> <検証した head の SHA>` でマージする。範囲の作業を任されたオーケストレーションではマージまで任されている（[SKILL.md](../SKILL.md) の手順 3）ので、許可は求めない。仕事のリポジトリと、リポジトリやオーナーが決めた承認ゲートがあるときは、マージせずにそこで渡す。直したものは commit を、見送るものは理由を書く。resolve はしない（ruleset が要求するリポジトリではオーナーに確かめる）。
    - PR を作る依頼には、その PR の bot のスレッドへの返信も含まれる。triage-review の「明示的に頼まれたときだけ投稿する」は、PR を作る作業の外でレビューだけを頼まれたときの規則として読む。仕事のリポジトリではマージはチームなので、PR を渡す時点で返信を済ませる。
    - bot のスレッドへの返信は、投稿前に triage-review の `references/pr-replies.md` を読み、その書式に従う。
 

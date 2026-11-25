@@ -30,7 +30,7 @@ description: Orchestrator workflow handed over by the owner: scoping, delegation
 |---|---|
 | キットの運用、steward 監査、セッション引き継ぎ | [attention.md](references/attention.md) |
 | 他セッションとの競合確認、調査・監査結果の issue 起票 | [scope.md](references/scope.md) |
-| 複数 PR にわたる開発、worker への委任 | [orchestration.md](references/orchestration.md) |
+| 複数 PR にわたる開発、worker への委任、自律で回すループ | [orchestration.md](references/orchestration.md) |
 | worker への指示書 | [subagent-brief.md](references/subagent-brief.md) |
 | レビュー（設計・コード・資料） | [review.md](references/review.md) |
 | コミットと PR | [commit-pr.md](references/commit-pr.md) |
