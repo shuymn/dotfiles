@@ -16,7 +16,7 @@ description: Standardize writing policies and technical vocabulary across reposi
   2. **設計・運用不変条件（`docs/**`）:** 日本語（実験事前登録 `scripts/kaizen/probe/PREREG.md` は英語）。コードからは読み取りにくい設計根拠・制約・比較を残す。
   3. **リポジトリ保守契約（`AGENTS.md`）:** 英語。所有権境界・禁止事項・変更種別ごとの必須検証を固定する。
   4. **横断の常駐ガードレール（`home/.chezmoitemplates/agents/AGENTS.md`、`CLAUDE.md.tmpl`、`agents/*.md`、`handover/*.md`）:** 英語。全リポジトリ共通の行動境界・環境制約・役割定義を最小限に保つ。
-  5. **必要時参照のスキル（`home/dot_claude/skills/**`、`.agents/skills/**`）:** 日本語。判断基準・適用境界・手順を、文字通りの解釈を前提に（lost judgment 防止・例示括弧への `例:`・境界を示すときだけの `Why`・一時的規則への撤去条件）記述する。
+  5. **必要時参照のスキル（`home/dot_claude/skills/**`、`.agents/skills/**`）:** 日本語。実行時の行動を変える判断基準・適用境界・手順・参照先だけを書く（文字通りの解釈を前提に、lost judgment 防止・例示括弧への `例:`・境界を示すときだけの `Why`・一時的規則への撤去条件を守る）。スキルやフック・周辺ツールの内部の仕組み解説、編集者向け設計メモ、外部設計書との対応表はスキルに混ぜず `docs/**` に置く。
 
 ## 原則
 
