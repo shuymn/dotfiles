@@ -57,6 +57,17 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 - T3 の `delegate_task` の子は別のセッションで、`agent_type` は無く、cwd は専用の worktree のことも共有のチェックアウトのこともある。worker の子は、最初のプロンプトの固定の 1 行（`Follow the body of ~/.claude/agents/opus-worker.md`）で見分ける。cwd では見分けない。
 - Codex（reviewer）には Claude のフックが届かない。配達点は依頼文だけになる。
 
+**hiden と stack の連携仕様（正本参照）**
+
+実行時の `hiden` には内部の仕組みや外部設計書の節番号を書かず、保守時の参照正本をここに集約する。
+
+- キットの配置（`[kit].root/<名前>/`）: `shuymn/stack` の `docs/design/phase2-core.md` §2.1。`briefs/` と `reviews/` は任意の置き場で、stack は読まない。
+- `attention/items.json` の形式・タグと `bin/board`: `shuymn/stack` の `docs/design/phase2-core.md` §4.1.1（`orchestrator` と `all` の項目を stack がコンテキストへ戻す。`worker` の項目は指示書へ本文で貼る）。
+- `stack kit open` と compaction 後に注入される内容: `shuymn/stack` の `docs/design/phase2-core.md` §4.2 step 7。
+- `stack pr merge` の `audit due (…): run steward on kit <slug>` 行の意味とディレクトリ解決: `shuymn/stack` の `docs/design/core-stages.md` §4.7「The due line」。
+- `stack-observe` が見逃しとして数える台帳の行書式: `shuymn/stack` の `docs/design/phase3-cycle.md` §3.3 の `ledgers`。
+- compaction ログ（`${XDG_STATE_HOME:-~/.local/state}/claude/compactions.jsonl`）の項目: `home/dot_claude/hooks/executable_log-compact-summary.sh` の冒頭コメント。
+
 ## 3. 役割とフェーズごとの配分
 
 「仮説」と書いたものは、§5 の観測で確かめる。
@@ -64,19 +75,19 @@ hiden の source は `home/dot_claude/skills/hiden/`、live は `~/.claude/skill
 ### 3.1 orchestrator
 
 **常駐:**
-- SKILL.md の本質、範囲、進め方 1・3・4・5、references の表、「作業中ずっと」の残り。
+- SKILL.md の本質、範囲、進め方 1〜5、references の表、「作業中ずっと」の残り（T3 優先、英語依頼、長時間コマンド、issue まとめ）、「区切りで止めるとき」。
 - SessionStart で入る items: キットの `attention/items.json` のうち `orchestrator` と `all` の項目。
 - 進め方 3〜5 は、釣り合う組なので手を付けない（P1）。
 
 | フェーズ | 出来事で渡す | 必要時 | 取る | 証拠 |
 |---|---|---|---|---|
 | 開始・再開・clear | SessionStart: state.md、items、クリティカルパスの問い 1 文 | 表から当たる reference | 予算の使用量の行（meta） | 原則 4 |
-| compaction | SessionStart(compact): 上の内容と「今のステップの reference を読み直す」 | — | 進め方 2「各ステップに入る前に読み直す」 | 原則 2。効き目は仮説 |
-| 委任 | — | subagent-brief.md | 報告の仕様にある回帰テストの句（§3.2 へ移す） | P3 |
-| 外部を待つ | — | commit-pr.md（SKILL の「外部を待つ」の段落を移す） | SKILL の常駐段落（579 B） | フェーズに属する判断で、常駐は要らない |
-| レビュー・マージ | — | review.md（依頼の書式に、主張ごとに最も強い証拠を求める一文を置く）、commit-pr.md | 「reviewer の常時の項目を依頼文に貼る」 | 主張ごとの証拠は依頼の書式が求める |
-| 環境で検証が止まった | — | debugging.md（recall の行を移す） | SKILL の常駐の行 | 仮説 |
-| フェーズの区切り | — | steward（目的とクリティカルパスの監査が要るときに呼ぶ） | 台帳の記録、振り返り、文書整理、`/wasure` を勧める文、「手法を直すとき」は周期へ移す。steward を呼ぶ定例の時期は消す | 原則 4 |
+| compaction | SessionStart(compact): 上の内容と「今のステップの reference を読み直す」 | — | 進め方 2「各ステップに入る前に読み直す」（compaction 後だけ残す） | 原則 2。効き目は仮説 |
+| 委任 | — | subagent-brief.md | 報告の仕様にある回帰テストの句（§3.2 へ移設済み）、編集者向けの設計メモ | P3 |
+| 外部を待つ | — | commit-pr.md（SKILL から移設済み） | SKILL の常駐段落（579 B） | フェーズに属する判断で、常駐は要らない |
+| レビュー・マージ | — | review.md（依頼の書式に、主張ごとに最も強い証拠を求める一文を置く）、commit-pr.md | 「reviewer の常時の項目を依頼文に貼る」（削除済み） | 主張ごとの証拠は依頼の書式が求める |
+| 環境で検証が止まった | — | debugging.md（SKILL から移設済み） | SKILL の常駐の行 | 仮説 |
+| フェーズの区切り・振り返り | — | steward（目的とクリティカルパスの監査が要るときに呼ぶ）、retro.md（「手法を更新するとき」も SKILL 常駐から移設済み） | 台帳・振り返り・文書整理・`/wasure`・手法更新の周期への段階的移行 | 原則 4 |
 
 引き継ぎの文は、`~/.config/stack/handover/` の環境ごとのファイルにあり、`stack kit open` と compaction の後の SessionStart だけが出す。Stop のフックは無い。
 
