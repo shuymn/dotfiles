@@ -8,7 +8,7 @@
    - 許可を得て内容を変えないつもりで履歴を書き換えたとき（例: fixup の autosquash）は、push の前に書き換え前の head と `git diff` でツリーが同じかを確かめる。
    - PR の作成・編集で `stack-public check` が通った後、`stack-jev-semantic` が `PATH` にあれば、送る head をコミットで固定し、`if mb=$(git merge-base <PR の base> <head>); then stack run outbound --ext jev-semantic --range "$mb..<head>" --title-file <題> --body-file <本文> --branch <ブランチ>; else echo "jev-semantic skipped: no merge base"; fi` を走らせる（`skipped` が出たら `jev-semantic` を省いたと報告する）。出た指摘（例: テストや検査を弱めた理由が本文に無い、差分が支えない主張）は、本文か差分で直すか直さない理由を付けて、どちらも報告する。結果は助言で、push も PR も止めない。
 3. **`create-pr`** スキルに同じ言語のフラグを付け（base がデフォルトでなければ `--base=<base>` も）、draft で作る。
-4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当と区分（設計書の保証・前提・受け入れる制限を変える差分を含む）は [review.md](review.md) の「実行」と「いつ」に従う。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書いてからマージを頼む。
+4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当と区分（設計書の保証・前提・受け入れる制限を変える差分を含む）は [review.md](review.md) の「実行」と「いつ」に従う。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書いてから `stack pr merge` でマージする（マージの許可は求めない）。
 5. **`simplify`:** コードを変える PR では、最後の Codex ラウンドの後に `origin/<base>...HEAD` に対して毎回行う。省けるのは文書・設定・テストだけか数行の変更で、省いたら理由を報告する。その後、本文を `create-pr --update` で直し `gh pr ready` にする。
 6. **CI** が通るまで直す。
    - CI・デプロイ・承認ゲートを待って応答を終えるときは、終了まで待つバックグラウンドの待機を置く。必須チェックが skip される PR（例: docs だけの変更）では完了通知が来ないため、終える前に `gh pr view --json mergeStateStatus,statusCheckRollup` でチェックが終わっているかを自分で確かめる。
