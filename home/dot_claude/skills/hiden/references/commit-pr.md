@@ -11,6 +11,7 @@
 4. **レビュー:** PR の差分（PR が無ければ base との差分）に行う。担当と区分（設計書の保証・前提・受け入れる制限を変える差分を含む）は [review.md](review.md) の「実行」と「いつ」に従う。文書や設定だけの低区分の PR でも省かず、結果を台帳に 1 行書いてからマージを頼む。
 5. **`simplify`:** コードを変える PR では、最後の Codex ラウンドの後に `origin/<base>...HEAD` に対して毎回行う。省けるのは文書・設定・テストだけか数行の変更で、省いたら理由を報告する。その後、本文を `create-pr --update` で直し `gh pr ready` にする。
 6. **CI** が通るまで直す。
+   - CI・デプロイ・承認ゲートを待って応答を終えるときは、終了まで待つバックグラウンドの待機を置く。必須チェックが skip される PR（例: docs だけの変更）では完了通知が来ないため、終える前に `gh pr view --json mergeStateStatus,statusCheckRollup` でチェックが終わっているかを自分で確かめる。
    - CI 成功の印だけでなく CI が出す測定値も読み（読み方は [verification.md](verification.md) の「性能の数値」）、PR 本文に `gh pr edit` で書く（コミットに書くと CI がやり直しになる）。
    - マージの出力に `audit due (…)` の行があれば、[attention.md](attention.md) の委任のとおり steward をバックグラウンドで起動する。
    - 共有の連番や生成値（例: lockfile、CHANGELOG、migration の番号）を変える PR が並ぶときは、マージの順を先に決め、先頭の PR だけが base を取り込んでマージし、次は新しい base で CI がパスしてから。Why: Git はこれらをテキストとしてマージするので、各 PR がパスしてもマージ結果は未検証。

@@ -1,8 +1,6 @@
 # worker への指示書
 
-指示書は英語で、固定の 1 行（`Follow the body of ~/.claude/agents/opus-worker.md.`。先頭が同じならプロンプトキャッシュが効く）、その作業が当たるルールブロック（下の節を英語にして本文で貼る）、作業内容の順に書く。worker の常時の項目は `opus-worker.md` にあるので写さず、キットの worker の項目（[attention.md](attention.md)）はルールブロックと同じく本文で貼る。ルールブロックは参照でなく本文で渡す（本文に無い規則は守られない）。
-
-フックや permissions が止める形（例: stash、pkill、`--no-verify`）は書かない。止まらない別の形は下のルールブロックに置く。
+指示書は英語で、先頭に固定の 1 行（`Follow the body of ~/.claude/agents/opus-worker.md.`）、その作業が当たるルールブロック（下の節を英語にして本文で貼る）、作業内容の順に書く。worker の常時の項目は `opus-worker.md` にあるので写さず、キットの worker の項目（[attention.md](attention.md)）はルールブロックと同じく本文で貼る。ルールブロックは参照でなく本文で渡す（本文に無い規則は守られない）。
 
 ## コミットする作業のルールブロック
 
@@ -24,7 +22,7 @@
 
 ## 指示書に書く報告の仕様
 
-[judgment.md](judgment.md) の「信頼できる既存の実装と設計を先に調べる」「リポジトリ全体の一貫性」。変更の安全を支える事実とその証拠レベル。修正を戻して落とした回帰テスト（[verification.md](verification.md) の「証拠の強さ」）。確かめ・測定の対象 commit と方法。
+[judgment.md](judgment.md) の「信頼できる既存の実装と設計を先に調べる」「リポジトリ全体の一貫性」。変更の安全を支える事実とその証拠レベル（[verification.md](verification.md) の「証拠の強さ」）。確かめ・測定の対象 commit と方法。
 
 ## 報告の確認
 
