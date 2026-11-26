@@ -44,19 +44,41 @@ class SettingsTest(unittest.TestCase):
     def test_settings_registration(self):
         self.assert_hooks(managed_hooks())
 
-    @unittest.skipUnless(shutil.which("chezmoi"), "chezmoi is not installed")
-    def test_rendered_settings_keep_local_values(self):
+    def render(self, existing, cardinal):
+        """Run the modify script on existing, with or without a cardinal on PATH."""
         with tempfile.TemporaryDirectory() as home:
             env = {k: v for k, v in os.environ.items() if not k.startswith("XDG_")}
             env["HOME"] = home
-            local_hook = {"matcher": "Read", "hooks": [{"type": "command", "command": "local-hook.sh"}]}
-            existing = {"model": "sonnet", "localOnly": {"keep": True},
-                        "permissions": {"additionalDirectories": ["/srv/shared"]},
-                        "hooks": {"PostToolUse": [local_hook], "Notification": [local_hook]}}
+            bin_dir = Path(home) / "bin"
+            bin_dir.mkdir()
+            (bin_dir / "chezmoi").symlink_to(shutil.which("chezmoi"))
+            if cardinal:
+                (bin_dir / "cardinal").write_text("#!/bin/sh\n")
+                (bin_dir / "cardinal").chmod(0o755)
+            env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
             p = subprocess.run(["/bin/sh", str(SETTINGS)], input=json.dumps(existing), capture_output=True, text=True,
                                env=env, timeout=60)
         self.assertEqual(p.returncode, 0, p.stderr)
-        out = json.loads(p.stdout)
+        return json.loads(p.stdout)
+
+    @unittest.skipUnless(shutil.which("chezmoi"), "chezmoi is not installed")
+    def test_rendered_settings_drop_cardinal_hooks_without_cardinal(self):
+        hooks = self.render({}, cardinal=False)["hooks"]
+        self.assert_hooks(hooks)
+        self.assertNotIn("cardinal", json.dumps(hooks))
+        for event in ("SubagentStop", "SessionEnd"):
+            self.assertNotIn(event, hooks)
+        expected = {event: [e for e in entries if not any(h["command"].startswith("cardinal ") for h in e["hooks"])]
+                    for event, entries in managed_hooks().items()}
+        self.assertEqual(hooks, {event: entries for event, entries in expected.items() if entries})
+
+    @unittest.skipUnless(shutil.which("chezmoi"), "chezmoi is not installed")
+    def test_rendered_settings_keep_local_values(self):
+        local_hook = {"matcher": "Read", "hooks": [{"type": "command", "command": "local-hook.sh"}]}
+        existing = {"model": "sonnet", "localOnly": {"keep": True},
+                    "permissions": {"additionalDirectories": ["/srv/shared"]},
+                    "hooks": {"PostToolUse": [local_hook], "Notification": [local_hook]}}
+        out = self.render(existing, cardinal=True)
         self.assert_hooks(out["hooks"])
         # The template owns the whole hooks key: local hooks are replaced, not merged.
         self.assertEqual(out["hooks"], managed_hooks())

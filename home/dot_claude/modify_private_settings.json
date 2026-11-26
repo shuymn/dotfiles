@@ -294,6 +294,28 @@ exec chezmoi execute-template --with-stdin '
 {{- range $key := list "hooks" "statusLine" "attribution" "language" "alwaysThinkingEnabled" -}}
 {{-   $_ := set $settings $key (get $managed $key) -}}
 {{- end -}}
+{{- /* cardinal hooks only where cardinal is on PATH; the next apply after installing it adds them. */ -}}
+{{- if not (lookPath "cardinal") -}}
+{{-   $hooks := dict -}}
+{{-   range $event, $entries := get $settings "hooks" -}}
+{{-     $kept := list -}}
+{{-     range $entry := $entries -}}
+{{-       $cardinal := false -}}
+{{-       range $hook := $entry.hooks -}}
+{{-         if hasPrefix "cardinal " $hook.command -}}
+{{-           $cardinal = true -}}
+{{-         end -}}
+{{-       end -}}
+{{-       if not $cardinal -}}
+{{-         $kept = append $kept $entry -}}
+{{-       end -}}
+{{-     end -}}
+{{-     if $kept -}}
+{{-       $_ := set $hooks $event $kept -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $_ := set $settings "hooks" $hooks -}}
+{{- end -}}
 {{- $worktree := dict -}}
 {{- if hasKey $settings "worktree" -}}
 {{-   $worktree = get $settings "worktree" -}}
