@@ -16,4 +16,4 @@ home = ["dev"]
 
 [work]
 darwin = ["flashspace", "dev", "llm", "work"]
-home = ["dev", "work"]
+home = ["dev", "docker", "work"]
