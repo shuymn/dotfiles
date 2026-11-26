@@ -13,7 +13,7 @@
 ## 委任と監査（steward）
 
 - 判断は自分でし、作業と監査は、指示書と報告を読む費用に見合うときだけ渡す。
-- 監査（steward）は読み取り専用で、依頼文に `Follow the body of ~/.claude/agents/steward.md.` とキットのディレクトリを渡し、フェーズの終わり、状態が古いとき、引き継ぎの前、振り返りで頼む。実行は [review.md](review.md) の「実行」の `agy-run` で行い、エラー（例: クォータ枯渇）で失敗したら [review.md](review.md) の「実行後の確認」を済ませてからオーケストレーターと同じモデル・労力にフォールバックする。
+- 監査（steward）は読み取り専用で、依頼文に `Follow the body of ~/.claude/agents/steward.md.` とキットのディレクトリを渡し、フェーズの終わり、状態が古いとき、引き継ぎの前、振り返りで頼む。実行は [review.md](review.md) の「実行」の `agy-run` で行い、`agy-run` が使えないとき（同「担当」の条件）はオーケストレーターと同じモデル・労力で走らせる。`agy-run` の実行が失敗した後は、先に [review.md](review.md) の「実行後の確認」を済ませる。
 - `stack pr merge` の後に `audit due (…): run steward on kit <slug>` が出たら、費用の見積もりはせずに必ず、`<slug>` のキットのディレクトリ（`[kit].root/<slug>/`、デフォルト `~/.local/state/stack/kits/<slug>/`）を確かめ、そのディレクトリだけを足した同じ書式で（自分の結論は添えない）steward をバックグラウンドで起動し、待たずに次の作業へ進む。ディレクトリが決まらなければ起動せず、slug を未解決として報告する。
 - `agy-run` でバックグラウンド監査を走らせる間は、結果を読むまで同じ作業ツリーで編集しない（次の作業は別 worktree で進めるか読み取りだけにする）。見落としは台帳に記録する。
 
