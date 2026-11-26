@@ -35,10 +35,8 @@ install_skills() {
 }
 
 install_skills shuymn/skills \
-	adversarial-verify commit create-pr extensible-by-design github-clone-workspace \
-	proofread prune-tests simplify triage-review
-install_skills mattpocock/skills grilling writing-for-agents
-install_skills GoogleChrome/modern-web-guidance modern-web-guidance
+	commit create-pr extensible-by-design simplify triage-review
+install_skills mattpocock/skills writing-for-agents
 install_skills cloudflare/security-audit-skill security-audit
 
 marketplaces=$(claude plugin marketplace list --json)
@@ -48,12 +46,14 @@ add_marketplace() {
 }
 add_marketplace claude-plugins-official anthropics/claude-plugins-official
 add_marketplace shuymn-codex shuymn/codex-plugin-cc
+add_marketplace googlechrome GoogleChrome/modern-web-guidance
 
 installed=$(claude plugin list --json)
 is_installed() {
 	printf '%s' "$installed" | jq -e --arg id "$1" 'any(.[]; .id == $id and .scope == "user")' >/dev/null
 }
 is_installed codex@shuymn-codex || claude plugin install codex@shuymn-codex
+is_installed modern-web-guidance@googlechrome || claude plugin install modern-web-guidance@googlechrome
 # security-guidance reviews every stop with Opus; enable it per repository in
 # .claude/settings.local.json where security review is worth that cost.
 is_installed security-guidance@claude-plugins-official || claude plugin install security-guidance@claude-plugins-official
