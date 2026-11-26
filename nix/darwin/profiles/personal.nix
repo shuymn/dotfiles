@@ -7,10 +7,10 @@
       "cherry-studio"
       "discord"
       "grok-bot"
-      "nani"
       "obsidian"
       "orcaslicer"
       "pen"
+      "plamo-translate"
       "t3-code"
       "zotero"
     ];

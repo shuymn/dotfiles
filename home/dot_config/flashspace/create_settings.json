@@ -11,7 +11,6 @@
   "floatingApps": [
     { "name": "Finder", "bundleIdentifier": "com.apple.finder" },
     { "name": "System Settings", "bundleIdentifier": "com.apple.systempreferences" },
-    { "name": "1Password", "bundleIdentifier": "com.1password.1password" },
-    { "name": "Nani", "bundleIdentifier": "jp.kiok.nani" }
+    { "name": "1Password", "bundleIdentifier": "com.1password.1password" }
   ]
 }
