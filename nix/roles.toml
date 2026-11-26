@@ -14,6 +14,10 @@ home = ["dev"]
 darwin = ["dev", "lite", "flashspace", "llm", "personal"]
 home = ["dev"]
 
+[devhost]
+darwin = ["headless"]
+home = ["dev", "docker"]
+
 [work]
 darwin = ["flashspace", "dev", "llm", "work"]
 home = ["dev", "docker", "work"]
