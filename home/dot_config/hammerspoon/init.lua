@@ -27,7 +27,7 @@ local FLASHSPACE_READY_SECONDS = 3
 -- auto-assigns every app that gets focus, so being assigned alone does not opt an app in.
 local APPS = {
 	"com.google.Chrome",
-	"com.mitchellh.ghostty",
+	"com.superlogical.rex",
 	"com.spotify.client",
 	"com.hnc.Discord",
 	"com.openai.codex",

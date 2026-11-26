@@ -39,3 +39,6 @@
 .claude/hooks/deny-rm.sh
 .claude/hooks/attention-budget.py
 .claude/bin/merge-pr
+.config/ghostty/config.ghostty
+.config/herdr/config.toml
+.config/stack/handover/herdr.md

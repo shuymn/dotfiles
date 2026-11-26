@@ -39,6 +39,18 @@ install_skills shuymn/skills \
 install_skills mattpocock/skills writing-for-agents
 install_skills cloudflare/security-audit-skill security-audit
 
+# Rex's skill and session hook for Claude Code and Codex; rerunning is a no-op.
+# The Claude Code hook is also in modify_private_settings.json, which owns
+# settings.json hooks. Outside a Rex terminal, use the server's bundled CLI.
+rex=$(command -v rex ||
+	ls "$HOME/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex" 2>/dev/null ||
+	true)
+if [ -n "$rex" ]; then
+	"$rex" skill setup >/dev/null
+else
+	echo "install-agents: skip Rex skill setup; rex is not installed" >&2
+fi
+
 marketplaces=$(claude plugin marketplace list --json)
 add_marketplace() {
 	printf '%s' "$marketplaces" | jq -e --arg n "$1" 'any(.[]; .name == $n)' >/dev/null ||

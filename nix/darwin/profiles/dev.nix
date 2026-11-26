@@ -6,7 +6,6 @@
       "azookey"
       "claude"
       "codex-app"
-      "ghostty"
       "google-chrome"
       "karabiner-elements"
       "linearmouse"

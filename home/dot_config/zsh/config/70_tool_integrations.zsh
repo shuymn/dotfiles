@@ -164,20 +164,4 @@ if has "git-wt"; then
     wt-wip "$@"
   }
 
-  if has "herdr"; then
-    hwip() {
-      emulate -L zsh
-      setopt no_aliases
-
-      local branch target_path herdr_status
-      { read -r branch; read -r target_path } < <(_git_wt_create_wip "$@") || return
-      herdr workspace create --cwd "$target_path" --label "$branch" --focus || {
-        herdr_status=$?
-        print -u2 "hwip: herdr failed; worktree remains at $target_path"
-        print -u2 "hwip: branch remains $branch"
-        return "$herdr_status"
-      }
-      builtin cd -- "$target_path"
-    }
-  fi
 fi

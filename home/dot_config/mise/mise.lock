@@ -245,22 +245,6 @@ checksum = "sha256:4c80be4911a4f73557537bac3a6bf4c4124df0637ca08801d65bc25db80f1
 url = "https://github.com/k1LoW/roots/releases/download/v0.4.2/roots_v0.4.2_darwin_arm64.zip"
 url_api = "https://api.github.com/repos/k1LoW/roots/releases/assets/597380084"
 
-[[tools."github:ogulcancelik/herdr"]]
-version = "0.9.5"
-backend = "github:ogulcancelik/herdr"
-
-[tools."github:ogulcancelik/herdr"."platforms.linux-x64"]
-checksum = "sha256:14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d"
-url = "https://github.com/ogulcancelik/herdr/releases/download/v0.9.5/herdr-linux-x86_64"
-url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/640898235"
-provenance = "github-attestations"
-
-[tools."github:ogulcancelik/herdr"."platforms.macos-arm64"]
-checksum = "sha256:fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2"
-url = "https://github.com/ogulcancelik/herdr/releases/download/v0.9.5/herdr-macos-aarch64"
-url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/640898230"
-provenance = "github-attestations"
-
 [[tools."github:shuymn/capsule"]]
 version = "1.2.0"
 backend = "github:shuymn/capsule"

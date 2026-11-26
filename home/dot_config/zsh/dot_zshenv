@@ -42,6 +42,9 @@ path=( \
   "$path[@]" \
 )
 
+# Rex sets REX_BIN_DIR in its terminals but does not put the rex CLI on PATH.
+[[ -n "${REX_BIN_DIR:-}" ]] && path+=("${REX_BIN_DIR}"(N-/))
+
 typeset -gx -U fpath
 fpath=( \
   ${^DOTFILES_NIX_PROFILE_DIRS}/share/zsh/site-functions(N-/) \
