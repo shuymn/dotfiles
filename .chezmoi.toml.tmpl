@@ -21,7 +21,7 @@ pager = "delta --side-by-side"
 [data]
 homeProfiles = {{ (index $roles $role).home | toJson }}
 
-# Optional [displays] in host.toml: screen names as macOS shows them (NSScreen.localizedName).
+# Optional [displays] in host.toml: screen names as `flashspace list-displays` prints them.
 [data.displays]
 main = {{ dig "displays" "main" "" $host | quote }}
 secondary = {{ dig "displays" "secondary" "" $host | quote }}

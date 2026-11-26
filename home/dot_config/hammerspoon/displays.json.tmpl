@@ -1,0 +1,2 @@
+{{- /* host.toml [displays], read by init.lua to keep FlashSpace's main workspaces on the main display. */ -}}
+{{ dict "main" .displays.main "secondary" .displays.secondary | toPrettyJson }}

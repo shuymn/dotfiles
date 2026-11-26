@@ -7,7 +7,10 @@ hostName = "localhost"
 computerName = "Mac"
 role = "minimal"
 
-# Optional: screen names (NSScreen.localizedName) for the FlashSpace seed.
+# Optional: screen names as `flashspace list-displays` prints them (an app without a
+# localization sees the English name, e.g. "Built-in Retina Display"), for the FlashSpace seed.
+# Leave main empty to use whichever display is not the secondary one: with two
+# displays connected, Hammerspoon moves the main workspaces there.
 # [displays]
 # main = "Built-in Display"
 # secondary = "External Display"

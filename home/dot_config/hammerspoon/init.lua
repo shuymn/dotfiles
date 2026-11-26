@@ -16,7 +16,12 @@ local RETRY_SECONDS = 0.5
 local FLASHSPACE = "/Applications/FlashSpace.app/Contents/Resources/flashspace"
 local FLASHSPACE_DIR = os.getenv("HOME") .. "/.config/flashspace"
 local FLASHSPACE_PROFILES = FLASHSPACE_DIR .. "/profiles.json"
-local FLASHSPACE_PLIST = os.getenv("HOME") .. "/Library/Preferences/pl.wojciechkulik.FlashSpace.plist"
+local FLASHSPACE_BUNDLE = "pl.wojciechkulik.FlashSpace"
+local FLASHSPACE_PLIST = os.getenv("HOME") .. "/Library/Preferences/" .. FLASHSPACE_BUNDLE .. ".plist"
+-- host.toml [displays] (rendered by chezmoi); see followMainDisplay.
+local DISPLAYS_FILE = os.getenv("HOME") .. "/.config/hammerspoon/displays.json"
+-- FlashSpace's CLI socket is not ready the moment the app launches.
+local FLASHSPACE_READY_SECONDS = 3
 
 -- Opt-in: bundle IDs to lay out, in layout order within a workspace. FlashSpace
 -- auto-assigns every app that gets focus, so being assigned alone does not opt an app in.
@@ -94,6 +99,52 @@ local function selectProfile(profiles)
 	return profiles[1]
 end
 
+-- With [displays].main empty and secondary set, the main display is whichever one is not
+-- the secondary: when exactly two displays are connected and one is the secondary, every
+-- workspace not saved on the secondary is moved to the other one. With one display
+-- FlashSpace already shows every workspace there; three or more are left alone. The
+-- update rewrites profiles.json, which reloads assignments and finds nothing left to move.
+-- displays.json is read on every call so a later chezmoi apply takes effect without a reload.
+local movingTo = {} -- workspace -> display of an update still running
+local function followMainDisplay(displays)
+	local config = hs.fs.attributes(DISPLAYS_FILE) and hs.json.read(DISPLAYS_FILE)
+	if type(config) ~= "table" then
+		return
+	end
+	local secondary = config.secondary
+	if (config.main or "") ~= "" or type(secondary) ~= "string" or secondary == "" then
+		return
+	end
+	local screens = hs.screen.allScreens()
+	if #screens ~= 2 then
+		return
+	end
+	local main, hasSecondary
+	for _, screen in ipairs(screens) do
+		if screen:name() == secondary then
+			hasSecondary = true
+		else
+			main = screen:name()
+		end
+	end
+	if not hasSecondary or not main or main == "" then
+		return
+	end
+	for workspace, saved in pairs(displays) do
+		if saved ~= secondary and saved ~= main and movingTo[workspace] ~= main then
+			movingTo[workspace] = main
+			runAsync(FLASHSPACE, { "update-workspace", "--workspace", workspace, "--display", main }, function(code, output)
+				if movingTo[workspace] == main then
+					movingTo[workspace] = nil
+				end
+				if code ~= 0 then
+					print("update-workspace " .. workspace .. " failed: " .. output)
+				end
+			end)
+		end
+	end
+end
+
 local loadAssignments
 local retryAssignments = hs.timer.delayed.new(RETRY_SECONDS, function()
 	loadAssignments()
@@ -148,6 +199,7 @@ loadAssignments = function()
 	end
 
 	orderedApps, workspaceOf, displayOf = apps, workspaces, displays
+	followMainDisplay(displays)
 	syncWatchers()
 	scheduleTile()
 end
@@ -403,6 +455,8 @@ syncWatchers = function()
 	end
 end
 
+local flashSpaceReady = hs.timer.delayed.new(FLASHSPACE_READY_SECONDS, loadAssignments)
+
 AppWatcher = hs.application.watcher
 	.new(function(_, event, app)
 		if not app then
@@ -414,6 +468,12 @@ AppWatcher = hs.application.watcher
 				forgetApp(app:pid())
 				scheduleTile()
 			end
+			return
+		end
+		-- FlashSpace started after Hammerspoon (e.g. at login): the CLI calls made so far
+		-- failed, so re-read once it can answer.
+		if event == hs.application.watcher.launched and app:bundleID() == FLASHSPACE_BUNDLE then
+			flashSpaceReady:start()
 			return
 		end
 		if not workspaceOf[app:bundleID()] then
