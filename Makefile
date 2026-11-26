@@ -41,7 +41,7 @@ install-nix: ## Install Nix if missing
 	fi
 
 .PHONY: host
-host: ## Create the git-ignored host.toml from this machine (ROLE=minimal|personal-lite|personal|work)
+host: ## Create the git-ignored host.toml from this machine (ROLE=minimal|personal-lite|personal|devhost|work)
 	@/bin/sh "$(DOTPATH)/scripts/init-host.sh" "$(HOST_CONFIG)" "$(DOTPATH)/nix/roles.toml" "$(ROLE)"
 
 .PHONY: require-host
