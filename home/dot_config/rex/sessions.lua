@@ -111,9 +111,10 @@ local function worktree_label(root, branch, path)
 	if path == root then
 		return repo_label(root)
 	end
-	-- git-wt marks a detached worktree "[detached]"; its directory tells them apart.
+	-- git-wt marks a detached worktree "[detached]". Its path names it instead: unique,
+	-- and a branch name can't contain "~" or start with "/".
 	if branch == nil or branch == "[detached]" then
-		branch = basename(path)
+		return repo_label(root) .. "@" .. tilde(path)
 	end
 	return repo_label(root) .. "@" .. branch
 end
