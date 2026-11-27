@@ -111,7 +111,11 @@ local function worktree_label(root, branch, path)
 	if path == root then
 		return repo_label(root)
 	end
-	return repo_label(root) .. "@" .. (branch or basename(path))
+	-- git-wt marks a detached worktree "[detached]"; its directory tells them apart.
+	if branch == nil or branch == "[detached]" then
+		branch = basename(path)
+	end
+	return repo_label(root) .. "@" .. branch
 end
 
 rex.action({
