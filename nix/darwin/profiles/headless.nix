@@ -12,9 +12,11 @@
     fi
   '';
 
+  # With sleep disabled, closing the lid leaves the built-in display lit until it
+  # idles out, so it idles out quickly.
   power.sleep = {
     computer = "never";
-    display = 10;
+    display = 1;
     harddisk = "never";
   };
 
