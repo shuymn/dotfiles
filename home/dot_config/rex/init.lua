@@ -33,6 +33,8 @@ rex.bind("ctrl+b>shift+k", "session.previous")
 rex.bind("ctrl+b>shift+j", "session.next")
 rex.bind("ctrl+b>w", "session.switch")
 rex.bind("ctrl+b>g", "pane.go_to")
+-- Project, worktree and home sessions: sessions.lua
+require("sessions")
 
 -- Resize mode (Herdr); h/j/k/l also work, as tmux's prefix+HJKL did.
 rex.bind("ctrl+b>shift+r", "client.mode.enter", { name = "resize" })
