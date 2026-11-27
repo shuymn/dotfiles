@@ -55,15 +55,20 @@ rex.action({
 	title = "Open Scrollback in Neovim",
 	keywords = "scrollback history nvim",
 	run = function(ctx)
-		local screen, err = rex.block.call(terminal, "format", { block_id = ctx.block_id, format = "text", trim = true })
+		-- Without max_bytes, format fails with too_large on a big scrollback; with it,
+		-- the rest comes back in parts to read with blob_read. 960 KiB is the cap.
+		local screen, err = rex.block.call(terminal, "format", {
+			block_id = ctx.block_id,
+			format = "text",
+			trim = true,
+			max_bytes = 983040,
+		})
 		if screen == nil then
 			error(err, 0)
 		end
-		-- Large scrollback comes back in parts to read with blob_read.
 		local parts = { screen.content or "" }
 		if screen.id ~= nil then
-			parts = {}
-			local offset = 0
+			local offset = #parts[1]
 			repeat
 				local part, perr = rex.block.call(terminal, "blob_read", { block_id = ctx.block_id, id = screen.id, offset = offset })
 				if part == nil then
@@ -84,7 +89,9 @@ rex.action({
 			focus = true,
 			layout = rex.layout.block({
 				flavor = shell,
-				options = { command = { "sh", "-c", 'nvim -R + -- "$1"; rm -f -- "$1"', "sh", path } },
+				-- Open the file, remove it, then let nvim read it from stdin, so
+				-- closing the layer (which kills nvim) leaves nothing behind.
+				options = { command = { "sh", "-c", 'exec 3<"$1" && rm -f -- "$1" && exec nvim -R + - <&3', "sh", path } },
 			}),
 		})
 		if lerr ~= nil then
