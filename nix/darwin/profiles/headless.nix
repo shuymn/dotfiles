@@ -35,4 +35,10 @@
   # A macOS update restarts the Mac with nobody at the screen; install them by hand.
   system.defaults.SoftwareUpdate.AutomaticallyInstallMacOSUpdates = false;
 
+  # Nobody looks at the screen, so apps open at the last logout stay closed
+  # after a restart instead of piling up there.
+  system.defaults.CustomUserPreferences = {
+    NSGlobalDomain.NSQuitAlwaysKeepsWindows = false;
+    "com.apple.loginwindow".TALLogoutSavesState = false;
+  };
 }
