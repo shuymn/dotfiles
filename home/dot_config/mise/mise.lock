@@ -186,18 +186,18 @@ url = "https://github.com/gokcehan/lf/releases/download/r42/lf-darwin-arm64.tar.
 url_api = "https://api.github.com/repos/gokcehan/lf/releases/assets/496377683"
 
 [[tools."github:google-antigravity/antigravity-cli"]]
-version = "1.5.17"
+version = "1.5.18"
 backend = "github:google-antigravity/antigravity-cli"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.linux-x64"]
-checksum = "sha256:6304b4f592ae97e59231cfb1b365ee29c155750c9a881f0cc8efe5f5281077cf"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.17/agy_cli_linux_x64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/790519060"
+checksum = "sha256:a4960723ed9cf5b5ac72ed541db8df4d62741795261eb93a4681006ccb23d5ad"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.18/agy_cli_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/794515272"
 
 [tools."github:google-antigravity/antigravity-cli"."platforms.macos-arm64"]
-checksum = "sha256:94d4c4755c9edbae3feba8f7d3c7b2764e6b239326efb0477b28407635c9e764"
-url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.17/agy_cli_mac_arm64.tar.gz"
-url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/790519540"
+checksum = "sha256:f154fdbe81885c36565b74615a9ef6c7c92fb9c2bc29acb0a300bc5990691871"
+url = "https://github.com/google-antigravity/antigravity-cli/releases/download/1.5.18/agy_cli_mac_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/assets/794515564"
 
 [[tools."github:k1LoW/git-wt"]]
 version = "0.30.0"
@@ -380,19 +380,19 @@ url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.3/lazygi
 url_api = "https://api.github.com/repos/jesseduffield/lazygit/releases/assets/722268996"
 
 [[tools.lefthook]]
-version = "2.2.3"
+version = "2.2.4"
 backend = "aqua:evilmartians/lefthook"
 
 [tools.lefthook."platforms.linux-x64"]
-checksum = "sha256:f25a53b1991c2727aa2819fdd7a4b9798fc0c210d1e1a92f035be8f346cec9fb"
-url = "https://github.com/evilmartians/lefthook/releases/download/v2.2.3/lefthook_2.2.3_Linux_x86_64.gz"
-url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/786728948"
+checksum = "sha256:d2ab071d60703a3d3fdc3ea4ac4172cc151a97a3623b83f1003ce1a8eb68e2b3"
+url = "https://github.com/evilmartians/lefthook/releases/download/v2.2.4/lefthook_2.2.4_Linux_x86_64.gz"
+url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/795192860"
 provenance = "github-attestations"
 
 [tools.lefthook."platforms.macos-arm64"]
-checksum = "sha256:ac57c55fa405c11afe9be7a733ab7d9e81ae5afa71e3588105b7d7aa3c7025ae"
-url = "https://github.com/evilmartians/lefthook/releases/download/v2.2.3/lefthook_2.2.3_MacOS_arm64.gz"
-url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/786728907"
+checksum = "sha256:d021736a6f73d308f65284f64b162675c8c579ee88baa8fd278c51c73edf7c40"
+url = "https://github.com/evilmartians/lefthook/releases/download/v2.2.4/lefthook_2.2.4_MacOS_arm64.gz"
+url_api = "https://api.github.com/repos/evilmartians/lefthook/releases/assets/795192785"
 provenance = "github-attestations"
 
 [[tools.node]]
