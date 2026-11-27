@@ -1,20 +1,22 @@
 # A Mac that runs with the lid closed and is reached only over SSH, Rex, and
-# Screen Sharing. Automatic login is set in System Settings, which also writes
-# the kcpassword that a defaults key alone cannot.
-{ localConfig, ... }:
+# Screen Sharing. Screen Sharing and automatic login are turned on in System
+# Settings, which writes the kcpassword that a defaults key alone cannot.
+{ lib, localConfig, ... }:
 
 {
   # Password logins end below, so stop before activation while no key can log in.
   system.activationScripts.preActivation.text = ''
-    if [ ! -s ${localConfig.homeDirectory}/.ssh/authorized_keys ]; then
+    if [ ! -s ${lib.escapeShellArg "${localConfig.homeDirectory}/.ssh/authorized_keys"} ]; then
       echo "headless: add a key to ~/.ssh/authorized_keys before password SSH is turned off" >&2
       exit 1
     fi
   '';
 
+  # With sleep disabled, closing the lid leaves the built-in display lit until it
+  # idles out, so it idles out quickly.
   power.sleep = {
     computer = "never";
-    display = 10;
+    display = 1;
     harddisk = "never";
   };
 
@@ -34,4 +36,11 @@
 
   # A macOS update restarts the Mac with nobody at the screen; install them by hand.
   system.defaults.SoftwareUpdate.AutomaticallyInstallMacOSUpdates = false;
+
+  # Nobody looks at the screen, so reopening apps and windows at login defaults
+  # to off; ticking it in a restart dialog still overrides this.
+  system.defaults.CustomUserPreferences = {
+    NSGlobalDomain.NSQuitAlwaysKeepsWindows = false;
+    "com.apple.loginwindow".TALLogoutSavesState = false;
+  };
 }
