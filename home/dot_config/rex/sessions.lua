@@ -107,16 +107,33 @@ local function open_session(label, dir)
 	return select_session(created.session_id)
 end
 
+local function short_hash(text)
+	local h = 5381
+	for i = 1, #text do
+		h = (h * 33 + text:byte(i)) % 2147483647
+	end
+	return string.format("%08x", h)
+end
+
+-- Rex caps session labels at 128 bytes; a longer one keeps its start plus a hash.
+local function bounded(label)
+	if #label <= 128 then
+		return label
+	end
+	return label:sub(1, 119) .. "~" .. short_hash(label)
+end
+
 local function worktree_label(root, branch, path)
 	if path == root then
-		return repo_label(root)
+		return bounded(repo_label(root))
 	end
-	-- git-wt marks a detached worktree "[detached]". Its path names it instead: unique,
-	-- and a branch name can't contain "~" or start with "/".
+	-- git-wt marks a detached worktree "[detached]". Name it by its directory plus a
+	-- hash of its path: "~" can't appear in a branch name, and the hash keeps
+	-- same-named directories apart.
 	if branch == nil or branch == "[detached]" then
-		return repo_label(root) .. "@" .. tilde(path)
+		return bounded(repo_label(root) .. "@" .. basename(path) .. "~" .. short_hash(path))
 	end
-	return repo_label(root) .. "@" .. branch
+	return bounded(repo_label(root) .. "@" .. branch)
 end
 
 rex.action({
@@ -148,7 +165,7 @@ rex.action({
 				return
 			end
 		end
-		return open_session(repo_label(dir), dir)
+		return open_session(bounded(repo_label(dir)), dir)
 	end,
 })
 
