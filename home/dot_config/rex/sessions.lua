@@ -115,12 +115,21 @@ local function short_hash(text)
 	return string.format("%08x", h)
 end
 
--- Rex caps session labels at 128 bytes; a longer one keeps its start plus a hash.
+-- Rex caps session labels at 128 characters (code points). A longer one keeps its
+-- first 119 characters plus "~" and a hash. Two such labels collide only if they share
+-- those 119 characters and the hash, which no real branch or path name comes near.
 local function bounded(label)
-	if #label <= 128 then
+	local count, cut = 0, nil
+	for pos in label:gmatch("()[^\128-\191]") do
+		count = count + 1
+		if count == 120 then
+			cut = pos
+		end
+	end
+	if count <= 128 then
 		return label
 	end
-	return label:sub(1, 119) .. "~" .. short_hash(label)
+	return label:sub(1, cut - 1) .. "~" .. short_hash(label)
 end
 
 local function worktree_label(root, branch, path)
