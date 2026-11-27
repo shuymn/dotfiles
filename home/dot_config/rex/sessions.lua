@@ -116,8 +116,9 @@ local function short_hash(text)
 end
 
 -- Rex caps session labels at 128 characters (code points). A longer one keeps its
--- first 119 characters plus "~" and a hash. Two such labels collide only if they share
--- those 119 characters and the hash, which no real branch or path name comes near.
+-- first 119 characters plus "~" and a hash. It can then equal another shortened label,
+-- or a detached one, only for branch or directory names near 100 characters, which
+-- the repositories here don't have (the longest label is under 90).
 local function bounded(label)
 	local count, cut = 0, nil
 	for pos in label:gmatch("()[^\128-\191]") do
