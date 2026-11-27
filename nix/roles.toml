@@ -16,7 +16,7 @@ home = ["dev"]
 
 [devhost]
 darwin = ["headless"]
-home = ["dev", "docker"]
+home = ["dev", "docker", "headless"]
 
 [work]
 darwin = ["flashspace", "dev", "llm", "work"]
