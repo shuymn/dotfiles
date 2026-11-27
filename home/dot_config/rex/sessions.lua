@@ -1,6 +1,6 @@
 -- One Rex session per repository or worktree, as Herdr workspaces were.
 -- A session is found again by its label: "owner/repo" for a repository's main
--- checkout and "repo@branch" for its other worktrees.
+-- checkout and "owner/repo@branch" for its other worktrees.
 
 local shell = "com.superlogical.terminal.shell"
 local terminal = "com.superlogical.terminal"
@@ -55,8 +55,12 @@ end
 local function pane_dir(ctx)
 	local r = rex.block.call(terminal, "pwd", { block_id = ctx.block_id })
 	if r ~= nil and r.pwd ~= nil then
-		local path = r.pwd:gsub("^file://[^/]*", "")
-		return (path:gsub("%%(%x%x)", function(h)
+		-- A program may report a file:// URL (percent-encoded) or a plain path.
+		local url_path = r.pwd:match("^file://[^/]*(/.*)$")
+		if url_path == nil then
+			return r.pwd
+		end
+		return (url_path:gsub("%%(%x%x)", function(h)
 			return string.char(tonumber(h, 16))
 		end))
 	end
@@ -68,9 +72,13 @@ local function pane_dir(ctx)
 end
 
 -- The repository's main checkout, for a directory anywhere in it or its worktrees.
+-- git lists the main worktree first.
 local function main_root(dir)
-	local common = run({ "git", "rev-parse", "--path-format=absolute", "--git-common-dir" }, dir):gsub("\n$", "")
-	return (common:gsub("/%.git/?$", ""))
+	local root = run({ "git", "worktree", "list", "--porcelain" }, dir):match("^worktree ([^\n]+)")
+	if root == nil then
+		error("no main worktree for " .. dir, 0)
+	end
+	return root
 end
 
 local function select_session(session_id)
@@ -103,7 +111,7 @@ local function worktree_label(root, branch, path)
 	if path == root then
 		return repo_label(root)
 	end
-	return basename(root) .. "@" .. (branch or basename(path))
+	return repo_label(root) .. "@" .. (branch or basename(path))
 end
 
 rex.action({
