@@ -49,7 +49,8 @@ if [ -n "$rex" ]; then
 	"$rex" skill setup >/dev/null
 	# Rex's xterm-rex terminfo entry, plus the ssh guard that sends a plain TERM
 	# to hosts without it (one Include line at the top of ~/.ssh/config).
-	"$rex" terminfo setup >/dev/null
+	"$rex" terminfo setup >/dev/null ||
+		echo "install-agents: rex terminfo setup failed; continuing" >&2
 else
 	echo "install-agents: skip Rex setup; rex is not installed" >&2
 fi

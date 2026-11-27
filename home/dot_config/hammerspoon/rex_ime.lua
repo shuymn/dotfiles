@@ -11,7 +11,7 @@ local tap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
 		return false
 	end
 	local flags = event:getFlags()
-	if not flags.ctrl or flags.cmd or flags.alt or flags.shift then
+	if not flags:containExactly({ "ctrl" }) then
 		return false
 	end
 	local app = hs.application.frontmostApplication()
