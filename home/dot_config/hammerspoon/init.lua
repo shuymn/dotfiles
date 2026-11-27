@@ -546,3 +546,7 @@ hs.hotkey.bind({ "alt" }, ",", function()
 end)
 
 loadAssignments()
+
+-- Unrelated to layout: switch to the U.S. layout before Rex's ctrl+b prefix.
+-- require keeps the returned event tap referenced in package.loaded.
+require("rex_ime")

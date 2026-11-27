@@ -126,42 +126,4 @@ if has "git-wt"; then
     [[ -n "$target_path" ]] && builtin cd -- "$target_path"
   }
 
-  _git_wt_create_wip() {
-    emulate -L zsh
-    setopt no_aliases
-
-    local branch_base branch target_path attempt
-    branch_base="wip/$(date +%Y%m%d-%H%M%S)"
-
-    for attempt in {0..99}; do
-      branch="$branch_base"
-      if ((attempt > 0)); then
-        branch="${branch_base}-${attempt}"
-      fi
-
-      if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-        continue
-      fi
-
-      target_path="$(git-wt "$branch" "$@")" || return
-      print -r -- "$branch"
-      print -r -- "$target_path"
-      return
-    done
-
-    print -u2 "wt-wip: could not find unused branch name for $branch_base"
-    return 1
-  }
-
-  # Start work quickly with a disposable branch name, then rename with
-  # `git wt -m <old> <new>` once the task name is clear.
-  wt-wip() {
-    local branch target_path
-    { read -r branch; read -r target_path } < <(_git_wt_create_wip "$@") || return
-    builtin cd -- "$target_path"
-  }
-  gwip() {
-    wt-wip "$@"
-  }
-
 fi

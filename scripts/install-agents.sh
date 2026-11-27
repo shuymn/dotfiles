@@ -47,8 +47,12 @@ rex=$(command -v rex ||
 	true)
 if [ -n "$rex" ]; then
 	"$rex" skill setup >/dev/null
+	# Rex's xterm-rex terminfo entry, plus the ssh guard that sends a plain TERM
+	# to hosts without it (one Include line at the top of ~/.ssh/config).
+	"$rex" terminfo setup >/dev/null ||
+		echo "install-agents: rex terminfo setup failed; continuing" >&2
 else
-	echo "install-agents: skip Rex skill setup; rex is not installed" >&2
+	echo "install-agents: skip Rex setup; rex is not installed" >&2
 fi
 
 marketplaces=$(claude plugin marketplace list --json)

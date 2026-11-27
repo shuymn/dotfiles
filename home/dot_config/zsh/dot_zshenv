@@ -42,8 +42,9 @@ path=( \
   "$path[@]" \
 )
 
-# Rex sets REX_BIN_DIR in its terminals but does not put the rex CLI on PATH.
-[[ -n "${REX_BIN_DIR:-}" ]] && path+=("${REX_BIN_DIR}"(N-/))
+# Rex puts REX_BIN_DIR first on PATH, but the rebuild above moves it back; keep
+# it first so the rex CLI always matches the server that runs the terminal.
+[[ -n "${REX_BIN_DIR:-}" ]] && path=("${REX_BIN_DIR}"(N-/) "$path[@]")
 
 typeset -gx -U fpath
 fpath=( \

@@ -20,7 +20,7 @@ exec chezmoi execute-template --with-stdin '
 {{- if hasKey $settings "terminal" -}}
 {{-   $terminal = get $settings "terminal" -}}
 {{- end -}}
-{{- $_ := set $terminal "showTerminalProgress" true -}}
+{{- $_ := set $terminal "showTerminalProgress" false -}}
 {{- $_ := set $settings "terminal" $terminal -}}
 {{ $settings | mustToPrettyJson }}
 '
