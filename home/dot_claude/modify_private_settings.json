@@ -281,10 +281,17 @@ exec chezmoi execute-template --with-stdin '
         "source": "github",
         "repo": "shuymn/codex-plugin-cc"
       }
+    },
+    "shuymn-agy": {
+      "source": {
+        "source": "github",
+        "repo": "shuymn/agy-plugin-cc"
+      }
     }
   },
   "enabledPlugins": {
-    "codex@shuymn-codex": true
+    "codex@shuymn-codex": true,
+    "agy@shuymn-agy": true
   }
 }
 ` | mustFromJson -}}
